@@ -15,6 +15,12 @@
 // finalDash: { seconds, multiplier, hint }, the cat gets one last burst of speed before the end
 // pack:     every chaser is on screen at once, and each knockout brings the next one forward
 // airSteering: the left and right keys steer the cat in the air
+// freeMove: platformer controls. The chaser keeps a constant speed, and swings keep time on their own
+// startHint: a message shown as the level begins
+// lunges:   { farGap, nearGap, farEverySeconds, nearEverySeconds, warningSeconds, dodgeBonus }, lunges
+//           that depend on how close the chaser is, in place of the ones in the plan's sections
+// shortcut: { offscreenSeconds, warningSeconds, landGap, cooldownSeconds, graceSeconds }, a chaser
+//           left far behind takes a shortcut back into view, and treats count double until then
 // tallCamera: the camera rises with a climbing cat, so ledges can go higher than one screen
 // plan:     section names in order. { section, hint } also shows a message on arriving there, and
 //           { section, mouse: true } hides the level's toy mouse in that section's mouseSpot.
@@ -230,17 +236,19 @@ export const LEVELS = [
     light: 0xfff2d9,
     theme: 'park',
     title: 'The Village Green',
-    intro: 'It\'s market day on the green, and apples are falling from every tree. Watch your head, and don\'t stop.',
+    intro: 'It\'s market day on the green, and apples are falling from every tree.\nNEW: you control the cat! Left and right to run, Space to jump. Clean running builds speed. Press M to try the always-running mode.',
     outro: 'Out of the village at last. There\'s a dirt road, and the smell of hay.',
     cat: { speed: 435 },
     music: { track: 'village', bpm: 156 },
-    chase: { ownerSpeed: 408, startGap: 540, maxGap: 620, catchGap: 110 },
+    chase: { ownerSpeed: 330, startGap: 700, maxGap: 1200, catchGap: 110 },
     chasers: ['boy', 'grandma'],
-    finalRush: { seconds: 8, extraSpeed: 25 },
-    airSteering: true,
+    freeMove: true,
     tallCamera: true,
+    startHint: 'Hold right to run! Clean running builds speed',
+    lunges: { farGap: 520, nearGap: 300, farEverySeconds: 7, nearEverySeconds: 3.5, warningSeconds: 0.7, dodgeBonus: 180 },
+    shortcut: { offscreenSeconds: 4, warningSeconds: 1.5, landGap: 450, cooldownSeconds: 14, graceSeconds: 2 },
     plan: [
-      { section: 'breather', hint: 'NEW! Hold left or right in the air to steer your jump' },
+      'breather',
       'trip',
       { section: 'wallIntro', hint: 'Stone walls stop you dead! Jump them' },
       { section: 'dogs', hint: 'Falling apples! Watch for the shadow' },
@@ -252,8 +260,8 @@ export const LEVELS = [
       'breather',
       { section: 'marketClimb', hint: 'Climb the market! Awnings collapse, and walls wait below', mouse: true },
       'breather',
-      'lunge',
       'checkpoint',
+      { section: 'liftGate', hint: 'Too tall! Wait for the lift, or bounce and double jump' },
       { section: 'marketStalls', hint: 'Bounce along the market stalls!' },
       'breather',
       'flock',

@@ -73,6 +73,22 @@ export const STEER = {
   RETURN_RATE: 4, // how quickly the camera catches up after landing
 };
 
+// Platformer controls: the player runs the cat. Clean running builds momentum, and that's the only
+// way to go faster than the chaser. The hybrid mode always runs, with the keys changing the speed.
+export const FREE_MOVE = {
+  START_SPEED: 240, // just started, or just hit something
+  TOP_SPEED: 440, // after a long clean run
+  BUILD_SECONDS: 3, // how long running clean takes to reach top speed
+  LOSS_RATE: 2, // momentum lost per second when not running forward
+  BACK_SPEED: 240,
+  ACCELERATION: 1800,
+  AIR_CONTROL: 0.6, // how much of that acceleration the cat has in the air
+  CRASH_SPEED: 100, // walking into a wall slower than this isn't a crash
+  IDLE_BELOW: 20, // slower than this looks like standing still
+  HYBRID_MOMENTUM: 0.45, // where momentum settles with no key held in hybrid mode
+  HYBRID_BRAKE_SPEED: 180,
+};
+
 // A solid wall stops the cat. Stuck there, the chaser closes in at this speed, whatever the level.
 export const WALL = { CLOSE_SPEED: 220 };
 

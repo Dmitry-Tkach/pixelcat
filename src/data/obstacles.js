@@ -6,6 +6,7 @@
 //           'read'       changes state: watch it, then choose. `moves` says what each state needs
 //           'stay'       passes overhead: only hits a cat that jumps into it
 //           'terrain'    lies on the ground: jump across it, or get slowed. It never counts as a hit
+//           'lift'       too tall for a double jump: ride a lift, or bounce and double jump
 // hitbox:   in texture pixels from the top-left corner (smaller than the art, to feel fair)
 // penalty:  how a collision slows the cat
 // landable: the cat can land on top safely, and run along it. Its sides still count as hits.
@@ -334,6 +335,14 @@ Object.assign(OBSTACLES, {
     solid: true,
     stuckHint: 'Too tall! Jump twice!',
     hitbox: { x: 10, y: 8, w: 90, h: 272 },
+    penalty: WALL_RECOVERY,
+  },
+  gateWall: {
+    texture: 'stone-wall-gate',
+    avoid: 'lift',
+    solid: true,
+    stuckHint: 'Too tall! Use the lift, or bounce and double jump',
+    hitbox: { x: 10, y: 8, w: 90, h: 472 },
     penalty: WALL_RECOVERY,
   },
   // Farm

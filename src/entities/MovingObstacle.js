@@ -208,6 +208,7 @@ class SwingingObstacle extends MovingObstacle {
     this.catSpeed = catSpeed;
     this.position = position;
     this.phase = 'running';
+    this.keepsTime = true;
     this.setOrigin(0.5, 1).setDepth(5);
     this.rope = scene.add.rectangle(at, VIEW.TOP, 8, 10, 0x3f4c73).setOrigin(0.5, 0).setDepth(3);
     this.place(0);
@@ -237,6 +238,7 @@ class PulsingObstacle extends MovingObstacle {
     this.catSpeed = catSpeed;
     this.position = position;
     this.phase = 'running';
+    this.keepsTime = true;
     this.setOrigin(0.5, 1).setDepth(5);
     this.water = scene.add.image(at, this.y - 30, type.motion.waterTexture).setOrigin(0.5, 1).setDepth(5);
     this.place(0);

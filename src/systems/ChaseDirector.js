@@ -8,7 +8,7 @@ export const PACK_SPACING = 85; // how far apart the family runs when they're al
 
 // Decides what the chaser is doing: following, lunging, recovering or knocked out.
 // It has no Phaser dependency, so it can be unit-tested. update() returns what just happened:
-//   warn, dash, grabbed, dodged, recovered, returned, rush, finalRush
+//   warn, dash, grabbed, dodged, recovered, returned, rush, finalRush, shortcutWarn, shortcutArrive
 export class ChaseDirector {
   // `startX` and `rosterIndex` are for restarting from a checkpoint.
   constructor(level, { startX = 0, rosterIndex = 0 } = {}) {
@@ -27,6 +27,59 @@ export class ChaseDirector {
     this.finalRush = level.finalRush ?? null;
     this.finalRushStarted = false;
     this.pack = Boolean(level.pack);
+    this.constantSpeed = Boolean(level.freeMove); // no sudden sprints with platformer controls
+    // Lunges that depend on how close the chaser is, in place of the ones the level plans.
+    this.lungeRule = level.lunges ?? null;
+    if (this.lungeRule) this.attacks = [];
+    this.lungeMs = 0;
+    this.shortcutRule = level.shortcut ?? null;
+    this.offscreenMs = 0;
+    this.shortcutWarnMs = 0;
+    this.shortcutCooldownMs = 0;
+    this.graceMs = 0;
+  }
+
+  // How often she lunges at this distance, in seconds, or null when she's too far away.
+  lungeInterval() {
+    const { farGap, nearGap, farEverySeconds, nearEverySeconds } = this.lungeRule;
+    if (this.tracker.gap >= farGap) return null;
+    return this.tracker.gap < nearGap ? nearEverySeconds : farEverySeconds;
+  }
+
+  // A cat already high enough to be out of reach isn't worth lunging at.
+  updateDistanceLunge(ms, catX, catHeight) {
+    const interval = this.lungeInterval();
+    if (interval === null) {
+      this.lungeMs = 0;
+      return;
+    }
+    this.lungeMs += ms;
+    if (this.lungeMs < interval * 1000 || this.graceMs > 0 || catHeight >= LUNGE.DODGE_HEIGHT) return;
+    this.lungeMs = 0;
+    this.attacks.unshift({ at: catX, warningSeconds: this.lungeRule.warningSeconds });
+  }
+
+  // A chaser who's been left far behind takes a shortcut, with a warning, and lands in view.
+  updateShortcut(ms, ownerOffscreen, safeForShortcut, events) {
+    const rule = this.shortcutRule;
+    if (!rule) return;
+    this.shortcutCooldownMs = Math.max(0, this.shortcutCooldownMs - ms);
+    this.graceMs = Math.max(0, this.graceMs - ms);
+    if (this.shortcutWarnMs > 0) {
+      this.shortcutWarnMs -= ms;
+      if (this.shortcutWarnMs > 0) return;
+      this.tracker.gap = Math.min(this.tracker.gap, rule.landGap);
+      this.graceMs = rule.graceSeconds * 1000;
+      this.shortcutCooldownMs = rule.cooldownSeconds * 1000;
+      this.offscreenMs = 0;
+      events.push('shortcutArrive');
+      return;
+    }
+    this.offscreenMs = ownerOffscreen ? this.offscreenMs + ms : 0;
+    if (this.offscreenMs >= rule.offscreenSeconds * 1000 && this.shortcutCooldownMs === 0 && safeForShortcut && this.phase === 'chasing') {
+      this.shortcutWarnMs = rule.warningSeconds * 1000;
+      events.push('shortcutWarn');
+    }
   }
 
   // Who's waiting behind the front chaser, when the whole family is on screen at once.
@@ -61,7 +114,7 @@ export class ChaseDirector {
   // Sudden sprints, for chasers who have them. They only start while simply chasing.
   updateRush(ms, events) {
     const { rush } = this.chaser;
-    if (!rush) return;
+    if (!rush || this.constantSpeed) return;
     if (this.rushMs > 0) {
       this.rushMs = Math.max(0, this.rushMs - ms);
       this.tracker.ownerSpeed = this.baseSpeed + this.chaser.speedDelta + (this.rushMs > 0 ? rush.extraSpeed : 0);
@@ -125,7 +178,7 @@ export class ChaseDirector {
     this.phaseMs = 0;
   }
 
-  update(ms, { catX, catSpeed, catHeight }) {
+  update(ms, { catX, catSpeed, catHeight, ownerOffscreen = false, safeForShortcut = false }) {
     const events = [];
     this.phaseMs += ms;
 
@@ -149,6 +202,8 @@ export class ChaseDirector {
     this.updateRush(ms, events);
     this.tracker.update(ms / 1000, catSpeed);
     this.updateFinalRush(ms, catX, events);
+    this.updateShortcut(ms, ownerOffscreen, safeForShortcut, events);
+    if (this.lungeRule && this.phase === 'chasing') this.updateDistanceLunge(ms, catX, catHeight);
 
     switch (this.phase) {
       case 'chasing':
@@ -170,7 +225,7 @@ export class ChaseDirector {
           this.enter('recovering');
           events.push('grabbed');
         } else if (this.phaseMs >= LUNGE.STRIKE_MS) {
-          this.tracker.adjust(LUNGE.MISS_DISTANCE_BONUS);
+          this.tracker.adjust(this.lungeRule?.dodgeBonus ?? LUNGE.MISS_DISTANCE_BONUS);
           this.enter('recovering');
           events.push('dodged');
         }

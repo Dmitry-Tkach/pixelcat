@@ -112,7 +112,7 @@ describe('leapingDog fairness', () => {
 
 describe('obstacle data', () => {
   it.each(Object.entries(OBSTACLES))('%s can be drawn and avoided', (_name, type) => {
-    expect(['jump', 'slide', 'doubleJump', 'read', 'stay', 'terrain']).toContain(type.avoid);
+    expect(['jump', 'slide', 'doubleJump', 'read', 'stay', 'terrain', 'lift']).toContain(type.avoid);
     expect((type.penalty ?? type.zone).speedMultiplier).toBeLessThan(1);
     if (type.character) expect(CHARACTERS[type.character].anims[type.motion.anim]).toBeDefined();
     else expect(type.texture).toBeTruthy();

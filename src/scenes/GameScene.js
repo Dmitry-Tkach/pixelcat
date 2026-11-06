@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { BIG_LAND, CLIMB_CAMERA, GAME, SPRINT, VIEW, WAGON, WALL } from '../config/gameConfig.js';
+import { BIG_LAND, CLIMB_CAMERA, FREE_MOVE, GAME, SPRINT, VIEW, WAGON, WALL } from '../config/gameConfig.js';
 import { LEVELS, worldName } from '../data/levels/index.js';
 import { CHASERS } from '../data/chasers.js';
 import { ESCAPE_ANIMATION } from '../data/screens.js';
@@ -34,6 +34,13 @@ const FINAL_DASH_SHAKE = 0.002;
 const MUD_COLOR = 0x7a4f2a;
 const HAY_COLOR = 0xf2c440;
 const GRAB_PENALTY = { speedMultiplier: 0.6, durationMs: 700 };
+const OFFSCREEN_MARGIN = 80; // how far past the left edge of the screen a chaser counts as out of sight
+const SHORTCUT_CLEAR_AHEAD = 400; // a chaser doesn't take a shortcut with an obstacle this close to the cat
+const ON_ROAD_HEIGHT = 5;
+const MODE_HINTS = {
+  free: 'Free move: left and right run, and you can stop',
+  hybrid: 'Always running: right is faster, left is slower',
+};
 
 // Runs one level: it connects the entities and systems, and holds no game rules of its own.
 export class GameScene extends Phaser.Scene {
@@ -85,6 +92,10 @@ export class GameScene extends Phaser.Scene {
     this.cat = new Cat(this, startX, level.cat.speed);
     this.cat.treats = this.startPoint?.treats ?? 0;
     this.cat.hasPaw = this.startPoint?.hasPaw ?? false;
+    this.bonusTreats = this.startPoint?.bonusTreats ?? 0;
+    this.toldAboutBonus = false;
+    this.lastCatX = startX;
+    if (level.freeMove) this.cat.moveMode = this.registry.get('moveMode') ?? 'free';
     this.grabs = this.startPoint?.grabs ?? 0;
     this.foundMouse = this.startPoint?.foundMouse ?? false;
     this.toyMouse = new ToyMouse(this, level, this.foundMouse);
@@ -129,13 +140,14 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.overlap(this.cat, this.gate, () => this.handleEscape());
 
     this.hud = new Hud(this, level.name, () => this.togglePause());
-    this.hud.setTreats(this.cat.treats);
+    this.hud.setTreats(this.cat.treats + this.bonusTreats);
     this.hud.setPawReady(this.cat.hasPaw);
     this.controls = new InputController(this, {
       onJump: () => this.isPlaying && this.cat.requestJump(),
       onSlide: () => this.isPlaying && this.cat.requestSlide(),
       onPause: () => this.togglePause(),
       onPaw: () => this.usePaw(),
+      onSwitchMode: () => this.switchMoveMode(),
     });
     this.state = new GameStateMachine((next) => this.onStateChange(next));
 
@@ -179,7 +191,8 @@ export class GameScene extends Phaser.Scene {
     const ms = Math.min(delta, 50);
     this.lastFrameMs = ms;
     this.controls.update(time);
-    if (this.level.airSteering) this.cat.steer(this.controls.steer);
+    if (this.level.freeMove) this.cat.move(this.controls.steer);
+    else if (this.level.airSteering) this.cat.steer(this.controls.steer);
     this.platforms.update(ms, this.cat);
     const riding = this.wagons.update(this.cat);
     this.cat.speedControl.setTerrain(riding ? WAGON.RIDE_SPEED : this.obstacles.terrainUnder(this.cat));
@@ -187,7 +200,16 @@ export class GameScene extends Phaser.Scene {
     this.cat.tick(ms);
     this.obstacles.update(ms, this.cat);
     const catHeight = GAME.GROUND_Y - this.cat.body.bottom;
-    const events = this.chase.update(ms, { catX: this.cat.x, catSpeed: this.chaseSpeed, catHeight });
+    const catSpeed = this.level.freeMove ? (this.cat.x - this.lastCatX) / (ms / 1000) : this.chaseSpeed;
+    this.lastCatX = this.cat.x;
+    const events = this.chase.update(ms, {
+      catX: this.cat.x,
+      catSpeed,
+      catHeight,
+      ownerOffscreen: this.ownerOffscreen,
+      safeForShortcut: this.safeForShortcut,
+    });
+    this.updateBonusHint();
     events.forEach((event) => this.handleChaseEvent(event));
     this.hud.update(this.tracker.safety, this.cat.x / this.level.length);
     this.updateDanger();
@@ -195,6 +217,39 @@ export class GameScene extends Phaser.Scene {
     this.updateCheckpoints();
     this.updateFinalDash();
     if (this.tracker.isCaught) this.state.to(STATE.FAILED);
+  }
+
+  get ownerOffscreen() {
+    return this.tracker.gap > VIEW.CAT_OFFSET + OFFSCREEN_MARGIN;
+  }
+
+  // A chaser landing from a shortcut shouldn't catch the cat in the middle of something else.
+  get safeForShortcut() {
+    const { cat } = this;
+    if (GAME.GROUND_Y - cat.body.bottom > ON_ROAD_HEIGHT || cat.body.blocked.right) return false;
+    return !this.obstacles.items.some((item) => {
+      const ahead = item.x - cat.x;
+      return !item.passed && ahead > 0 && ahead < SHORTCUT_CLEAR_AHEAD;
+    });
+  }
+
+  // Being out of sight makes treats worth double, so a lead is still worth having.
+  updateBonusHint() {
+    if (!this.level.shortcut) return;
+    if (!this.ownerOffscreen) {
+      this.toldAboutBonus = false;
+    } else if (!this.toldAboutBonus) {
+      this.toldAboutBonus = true;
+      this.hud.showHint('Out of sight! Treats count double');
+    }
+  }
+
+  switchMoveMode() {
+    if (!this.level.freeMove || !this.isPlaying) return;
+    const next = this.cat.moveMode === 'free' ? 'hybrid' : 'free';
+    this.cat.moveMode = next;
+    this.registry.set('moveMode', next);
+    this.hud.showHint(MODE_HINTS[next]);
   }
 
   // Getting away from a wall leaves the cat slow for a moment, while it picks up speed again.
@@ -250,6 +305,7 @@ export class GameScene extends Phaser.Scene {
       x: checkpoints[this.nextCheckpoint],
       treats: this.cat.treats,
       hasPaw: Boolean(this.cat.hasPaw),
+      bonusTreats: this.bonusTreats,
       rosterIndex: this.chase.rosterIndex,
     };
     this.nextCheckpoint += 1;
@@ -259,7 +315,8 @@ export class GameScene extends Phaser.Scene {
 
   handleTreat() {
     this.cat.treats += 1;
-    this.hud.setTreats(this.cat.treats);
+    if (this.level.shortcut && this.ownerOffscreen) this.bonusTreats += 1;
+    this.hud.setTreats(this.cat.treats + this.bonusTreats);
     this.audio.playSfx('treat');
   }
 
@@ -312,7 +369,12 @@ export class GameScene extends Phaser.Scene {
   // The cat is stopped dead, and stays stopped until the player jumps over the wall.
   handleWallHit(item) {
     if (!this.isPlaying) return;
-    this.stuckOn = item;
+    if (this.level.freeMove) {
+      if (this.cat.moveVelocity < FREE_MOVE.CRASH_SPEED) return; // just walked up to it
+      this.cat.loseMomentum();
+    } else {
+      this.stuckOn = item;
+    }
     this.streak.recordHit();
     this.hud.setStreak(0);
     this.effects.stopSprint();
@@ -377,6 +439,19 @@ export class GameScene extends Phaser.Scene {
       case 'finalRush':
         this.hud.showHint('Almost there! They\'re speeding up!');
         this.audio.playSfx('chaserRush');
+        break;
+      case 'shortcutWarn':
+        this.hud.showHint('Look out! They know a shortcut!');
+        this.hud.showEdgeWarning(true);
+        this.audio.playSfx('chaserRush');
+        break;
+      case 'shortcutArrive':
+        this.hud.showEdgeWarning(false);
+        this.audio.playSfx('chaserBack');
+        this.chaser.dropIn(() => {
+          this.effects.puff(this.chaser.x, GAME.GROUND_Y);
+          this.cameras.main.shake(140, 0.005);
+        });
         break;
       default:
         break;
@@ -453,6 +528,7 @@ export class GameScene extends Phaser.Scene {
     this.chaser.startRunning();
     this.followers.forEach((follower) => follower.startRunning());
     this.audio.startMusic(this.level.music);
+    if (this.level.startHint) this.hud.showHint(this.level.startHint);
   }
 
   // The two sound toggles, shared by menus. Pressing one redraws its menu with the new label.
@@ -490,7 +566,7 @@ export class GameScene extends Phaser.Scene {
     this.audio.stopMusic();
     this.audio.playSfx('escape');
     this.obstacles.stopMovers();
-    this.progress.record(this.level.id, starsFor(this.starResult), this.cat.treats, this.foundMouse);
+    this.progress.record(this.level.id, starsFor(this.starResult), this.cat.treats + this.bonusTreats, this.foundMouse);
     this.followers.forEach((follower) => follower.giveUp());
     this.chaser.giveUp();
     this.chaserShadow.setVisible(false);
@@ -615,6 +691,7 @@ export class GameScene extends Phaser.Scene {
       `${starText(starsFor(this.starResult))}`,
       `${mark(goals.treats)} ${this.cat.treats} of ${this.treats.total} treats   ${mark(goals.untouched)} ${goals.untouched ? 'Never grabbed' : 'Grabbed'}`,
     ];
+    if (this.bonusTreats > 0) lines.push(`+${this.bonusTreats} bonus treats while out of sight`);
     lines.push(this.foundMouse ? '🐭 You found the toy mouse!' : 'A toy mouse is hiding somewhere here.');
     return lines.join('\n');
   }

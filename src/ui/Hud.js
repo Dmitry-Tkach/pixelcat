@@ -10,6 +10,7 @@ const PROGRESS_W = 180;
 const PIP_RADIUS = 9;
 const PIP_GAP = 26;
 const HINT_MS = 2400;
+const EDGE_PULSE_MS = 160;
 
 // The in-game display: level name, progress, chase distance, sprint streak, hints and pause.
 export class Hud {
@@ -56,6 +57,11 @@ export class Hud {
     this.hint = centered(scene.add.text(WIDTH / 2, 150, '', { ...text, fontSize: '34px', align: 'center' }).setOrigin(0.5));
     this.hint.setAlpha(0);
 
+    // Warns that a chaser is about to land from a shortcut, on the side they'll come from.
+    this.edgeWarning = fixed(scene.add.text(70, 400, '!', { ...text, fontSize: '110px', color: '#F0455F', strokeThickness: 10 }).setOrigin(0.5));
+    this.edgeWarning.setVisible(false);
+    this.edgePulse = scene.tweens.add({ targets: this.edgeWarning, alpha: 0.25, duration: EDGE_PULSE_MS, yoyo: true, repeat: -1, paused: true });
+
     // The treat counter, to the left of the pause button.
     right(scene.add.image(WIDTH - 190, 50, 'fish'));
     this.treatLabel = right(scene.add.text(WIDTH - 156, 32, '0', { ...text, fontSize: '32px' }));
@@ -96,6 +102,12 @@ export class Hud {
     this.pips.forEach((pip, i) => {
       pip.setFillStyle(i < count ? WARN : INK, i < count ? 1 : 0.75);
     });
+  }
+
+  showEdgeWarning(visible) {
+    this.edgeWarning.setVisible(visible).setAlpha(1);
+    if (visible) this.edgePulse.restart();
+    else this.edgePulse.pause();
   }
 
   showHint(message) {

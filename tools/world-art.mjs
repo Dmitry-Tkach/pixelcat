@@ -638,6 +638,7 @@ function journeyArt() {
     <path d="M8 18 C14 30 24 18 30 26 C36 18 46 22 52 18 Z" fill="#6FA23F"/>`, 110, height);
   wall('stone-wall', 150);
   wall('stone-wall-tall', 280);
+  wall('stone-wall-gate', 480);
 
   // ----- The hidden collectible -----
   save('toy-mouse', `

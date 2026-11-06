@@ -274,8 +274,8 @@ export const SECTIONS = {
       { t: 2.1, seconds: 1, height: 300, style: 'plank' },
       { t: 3.6, seconds: 1.1, height: 420, style: 'plank', lift: { travel: 45, seconds: 2.6 } },
       { t: 5.2, seconds: 0.8, height: 520, style: 'marketAwning', collapse: true },
-      // The gap before this one is too wide for one plain jump: steer across, or double jump.
-      { t: 6.9, seconds: 0.8, height: 590, style: 'marketAwning', collapse: true },
+      // A wide gap: it takes full speed, or a double jump.
+      { t: 6.7, seconds: 1, height: 590, style: 'marketAwning', collapse: true },
       { t: 8.2, seconds: 2, height: 620, style: 'rooftop' },
     ],
     treats: [
@@ -283,10 +283,19 @@ export const SECTIONS = {
       { line: 2.2, count: 5, height: 350 },
       { line: 3.7, count: 5, height: 500 },
       { line: 5.3, count: 4, height: 570 },
-      { line: 6.2, count: 4, height: 700 },
-      { line: 7, count: 4, height: 640 },
+      { line: 6, count: 4, height: 700 },
+      { line: 6.9, count: 4, height: 640 },
       { line: 8.4, count: 11, height: 670 },
     ],
+  },
+
+  // A wall too tall to jump. Wait for the lift while the chaser closes in, or take the skilful
+  // way: bounce off the mushroom and double jump, without slowing down at all.
+  liftGate: {
+    duration: 5,
+    obstacles: [{ type: 'bin', t: 1.3 }, { type: 'gateWall', t: 2.65 }],
+    platforms: [{ t: 1.5, seconds: 0.9, height: 300, style: 'plank', lift: { travel: 130, seconds: 2.4 } }],
+    treats: [{ line: 2.55, count: 3, height: 540 }],
   },
 
   // ----- Farm -----

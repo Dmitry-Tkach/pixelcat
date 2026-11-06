@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { BIG_LAND, GAME, MOVEMENT, STEER } from '../config/gameConfig.js';
+import { BIG_LAND, FREE_MOVE, GAME, MOVEMENT, STEER } from '../config/gameConfig.js';
 import { CHARACTERS, animKey, frameKey } from '../data/characters.js';
 import { SpeedController } from '../systems/SpeedController.js';
 
@@ -30,6 +30,10 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     this.steerVelocity = 0;
     this.screenShift = 0;
     this.fallSpeed = 0;
+    this.moveMode = null; // 'free' or 'hybrid' on levels with platformer controls
+    this.moveDirection = 0;
+    this.moveVelocity = 0;
+    this.momentum = 0;
     this.play(animKey('cat', 'idle'));
   }
 
@@ -124,12 +128,62 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
 
   applyPenalty(penalty) {
     this.speedControl.applyPenalty(penalty);
+    this.loseMomentum();
     this.hurtMs = penalty.durationMs * 0.5;
     this.play(animKey('cat', 'hurt'), true);
   }
 
   get speed() {
     return this.running ? this.speedControl.speed : 0;
+  }
+
+  loseMomentum() {
+    this.momentum = 0;
+  }
+
+  // -1 is left, 1 is right, and 0 is neither.
+  move(direction) {
+    this.moveDirection = direction;
+  }
+
+  updateMomentum(seconds) {
+    const hybrid = this.moveMode === 'hybrid';
+    if (this.moveDirection > 0) {
+      this.momentum += seconds / FREE_MOVE.BUILD_SECONDS;
+    } else if (hybrid && this.moveDirection === 0) {
+      const change = seconds * FREE_MOVE.LOSS_RATE;
+      const towardCruise = FREE_MOVE.HYBRID_MOMENTUM - this.momentum;
+      this.momentum += Phaser.Math.Clamp(towardCruise, -change, change);
+    } else {
+      this.momentum -= seconds * FREE_MOVE.LOSS_RATE;
+    }
+    this.momentum = Phaser.Math.Clamp(this.momentum, 0, 1);
+    this.speedControl.baseSpeed = Phaser.Math.Linear(FREE_MOVE.START_SPEED, FREE_MOVE.TOP_SPEED, this.momentum);
+  }
+
+  moveTarget() {
+    const hybrid = this.moveMode === 'hybrid';
+    if (this.moveDirection > 0) return this.speed;
+    if (this.moveDirection < 0) return hybrid ? FREE_MOVE.HYBRID_BRAKE_SPEED : -FREE_MOVE.BACK_SPEED;
+    return hybrid ? this.speed : 0;
+  }
+
+  // Platformer controls. A wall takes away everything the cat had built up.
+  updateFreeMove(ms) {
+    const seconds = ms / 1000;
+    this.updateMomentum(seconds);
+    if (this.body.blocked.right && this.moveVelocity > 0) {
+      this.moveVelocity = 0;
+      this.loseMomentum();
+    }
+    if (this.body.blocked.left && this.moveVelocity < 0) this.moveVelocity = 0;
+    const control = this.onGround ? 1 : FREE_MOVE.AIR_CONTROL;
+    const change = FREE_MOVE.ACCELERATION * control * seconds;
+    const target = this.running ? this.moveTarget() : 0;
+    this.moveVelocity = Phaser.Math.Clamp(target, this.moveVelocity - change, this.moveVelocity + change);
+    this.setVelocityX(this.moveVelocity);
+    if (this.moveVelocity < -FREE_MOVE.IDLE_BELOW) this.setFlipX(true);
+    else if (this.moveVelocity > FREE_MOVE.IDLE_BELOW) this.setFlipX(false);
   }
 
   // -1 brakes, 1 surges, and 0 lets go. It only has an effect in the air.
@@ -160,8 +214,12 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     this.dropMs = Math.max(0, this.dropMs - ms);
     if (!this.onGround) this.onPlatform = false;
 
-    this.updateSteering(ms);
-    this.setVelocityX(this.speed + this.steerVelocity);
+    if (this.moveMode) {
+      this.updateFreeMove(ms);
+    } else {
+      this.updateSteering(ms);
+      this.setVelocityX(this.speed + this.steerVelocity);
+    }
 
     if (this.onGround && this.wasAirborne) {
       this.emit('land');
@@ -184,7 +242,9 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     }
 
     if (this.isSliding) {
-      this.slideLeft -= this.speed * (ms / 1000);
+      // A cat sliding from a standstill still gets back up, however slowly it's moving.
+      const slideSpeed = this.moveMode ? Math.max(Math.abs(this.moveVelocity), FREE_MOVE.START_SPEED) : this.speed;
+      this.slideLeft -= slideSpeed * (ms / 1000);
       if (this.slideLeft <= 0) this.endSlide();
     }
 
@@ -196,6 +256,7 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     let role = 'run';
     if (this.isSliding) role = 'slide';
     else if (!this.onGround) role = this.body.velocity.y < 0 ? 'jump' : 'fall';
+    else if (this.moveMode && Math.abs(this.moveVelocity) < FREE_MOVE.IDLE_BELOW) role = 'idle';
     this.play(animKey('cat', role), true);
   }
 

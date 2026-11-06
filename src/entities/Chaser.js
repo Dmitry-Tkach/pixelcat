@@ -9,6 +9,8 @@ const WARNING_ABOVE = 265;
 const WARNING_PULSE_MS = 150;
 const FLY_OFF_MS = 700;
 const HUG_DISTANCE = 40;
+const DROP_HEIGHT = 420;
+const DROP_MS = 420;
 
 // The character chasing the cat. Their position comes from the ChaseDirector, so they have no
 // physics of their own. Their art and poses come from data, so any character can fill the role.
@@ -140,6 +142,26 @@ export class Chaser extends Phaser.GameObjects.Sprite {
       onComplete: () => {
         this.hopping = false;
         this.pose('run');
+      },
+    });
+  }
+
+  // Lands from a shortcut, over a fence or off a roof, then runs on.
+  dropIn(onLanded) {
+    this.stopHop();
+    this.setVisible(true);
+    this.hopping = true;
+    this.pose('hop');
+    this.y = GAME.GROUND_Y - DROP_HEIGHT;
+    this.scene.tweens.add({
+      targets: this,
+      y: GAME.GROUND_Y,
+      duration: DROP_MS,
+      ease: 'Quad.easeIn',
+      onComplete: () => {
+        this.hopping = false;
+        this.pose('run');
+        onLanded();
       },
     });
   }

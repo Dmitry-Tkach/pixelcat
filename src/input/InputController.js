@@ -4,7 +4,7 @@ const TAP_HOLD_MS = 130; // a press held this long while staying still counts as
 
 // Turns touch, mouse and keyboard input into jump, slide and pause actions.
 export class InputController {
-  constructor(scene, { onJump, onSlide, onPause, onPaw }) {
+  constructor(scene, { onJump, onSlide, onPause, onPaw, onSwitchMode }) {
     this.scene = scene;
     this.onJump = onJump;
     this.onSlide = onSlide;
@@ -40,6 +40,7 @@ export class InputController {
       keyboard.on('keydown-DOWN', () => this.onSlide());
       keyboard.on('keydown-S', () => this.onSlide());
       keyboard.on('keydown-E', () => onPaw());
+      keyboard.on('keydown-M', () => onSwitchMode());
       keyboard.on('keydown-ESC', () => onPause());
       keyboard.on('keydown-P', () => onPause());
     }
