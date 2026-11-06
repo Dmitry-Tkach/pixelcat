@@ -8,7 +8,8 @@ export const PACK_SPACING = 85; // how far apart the family runs when they're al
 
 // Decides what the chaser is doing: following, lunging, recovering or knocked out.
 // It has no Phaser dependency, so it can be unit-tested. update() returns what just happened:
-//   warn, dash, grabbed, dodged, recovered, returned, rush, finalRush, shortcutWarn, shortcutArrive
+//   warn, dash, grabbed, dodged, recovered, returned, rush, finalRush, shortcutWarn, shortcutArrive,
+//   climbWarn, climbCancel, climbCatch
 export class ChaseDirector {
   // `startX` and `rosterIndex` are for restarting from a checkpoint.
   constructor(level, { startX = 0, rosterIndex = 0 } = {}) {
@@ -37,6 +38,35 @@ export class ChaseDirector {
     this.shortcutWarnMs = 0;
     this.shortcutCooldownMs = 0;
     this.graceMs = 0;
+    this.highGround = level.highGround ?? null;
+    this.climbMs = 0;
+    this.climbedUp = false;
+    this.isBeneathCat = false;
+  }
+
+  // A chaser on the road can't reach a cat high above it, so they wait right beneath. If the cat
+  // hangs around up there for too long, they climb up after it. Running on calls that off, even
+  // before the cat is back up to the chaser's speed.
+  updateHighGround(ms, catHeight, catRunning, events) {
+    const rule = this.highGround;
+    if (!rule) return;
+    const { tracker } = this;
+    const closest = tracker.catchGap + rule.holdMargin;
+    const high = catHeight >= rule.safeHeight;
+    if (high) tracker.gap = Math.max(tracker.gap, closest);
+    this.isBeneathCat = high && tracker.gap <= closest + rule.beneathRange && this.phase === 'chasing';
+    if (!this.isBeneathCat || catRunning) {
+      if (this.climbMs > 0) events.push('climbCancel');
+      this.climbMs = 0;
+      return;
+    }
+    if (this.climbMs === 0) events.push('climbWarn');
+    this.climbMs += ms;
+    if (this.climbMs >= rule.climbSeconds * 1000) {
+      this.climbedUp = true;
+      tracker.gap = tracker.catchGap;
+      events.push('climbCatch');
+    }
   }
 
   // How often she lunges at this distance, in seconds, or null when she's too far away.
@@ -178,7 +208,7 @@ export class ChaseDirector {
     this.phaseMs = 0;
   }
 
-  update(ms, { catX, catSpeed, catHeight, ownerOffscreen = false, safeForShortcut = false }) {
+  update(ms, { catX, catSpeed, catHeight, catRunning = false, ownerOffscreen = false, safeForShortcut = false }) {
     const events = [];
     this.phaseMs += ms;
 
@@ -203,6 +233,7 @@ export class ChaseDirector {
     this.tracker.update(ms / 1000, catSpeed);
     this.updateFinalRush(ms, catX, events);
     this.updateShortcut(ms, ownerOffscreen, safeForShortcut, events);
+    this.updateHighGround(ms, catHeight, catRunning, events);
     if (this.lungeRule && this.phase === 'chasing') this.updateDistanceLunge(ms, catX, catHeight);
 
     switch (this.phase) {
@@ -262,6 +293,8 @@ export class ChaseDirector {
     const counter = this.phase === 'dashing' || this.phase === 'striking' || this.phase === 'warning';
     this.koMs = counter ? PAW.COUNTER_KO_MS : PAW.KO_MS;
     this.returningMs = 0;
+    this.climbMs = 0;
+    this.isBeneathCat = false;
     this.tracker.gap = this.tracker.maxGap;
     this.enter('knockedOut');
     return counter;

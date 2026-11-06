@@ -72,6 +72,7 @@ export class GameScene extends Phaser.Scene {
     this.pawFiring = false;
     this.stuckOn = null;
     this.cameraRise = 0;
+    this.cameraToRoad = false;
     this.streak = new StreakTracker(SPRINT.STREAK);
     this.effects = new Effects(this);
 
@@ -206,10 +207,12 @@ export class GameScene extends Phaser.Scene {
       catX: this.cat.x,
       catSpeed,
       catHeight,
+      catRunning: this.cat.moveVelocity > FREE_MOVE.RUNNING_SPEED,
       ownerOffscreen: this.ownerOffscreen,
       safeForShortcut: this.safeForShortcut,
     });
     this.updateBonusHint();
+    if (this.chase.isBeneathCat) this.chaser.hop(); // jumping up at the cat, just out of reach
     events.forEach((event) => this.handleChaseEvent(event));
     this.hud.update(this.tracker.safety, this.cat.x / this.level.length);
     this.updateDanger();
@@ -341,7 +344,7 @@ export class GameScene extends Phaser.Scene {
   // Follows a climbing cat upward. A normal jump never gets high enough to move the camera.
   updateCameraRise() {
     if (!this.level.tallCamera || !this.lastFrameMs) return;
-    const height = GAME.GROUND_Y - this.cat.body.bottom;
+    const height = this.cameraToRoad ? 0 : GAME.GROUND_Y - this.cat.body.bottom;
     const target = Math.max(0, height - CLIMB_CAMERA.FOLLOW_ABOVE);
     const blend = 1 - Math.exp(-CLIMB_CAMERA.RATE * (this.lastFrameMs / 1000));
     this.cameraRise += (target - this.cameraRise) * blend;
@@ -440,6 +443,15 @@ export class GameScene extends Phaser.Scene {
         this.hud.showHint('Almost there! They\'re speeding up!');
         this.audio.playSfx('chaserRush');
         break;
+      case 'climbWarn':
+        this.hud.showHint('They\'re climbing up! Move!');
+        this.hud.showEdgeWarning(true);
+        this.audio.playSfx('chaserRush');
+        break;
+      case 'climbCancel':
+      case 'climbCatch':
+        this.hud.showEdgeWarning(false);
+        break;
       case 'shortcutWarn':
         this.hud.showHint('Look out! They know a shortcut!');
         this.hud.showEdgeWarning(true);
@@ -489,6 +501,7 @@ export class GameScene extends Phaser.Scene {
       const counter = this.chase.knockOut();
       this.effects.stars(this.chaser.x, targetY);
       this.chaser.flyOff();
+      this.hud.showEdgeWarning(false);
       this.chaserShadow.setVisible(false);
       this.audio.setDanger(false);
       this.inDanger = false;
@@ -583,13 +596,16 @@ export class GameScene extends Phaser.Scene {
     this.obstacles.stopMovers();
     this.cat.beCaught();
     this.followers.forEach((follower) => follower.pose('idle'));
-    this.chaser.lungeAt(this.cat.x);
+    // A chaser who climbed up leaps to the cat's ledge, and comes back down holding it.
+    const feetY = this.chase.climbedUp ? this.cat.body.bottom : GAME.GROUND_Y;
+    this.chaser.lungeAt(this.cat.x, feetY);
     if (hugs) {
       // The cat is part of the hug frames, so it disappears into their arms.
       this.time.delayedCall(HUG_START_MS, () => {
         this.cat.setVisible(false);
         this.catShadow.setVisible(false);
-        this.chaser.hug(this.cat.x);
+        this.chaser.hug(this.cat.x, feetY);
+        this.cameraToRoad = true;
       });
     }
     this.time.delayedCall(hugs ? HUG_SCREEN_DELAY_MS : END_SCREEN_DELAY_MS, () => {

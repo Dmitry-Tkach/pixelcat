@@ -21,6 +21,9 @@
 //           that depend on how close the chaser is, in place of the ones in the plan's sections
 // shortcut: { offscreenSeconds, warningSeconds, landGap, cooldownSeconds, graceSeconds }, a chaser
 //           left far behind takes a shortcut back into view, and treats count double until then
+// highGround: { safeHeight, holdMargin, beneathRange, climbSeconds }, a cat this high can't be caught
+//           from the road. A chaser waits holdMargin past catchGap, and one within beneathRange
+//           of that climbs up after climbSeconds
 // tallCamera: the camera rises with a climbing cat, so ledges can go higher than one screen
 // plan:     section names in order. { section, hint } also shows a message on arriving there, and
 //           { section, mouse: true } hides the level's toy mouse in that section's mouseSpot.
@@ -247,6 +250,7 @@ export const LEVELS = [
     startHint: 'Hold right to run! Clean running builds speed',
     lunges: { farGap: 520, nearGap: 300, farEverySeconds: 7, nearEverySeconds: 3.5, warningSeconds: 0.7, dodgeBonus: 180 },
     shortcut: { offscreenSeconds: 4, warningSeconds: 1.5, landGap: 450, cooldownSeconds: 14, graceSeconds: 2 },
+    highGround: { safeHeight: 150, holdMargin: 20, beneathRange: 100, climbSeconds: 2.5 },
     plan: [
       'breather',
       'trip',

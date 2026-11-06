@@ -10,6 +10,48 @@ import { starText, starsFor } from '../src/systems/stars.js';
 import { SpeedController } from '../src/systems/SpeedController.js';
 import { StreakTracker } from '../src/systems/StreakTracker.js';
 
+describe('ChaseDirector high ground', () => {
+  const FRAME_MS = 100;
+  const HIGH = 200;
+  const LOW = 50;
+  const climbSeconds = 2.5;
+  const director = () => new ChaseDirector({
+    chase: { ownerSpeed: 300, startGap: 150, maxGap: 900, catchGap: 110 },
+    chasers: ['girl'],
+    highGround: { safeHeight: 150, holdMargin: 20, beneathRange: 100, climbSeconds },
+  });
+  const step = (chase, catHeight, catSpeed = 0) => chase.update(FRAME_MS, { catX: 1000, catSpeed, catHeight, catRunning: catSpeed > 0 });
+
+  it('catches a stopped cat on the road', () => {
+    const chase = director();
+    for (let i = 0; i < 3; i++) step(chase, LOW);
+    expect(chase.tracker.isCaught).toBe(true);
+    expect(chase.climbedUp).toBe(false);
+  });
+
+  it('waits beneath a high cat, warns once, and climbs up when the time runs out', () => {
+    const chase = director();
+    const events = [];
+    for (let i = 0; i < (climbSeconds * 1000) / FRAME_MS - 1; i++) events.push(...step(chase, HIGH));
+    expect(chase.tracker.isCaught).toBe(false);
+    expect(chase.isBeneathCat).toBe(true);
+    expect(events.filter((event) => event === 'climbWarn')).toHaveLength(1);
+    step(chase, HIGH);
+    expect(chase.tracker.isCaught).toBe(true);
+    expect(chase.climbedUp).toBe(true);
+  });
+
+  it('calls off the climb when the cat runs on, even slower than the chaser', () => {
+    const chase = director();
+    step(chase, HIGH);
+    const events = [];
+    for (let i = 0; i < 40; i++) events.push(...step(chase, HIGH, 240));
+    expect(events).toContain('climbCancel');
+    expect(chase.tracker.isCaught).toBe(false);
+    expect(chase.climbedUp).toBe(false);
+  });
+});
+
 const chase = { ownerSpeed: 300, startGap: 500, maxGap: 600, catchGap: 100 };
 
 describe('DistanceTracker', () => {

@@ -84,6 +84,7 @@ export const FREE_MOVE = {
   ACCELERATION: 1800,
   AIR_CONTROL: 0.6, // how much of that acceleration the cat has in the air
   CRASH_SPEED: 100, // walking into a wall slower than this isn't a crash
+  RUNNING_SPEED: 100, // going forward faster than this counts as running on, not hanging around
   IDLE_BELOW: 20, // slower than this looks like standing still
   HYBRID_MOMENTUM: 0.45, // where momentum settles with no key held in hybrid mode
   HYBRID_BRAKE_SPEED: 180,

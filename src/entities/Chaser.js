@@ -11,6 +11,7 @@ const FLY_OFF_MS = 700;
 const HUG_DISTANCE = 40;
 const DROP_HEIGHT = 420;
 const DROP_MS = 420;
+const HUG_DROP_MS = 350;
 
 // The character chasing the cat. Their position comes from the ChaseDirector, so they have no
 // physics of their own. Their art and poses come from data, so any character can fill the role.
@@ -172,13 +173,15 @@ export class Chaser extends Phaser.GameObjects.Sprite {
     this.y = GAME.GROUND_Y;
   }
 
-  lungeAt(catX) {
+  // `feetY` is how high to leap, for a cat that's up on a ledge.
+  lungeAt(catX, feetY = GAME.GROUND_Y) {
     this.stopHop();
     this.hideWarning();
     this.pose('catch');
     this.scene.tweens.add({
       targets: this,
       x: catX - 70,
+      y: feetY,
       duration: 260,
       ease: 'Quad.easeOut',
       // A looping lunge holds its pose on arrival, rather than running on the spot.
@@ -192,13 +195,18 @@ export class Chaser extends Phaser.GameObjects.Sprite {
     return Boolean(this.manifest.anims.hug);
   }
 
-  // Holds the caught cat. Only for characters with hug frames.
-  hug(catX) {
+  // Holds the caught cat. Only for characters with hug frames. Starting from `feetY`, they drop
+  // back down to the road with it.
+  hug(catX, feetY = GAME.GROUND_Y) {
     this.scene.tweens.killTweensOf(this);
     this.x = catX - HUG_DISTANCE;
     this.y = GAME.GROUND_Y;
     this.pose('hug');
     if (this.manifest.anims.hugLoop) this.chain(animKey(this.character, 'hugLoop'));
+    if (feetY === GAME.GROUND_Y) return;
+    const landedY = this.y;
+    this.y = feetY;
+    this.scene.tweens.add({ targets: this, y: landedY, duration: HUG_DROP_MS, ease: 'Quad.easeIn' });
   }
 
   remove() {
