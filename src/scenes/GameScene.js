@@ -38,6 +38,7 @@ const GRAB_PENALTY = { speedMultiplier: 0.6, durationMs: 700 };
 const OFFSCREEN_MARGIN = 80; // how far past the left edge of the screen a chaser counts as out of sight
 const SHORTCUT_CLEAR_AHEAD = 400; // a chaser doesn't take a shortcut with an obstacle this close to the cat
 const ON_ROAD_HEIGHT = 5;
+const BOSS_MIDDLE_HEIGHT = 110;
 const MODE_HINTS = {
   free: 'Free move: left and right run, and you can stop',
   hybrid: 'Always running: right is faster, left is slower',
@@ -370,7 +371,7 @@ export class GameScene extends Phaser.Scene {
 
   handleBossHit() {
     const { boss } = this.bossFight;
-    this.effects.stars(boss.x, boss.y - 150);
+    this.effects.stars(boss.x, boss.y - BOSS_MIDDLE_HEIGHT);
     this.audio.playSfx('punch');
     this.cameras.main.shake(240, 0.012);
   }
@@ -530,7 +531,7 @@ export class GameScene extends Phaser.Scene {
     this.pawFiring = true;
     this.hud.setPawReady(false);
     const { boss } = fight;
-    this.effects.punch(this.cat, () => boss.x, boss.y - 150, () => {
+    this.effects.punch(this.cat, () => boss.x, boss.y - BOSS_MIDDLE_HEIGHT, () => {
       this.pawFiring = false;
       if (this.isPlaying) fight.pawHit();
     });

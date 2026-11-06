@@ -8,7 +8,7 @@ export const CHARACTERS = {
   // A boss. Boss.js places him by his feet, so he needs no originY.
   crownCat: {
     folder: 'crown-cat',
-    scale: 1,
+    scale: 0.72,
     anims: {
       idle: { file: 'idle', frames: 4, fps: 5, repeat: -1 },
       run: { file: 'run', frames: 8, fps: 16, repeat: -1 },

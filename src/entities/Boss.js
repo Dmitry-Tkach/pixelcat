@@ -4,9 +4,9 @@ import { CHARACTERS, animKey, frameKey } from '../data/characters.js';
 import { arcHeight } from '../systems/obstacleMotion.js';
 
 const BELOW_FEET = 12; // how much room the frames leave under his feet. See tools/cut-boss.mjs
-const STANDING = { w: 140, h: 190 }; // lower than his art, so one jump can land on his head
-const LEAPING = { w: 260, h: 140 };
-const CHARGING = { w: 230, h: 160 };
+const STANDING = { w: 110, h: 150 }; // lower than his art, so one jump can land on his head
+const LEAPING = { w: 190, h: 105 };
+const CHARGING = { w: 170, h: 120 };
 
 // A boss on screen: it plays what the BossDirector decides, and moves itself to carry it out. Its
 // art changes size between animations, so a separate invisible zone is its body.
@@ -18,11 +18,11 @@ export class Boss extends Phaser.GameObjects.Sprite {
     this.character = character;
     this.definition = definition;
     this.director = director;
-    this.setDepth(5).setFlipX(true);
+    this.setScale(CHARACTERS[character].scale).setDepth(5).setFlipX(true);
     this.leapFromX = x;
     this.leapToX = x;
     this.chargeDirection = 0;
-    this.shadow = scene.add.ellipse(x, GAME.GROUND_Y + 4, 190, 24, 0x1d1a44, 0.35).setDepth(3);
+    this.shadow = scene.add.ellipse(x, GAME.GROUND_Y + 4, 140, 20, 0x1d1a44, 0.35).setDepth(3);
     this.hitZone = scene.add.zone(x, GAME.GROUND_Y, STANDING.w, STANDING.h);
     scene.physics.add.existing(this.hitZone);
     this.hitZone.body.setAllowGravity(false);

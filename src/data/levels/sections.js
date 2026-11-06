@@ -223,14 +223,11 @@ export const SECTIONS = {
     treats: [{ arc: 1 }, { arc: 2.55 }, lowLine(3.85, 4), { arc: 5.65 }],
   },
 
-  // The Crown Cat's arena. Ledges to get above him, and a Super Paw box up high.
+  // The Crown Cat's arena, with a Super Paw box up high. It has no ledges, because a cat jumping up
+  // at him would land on one instead of on his head.
   crownCatArena: {
     duration: 4.3,
     boss: { t: 0.4, type: 'crownCat' },
-    platforms: [
-      { t: 1, seconds: 0.55, height: 190, style: 'plank' },
-      { t: 2.3, seconds: 0.55, height: 190, style: 'plank' },
-    ],
     pickups: [{ t: 1.9, type: 'superPaw' }],
   },
 

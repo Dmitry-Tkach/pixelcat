@@ -29,8 +29,8 @@ export const BOSSES = {
       1: ['charge', 'lunge', 'claw', 'charge'],
     },
     attacks: {
-      lunge: { windup: 0.75, active: 0.7, recover: 1.3, height: 190 },
-      claw: { windup: 0.7, active: 0.45, recover: 0.9, range: 250, reachHeight: 130 },
+      lunge: { windup: 0.75, active: 0.7, recover: 1.3, height: 170 },
+      claw: { windup: 0.7, active: 0.45, recover: 0.9, range: 180, reachHeight: 100 },
       charge: { windup: 0.6, recover: 2.2, speed: 560 },
     },
   },
