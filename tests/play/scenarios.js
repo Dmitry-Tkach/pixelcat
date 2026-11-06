@@ -580,6 +580,54 @@ export function buildScenarios() {
     });
   }
 
+  // Boss fights. Unlike a level, these aren't full play-throughs: the stomps are placed exactly, so
+  // they check the rules of the fight, and not whether it feels fair.
+  const BOSS_AT = 1200;
+  const bossRoad = [{ type: 'cone', at: 15000 }];
+  const bossSpec = { levelIndex: 2, obstacles: bossRoad, boss: { type: 'crownCat', at: BOSS_AT }, length: 4000 };
+  add('boss: running in shuts the arena, and the family stays out', {
+    ...bossSpec,
+    until: BOSS_AT + 400,
+    expect: (r) => r.bossStarted && r.state === 'playing' && !r.chaserVisible && r.lives === 3 && r.bossHealth === 3,
+    detail: (r) => `started=${r.bossStarted} state=${r.state} chaser=${r.chaserVisible} lives=${r.lives} health=${r.bossHealth}`,
+  });
+  add('boss: the cat can\'t leave until he\'s beaten', {
+    ...bossSpec,
+    expect: (r) => r.state === 'failed' && r.lives === 0 && r.x < BOSS_AT + 1300 && r.sounds.includes('caught'),
+    detail: (r) => `state=${r.state} lives=${r.lives} x=${Math.round(r.x)}`,
+  });
+  add('boss: he uses all three attacks, and beats a cat that just stands there', {
+    ...bossSpec,
+    actions: [{ press: 'release', catX: BOSS_AT + 300 }],
+    expect: (r) => r.state === 'failed' && r.lives === 0,
+    detail: (r) => `state=${r.state} lives=${r.lives} attacks=${r.bossesAttacks}`,
+  });
+  for (const fps of FRAME_RATES) {
+    add(`boss: three stomps beat him, then the way out opens, ${fps}fps`, {
+      ...bossSpec,
+      frameMs: 1000 / fps,
+      stompWhenOpen: true,
+      expect: (r) => r.state === 'complete' && r.bossHealth === 0 && r.bossState === 'defeated' && r.sounds.includes('punch'),
+      detail: (r) => `state=${r.state} health=${r.bossHealth} boss=${r.bossState} lives=${r.lives} x=${Math.round(r.x)}`,
+    });
+  }
+  add('boss: the Super Paw hits him at any time', {
+    ...bossSpec,
+    startCheckpoint: { x: 700, treats: 0, hasPaw: true, rosterIndex: 0 },
+    actions: [{ press: 'paw', catX: BOSS_AT + 300 }],
+    until: BOSS_AT + 500,
+    settleSeconds: 0.5,
+    expect: (r) => r.bossHealth === 2 && !r.hasPaw,
+    detail: (r) => `health=${r.bossHealth} hasPaw=${r.hasPaw}`,
+  });
+  add('boss: a checkpoint restart begins the fight afresh', {
+    ...bossSpec,
+    startCheckpoint: { x: 1000, treats: 0, hasPaw: false, rosterIndex: 0 },
+    until: BOSS_AT + 300,
+    expect: (r) => r.bossStarted && r.lives === 3 && r.bossHealth === 3,
+    detail: (r) => `started=${r.bossStarted} lives=${r.lives} health=${r.bossHealth}`,
+  });
+
   // Being chased on platform-controls rules.
   add('high ground: a cat on a ledge can\'t be caught from the road, until it stays too long', {
     levelIndex: TEST_LEVEL,

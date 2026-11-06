@@ -109,6 +109,21 @@ export const PAW = {
   RETURN_FROM_BEHIND: 500, // how far off-screen she starts running back from
 };
 
+// Boss fights. The camera locks onto an arena, walled in on both sides.
+export const BOSS = {
+  ARENA_WIDTH: 1300,
+  ENTER_BEFORE_LOCK: 140, // the cat is this far in when the arena closes behind it
+  WALL_MARGIN: 110, // how close a boss gets to the arena's walls
+  LIVES: 3,
+  HURT_SAFE_MS: 1600, // how long the cat can't be hurt again, after being hurt
+  HURT_PENALTY: { speedMultiplier: 0.7, durationMs: 500 },
+  KNOCK_BACK_SPEED: 340,
+  KNOCK_UP_VELOCITY: -560,
+  STOMP_BOUNCE: -1000,
+  STOMP_TOLERANCE: 34, // how far below the top of the boss the cat's feet can be for a stomp
+  CAMERA_RATE: 5,
+};
+
 // How high one jump lifts the cat's feet.
 export const SINGLE_JUMP_HEIGHT = MOVEMENT.JUMP_VELOCITY ** 2 / (2 * MOVEMENT.GRAVITY);
 

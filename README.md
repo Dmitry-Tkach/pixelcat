@@ -29,6 +29,7 @@ A 2D browser chase game built with Phaser 3 and plain JavaScript. You run the ca
 - The chaser keeps a constant speed, and lunges more often the closer they get: jump as they dash. A miss costs them distance, and a grab costs the cat a lot
 - A chaser left out of sight takes a shortcut back, with a warning. Treats count double until they land
 - A cat high on a ledge can't be caught from the road, but one that stops up there gets climbed after
+- A boss waits at the end of the City. The arena closes, and the family stays outside. Dodge its attacks, stomp its head when it's tired or dizzy, or use a Super Paw. To try one while developing, open the page with `?boss`
 - Walls stop the cat dead and lose all its speed. A wall too tall to jump needs a lift, or a bounce and a double jump
 - A Super Paw box floats high up. Collect it, then press E to knock the chaser off screen for a while. The next chaser in the level's list then runs in
 

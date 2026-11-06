@@ -52,7 +52,7 @@ export class Hud {
     const meterX = WIDTH / 2 - METER_W / 2;
     centered(scene.add.rectangle(meterX, 42, METER_W, 26, INK, 0.75).setOrigin(0, 0.5));
     this.meterFill = centered(scene.add.rectangle(meterX + 4, 42, 1, 18, SAFE).setOrigin(0, 0.5));
-    centered(scene.add.text(WIDTH / 2, 78, 'Distance from chaser', { ...text, fontSize: '24px' }).setOrigin(0.5));
+    this.meterLabel = centered(scene.add.text(WIDTH / 2, 78, 'Distance from chaser', { ...text, fontSize: '24px' }).setOrigin(0.5));
 
     this.hint = centered(scene.add.text(WIDTH / 2, 150, '', { ...text, fontSize: '34px', align: 'center' }).setOrigin(0.5));
     this.hint.setAlpha(0);
@@ -83,9 +83,22 @@ export class Hud {
     }
   }
 
+  // In a boss fight, the distance meter shows the boss's health, and the pips show the cat's lives.
+  showBoss(name) {
+    this.bossMode = true;
+    this.meterLabel.setText(name);
+  }
+
+  hideBoss() {
+    this.bossMode = false;
+    this.meterLabel.setText('');
+    this.meterFill.width = 1;
+  }
+
   update(safety, progress) {
     this.meterFill.width = Math.max(1, (METER_W - 8) * safety);
-    this.meterFill.fillColor = safety > 0.5 ? SAFE : safety > 0.25 ? WARN : DANGER;
+    if (this.bossMode) this.meterFill.fillColor = DANGER;
+    else this.meterFill.fillColor = safety > 0.5 ? SAFE : safety > 0.25 ? WARN : DANGER;
     this.progressFill.width = Math.max(1, (PROGRESS_W - 4) * Math.min(1, progress));
   }
 

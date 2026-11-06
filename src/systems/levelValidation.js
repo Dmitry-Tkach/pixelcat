@@ -1,4 +1,5 @@
 import {
+  BOSS,
   GAME,
   JUMP_AIR_TIME,
   WAGON,
@@ -8,6 +9,7 @@ import {
   SINGLE_JUMP_HEIGHT,
   VIEW,
 } from '../config/gameConfig.js';
+import { BOSSES } from '../data/bosses.js';
 import { CHARACTERS } from '../data/characters.js';
 import { CHASERS } from '../data/chasers.js';
 import { activationCatX, startX } from './obstacleMotion.js';
@@ -170,6 +172,17 @@ function validateAttacks(level, errors) {
   });
 }
 
+// A boss's arena must fit in the level, with nothing on the floor to trip over mid-fight.
+function validateBoss(level, errors) {
+  if (!level.boss) return;
+  const { at, type } = level.boss;
+  const arenaEnd = at + BOSS.ARENA_WIDTH;
+  if (!BOSSES[type]) errors.push(`unknown boss "${type}"`);
+  if (arenaEnd > level.length - END_CLEARANCE) errors.push('the boss arena is too close to the escape point');
+  if (level.obstacles.some((o) => o.at >= at && o.at <= arenaEnd)) errors.push('an obstacle is inside the boss arena');
+  if (!(level.checkpoints ?? []).some((x) => x < at)) errors.push('a boss needs a checkpoint before it');
+}
+
 // Returns a list of problems, empty when the level is playable and fair.
 export function validateLevel(level, obstacleTypes, themes, musicTracks) {
   const errors = [];
@@ -206,5 +219,6 @@ export function validateLevel(level, obstacleTypes, themes, musicTracks) {
   validateAttacks(level, errors);
   validateExtras(level, errors);
   validateWagons(level, errors);
+  validateBoss(level, errors);
   return errors;
 }

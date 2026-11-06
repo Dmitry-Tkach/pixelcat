@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { GAME, VIEW, setViewAspect } from '../src/config/gameConfig.js';
 import { CHARACTERS } from '../src/data/characters.js';
 import { CHASERS } from '../src/data/chasers.js';
+import { BOSSES } from '../src/data/bosses.js';
+import { BossDirector } from '../src/systems/BossDirector.js';
 import { ChaseDirector } from '../src/systems/ChaseDirector.js';
 import { DistanceTracker } from '../src/systems/DistanceTracker.js';
 import { GameStateMachine, STATE } from '../src/systems/GameStateMachine.js';
@@ -9,6 +11,83 @@ import { pulseStrength } from '../src/systems/obstacleMotion.js';
 import { starText, starsFor } from '../src/systems/stars.js';
 import { SpeedController } from '../src/systems/SpeedController.js';
 import { StreakTracker } from '../src/systems/StreakTracker.js';
+
+describe('BossDirector', () => {
+  const definition = BOSSES.crownCat;
+  const FRAME_MS = 50;
+  const started = () => {
+    const director = new BossDirector(definition);
+    director.start();
+    return director;
+  };
+  const runUntil = (director, state) => {
+    for (let i = 0; i < 400 && director.state !== state; i++) {
+      director.update(FRAME_MS);
+      if (director.attack === 'charge' && director.state === 'active') director.finishActive();
+    }
+    expect(director.state).toBe(state);
+  };
+
+  it('warns before every attack', () => {
+    const director = started();
+    runUntil(director, 'windup');
+    expect(director.isDangerous).toBe(false);
+    runUntil(director, 'active');
+    expect(director.isDangerous).toBe(true);
+  });
+
+  it('only takes a stomp while recovering', () => {
+    const director = started();
+    expect(director.hit()).toEqual([]);
+    runUntil(director, 'active');
+    expect(director.hit()).toEqual([]);
+    expect(director.health).toBe(definition.health);
+    runUntil(director, 'recover');
+    expect(director.isVulnerable).toBe(true);
+    expect(director.hit()).toEqual(['hurt']);
+    expect(director.health).toBe(definition.health - 1);
+  });
+
+  it('can\'t be hit twice by one stomp', () => {
+    const director = started();
+    runUntil(director, 'recover');
+    director.hit();
+    expect(director.hit({ always: true })).toEqual([]);
+  });
+
+  it('takes a Super Paw at any time', () => {
+    const director = started();
+    runUntil(director, 'windup');
+    expect(director.hit({ always: true })).toEqual(['hurt']);
+  });
+
+  it('is defeated at no health, and stays that way', () => {
+    const director = started();
+    for (let i = 0; i < definition.health; i++) {
+      runUntil(director, 'recover');
+      director.hit();
+    }
+    expect(director.isDefeated).toBe(true);
+    director.update(10000);
+    expect(director.state).toBe('defeated');
+  });
+
+  it('leaves a charge running until it hits something', () => {
+    const director = started();
+    director.attack = 'charge';
+    director.enter('active');
+    director.update(60000);
+    expect(director.state).toBe('active');
+    expect(director.finishActive()).toEqual(['recover']);
+  });
+
+  it('has a pattern and a pause for every amount of health, using attacks it knows', () => {
+    for (let health = 1; health <= definition.health; health++) {
+      expect(definition.idleSeconds[health]).toBeGreaterThan(0);
+      for (const attack of definition.patterns[health]) expect(definition.attacks[attack]).toBeDefined();
+    }
+  });
+});
 
 describe('ChaseDirector high ground', () => {
   const FRAME_MS = 100;

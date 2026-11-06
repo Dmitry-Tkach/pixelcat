@@ -14,6 +14,7 @@ const SETS = [
   { dir: 'owner-action-girl', out: 'owner', scale: 1, anims: { Run: 6, Jump: 3, Idle: 4, Lunge: 1, Hurt: 1, Down: 1, Hug: 12 } },
   { dir: 'boy-frames', out: 'boy', scale: 1, anims: { Run: 6, Jump: 3, Idle: 4, Lunge: 1, Hurt: 1, Down: 1, Hug: 4 } },
   { dir: 'grandma-frames', out: 'grandma', scale: 1, anims: { Run: 6, Lunge: 4, Hug: 6 } },
+  { dir: 'bos-cat', out: 'crown-cat', scale: 1, anims: { Idle: 4, Run: 8, Crouch: 4, Leap: 5, Land: 4, ClawReady: 4, Claw: 7, Hit: 9, Dizzy: 5 } },
 ];
 
 // Sets whose source files use their own naming. `every` keeps one frame in N, to save memory.

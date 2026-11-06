@@ -1,9 +1,10 @@
 import Phaser from 'phaser';
-import { BIG_LAND, CLIMB_CAMERA, FREE_MOVE, GAME, SPRINT, VIEW } from '../config/gameConfig.js';
+import { BIG_LAND, BOSS, CLIMB_CAMERA, FREE_MOVE, GAME, SPRINT, VIEW } from '../config/gameConfig.js';
 import { LEVELS, worldName } from '../data/levels/index.js';
 import { CHASERS } from '../data/chasers.js';
 import { ESCAPE_ANIMATION } from '../data/screens.js';
 import { THEMES } from '../data/themes.js';
+import { BossFight } from '../entities/BossFight.js';
 import { Cat } from '../entities/Cat.js';
 import { Chaser } from '../entities/Chaser.js';
 import { HayWagons } from '../entities/HayWagons.js';
@@ -100,6 +101,7 @@ export class GameScene extends Phaser.Scene {
     this.grabs = this.startPoint?.grabs ?? 0;
     this.foundMouse = this.startPoint?.foundMouse ?? false;
     this.toyMouse = new ToyMouse(this, level, this.foundMouse);
+    this.bossFight = level.boss ? new BossFight(this, level.boss) : null;
     this.finalDashDone = false;
     this.chaser = new Chaser(this, startX - this.tracker.gap, this.chase.chaser.character);
     this.catShadow = this.add.ellipse(0, GAME.GROUND_Y + 4, 120, 18, 0x1d1a44, 0.35).setDepth(3);
@@ -195,29 +197,37 @@ export class GameScene extends Phaser.Scene {
     this.cat.move(this.controls.steer);
     this.platforms.update(ms, this.cat);
     this.wagons.update(ms, this.cat);
+    const fight = this.bossFight;
+    fight?.update(ms, this.cat);
     this.cat.speedControl.setTerrain(this.obstacles.terrainUnder(this.cat));
     this.cat.tick(ms);
     this.obstacles.update(ms, this.cat);
     const catHeight = GAME.GROUND_Y - this.cat.body.bottom;
     const catSpeed = (this.cat.x - this.lastCatX) / (ms / 1000);
     this.lastCatX = this.cat.x;
-    const events = this.chase.update(ms, {
-      catX: this.cat.x,
-      catSpeed,
-      catHeight,
-      catRunning: this.cat.moveVelocity > FREE_MOVE.RUNNING_SPEED,
-      ownerOffscreen: this.ownerOffscreen,
-      safeForShortcut: this.safeForShortcut,
-    });
-    this.updateBonusHint();
-    if (this.chase.isBeneathCat) this.chaser.hop(); // jumping up at the cat, just out of reach
-    events.forEach((event) => this.handleChaseEvent(event));
-    this.hud.update(this.tracker.safety, this.cat.x / this.level.length);
-    this.updateDanger();
+    // The family can't get into a boss's arena, so the chase is over from then on.
+    if (fight?.hasStarted) {
+      if (fight.isActive) this.hud.update(fight.healthShare, this.cat.x / this.level.length);
+      else this.hud.update(0, this.cat.x / this.level.length);
+    } else {
+      const events = this.chase.update(ms, {
+        catX: this.cat.x,
+        catSpeed,
+        catHeight,
+        catRunning: this.cat.moveVelocity > FREE_MOVE.RUNNING_SPEED,
+        ownerOffscreen: this.ownerOffscreen,
+        safeForShortcut: this.safeForShortcut,
+      });
+      this.updateBonusHint();
+      if (this.chase.isBeneathCat) this.chaser.hop(); // jumping up at the cat, just out of reach
+      events.forEach((event) => this.handleChaseEvent(event));
+      this.hud.update(this.tracker.safety, this.cat.x / this.level.length);
+      this.updateDanger();
+    }
     this.updateHints();
     this.updateCheckpoints();
     this.updateFinalDash();
-    if (this.tracker.isCaught) this.state.to(STATE.FAILED);
+    if ((this.tracker.isCaught && !fight?.hasStarted) || fight?.livesLeft === 0) this.state.to(STATE.FAILED);
   }
 
   get ownerOffscreen() {
@@ -311,9 +321,9 @@ export class GameScene extends Phaser.Scene {
     const cam = this.cameras.main;
     this.updateCameraRise();
     cam.scrollY = VIEW.SCROLL_Y - this.cameraRise;
-    if (!this.state?.is(STATE.COMPLETE)) cam.scrollX = this.cat.x - VIEW.CAT_OFFSET;
+    if (!this.state?.is(STATE.COMPLETE)) this.placeCameraX(cam);
     this.background.sync(cam.scrollX, this.cameraRise);
-    if ((this.isPlaying || this.state?.is(STATE.READY)) && !this.chase.isKnockedOut) {
+    if ((this.isPlaying || this.state?.is(STATE.READY)) && !this.chase.isKnockedOut && !this.bossFight?.hasStarted) {
       const simplyChasing = this.chase.phase === 'chasing' && !this.chase.returningMs;
       this.chaser.follow(this.cat.x, this.chase.visibleDistance, this.obstacles.items, simplyChasing, this.lastFrameMs);
     }
@@ -323,6 +333,55 @@ export class GameScene extends Phaser.Scene {
     const airHeight = Math.max(0, GAME.GROUND_Y - this.cat.body.bottom);
     this.catShadow.setScale(1 - Math.min(0.5, airHeight / 450));
     this.chaserShadow.setScale(1 - Math.min(0.5, (GAME.GROUND_Y - this.chaser.y) / 300));
+  }
+
+  // Follows the cat, unless a boss's arena holds the camera still. It eases from one to the other.
+  placeCameraX(cam) {
+    const fight = this.bossFight;
+    const target = fight?.isActive ? fight.cameraX : this.cat.x - VIEW.CAT_OFFSET;
+    if (!fight?.hasStarted || !this.lastFrameMs) {
+      cam.scrollX = target;
+      return;
+    }
+    cam.scrollX += (target - cam.scrollX) * (1 - Math.exp(-BOSS.CAMERA_RATE * (this.lastFrameMs / 1000)));
+  }
+
+  // The arena has closed. The family are left outside it.
+  handleBossStart(fight) {
+    this.chaser.setVisible(false);
+    this.chaser.hideWarning();
+    this.chaserShadow.setVisible(false);
+    this.followers.forEach((follower) => follower.setVisible(false));
+    this.hud.showEdgeWarning(false);
+    this.hud.showBoss(fight.definition.name);
+    this.hud.setStreak(fight.livesLeft);
+    this.hud.showHint(fight.definition.startHint);
+    this.audio.setDanger(false);
+    this.inDanger = false;
+    this.audio.stopMusic();
+    this.audio.startMusic(fight.definition.music);
+  }
+
+  handleCatHurt(lives) {
+    this.hud.setStreak(lives);
+    this.audio.playSfx('hit');
+    this.cameras.main.shake(200, 0.01);
+  }
+
+  handleBossHit() {
+    const { boss } = this.bossFight;
+    this.effects.stars(boss.x, boss.y - 150);
+    this.audio.playSfx('punch');
+    this.cameras.main.shake(240, 0.012);
+  }
+
+  handleBossDefeated(fight) {
+    this.audio.stopMusic();
+    this.audio.playSfx('checkpoint');
+    this.audio.startMusic(this.level.music);
+    this.hud.hideBoss();
+    this.hud.setStreak(0);
+    this.hud.showHint(fight.definition.defeatHint);
   }
 
   // Follows a climbing cat upward. A normal jump never gets high enough to move the camera.
@@ -336,7 +395,7 @@ export class GameScene extends Phaser.Scene {
 
   // The rest of the family runs behind the front chaser, and keeps coming during a knockout.
   syncFollowers() {
-    if (!(this.isPlaying || this.state?.is(STATE.READY))) return;
+    if (!(this.isPlaying || this.state?.is(STATE.READY)) || this.bossFight?.hasStarted) return;
     const base = this.chase.isKnockedOut ? this.tracker.maxGap - PACK_SPACING : this.tracker.gap;
     this.followers.forEach((follower, i) => {
       follower.follow(this.cat.x, base + PACK_SPACING * (i + 1), this.obstacles.items, false);
@@ -465,9 +524,26 @@ export class GameScene extends Phaser.Scene {
     this.audio.playSfx('pawPickup');
   }
 
+  // Fires the Super Paw at a boss.
+  usePawOnBoss(fight) {
+    this.cat.hasPaw = false;
+    this.pawFiring = true;
+    this.hud.setPawReady(false);
+    const { boss } = fight;
+    this.effects.punch(this.cat, () => boss.x, boss.y - 150, () => {
+      this.pawFiring = false;
+      if (this.isPlaying) fight.pawHit();
+    });
+  }
+
   // Fires the Super Paw, if the cat has one and there's someone to hit.
   usePaw() {
-    if (!this.isPlaying || !this.cat.hasPaw || this.chase.isKnockedOut || this.pawFiring) return;
+    if (!this.isPlaying || !this.cat.hasPaw || this.pawFiring) return;
+    if (this.bossFight?.isActive) {
+      this.usePawOnBoss(this.bossFight);
+      return;
+    }
+    if (this.chase.isKnockedOut || this.bossFight?.hasStarted) return;
     this.cat.hasPaw = false;
     this.pawFiring = true;
     this.hud.setPawReady(false);
@@ -565,7 +641,36 @@ export class GameScene extends Phaser.Scene {
     this.time.delayedCall(END_SCREEN_DELAY_MS, () => this.showCompleteScreen());
   }
 
+  // The screen after being caught, or beaten.
+  showCaughtScreen(message) {
+    this.overlay.show({
+      title: 'Caught!',
+      message,
+      actions: this.savedCheckpoint
+        ? [
+          { label: 'Restart level', onClick: () => this.loadLevel(this.levelIndex) },
+          // Being caught counts as being grabbed, even when the run carries on from a checkpoint.
+          { label: 'Continue from checkpoint', primary: true, onClick: () => this.loadLevel(this.levelIndex, { ...this.savedCheckpoint, grabs: this.grabs + 1, foundMouse: this.foundMouse }) },
+        ]
+        : [{ label: 'Try again', primary: true, onClick: () => this.loadLevel(this.levelIndex) }],
+    });
+  }
+
+  // Beaten by a boss, who is very pleased with himself.
+  enterBeaten(fight) {
+    this.audio.stopMusic();
+    this.audio.playSfx('caught');
+    this.obstacles.stopMovers();
+    this.cat.beCaught();
+    fight.gloat();
+    this.time.delayedCall(END_SCREEN_DELAY_MS, () => this.showCaughtScreen(fight.definition.beatenMessage));
+  }
+
   enterFailed() {
+    if (this.bossFight?.hasStarted) {
+      this.enterBeaten(this.bossFight);
+      return;
+    }
     const { catchMessage, catchSound } = this.chase.chaser;
     const hugs = this.chaser.canHug;
     this.audio.stopMusic();
@@ -586,17 +691,7 @@ export class GameScene extends Phaser.Scene {
       });
     }
     this.time.delayedCall(hugs ? HUG_SCREEN_DELAY_MS : END_SCREEN_DELAY_MS, () => {
-      this.overlay.show({
-        title: 'Caught!',
-        message: catchMessage ?? "Into the carrier you go. There's still time for one more try.",
-        actions: this.savedCheckpoint
-          ? [
-            { label: 'Restart level', onClick: () => this.loadLevel(this.levelIndex) },
-            // Being caught counts as being grabbed, even when the run carries on from a checkpoint.
-            { label: 'Continue from checkpoint', primary: true, onClick: () => this.loadLevel(this.levelIndex, { ...this.savedCheckpoint, grabs: this.grabs + 1, foundMouse: this.foundMouse }) },
-          ]
-          : [{ label: 'Try again', primary: true, onClick: () => this.loadLevel(this.levelIndex) }],
-      });
+      this.showCaughtScreen(catchMessage ?? "Into the carrier you go. There's still time for one more try.");
     });
   }
 

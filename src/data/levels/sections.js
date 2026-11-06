@@ -11,6 +11,7 @@
 // treats:    { arc: t } follows a jump over that moment, or { line: t, count, height }
 // pickups:   { t, type }, checkpoint: { t }
 // wagons:    { t }, a hay wagon whose rear reaches the cat at this moment
+// boss:      { t, type }, a boss from data/bosses.js. The arena starts here, and the section must be long enough for it
 // mouseSpot: { t, height }, where the level's hidden toy mouse sits, if its plan picks this section
 
 const arcs = (...times) => times.map((arc) => ({ arc }));
@@ -220,6 +221,17 @@ export const SECTIONS = {
       { type: 'crossingCar', t: 5.65, position: 'red' },
     ],
     treats: [{ arc: 1 }, { arc: 2.55 }, lowLine(3.85, 4), { arc: 5.65 }],
+  },
+
+  // The Crown Cat's arena. Ledges to get above him, and a Super Paw box up high.
+  crownCatArena: {
+    duration: 4.3,
+    boss: { t: 0.4, type: 'crownCat' },
+    platforms: [
+      { t: 1, seconds: 0.55, height: 190, style: 'plank' },
+      { t: 2.3, seconds: 0.55, height: 190, style: 'plank' },
+    ],
+    pickups: [{ t: 1.9, type: 'superPaw' }],
   },
 
   // ----- Village -----

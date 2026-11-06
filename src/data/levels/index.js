@@ -100,6 +100,7 @@ function buildLevel({ plan, finalDash, ...config }) {
       level.platforms.push({ ...entry, style: ledges[style] ?? style, at: worldAt(t), width: Math.round(seconds * speed) });
     }
     for (const { t, type } of section.pickups ?? []) level.pickups.push({ type, at: worldAt(t) });
+    if (section.boss) level.boss = { type: section.boss.type, at: worldAt(section.boss.t) };
     for (const { t } of section.wagons ?? []) level.wagons.push({ at: worldAt(t) });
     if (section.checkpoint) level.checkpoints.push(worldAt(section.checkpoint.t));
     for (const treat of section.treats ?? []) {
@@ -192,7 +193,7 @@ export const LEVELS = [
     theme: 'city',
     title: 'Rush Hour',
     intro: 'Grandma was waiting at the crossroads, and she runs faster than she looks. One last dash through the city!',
-    outro: 'The city is behind you. Up ahead there are red roofs and green fields. Surely they won\'t follow you here?',
+    outro: 'Even the Crown Cat couldn\'t stop you, and the city is behind you. Up ahead there are red roofs and green fields. Surely they won\'t follow you here?',
     cat: { speed: 425 },
     music: { track: 'chase', bpm: 154 },
     chase: { ownerSpeed: 315, startGap: 700, maxGap: 1200, catchGap: 110 },
@@ -217,7 +218,8 @@ export const LEVELS = [
       'flock',
       'wallIntro',
       'van',
-      'homeStretch',
+      'checkpoint',
+      'crownCatArena',
     ],
   }),
   buildLevel({

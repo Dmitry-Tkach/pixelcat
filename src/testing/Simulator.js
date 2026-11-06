@@ -144,6 +144,7 @@ export class Simulator {
         lunges: spec.lunges ?? null,
         shortcut: spec.shortcut ?? null,
         highGround: spec.highGround ?? null,
+        boss: spec.boss ?? null,
         finalDash: spec.finalDash ?? null,
         mouse: spec.mouse ?? null,
         chase: { ...base.chase, ...spec.chase },
@@ -252,6 +253,13 @@ export class Simulator {
       if (spec.autopilot) {
         pilot.seconds = seconds;
         autopilot(scene, pilot);
+        // Simulated players only run and jump. A boss has scenarios of its own, so it's waved past.
+        if (scene.bossFight?.isActive) scene.bossFight.pawHit();
+      }
+      // Drops the cat on a boss's head whenever it's open to a stomp.
+      if (spec.stompWhenOpen && scene.bossFight?.director.isVulnerable && cat.onGround) {
+        const { boss } = scene.bossFight;
+        cat.body.reset(boss.x, boss.y - 460);
       }
 
       this.step(frameMs);
@@ -324,6 +332,12 @@ export class Simulator {
       finalSpeed: cat.speed,
       grabs: scene.grabs,
       bonusTreats: scene.bonusTreats,
+      bossStarted: Boolean(scene.bossFight?.hasStarted),
+      bossHealth: scene.bossFight?.director.health,
+      bossState: scene.bossFight?.director.state,
+      bossesAttacks: scene.bossFight?.director.attacksSeen,
+      lives: scene.bossFight?.livesLeft,
+      cameraX: scene.cameras.main.scrollX,
       foundMouse: scene.foundMouse,
       overlayMessage: document.querySelector('[data-message]')?.textContent,
       seconds,

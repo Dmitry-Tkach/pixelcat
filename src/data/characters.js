@@ -5,6 +5,23 @@
 // Optional hug roles: `hug` plays when they catch the cat, and `hugLoop` follows it, if present.
 
 export const CHARACTERS = {
+  // A boss. Boss.js places him by his feet, so he needs no originY.
+  crownCat: {
+    folder: 'crown-cat',
+    scale: 1,
+    anims: {
+      idle: { file: 'idle', frames: 4, fps: 5, repeat: -1 },
+      run: { file: 'run', frames: 8, fps: 16, repeat: -1 },
+      crouch: { file: 'crouch', frames: 4, fps: 8, repeat: 0 },
+      leap: { file: 'leap', frames: 5, fps: 9, repeat: 0 },
+      land: { file: 'land', frames: 4, fps: 10, repeat: 0 },
+      clawReady: { file: 'clawready', frames: 4, fps: 8, repeat: 0 },
+      claw: { file: 'claw', frames: 7, fps: 16, repeat: 0 },
+      hit: { file: 'hit', frames: 9, fps: 12, repeat: 0 },
+      dizzy: { file: 'dizzy', frames: 5, fps: 6, repeat: -1 },
+    },
+  },
+
   cat: {
     folder: 'cat',
     scale: 0.72,

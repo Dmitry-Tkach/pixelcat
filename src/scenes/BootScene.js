@@ -1,7 +1,10 @@
 import Phaser from 'phaser';
 import { CHARACTERS, animKey, frameKey } from '../data/characters.js';
 import { ESCAPE_ANIMATION } from '../data/screens.js';
+import { LEVELS } from '../data/levels/index.js';
 import { IMAGE_ASSETS } from '../data/themes.js';
+
+const BOSS_TRY_OUT_RUN_UP = 300;
 
 // Loads everything from the data files, so new content needs no loading code.
 export class BootScene extends Phaser.Scene {
@@ -24,6 +27,15 @@ export class BootScene extends Phaser.Scene {
     }
   }
 
+  // For trying a boss while developing: open the page with ?boss.
+  firstLevel() {
+    const wantsBoss = import.meta.env.DEV && new URLSearchParams(location.search).has('boss');
+    const levelIndex = wantsBoss ? LEVELS.findIndex((level) => level.boss) : -1;
+    if (levelIndex < 0) return { levelIndex: 0, autoStart: false };
+    const x = LEVELS[levelIndex].boss.at - BOSS_TRY_OUT_RUN_UP;
+    return { levelIndex, autoStart: true, checkpoint: { x, treats: 0, hasPaw: false, rosterIndex: 0 } };
+  }
+
   create() {
     for (const [name, character] of Object.entries(CHARACTERS)) {
       for (const [role, { file, frames, frameList, fps, repeat }] of Object.entries(character.anims)) {
@@ -36,6 +48,6 @@ export class BootScene extends Phaser.Scene {
         });
       }
     }
-    this.scene.start('Game', { levelIndex: 0, autoStart: false });
+    this.scene.start('Game', this.firstLevel());
   }
 }
