@@ -620,25 +620,43 @@ function journeyArt() {
     <path d="M26 60 L46 30 M80 60 L100 30" stroke="#BFE7F7" stroke-width="6"/>
     <path d="M0 96 H128 M0 112 H128 M32 96 V112 M96 96 V112 M64 112 V128" stroke="#B37557" stroke-width="3"/>`, 128, 128);
 
-  // ----- Village: solid stone walls, built so they look like they'd stop a cat -----
-  const stones = (height) => {
+  // ----- Solid walls for each world, built so they look like they'd stop a cat -----
+  const WALLS = {
+    stone: { dark: '#5F646C', a: '#8F949C', b: '#A5AAB2', c: '#9A9FA7', cap: '#C4C8CE', moss: '#6FA23F' },
+    brick: { dark: '#6E3A2C', a: '#B5563F', b: '#C96B4F', c: '#A94E3A', cap: '#D9D2C5', moss: '#6E3A2C' },
+    wood: { dark: '#5C3A1E', a: '#A8743E', b: '#BE8A4E', c: '#946232', cap: '#D3A566', moss: '#F2C440' },
+  };
+  const stones = (height, colors) => {
     const courses = Math.floor((height - 16) / 30);
     return Array.from({ length: courses }, (_, row) => {
       const y = 16 + row * 30;
       const blocks = row % 2
-        ? [[4, 50, '#8F949C'], [56, 50, '#A5AAB2']]
-        : [[4, 30, '#A5AAB2'], [36, 38, '#8F949C'], [76, 30, '#9A9FA7']];
-      return blocks.map(([x, w, fill]) => `<rect x="${x}" y="${y}" width="${w}" height="28" rx="4" fill="${fill}" stroke="#5F646C" stroke-width="2"/>`).join('');
+        ? [[4, 50, colors.a], [56, 50, colors.b]]
+        : [[4, 30, colors.b], [36, 38, colors.a], [76, 30, colors.c]];
+      return blocks.map(([x, w, fill]) => `<rect x="${x}" y="${y}" width="${w}" height="28" rx="4" fill="${fill}" stroke="${colors.dark}" stroke-width="2"/>`).join('');
     }).join('');
   };
-  const wall = (name, height) => save(name, `
-    <rect x="2" y="8" width="106" height="${height - 8}" rx="4" fill="#5F646C"/>
-    ${stones(height)}
-    <rect x="0" y="4" width="110" height="14" rx="5" fill="#C4C8CE" stroke="#5F646C" stroke-width="2"/>
-    <path d="M8 18 C14 30 24 18 30 26 C36 18 46 22 52 18 Z" fill="#6FA23F"/>`, 110, height);
-  wall('stone-wall', 150);
-  wall('stone-wall-tall', 280);
-  wall('stone-wall-gate', 480);
+  const wall = (name, height, colors) => save(name, `
+    <rect x="2" y="8" width="106" height="${height - 8}" rx="4" fill="${colors.dark}"/>
+    ${stones(height, colors)}
+    <rect x="0" y="4" width="110" height="14" rx="5" fill="${colors.cap}" stroke="${colors.dark}" stroke-width="2"/>
+    <path d="M8 18 C14 30 24 18 30 26 C36 18 46 22 52 18 Z" fill="${colors.moss}"/>`, 110, height);
+  for (const [material, colors] of Object.entries(WALLS)) {
+    wall(`${material}-wall`, 150, colors);
+    wall(`${material}-wall-tall`, 280, colors);
+    wall(`${material}-wall-gate`, 480, colors);
+  }
+
+  // ----- Farm: a barn to climb -----
+  save('platform-barn', `
+    <rect y="0" width="64" height="12" fill="#7C3B2C"/>
+    <rect y="12" width="64" height="22" fill="#5C2C20"/>
+    <path d="M8 0 V12 M24 0 V12 M40 0 V12 M56 0 V12" stroke="#A85A44" stroke-width="3"/>`, 64, 34);
+  save('barn-wall', `
+    <rect width="128" height="128" fill="#B8432F"/>
+    <path d="M32 0 V128 M64 0 V128 M96 0 V128" stroke="#8F3122" stroke-width="4"/>
+    <rect x="44" y="30" width="40" height="40" fill="#F4EAD2" stroke="#8F3122" stroke-width="4"/>
+    <path d="M44 30 L84 70 M84 30 L44 70" stroke="#8F3122" stroke-width="4"/>`, 128, 128);
 
   // ----- The hidden collectible -----
   save('toy-mouse', `

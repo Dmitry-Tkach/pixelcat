@@ -2,8 +2,8 @@ import { COLLAPSE, GAME } from '../config/gameConfig.js';
 
 const THICKNESS = 34;
 const LANDING_TOLERANCE = 10;
-const TEXTURES = { awning: 'platform-awning', marketAwning: 'platform-awning', plank: 'platform-plank', leafy: 'platform-leafy', hay: 'platform-hay', rooftop: 'platform-roof' };
-const ROOF_WALL_TEXTURE = 'roof-wall';
+const TEXTURES = { awning: 'platform-awning', collapsing: 'platform-awning', plank: 'platform-plank', leafy: 'platform-leafy', hay: 'platform-hay', rooftop: 'platform-roof', barnRoof: 'platform-barn' };
+const BUILDING_WALLS = { rooftop: 'roof-wall', barnRoof: 'barn-wall' }; // these ledges have a building under them
 const WALL_BURIED = 10; // the wall goes a little way into the road, so it looks planted
 const ROPE_LENGTH = 1200; // reaches past the top of the screen, even with the camera raised
 const ROPE_INSET = 24;
@@ -30,10 +30,10 @@ export class Platforms {
     const top = GAME.GROUND_Y - height;
     const item = scene.add.tileSprite(at + width / 2, top + THICKNESS / 2, width, THICKNESS, TEXTURES[style]);
     item.setDepth(4);
-    // A rooftop has a building under it. The cat on the road runs in front of the wall.
-    if (style === 'rooftop') {
+    // The cat on the road runs in front of the building's wall.
+    if (BUILDING_WALLS[style]) {
       const wallHeight = height - THICKNESS + WALL_BURIED;
-      scene.add.tileSprite(at + width / 2, top + THICKNESS + wallHeight / 2, width, wallHeight, ROOF_WALL_TEXTURE).setDepth(3);
+      scene.add.tileSprite(at + width / 2, top + THICKNESS + wallHeight / 2, width, wallHeight, BUILDING_WALLS[style]).setDepth(3);
     }
     const moving = Boolean(lift || collapse);
     scene.physics.add.existing(item, !moving);

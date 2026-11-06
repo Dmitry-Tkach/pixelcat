@@ -56,42 +56,30 @@ export const SPRINT = {
   DURATION_MS: 1500,
 };
 
-// Hay wagons on the farm. Riding one is faster than running, so it pulls away from the chaser.
+// Hay wagons on the farm. Riding one carries the cat along, on top of its own running.
 export const WAGON = {
-  SPEED_RATIO: 0.6, // how fast the wagon drives, compared with the cat's progress
-  RIDE_SPEED: 1.35, // the cat's speed while riding, as a multiple of its normal speed
+  SPEED_RATIO: 0.6, // how fast the wagon drives, compared with the level's top speed
+  START_AHEAD: 1000, // it starts driving when the cat is this far before the place it should meet
   DECK_WIDTH: 720,
   DECK_HEIGHT: 150,
 };
 
-// Steering in the air. The cat drifts on screen while steering, and the camera catches up after
-// it lands, so the player can always see what's coming.
-export const STEER = {
-  SPEED: 260, // added to or taken from the cat's speed while a direction is held
-  ACCELERATION: 2600,
-  MAX_SCREEN_SHIFT: 200,
-  RETURN_RATE: 4, // how quickly the camera catches up after landing
-};
-
-// Platformer controls: the player runs the cat. Clean running builds momentum, and that's the only
-// way to go faster than the chaser. The hybrid mode always runs, with the keys changing the speed.
+// The player runs the cat. Clean running builds momentum, and that's the only way to go faster than
+// the chaser. The hybrid mode always runs, with the keys changing the speed. Speeds are shares of
+// the level's top speed.
 export const FREE_MOVE = {
-  START_SPEED: 240, // just started, or just hit something
-  TOP_SPEED: 440, // after a long clean run
+  START_SHARE: 0.55, // just started, or just hit something
   BUILD_SECONDS: 3, // how long running clean takes to reach top speed
   LOSS_RATE: 2, // momentum lost per second when not running forward
-  BACK_SPEED: 240,
+  BACK_SHARE: 0.55,
   ACCELERATION: 1800,
   AIR_CONTROL: 0.6, // how much of that acceleration the cat has in the air
   CRASH_SPEED: 100, // walking into a wall slower than this isn't a crash
   RUNNING_SPEED: 100, // going forward faster than this counts as running on, not hanging around
   IDLE_BELOW: 20, // slower than this looks like standing still
   HYBRID_MOMENTUM: 0.45, // where momentum settles with no key held in hybrid mode
-  HYBRID_BRAKE_SPEED: 180,
+  HYBRID_BRAKE_SHARE: 0.4,
 };
-
-// A solid wall stops the cat. Stuck there, the chaser closes in at this speed, whatever the level.
-export const WALL = { CLOSE_SPEED: 220 };
 
 // The camera rises once the cat's feet are this far above the road.
 export const CLIMB_CAMERA = { FOLLOW_ABOVE: 300, RATE: 6 };

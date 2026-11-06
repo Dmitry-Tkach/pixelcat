@@ -19,7 +19,7 @@ const keys = [];
 LEVELS.forEach((level, levelIndex) => {
   for (const [skillName, skill] of Object.entries(SKILLS)) {
     for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
-      jobs.push({ levelIndex, autopilot: true, skill: { ...skill, seed: levelIndex * 1000 + attempt * 7 + skillName.length * 131 } });
+      jobs.push({ levelIndex, autopilot: true, fullSpeed: false, skill: { ...skill, seed: levelIndex * 1000 + attempt * 7 + skillName.length * 131 } });
       keys.push({ level, skillName });
     }
   }

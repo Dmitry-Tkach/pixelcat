@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { GAME, VIEW } from '../config/gameConfig.js';
 import { animKey, frameKey, CHARACTERS } from '../data/characters.js';
-import { activationCatX, arcHeight, crossingProgress, pulseStrength, shouldStartLeap, startX, swingHeight } from '../systems/obstacleMotion.js';
+import { activationCatX, arcHeight, crossingProgress, pulseStrength, shouldStartLeap, startX, swingHeight, wrapToCycle } from '../systems/obstacleMotion.js';
 
 const FEET_ORIGIN_Y = 0.97;
 const ICON_ABOVE = 165;
@@ -11,6 +11,7 @@ const OFF_SCREEN_BEHIND = 300;
 const HIT_TINT = 0xff9a9a;
 const HIT_TINT_MS = 180;
 const PULSE_DANGER_STRENGTH = 0.5;
+const LIGHT_WARNING_SECONDS = 0.7; // how long the light is red before a car starts across
 const LIGHT_BEFORE_CROSSING = 170;
 const LIGHT_BASE_Y = GAME.GROUND_Y - 50; // on the far pavement
 const STRIPES_BELOW_FEET = 58;
@@ -214,10 +215,19 @@ class SwingingObstacle extends MovingObstacle {
     this.place(0);
   }
 
-  // The swing follows the cat's progress rather than the clock. A sprint or a hit changes when
-  // the cat arrives, and the crate must still be at the level's chosen position when it does.
-  place(catX) {
-    const height = swingHeight(catX / this.catSpeed, this.at / this.catSpeed, this.motion.period, this.motion.maxHeight, this.position);
+  heightAt(clockX) {
+    return swingHeight(clockX / this.catSpeed, this.at / this.catSpeed, this.motion.period, this.motion.maxHeight, this.position);
+  }
+
+  // The move that clears it `seconds` from now, for simulated players.
+  moveIn(seconds, clockX) {
+    const height = this.heightAt(clockX + seconds * this.catSpeed);
+    return height > this.motion.maxHeight / 2 ? 'slide' : 'jump';
+  }
+
+  // It keeps time on its own, so the player can watch it and pick a moment.
+  place(clockX) {
+    const height = this.heightAt(clockX);
     this.y = GAME.GROUND_Y - height;
     this.rope.y = VIEW.TOP;
     this.rope.setScale(1, (this.y - this.height - VIEW.TOP) / 10);
@@ -230,7 +240,7 @@ class SwingingObstacle extends MovingObstacle {
   }
 }
 
-// Switches on and off, following the cat's progress like the swing does.
+// Switches on and off, keeping time like the swing does.
 class PulsingObstacle extends MovingObstacle {
   constructor(scene, at, type, catSpeed, position) {
     super(scene, at, GAME.GROUND_Y + GAME.GROUND_OVERLAP, type.texture, type);
@@ -244,8 +254,16 @@ class PulsingObstacle extends MovingObstacle {
     this.place(0);
   }
 
-  place(catX) {
-    const strength = pulseStrength(catX / this.catSpeed, this.at / this.catSpeed, this.motion.period, this.position);
+  strengthAt(clockX) {
+    return pulseStrength(clockX / this.catSpeed, this.at / this.catSpeed, this.motion.period, this.position);
+  }
+
+  moveIn(seconds, clockX) {
+    return this.strengthAt(clockX + seconds * this.catSpeed) > PULSE_DANGER_STRENGTH ? 'jump' : 'none';
+  }
+
+  place(clockX) {
+    const strength = this.strengthAt(clockX);
     this.water.setScale(1, Math.max(0.02, strength));
     this.water.setAlpha(strength > 0.05 ? 1 : 0);
     this.body.enable = strength > PULSE_DANGER_STRENGTH;
@@ -263,9 +281,9 @@ class PulsingObstacle extends MovingObstacle {
   }
 }
 
-// Drives across the road at a traffic light. `this` stays still and invisible as the hitbox, and
-// a separate image is the car, because the car's size changes as it comes toward the camera.
-// It follows the cat's progress, so the light is always right however late the cat arrives.
+// Cars keep crossing the road at a traffic light. `this` stays still and invisible as the hitbox,
+// and a separate image is the car, because the car's size changes as it comes toward the camera.
+// The light turns red before each car. Wait for it to pass, jump it, or time your run on green.
 class CrossingCar extends MovingObstacle {
   constructor(scene, at, type, catSpeed, position) {
     super(scene, at, GAME.GROUND_Y + GAME.GROUND_OVERLAP, type.texture, type);
@@ -273,7 +291,8 @@ class CrossingCar extends MovingObstacle {
     this.catSpeed = catSpeed;
     this.position = position;
     this.phase = 'running';
-    this.honked = false;
+    this.keepsTime = true;
+    this.honkedCycle = null;
     this.setOrigin(0.5, 1).setVisible(false);
     const { motion } = this;
     scene.add.image(at, GAME.GROUND_Y + STRIPES_BELOW_FEET, motion.stripesTexture).setOrigin(0.5, 1).setDepth(2);
@@ -283,17 +302,31 @@ class CrossingCar extends MovingObstacle {
     this.place(0);
   }
 
-  place(catX, onAlert) {
-    const { crossSeconds, passBehindSeconds, hitSeconds, redLight, greenLight, sound } = this.motion;
-    const isRed = this.position === 'red';
-    const elapsed = catX / this.catSpeed;
-    const meet = this.at / this.catSpeed;
-    const u = crossingProgress(elapsed, meet, crossSeconds, isRed ? 0 : passBehindSeconds);
+  // Seconds from the middle of the nearest car's crossing. `position` is what a cat running at top
+  // speed finds on arriving: a car in the lane on red, and the gap between two cars on green.
+  secondsFromCar(clockX) {
+    const { cycleSeconds } = this.motion;
+    const delay = this.position === 'red' ? 0 : cycleSeconds / 2;
+    return wrapToCycle(clockX / this.catSpeed - this.at / this.catSpeed - delay, cycleSeconds);
+  }
 
-    this.light.setTexture(isRed || u >= -1 ? redLight : greenLight);
-    this.body.enable = isRed && Math.abs(elapsed - meet) <= hitSeconds;
-    if (u >= -1 && !this.honked && onAlert) {
-      this.honked = true;
+  moveIn(seconds, clockX) {
+    const delta = this.secondsFromCar(clockX + seconds * this.catSpeed);
+    return Math.abs(delta) <= this.motion.hitSeconds ? 'jump' : 'none';
+  }
+
+  place(clockX, onAlert, cat) {
+    const { crossSeconds, hitSeconds, redLight, greenLight, sound, cycleSeconds } = this.motion;
+    const delta = this.secondsFromCar(clockX);
+    const u = crossingProgress(delta, 0, crossSeconds);
+    const carNear = u >= -1 - LIGHT_WARNING_SECONDS * (2 / crossSeconds) && u <= 1;
+
+    this.light.setTexture(carNear ? redLight : greenLight);
+    this.body.enable = Math.abs(delta) <= hitSeconds;
+    // Only honks where it can be seen, or a street of cars would never be quiet.
+    const cycle = Math.round(clockX / this.catSpeed / cycleSeconds);
+    if (u >= -1 && u <= 1 && this.honkedCycle !== cycle && onAlert && cat && Math.abs(this.at - cat.x) < VIEW.AHEAD) {
+      this.honkedCycle = cycle;
       onAlert(sound);
     }
     this.car.setVisible(u >= -1 && u <= 1);
@@ -304,9 +337,9 @@ class CrossingCar extends MovingObstacle {
     this.car.setDepth(u < 0.1 ? BEHIND_CAT_DEPTH : IN_FRONT_OF_CAT_DEPTH);
   }
 
-  tick(_ms, cat, onAlert) {
+  tick(_ms, clock, onAlert, cat) {
     if (this.phase === 'done') return;
-    this.place(cat.x, onAlert);
+    this.place(clock.x, onAlert, cat);
     this.retireIfBehindCamera();
   }
 

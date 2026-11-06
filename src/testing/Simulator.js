@@ -9,6 +9,7 @@ const AIR_THRESHOLD = 20;
 const GROUND_Y = 665;
 const DOUBLE_JUMP_DELAY_SECONDS = 0.22;
 const LUNGE_JUMP_LEAD = 0.4;
+const BOUNCE_THEN_AIR_JUMP_SECONDS = 1.36;
 
 // A small seeded generator, so a simulated player's mistakes can be repeated exactly.
 function seededRandom(seed) {
@@ -53,9 +54,21 @@ function autopilot(scene, state) {
 
   const distance = next.x - cat.x;
   const closing = cat.speed + (next.motion?.speed ?? 0);
-  const avoid = next.avoid === 'read' ? next.motion.moves[next.position] : next.avoid;
+  // A clock-driven obstacle is read for what it will be doing when the cat gets there.
+  const avoid = next.avoid === 'read' ? next.moveIn(distance / closing, obstacles.clockPoint.x) : next.avoid;
   const mistake = mistakeFor(state, next);
   const early = closing * mistake.timing;
+  // The skilful way past a wall too tall to jump: land on the bounce before it, then double jump.
+  const following = obstacles.items[obstacles.items.indexOf(next) + 1];
+  if (next.bounce && following?.avoid === 'lift') {
+    if (distance < closing * 0.86) {
+      state.handled.add(next);
+      state.handled.add(following);
+      cat.requestJump();
+      state.pendingAirJumpAt = state.seconds + BOUNCE_THEN_AIR_JUMP_SECONDS;
+    }
+    return;
+  }
   if (mistake.misses && avoid !== 'stay' && avoid !== 'none') {
     if (distance < closing * 0.2) state.handled.add(next);
     return;
@@ -128,7 +141,9 @@ export class Simulator {
         treats: spec.treats ?? [],
         checkpoints: spec.checkpoints ?? [],
         pack: Boolean(spec.pack),
-        finalRush: spec.finalRush ?? null,
+        lunges: spec.lunges ?? null,
+        shortcut: spec.shortcut ?? null,
+        highGround: spec.highGround ?? null,
         finalDash: spec.finalDash ?? null,
         mouse: spec.mouse ?? null,
         chase: { ...base.chase, ...spec.chase },
@@ -159,6 +174,17 @@ export class Simulator {
 
     const { scene } = this;
     const { cat, obstacles, tracker, chase } = scene;
+    // The simulated player holds right, starting at full speed unless asked not to. That way a
+    // scenario's timing is the same each time, and `idle` leaves the cat standing still.
+    obstacles.clockPoint.x = cat.x;
+    if (!spec.idle) {
+      scene.controls.right = true;
+      if (spec.fullSpeed !== false) {
+        cat.momentum = 1;
+        cat.speedControl.baseSpeed = cat.topSpeed;
+        cat.moveVelocity = cat.topSpeed;
+      }
+    }
     const phasesSeen = new Set();
     let hiddenWhileKnockedOut = true;
     const actions = (spec.actions ?? []).map((action) => ({ ...action }));
@@ -170,7 +196,7 @@ export class Simulator {
       rand: seededRandom(spec.skill?.seed ?? 1),
       mistakes: new Map(),
     };
-    const out = { peak: 0, onTop: false, sprint: false, maxGap: tracker.gap, minGap: tracker.gap, ledgesTouched: new Set(), rode: false, minSpeed: Infinity, maxSpeed: 0, stuckSeconds: 0, maxRise: 0, maxShift: 0, ledgeDrops: 0 };
+    const out = { peak: 0, onTop: false, sprint: false, maxGap: tracker.gap, minGap: tracker.gap, ledgesTouched: new Set(), rode: false, minSpeed: Infinity, maxSpeed: 0, stuckSeconds: 0, maxRise: 0, ledgeDrops: 0 };
     let wasOnLedge = false;
 
     let seconds = 0;
@@ -181,6 +207,18 @@ export class Simulator {
         if (action.afterSeconds !== undefined) {
           const previous = actions[action.after ?? 0].doneAt;
           if (previous === undefined || seconds - previous < action.afterSeconds) continue;
+        } else if (action.liftGoing !== undefined) {
+          // When a lift passes a height, going 'up' or 'down', once the action `after` has happened.
+          const lift = scene.platforms.items[action.platform ?? 0];
+          const going = lift.y < action.liftWasY ? 'up' : 'down';
+          const wasY = action.liftWasY;
+          action.liftWasY = lift.y;
+          if (wasY === undefined || actions[action.after ?? 0].doneAt === undefined) continue;
+          const height = GROUND_Y - (lift.y - lift.height / 2);
+          const reached = action.liftGoing === 'up' ? height >= action.height : height <= action.height;
+          if (going !== action.liftGoing || !reached) continue;
+        } else if (action.catX !== undefined) {
+          if (cat.x < action.catX) continue;
         } else if (action.stuckFor !== undefined) {
           if (out.stuckSeconds < action.stuckFor) continue;
         } else if (action.strikeLead !== undefined) {
@@ -233,7 +271,6 @@ export class Simulator {
       }
       if (cat.body.blocked.right) out.stuckSeconds += frameMs / 1000;
       out.maxRise = Math.max(out.maxRise, scene.cameraRise);
-      out.maxShift = Math.max(out.maxShift, Math.abs(cat.screenShift));
       const onLedge = cat.onGround && cat.onPlatform;
       if (wasOnLedge && !onLedge) out.ledgeDrops += 1;
       wasOnLedge = onLedge;
@@ -242,7 +279,7 @@ export class Simulator {
         if (cat.onGround && out.jumpX !== undefined && out.landX === undefined) out.landX = cat.x;
       }
       if (cat.speedControl.isSprinting) out.sprint = true;
-      if (cat.speedControl.terrainMultiplier > 1) out.rode = true;
+      if (scene.wagons.wasRiding) out.rode = true;
       out.minSpeed = Math.min(out.minSpeed, cat.speed);
       out.maxSpeed = Math.max(out.maxSpeed, cat.speed);
       out.maxGap = Math.max(out.maxGap, tracker.gap);
@@ -258,7 +295,6 @@ export class Simulator {
       ledgesTouched: [...out.ledgesTouched],
       fallen: scene.platforms.items.map((item) => item.fallen),
       endHeight: GROUND_Y - cat.body.bottom,
-      endShift: cat.screenShift,
       treats: cat.treats,
       treatTotal: scene.treats.total,
       startX: spec.startCheckpoint?.x ?? 0,
@@ -287,6 +323,7 @@ export class Simulator {
       x: cat.x,
       finalSpeed: cat.speed,
       grabs: scene.grabs,
+      bonusTreats: scene.bonusTreats,
       foundMouse: scene.foundMouse,
       overlayMessage: document.querySelector('[data-message]')?.textContent,
       seconds,

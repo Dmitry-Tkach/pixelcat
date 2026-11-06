@@ -4,7 +4,7 @@ import { CHARACTERS } from '../src/data/characters.js';
 import { OBSTACLES } from '../src/data/obstacles.js';
 import { LEVELS } from '../src/data/levels/index.js';
 import { jumpWindowSeconds } from '../src/systems/levelValidation.js';
-import { activationCatX, arcHeight, crossingProgress, shouldStartLeap, startX, swingHeight, wagonRearX } from '../src/systems/obstacleMotion.js';
+import { activationCatX, arcHeight, crossingProgress, shouldStartLeap, startX, swingHeight, wagonStartX, wrapToCycle } from '../src/systems/obstacleMotion.js';
 
 describe('moving obstacle motion', () => {
   it('reaches the meeting point at the same moment as a full-speed cat', () => {
@@ -141,30 +141,34 @@ describe('obstacle data', () => {
 });
 
 describe('hay wagon', () => {
-  it('reaches the meeting point exactly when the cat does', () => {
-    expect(wagonRearX(2000, 2000, 0.6)).toBe(2000);
-  });
-
-  it('stays ahead of the cat before then, and falls behind after', () => {
-    expect(wagonRearX(1000, 2000, 0.6)).toBeGreaterThan(1000);
-    expect(wagonRearX(3000, 2000, 0.6)).toBeLessThan(3000);
+  it('reaches the meeting point just as a cat at top speed does', () => {
+    const meetAt = 2000;
+    const startAhead = 1000;
+    const ratio = 0.6;
+    const secondsToMeet = startAhead / 400;
+    expect(wagonStartX(meetAt, startAhead, ratio) + 400 * ratio * secondsToMeet).toBeCloseTo(meetAt);
   });
 });
 
 describe('crossing car', () => {
-  const { crossSeconds, passBehindSeconds, hitSeconds } = OBSTACLES.crossingCar.motion;
+  const { crossSeconds, cycleSeconds, hitSeconds } = OBSTACLES.crossingCar.motion;
 
-  it('is in the cat\'s lane on red when the cat arrives', () => {
+  it('is in the lane at the middle of its crossing', () => {
     expect(crossingProgress(10, 10, crossSeconds)).toBe(0);
   });
 
-  it('starts crossing soon enough to be seen before it can hit', () => {
+  it('can be seen crossing before it can hit', () => {
     expect(crossingProgress(10 - crossSeconds / 2, 10, crossSeconds)).toBeCloseTo(-1);
     expect(crossSeconds / 2).toBeGreaterThan(hitSeconds);
   });
 
-  it('on green, only reaches the lane after the cat has passed', () => {
-    expect(crossingProgress(10, 10, crossSeconds, passBehindSeconds)).toBeLessThan(0);
-    expect(passBehindSeconds).toBeGreaterThan(hitSeconds);
+  it('leaves a safe gap between cars', () => {
+    expect(cycleSeconds).toBeGreaterThan(hitSeconds * 2 + 1);
+  });
+
+  it('repeats on its cycle', () => {
+    expect(wrapToCycle(0.4, cycleSeconds)).toBeCloseTo(0.4);
+    expect(wrapToCycle(cycleSeconds + 0.4, cycleSeconds)).toBeCloseTo(0.4);
+    expect(wrapToCycle(cycleSeconds - 0.4, cycleSeconds)).toBeCloseTo(-0.4);
   });
 });

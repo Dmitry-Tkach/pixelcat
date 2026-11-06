@@ -4,7 +4,6 @@
 // character:  which entry in data/characters.js to draw
 // speedDelta: added to the level's ownerSpeed. It must stay below the cat's speed.
 // arrival:    an optional message when they join the chase
-// rush:       optional sudden sprints: every `everySeconds`, run `extraSpeed` faster for `seconds`
 // catchMessage, catchSound: optional replacements for the defaults when they catch the cat
 
 export const CHASERS = {
@@ -24,9 +23,8 @@ export const CHASERS = {
   grandma: {
     character: 'grandma',
     speedDelta: -15,
-    arrival: 'Grandma\'s coming. Watch for her rushes!',
+    arrival: 'Grandma\'s coming, and she never slows down!',
     catchMessage: 'Grandma scoops you up for a long, long cuddle. Then it\'s the carrier. There\'s still time for one more try.',
     catchSound: 'caughtHug',
-    rush: { everySeconds: 7, seconds: 1.2, extraSpeed: 130 },
   },
 };

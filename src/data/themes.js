@@ -14,6 +14,8 @@ const layers = (world, clouds = `${world}-clouds`) => [
   { texture: `${world}-fore`, factor: 1.35, y: 672, height: 48, depth: FOREGROUND_DEPTH },
 ];
 
+const BRICK_WALLS = { stoneWall: 'brickWall', tallStoneWall: 'tallBrickWall', gateWall: 'gateBrickWall' };
+
 // gate:  the escape point's image.
 // swap:  replaces obstacle types from the shared level sections with this world's own.
 // ledges: replaces ledge styles the same way.
@@ -22,6 +24,7 @@ export const THEMES = {
     backdrop: 'city-sky',
     layers: layers('city'),
     gate: 'gate',
+    swap: BRICK_WALLS,
   },
   park: {
     backdrop: 'park-sky',
@@ -60,13 +63,17 @@ export const THEMES = {
       crate: 'bucket',
       flowerPot: 'apple',
       barrel: 'rollingHay',
+      stoneWall: 'woodWall',
+      tallStoneWall: 'tallWoodWall',
+      gateWall: 'gateWoodWall',
     },
-    ledges: { awning: 'hay' },
+    ledges: { awning: 'hay', collapsing: 'hay', rooftop: 'barnRoof' },
   },
   vet: {
     backdrop: 'vet-sky',
     layers: layers('vet'),
     gate: 'vet-gate',
+    swap: BRICK_WALLS,
   },
 };
 
@@ -83,6 +90,9 @@ const WORLD_IMAGES = {
   'market-stall': 'market-stall', 'fruit-crate': 'fruit-crate', 'fruit-splat': 'fruit-splat', 'laundry-bundle': 'laundry-bundle', 'laundry-pile': 'laundry-pile',
   'platform-roof': 'platform-roof', 'roof-wall': 'roof-wall', 'toy-mouse': 'toy-mouse',
   'stone-wall': 'stone-wall', 'stone-wall-tall': 'stone-wall-tall', 'stone-wall-gate': 'stone-wall-gate',
+  'brick-wall': 'brick-wall', 'brick-wall-tall': 'brick-wall-tall', 'brick-wall-gate': 'brick-wall-gate',
+  'wood-wall': 'wood-wall', 'wood-wall-tall': 'wood-wall-tall', 'wood-wall-gate': 'wood-wall-gate',
+  'platform-barn': 'platform-barn', 'barn-wall': 'barn-wall',
   'city-fore': 'city-fore', 'park-fore': 'park-fore', 'farm-fore': 'farm-fore', 'vet-fore': 'vet-fore',
   'mud-pool': 'mud-pool', 'big-hay': 'big-hay', 'hay-wagon': 'hay-wagon',
   'vet-gate': 'vet-gate',

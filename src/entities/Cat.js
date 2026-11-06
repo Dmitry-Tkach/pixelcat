@@ -1,19 +1,21 @@
 import Phaser from 'phaser';
-import { BIG_LAND, FREE_MOVE, GAME, MOVEMENT, STEER } from '../config/gameConfig.js';
+import { BIG_LAND, FREE_MOVE, GAME, MOVEMENT } from '../config/gameConfig.js';
 import { CHARACTERS, animKey, frameKey } from '../data/characters.js';
 import { SpeedController } from '../systems/SpeedController.js';
 
 const MANIFEST = CHARACTERS.cat;
 
-// The player character: runs automatically and responds to jump and slide requests.
+// The player character. It runs where it's told, builds momentum, and responds to jump and slide
+// requests.
 export class Cat extends Phaser.Physics.Arcade.Sprite {
-  constructor(scene, x, baseSpeed) {
+  constructor(scene, x, topSpeed) {
     super(scene, x, GAME.GROUND_Y - 120, frameKey('cat', 'idle', 1));
     scene.add.existing(this);
     scene.physics.add.existing(this);
 
     this.setScale(MANIFEST.scale).setDepth(6);
-    this.speedControl = new SpeedController(baseSpeed);
+    this.topSpeed = topSpeed;
+    this.speedControl = new SpeedController(topSpeed);
     this.body.setGravityY(MOVEMENT.GRAVITY);
     this.useHitbox('run');
 
@@ -26,11 +28,8 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     this.onPlatform = false;
     this.dropMs = 0;
     this.treats = 0;
-    this.steerDirection = 0;
-    this.steerVelocity = 0;
-    this.screenShift = 0;
     this.fallSpeed = 0;
-    this.moveMode = null; // 'free' or 'hybrid' on levels with platformer controls
+    this.moveMode = 'free'; // or 'hybrid', which always runs
     this.moveDirection = 0;
     this.moveVelocity = 0;
     this.momentum = 0;
@@ -133,6 +132,7 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     this.play(animKey('cat', 'hurt'), true);
   }
 
+  // How fast the cat runs right now, when it's running forward.
   get speed() {
     return this.running ? this.speedControl.speed : 0;
   }
@@ -158,18 +158,18 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
       this.momentum -= seconds * FREE_MOVE.LOSS_RATE;
     }
     this.momentum = Phaser.Math.Clamp(this.momentum, 0, 1);
-    this.speedControl.baseSpeed = Phaser.Math.Linear(FREE_MOVE.START_SPEED, FREE_MOVE.TOP_SPEED, this.momentum);
+    this.speedControl.baseSpeed = this.topSpeed * Phaser.Math.Linear(FREE_MOVE.START_SHARE, 1, this.momentum);
   }
 
   moveTarget() {
     const hybrid = this.moveMode === 'hybrid';
     if (this.moveDirection > 0) return this.speed;
-    if (this.moveDirection < 0) return hybrid ? FREE_MOVE.HYBRID_BRAKE_SPEED : -FREE_MOVE.BACK_SPEED;
+    if (this.moveDirection < 0) return this.topSpeed * (hybrid ? FREE_MOVE.HYBRID_BRAKE_SHARE : -FREE_MOVE.BACK_SHARE);
     return hybrid ? this.speed : 0;
   }
 
-  // Platformer controls. A wall takes away everything the cat had built up.
-  updateFreeMove(ms) {
+  // A wall takes away everything the cat had built up.
+  updateMovement(ms) {
     const seconds = ms / 1000;
     this.updateMomentum(seconds);
     if (this.body.blocked.right && this.moveVelocity > 0) {
@@ -186,26 +186,6 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     else if (this.moveVelocity > FREE_MOVE.IDLE_BELOW) this.setFlipX(false);
   }
 
-  // -1 brakes, 1 surges, and 0 lets go. It only has an effect in the air.
-  steer(direction) {
-    this.steerDirection = direction;
-  }
-
-  updateSteering(ms) {
-    const seconds = ms / 1000;
-    if (this.onGround || !this.running) {
-      this.steerVelocity = 0;
-      this.screenShift *= Math.exp(-STEER.RETURN_RATE * seconds);
-      return;
-    }
-    const target = this.steerDirection * STEER.SPEED;
-    const change = STEER.ACCELERATION * seconds;
-    this.steerVelocity = Phaser.Math.Clamp(target, this.steerVelocity - change, this.steerVelocity + change);
-    if (this.body.blocked.right) return;
-    const shift = this.screenShift + this.steerVelocity * seconds;
-    this.screenShift = Phaser.Math.Clamp(shift, -STEER.MAX_SCREEN_SHIFT, STEER.MAX_SCREEN_SHIFT);
-  }
-
   // Called once per frame while the level is being played.
   tick(ms) {
     this.speedControl.update(ms);
@@ -214,12 +194,7 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     this.dropMs = Math.max(0, this.dropMs - ms);
     if (!this.onGround) this.onPlatform = false;
 
-    if (this.moveMode) {
-      this.updateFreeMove(ms);
-    } else {
-      this.updateSteering(ms);
-      this.setVelocityX(this.speed + this.steerVelocity);
-    }
+    this.updateMovement(ms);
 
     if (this.onGround && this.wasAirborne) {
       this.emit('land');
@@ -243,8 +218,8 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
 
     if (this.isSliding) {
       // A cat sliding from a standstill still gets back up, however slowly it's moving.
-      const slideSpeed = this.moveMode ? Math.max(Math.abs(this.moveVelocity), FREE_MOVE.START_SPEED) : this.speed;
-      this.slideLeft -= slideSpeed * (ms / 1000);
+      const slowest = this.topSpeed * FREE_MOVE.START_SHARE;
+      this.slideLeft -= Math.max(Math.abs(this.moveVelocity), slowest) * (ms / 1000);
       if (this.slideLeft <= 0) this.endSlide();
     }
 
@@ -256,7 +231,7 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     let role = 'run';
     if (this.isSliding) role = 'slide';
     else if (!this.onGround) role = this.body.velocity.y < 0 ? 'jump' : 'fall';
-    else if (this.moveMode && Math.abs(this.moveVelocity) < FREE_MOVE.IDLE_BELOW) role = 'idle';
+    else if (Math.abs(this.moveVelocity) < FREE_MOVE.IDLE_BELOW) role = 'idle';
     this.play(animKey('cat', role), true);
   }
 

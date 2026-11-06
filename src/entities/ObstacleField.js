@@ -19,9 +19,8 @@ export class ObstacleField {
     this.avoided = () => {};
     this.splash = () => {};
     this.zones = [];
-    // With platformer controls the cat can stop, so swings and sprinklers keep time on their own.
-    // Their progress-based motion then follows this steadily moving point instead of the cat.
-    this.clockDriven = Boolean(level.freeMove);
+    // The cat can stop, so swings, sprinklers and traffic keep time on their own. Their motion
+    // follows this steadily moving point, rather than the cat.
     this.clockPoint = { x: 0 };
     this.clockSpeed = level.cat.speed;
     // Restarting from a checkpoint skips what's already behind the cat.
@@ -143,7 +142,7 @@ export class ObstacleField {
   update(ms, cat) {
     this.clockPoint.x += this.clockSpeed * (ms / 1000);
     for (const mover of this.movers) {
-      mover.tick(ms, this.clockDriven && mover.keepsTime ? this.clockPoint : cat, this.alert);
+      mover.tick(ms, mover.keepsTime ? this.clockPoint : cat, this.alert, cat);
     }
     for (const item of this.items) {
       if (item.wasHit || item.passed || item.phase === 'waiting') continue;

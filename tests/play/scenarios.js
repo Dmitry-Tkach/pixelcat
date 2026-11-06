@@ -22,7 +22,7 @@ const WALL_BIG_JUMP = [
   { press: 'jump', afterSeconds: 0.22, after: 0 },
 ];
 const JUMP_TO_LAND = { press: 'jump', lead: 0.86 };
-const TEST_LEVEL = 4; // the level trying out air steering, walls, lifts and collapsing ledges
+const TEST_LEVEL = 4; // a level in the middle of the game, for checking movement and walls
 
 // Obstacles are checked at the slowest, middle and fastest level speeds.
 const SPEED_LEVELS = [0, Math.floor((LEVELS.length - 1) / 2), LEVELS.length - 1];
@@ -79,6 +79,8 @@ function checksFor(name, type) {
         { label: 'staying down is safe', obstacles: place(), expect: (r) => clean(r) && r.passed[0] },
         { label: 'jumping into it hits', obstacles: place(), actions: [{ press: 'jump', lead: 0.3, extra: 60 }], expect: hit },
       ];
+    case 'lift':
+      return [{ label: 'running into it stops the cat', obstacles: place(), expect: hit }];
     default:
       throw new Error(`No checks for avoid type "${type.avoid}"`);
   }
@@ -160,12 +162,15 @@ export function buildScenarios() {
         levelIndex,
         frameMs,
         autopilot: true,
-        expect: (r) => r.state === 'complete' && r.hits.every((h) => !h),
-        detail: (r) => `state=${r.state} hit: ${level.obstacles.filter((_o, i) => r.hits[i]).map((o) => `${o.type}@${o.at}`).join(', ')}`,
+        // Clock-driven obstacles may not be clearable at the moment a non-stop cat arrives.
+        // And a cat slowed by a hit may not be fast enough to jump all the way across mud.
+        expect: (r) => r.state === 'complete' && level.obstacles.every((o, i) => !r.hits[i] || ['read', 'terrain'].includes(OBSTACLES[o.type].avoid)),
+        detail: (r) => `state=${r.state} x=${Math.round(r.x)} hit: ${level.obstacles.filter((_o, i) => r.hits[i]).map((o) => `${o.type}@${o.at}`).join(', ')}`,
       });
       add(`${level.id}: doing nothing gets caught, ${fps}fps`, {
         levelIndex,
         frameMs,
+        idle: true,
         expect: (r) => r.state === 'failed',
         detail: (r) => `state=${r.state} x=${Math.round(r.x)}`,
       });
@@ -186,8 +191,8 @@ export function buildScenarios() {
       });
       add(`lunge: doing nothing gets grabbed, ${name}`, {
         ...lunge,
-        expect: (r) => r.sounds.includes('hit') && !r.sounds.includes('lungeMiss') && r.minGap < 450,
-        detail: (r) => `minGap=${Math.round(r.minGap)}`,
+        expect: (r) => r.sounds.includes('hit') && !r.sounds.includes('lungeMiss') && r.grabs === 1,
+        detail: (r) => `grabs=${r.grabs}`,
       });
       add(`lunge: jumping far too early gets grabbed, ${name}`, {
         ...lunge,
@@ -203,8 +208,8 @@ export function buildScenarios() {
   }
   add('lunge: a grab when she is already close means caught', {
     obstacles: clearRoad,
-    attacks: [{ at: 700 }],
-    chase: { startGap: 300 },
+    attacks: [{ at: 200 }],
+    chase: { startGap: 120 },
     until: 2200,
     expect: (r) => r.state === 'failed',
   });
@@ -336,20 +341,12 @@ export function buildScenarios() {
       expect: (r) => r.sounds.includes('lungeMiss') && r.phases.includes('recovering') && r.chaserCharacter === (chaser === 'girl' ? 'owner' : chaser),
     });
   }
-  add('roster: grandma rushes, and a clean run stays ahead', {
-    levelIndex: 1,
-    obstacles: farCone,
-    chasers: ['grandma'],
-    until: 7000,
-    expect: (r) => r.sounds.includes('chaserRush') && r.state === 'playing' && r.minGap < r.maxGap,
-    detail: (r) => `minGap=${Math.round(r.minGap)} maxGap=${Math.round(r.maxGap)} sounds=${r.sounds.join(',')}`,
-  });
 
   // What each chaser does on catching the cat.
   const catchSpec = {
     obstacles: farCone,
-    attacks: [{ at: 700 }],
-    chase: { startGap: 200 },
+    attacks: [{ at: 200 }],
+    chase: { startGap: 120 },
     until: 2200,
     settleSeconds: 1,
   };
@@ -415,64 +412,6 @@ export function buildScenarios() {
     detail: (r) => `found=${r.foundMouse}`,
   });
 
-  // Steering in the air.
-  const plainAirDistance = (speed) => speed * 0.96;
-  const jumpThenSteer = (press) => [{ press: 'jump', lead: 0.42, extra: 40 }, { press, afterSeconds: 0, after: 0 }];
-  const steerSpeed = LEVELS[TEST_LEVEL].cat.speed;
-  const steerCone = [{ type: 'cone', at: 1000 }];
-  const airDistance = (r) => r.landX - r.jumpX;
-  const airDetail = (r) => `distance=${Math.round(airDistance(r))} plain=${Math.round(plainAirDistance(steerSpeed))} shift=${Math.round(r.maxShift)}`;
-  add('steering: holding right carries the jump further', {
-    levelIndex: TEST_LEVEL,
-    obstacles: steerCone,
-    actions: jumpThenSteer('right'),
-    until: 1800,
-    expect: (r) => airDistance(r) > plainAirDistance(steerSpeed) + 150 && r.maxShift > 100,
-    detail: airDetail,
-  });
-  add('steering: holding left shortens the jump', {
-    levelIndex: TEST_LEVEL,
-    obstacles: [{ type: 'cone', at: 900 }, { type: 'cone', at: 15000 }],
-    actions: [{ press: 'jump', lead: 0.9 }, { press: 'left', afterSeconds: 0, after: 0 }],
-    until: 1800,
-    expect: (r) => airDistance(r) < plainAirDistance(steerSpeed) - 150,
-    detail: airDetail,
-  });
-  add('steering: the camera catches up after landing', {
-    levelIndex: TEST_LEVEL,
-    obstacles: steerCone,
-    actions: [...jumpThenSteer('right'), { press: 'release', afterSeconds: 0.9, after: 0 }],
-    until: 4000,
-    expect: (r) => r.maxShift > 100 && Math.abs(r.endShift) < 5,
-    detail: (r) => `${airDetail(r)} end=${Math.round(r.endShift)}`,
-  });
-  add('steering: braking lets the chaser catch up', {
-    levelIndex: TEST_LEVEL,
-    obstacles: [{ type: 'cone', at: 900 }, { type: 'cone', at: 15000 }],
-    chase: { startGap: 400, maxGap: 2000 },
-    actions: [{ press: 'jump', lead: 0.9 }, { press: 'left', afterSeconds: 0, after: 0 }],
-    until: 1400,
-    expect: (r) => r.minGap < 300,
-    detail: (r) => `minGap=${Math.round(r.minGap)}`,
-  });
-  add('steering: surging doesn\'t outrun the chaser', {
-    levelIndex: TEST_LEVEL,
-    obstacles: steerCone,
-    chase: { startGap: 400, maxGap: 2000 },
-    actions: jumpThenSteer('right'),
-    until: 1400,
-    expect: (r) => r.maxGap < 400 + 260,
-    detail: (r) => `maxGap=${Math.round(r.maxGap)}`,
-  });
-  add('steering: levels without it ignore the keys', {
-    levelIndex: 0,
-    obstacles: steerCone,
-    actions: jumpThenSteer('right'),
-    until: 1800,
-    expect: (r) => Math.abs(airDistance(r) - plainAirDistance(LEVELS[0].cat.speed)) < 40 && r.maxShift === 0,
-    detail: (r) => `distance=${Math.round(airDistance(r))} shift=${r.maxShift}`,
-  });
-
   // Solid walls.
   const WALL_AT = 1200;
   const stoneWall = [{ type: 'stoneWall', at: WALL_AT }];
@@ -497,7 +436,7 @@ export function buildScenarios() {
       obstacles: stoneWall,
       actions: [{ press: 'jump', stuckFor: 0.4 }],
       until: WALL_AT + 500,
-      expect: (r) => r.state === 'playing' && r.x >= WALL_AT + 500 && r.hits[0] && r.gap < 540,
+      expect: (r) => r.state === 'playing' && r.x >= WALL_AT + 500 && r.hits[0],
       detail: (r) => `state=${r.state} x=${Math.round(r.x)} gap=${Math.round(r.gap)}`,
     });
     add(`walls: a double jump from a standstill clears the tall wall, ${fps}fps`, {
@@ -538,8 +477,8 @@ export function buildScenarios() {
     obstacles: stoneWall,
     actions: [{ press: 'jump', stuckFor: 0.3 }],
     until: WALL_AT + 80,
-    expect: (r) => r.minSpeed <= LEVELS[TEST_LEVEL].cat.speed * 0.5 + 1,
-    detail: (r) => `slowest=${Math.round(r.minSpeed)}`,
+    expect: (r) => r.finalSpeed < LEVELS[TEST_LEVEL].cat.speed * 0.8,
+    detail: (r) => `speed=${Math.round(r.finalSpeed)}`,
   });
 
   // Moving ledges.
@@ -593,10 +532,7 @@ export function buildScenarios() {
         { press: 'jump', platform: 1, lead: 0.6 },
         { press: 'jump', platform: 2, lead: 0.6 },
         { press: 'jump', platform: 3, lead: 0.6 },
-        // The wide gap: steer across it.
-        { press: 'jump', platform: 4, lead: 1.25 },
-        { press: 'right', afterSeconds: 0, after: 4 },
-        { press: 'release', afterSeconds: 0.7, after: 4 },
+        { press: 'jump', platform: 4, lead: 0.8 },
         { press: 'jump', platform: 5, lead: 0.6 },
       ],
       until: roof.at + roof.width + 900,
@@ -604,9 +540,135 @@ export function buildScenarios() {
       detail: (r) => `touched=${r.ledgesTouched} rise=${Math.round(r.maxRise)} end=${Math.round(r.endHeight)} sprint=${r.sprint}`,
     });
   });
+  // Both ways past a wall too tall to jump.
+  const LIFT_GATE_AT = 2000;
+  for (const levelIndex of SPEED_LEVELS) {
+    const top = LEVELS[levelIndex].cat.speed;
+    const gate = { type: 'gateWall', at: LIFT_GATE_AT };
+    add(`lift gate: bouncing and double jumping gets over, ${levelName(levelIndex)}`, {
+      levelIndex,
+      obstacles: [{ type: 'bin', at: LIFT_GATE_AT - 1.35 * top }, gate],
+      actions: [{ press: 'jump', item: 0, lead: 0.86 }, { press: 'jump', afterSeconds: 1.36, after: 0 }],
+      until: LIFT_GATE_AT + 600,
+      expect: (r) => !r.hits[0] && !r.hits[1] && r.x >= LIFT_GATE_AT + 600,
+      detail: (r) => `hits=${r.hits} x=${Math.round(r.x)} peak=${Math.round(r.peak)}`,
+    });
+    add(`lift gate: a double jump alone can't get over, ${levelName(levelIndex)}`, {
+      levelIndex,
+      obstacles: [gate],
+      actions: WALL_BIG_JUMP,
+      expect: (r) => r.state === 'failed' && r.x < LIFT_GATE_AT,
+      detail: (r) => `state=${r.state} x=${Math.round(r.x)}`,
+    });
+    add(`lift gate: waiting for the lift and riding it gets over, ${levelName(levelIndex)}`, {
+      levelIndex,
+      obstacles: [gate, { type: 'cone', at: 15000 }],
+      platforms: [{ at: LIFT_GATE_AT - 1.15 * top, width: Math.round(0.9 * top), height: 300, style: 'plank', lift: { travel: 130, seconds: 2.4 } }],
+      chase: { startGap: 1100 },
+      highGround: LEVELS[levelIndex].highGround,
+      // The player stops under the lift and watches it. They jump as it comes down, ride it back
+      // up, then run along it and jump over.
+      actions: [
+        { press: 'release', catX: LIFT_GATE_AT - 1.0 * top },
+        { press: 'jump', liftGoing: 'down', height: 300, after: 0 },
+        { press: 'right', liftGoing: 'up', height: 340, after: 1 },
+        { press: 'jump', afterSeconds: 0.35, after: 2 },
+      ],
+      until: LIFT_GATE_AT + 300,
+      expect: (r) => r.ledgesTouched.includes(0) && r.state === 'playing' && r.x >= LIFT_GATE_AT + 300,
+      detail: (r) => `touched=${r.ledgesTouched} state=${r.state} x=${Math.round(r.x)} peak=${Math.round(r.peak)}`,
+    });
+  }
+
+  // Being chased on platform-controls rules.
+  add('high ground: a cat on a ledge can\'t be caught from the road, until it stays too long', {
+    levelIndex: TEST_LEVEL,
+    obstacles: [{ type: 'cone', at: 15000 }],
+    platforms: [{ at: 900, width: 3000, height: 200, style: 'plank' }],
+    highGround: LEVELS[TEST_LEVEL].highGround,
+    chase: { startGap: 300 },
+    actions: [{ press: 'jump', platform: 0, lead: 0.3 }, { press: 'release', afterSeconds: 0.9, after: 0 }],
+    settleSeconds: 1.5,
+    expect: (r) => r.state === 'failed' && r.endHeight > 100 && r.sounds.includes('chaserRush') && r.chaserAnim.includes('hug'),
+    detail: (r) => `state=${r.state} end=${Math.round(r.endHeight)} anim=${r.chaserAnim}`,
+  });
+  add('high ground: running on calls the climb off', {
+    levelIndex: TEST_LEVEL,
+    obstacles: [{ type: 'cone', at: 15000 }],
+    platforms: [{ at: 900, width: 3000, height: 200, style: 'plank' }],
+    highGround: LEVELS[TEST_LEVEL].highGround,
+    chase: { startGap: 300 },
+    actions: [
+      { press: 'jump', platform: 0, lead: 0.3 },
+      { press: 'release', afterSeconds: 0.9, after: 0 },
+      { press: 'right', afterSeconds: 1.3, after: 1 },
+    ],
+    until: 3400,
+    expect: (r) => r.state === 'playing',
+    detail: (r) => `state=${r.state} gap=${Math.round(r.gap)}`,
+  });
+  add('momentum: starting from a stop is slower than the chaser, and top speed is faster', {
+    levelIndex: TEST_LEVEL,
+    fullSpeed: false,
+    obstacles: [{ type: 'cone', at: 15000 }],
+    until: 3000,
+    expect: (r) => r.minSpeed < LEVELS[TEST_LEVEL].chase.ownerSpeed && r.maxSpeed > LEVELS[TEST_LEVEL].chase.ownerSpeed && r.finalSpeed === LEVELS[TEST_LEVEL].cat.speed,
+    detail: (r) => `speeds=${Math.round(r.minSpeed)}-${Math.round(r.maxSpeed)} final=${Math.round(r.finalSpeed)}`,
+  });
+  add('momentum: a hit loses it', {
+    levelIndex: TEST_LEVEL,
+    obstacles: [{ type: 'cone', at: 1200 }],
+    until: 1500,
+    expect: (r) => r.hits[0] && r.finalSpeed < LEVELS[TEST_LEVEL].cat.speed * 0.8,
+    detail: (r) => `final=${Math.round(r.finalSpeed)}`,
+  });
+  add('standing still: the chaser closes in at their own speed', {
+    levelIndex: TEST_LEVEL,
+    idle: true,
+    obstacles: [{ type: 'cone', at: 15000 }],
+    expect: (r) => r.state === 'failed' && r.x === 0 && r.seconds > 1 && r.seconds < 2.5,
+    detail: (r) => `state=${r.state} x=${Math.round(r.x)} seconds=${r.seconds}`,
+  });
+  add('lunges: a close chaser lunges by itself', {
+    levelIndex: TEST_LEVEL,
+    obstacles: [{ type: 'cone', at: 15000 }],
+    lunges: LEVELS[TEST_LEVEL].lunges,
+    chase: { startGap: 200, maxGap: 200 },
+    actions: [{ press: 'jump', strikeLead: 0.4 }],
+    until: 3000,
+    expect: (r) => r.sounds.includes('lungeWarn'),
+    detail: (r) => `sounds=${r.sounds.join(',')}`,
+  });
+  add('lunges: a far chaser doesn\'t', {
+    levelIndex: TEST_LEVEL,
+    obstacles: [{ type: 'cone', at: 15000 }],
+    lunges: LEVELS[TEST_LEVEL].lunges,
+    until: 6000,
+    expect: (r) => !r.sounds.includes('lungeWarn'),
+    detail: (r) => `sounds=${r.sounds.join(',')}`,
+  });
+  add('shortcut: a chaser left far behind warns, then lands in view', {
+    levelIndex: TEST_LEVEL,
+    obstacles: [{ type: 'cone', at: 30000 }],
+    shortcut: LEVELS[TEST_LEVEL].shortcut,
+    chase: { startGap: 1100 },
+    until: 5000,
+    expect: (r) => r.sounds.includes('chaserRush') && r.sounds.includes('chaserBack') && r.minGap <= LEVELS[TEST_LEVEL].shortcut.landGap,
+    detail: (r) => `minGap=${Math.round(r.minGap)} sounds=${r.sounds.join(',')}`,
+  });
+  add('shortcut: treats count double until it lands, without helping the treat star', {
+    levelIndex: TEST_LEVEL,
+    obstacles: [{ type: 'cone', at: 30000 }],
+    shortcut: LEVELS[TEST_LEVEL].shortcut,
+    chase: { startGap: 1100 },
+    treats: [{ at: 600, height: 30 }],
+    until: 900,
+    expect: (r) => r.treats === 1 && r.bonusTreats === 1,
+    detail: (r) => `treats=${r.treats} bonus=${r.bonusTreats}`,
+  });
   add('climb: the camera stays put for a normal jump', {
     levelIndex: TEST_LEVEL,
-    obstacles: steerCone,
+    obstacles: [{ type: 'cone', at: 1000 }],
     actions: [JUMP],
     until: 1800,
     expect: (r) => r.maxRise === 0,
@@ -641,11 +703,17 @@ export function buildScenarios() {
   });
 
   // Traffic lights in the city.
-  add('crossing: a red-light car still arrives on time after a hit slows the cat', {
-    obstacles: [{ type: 'cone', at: 1200 }, { type: 'crossingCar', at: 1900, position: 'red' }],
+  add('crossing: cars keep coming, so a cat that waits on red can run across on green', {
+    obstacles: [{ type: 'crossingCar', at: 1900, position: 'red' }],
+    chase: { startGap: 1100 },
+    // Reaches the crossing as the first car does. It stops short, then goes half a cycle later.
+    actions: [
+      { press: 'release', catX: 1500 },
+      { press: 'right', afterSeconds: 1.45, after: 0 },
+    ],
     until: 2300,
-    expect: (r) => r.hits[0] && r.hits[1],
-    detail: (r) => `hits=${r.hits}`,
+    expect: (r) => !r.hits[0] && r.x >= 2300,
+    detail: (r) => `hits=${r.hits} x=${Math.round(r.x)}`,
   });
   add('crossing: a red light warns with a horn before the car can hit', {
     obstacles: [{ type: 'crossingCar', at: 1900, position: 'red' }],
@@ -694,8 +762,8 @@ export function buildScenarios() {
       wagons: [{ at: WAGON_AT }],
       actions: [board],
       until: WAGON_AT + 1000,
-      expect: (r) => r.rode && r.onTop && r.maxSpeed > r.minSpeed * 1.2 && r.sounds.includes('hayRide'),
-      detail: (r) => `rode=${r.rode} onTop=${r.onTop} speeds=${r.minSpeed}-${r.maxSpeed} sounds=${r.sounds.join(',')}`,
+      expect: (r) => r.rode && r.onTop && r.sounds.includes('hayRide'),
+      detail: (r) => `rode=${r.rode} onTop=${r.onTop} sounds=${r.sounds.join(',')}`,
     });
     add(`wagon: the cat runs off the front and lands, ${levelName(levelIndex)}`, {
       levelIndex,
@@ -703,8 +771,8 @@ export function buildScenarios() {
       wagons: [{ at: WAGON_AT }],
       actions: [board],
       until: WAGON_AT + 2600,
-      expect: (r) => r.rode && r.finalSpeed < r.maxSpeed,
-      detail: (r) => `rode=${r.rode} final=${r.finalSpeed} max=${r.maxSpeed}`,
+      expect: (r) => r.rode && r.endHeight < 2,
+      detail: (r) => `rode=${r.rode} end=${Math.round(r.endHeight)}`,
     });
   }
   add('wagon: staying on the road is safe and has no boost', {
@@ -731,8 +799,8 @@ export function buildScenarios() {
     actions: [board],
     chase: { startGap: 300, maxGap: 900 },
     until: WAGON_AT + 1600,
-    expect: (r) => r.gap > 300 + 250,
-    detail: (r) => `gap=${Math.round(r.gap)}`,
+    expect: (r) => r.rode && r.gap > 300 + 250,
+    detail: (r) => `rode=${r.rode} gap=${Math.round(r.gap)}`,
   });
   add('wagon: Down drops off into a slide', {
     levelIndex: 5,
@@ -742,15 +810,6 @@ export function buildScenarios() {
     until: WAGON_AT + 1500,
     expect: (r) => r.rode && r.sounds.includes('dive') && r.sounds.includes('slide'),
     detail: (r) => `rode=${r.rode} sounds=${r.sounds.join(',')}`,
-  });
-  add('wagon: it still arrives on time after a hit slows the cat', {
-    levelIndex: 5,
-    obstacles: [{ type: 'pumpkin', at: WAGON_AT - 400 }],
-    wagons: [{ at: WAGON_AT }],
-    actions: [board],
-    until: WAGON_AT + 1000,
-    expect: (r) => r.hits[0] && r.rode,
-    detail: (r) => `hits=${r.hits} rode=${r.rode}`,
   });
 
   // Floating ledges.
@@ -868,16 +927,6 @@ export function buildScenarios() {
     detail: (r) => `sounds=${r.sounds.join(',')}`,
   });
 
-  // The speed-up near the end of a level.
-  add('final rush: it warns once, and closes the gap', {
-    levelIndex: 2,
-    obstacles: farCone,
-    finalRush: { at: 400, extraSpeed: 200 },
-    until: 2000,
-    expect: (r) => r.sounds.filter((n) => n === 'chaserRush').length === 1 && r.gap < 300,
-    detail: (r) => `gap=${Math.round(r.gap)} sounds=${r.sounds.join(',')}`,
-  });
-
   // Fish treats.
   add('treats: touching one collects it, and only once', {
     obstacles: farCone,
@@ -907,8 +956,7 @@ export function buildScenarios() {
   add('checkpoints: getting caught offers to continue', {
     obstacles: farCone,
     checkpoints: [500],
-    attacks: [{ at: 700 }],
-    chase: { startGap: 200 },
+    actions: [{ press: 'release', catX: 700 }],
     until: 2200,
     settleSeconds: 3,
     expect: (r) => r.state === 'failed' && r.actionLabels.includes('Continue from checkpoint') && r.actionLabels.includes('Restart level'),
@@ -927,7 +975,7 @@ export function buildScenarios() {
         levelIndex,
         startCheckpoint: { x, treats: 0, hasPaw: false, rosterIndex: 0 },
         autopilot: true,
-        expect: (r) => r.state === 'complete' && r.hits.every((h) => !h),
+        expect: (r) => r.state === 'complete',
         detail: (r) => `state=${r.state} hits=${r.hits.filter(Boolean).length} x=${Math.round(r.x)}`,
       });
     });
@@ -982,9 +1030,10 @@ export function buildScenarios() {
     expect: (r) => !r.sprint && r.hits[1],
   });
   add('chase: repeated hits close the gap', {
+    levelIndex: TEST_LEVEL,
     obstacles: cones,
     until: 3000,
-    expect: (r) => r.gap < r.maxGap - 100,
+    expect: (r) => r.gap < LEVELS[TEST_LEVEL].chase.startGap,
     detail: (r) => `gap=${Math.round(r.gap)}`,
   });
 

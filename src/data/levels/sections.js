@@ -9,7 +9,7 @@
 // platforms: { t, seconds, height, style }, floating ledges the cat can jump up through. Optional:
 //            lift: { travel, seconds } rises and falls on the clock, collapse: true falls after landing
 // treats:    { arc: t } follows a jump over that moment, or { line: t, count, height }
-// pickups:   { t, type }, attacks: { t }, checkpoint: { t }
+// pickups:   { t, type }, checkpoint: { t }
 // wagons:    { t }, a hay wagon whose rear reaches the cat at this moment
 // mouseSpot: { t, height }, where the level's hidden toy mouse sits, if its plan picks this section
 
@@ -137,11 +137,6 @@ export const SECTIONS = {
       { line: 5, count: 4, height: 270 },
     ],
   },
-  lunge: {
-    duration: 2.3,
-    attacks: [{ t: 0.1 }],
-    treats: [lowLine(1.5, 3)],
-  },
   // A chain of ledges above ground obstacles: a clean high route, or a busier ground route.
   ledges: {
     duration: 5.4,
@@ -201,7 +196,7 @@ export const SECTIONS = {
       { line: 6.1, count: 8, height: 350 },
     ],
   },
-  // Teaches the lights: green means keep running, and red means jump the car.
+  // Teaches the lights: green means run across, and red means wait or jump the car.
   crossingIntro: {
     duration: 4.2,
     obstacles: [{ type: 'crossingCar', t: 1, position: 'green' }, { type: 'crossingCar', t: 2.55, position: 'red' }],
@@ -257,9 +252,9 @@ export const SECTIONS = {
     obstacles: [{ type: 'stoneWall', t: 1 }],
     treats: arcs(1),
   },
-  // Up through the market on ledges, a lift and collapsing awnings, along the rooftops, then a big
+  // Up on ledges, a lift and collapsing awnings, along the rooftops, then a big
   // drop that lands with a burst of speed. Fall off, and the road below is lined with stone walls.
-  marketClimb: {
+  bigClimb: {
     duration: 12.4,
     mouseSpot: { t: 9.2, height: 700 },
     obstacles: [
@@ -273,9 +268,9 @@ export const SECTIONS = {
       { t: 0.6, seconds: 1, height: 170, style: 'plank' },
       { t: 2.1, seconds: 1, height: 300, style: 'plank' },
       { t: 3.6, seconds: 1.1, height: 420, style: 'plank', lift: { travel: 45, seconds: 2.6 } },
-      { t: 5.2, seconds: 0.8, height: 520, style: 'marketAwning', collapse: true },
+      { t: 5.2, seconds: 0.8, height: 520, style: 'collapsing', collapse: true },
       // A wide gap: it takes full speed, or a double jump.
-      { t: 6.7, seconds: 1, height: 590, style: 'marketAwning', collapse: true },
+      { t: 6.7, seconds: 1, height: 590, style: 'collapsing', collapse: true },
       { t: 8.2, seconds: 2, height: 620, style: 'rooftop' },
     ],
     treats: [
@@ -299,7 +294,7 @@ export const SECTIONS = {
   },
 
   // ----- Farm -----
-  // Red flag: a tractor crosses, so jump it. Green flag: keep running.
+  // Tractors keep crossing. Red flag: wait, or jump it. Green flag: run.
   tractors: {
     duration: 5.7,
     obstacles: [
@@ -352,10 +347,9 @@ export const SECTIONS = {
     ],
     treats: [{ arc: 1 }, { arc: 2.85 }, { arc: 4.5 }, { line: 6.1, count: 5, height: 430 }, { arc: 7.2 }],
   },
-  // One last lunge, then a clear run to the door with the whole family right behind.
+  // A clear run to the door with the whole family right behind.
   vetDash: {
     duration: 4,
-    attacks: [{ t: 0.1 }],
     treats: [lowLine(1.6, 8)],
   },
   // A climb: the second ledge is higher, with a tempting line of treats.

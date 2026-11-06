@@ -23,14 +23,19 @@ export function shouldStartLeap(distance, catSpeed, speed, leapSeconds) {
   return distance <= ((catSpeed + speed) * leapSeconds) / 2;
 }
 
-// Where a wagon's rear is, so that it reaches `meetAt` just as the cat does, however long the cat
-// takes to get there. `ratio` is how fast it drives, compared with the cat's progress.
-export function wagonRearX(catX, meetAt, ratio) {
-  return meetAt + (catX - meetAt) * ratio;
+// Where a wagon's rear starts, so that it reaches `meetAt` just as a cat at top speed does. It starts
+// driving when that cat is `startAhead` from there, at `ratio` of the cat's speed.
+export function wagonStartX(meetAt, startAhead, ratio) {
+  return meetAt - startAhead * ratio;
+}
+
+// Puts a time into the range -cycle/2 to cycle/2, measured from the nearest repeat of something.
+export function wrapToCycle(seconds, cycle) {
+  return seconds - cycle * Math.round(seconds / cycle);
 }
 
 // How far a car is across the road: -1 at the far side, 0 in the cat's lane, 1 at the near side.
-// It's in the lane `delaySeconds` after a full-speed cat arrives at `meetSeconds`.
+// It's in the lane `delaySeconds` after `meetSeconds`.
 export function crossingProgress(elapsed, meetSeconds, crossSeconds, delaySeconds = 0) {
   return (2 * (elapsed - meetSeconds - delaySeconds)) / crossSeconds;
 }

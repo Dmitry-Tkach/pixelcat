@@ -6,7 +6,6 @@ import {
   MOVEMENT,
   LUNGE,
   SINGLE_JUMP_HEIGHT,
-  STEER,
   VIEW,
 } from '../config/gameConfig.js';
 import { CHARACTERS } from '../data/characters.js';
@@ -22,11 +21,8 @@ const DOUBLE_JUMP_RUN_UP_SECONDS = 2.2; // the cat must have landed before it ca
 const LEDGE_REACH_MARGIN = 0.85; // leaves room for pressing a little early or late
 const CHAIN_GAP_SECONDS = 1.5; // ledges further apart than this are separate routes
 const CHECKPOINT_CLEAR_SECONDS = 1.5; // room after a checkpoint, so restarting there is fair
-const MAX_PLATFORM_HEIGHT = 380; // higher, and the cat would jump behind the top of the screen
-const MAX_TREAT_HEIGHT = 450; // the highest a double jump can reach
-const TALL_CAMERA_PLATFORM_HEIGHT = 700; // a rising camera keeps the cat in view up here
-const TALL_CAMERA_TREAT_HEIGHT = 800;
-const STEER_REACH_SHARE = 0.7; // a player won't hold the steering for the whole of a jump
+const MAX_PLATFORM_HEIGHT = 700; // the camera rises with a climbing cat, up to about here
+const MAX_TREAT_HEIGHT = 800;
 const ZONE_JUMP_MARGIN = 0.8; // leaves room for pressing a little early or late
 // Room around a lunge, so the cat can land from the obstacle before it, and land from the
 // lunge's own jump in time to clear the obstacle after it.
@@ -131,9 +127,6 @@ export function ledgeReachable(fromHeight, toHeight, gap, speed) {
 
 function validateExtras(level, errors) {
   const { obstacles, platforms = [], checkpoints = [], treats = [], cat: { speed } } = level;
-  const maxPlatformHeight = level.tallCamera ? TALL_CAMERA_PLATFORM_HEIGHT : MAX_PLATFORM_HEIGHT;
-  const maxTreatHeight = level.tallCamera ? TALL_CAMERA_TREAT_HEIGHT : MAX_TREAT_HEIGHT;
-  const reachSpeed = speed + (level.airSteering ? STEER.SPEED * STEER_REACH_SHARE : 0);
   // A lift has to be reachable from, and to, wherever it happens to be.
   const lowest = (platform) => platform.height - (platform.lift?.travel ?? 0);
   const highest = (platform) => platform.height + (platform.lift?.travel ?? 0);
@@ -145,20 +138,20 @@ function validateExtras(level, errors) {
   });
 
   platforms.forEach((platform, i) => {
-    if (highest(platform) > maxPlatformHeight) errors.push(`platform ${i} is too high`);
+    if (highest(platform) > MAX_PLATFORM_HEIGHT) errors.push(`platform ${i} is too high`);
     const next = platforms[i + 1];
     if (!next) return;
     const gap = next.at - (platform.at + platform.width);
     if (gap < 0) errors.push(`platforms ${i} and ${i + 1} overlap`);
     // Only ledges in the same chain need to connect.
-    if (gap < speed * CHAIN_GAP_SECONDS && !ledgeReachable(lowest(platform), highest(next), gap, reachSpeed)) {
+    if (gap < speed * CHAIN_GAP_SECONDS && !ledgeReachable(lowest(platform), highest(next), gap, speed)) {
       errors.push(`platform ${i + 1} can't be reached from platform ${i}`);
     }
   });
 
-  if (level.mouse && level.mouse.height > maxTreatHeight) errors.push('the toy mouse is too high to reach');
+  if (level.mouse && level.mouse.height > MAX_TREAT_HEIGHT) errors.push('the toy mouse is too high to reach');
   treats.forEach((treat, i) => {
-    if (treat.height > maxTreatHeight) errors.push(`treat ${i} is too high to reach`);
+    if (treat.height > MAX_TREAT_HEIGHT) errors.push(`treat ${i} is too high to reach`);
   });
 }
 

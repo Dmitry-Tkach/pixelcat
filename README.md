@@ -1,6 +1,6 @@
 # Cat Escape
 
-A 2D browser chase game built with Phaser 3 and plain JavaScript. The cat runs automatically and has to reach the escape gate before its owner catches it.
+A 2D browser chase game built with Phaser 3 and plain JavaScript. You run the cat to the escape gate before its family catches it. Clean running builds speed, and that's the only way to outrun them.
 
 ## Commands
 
@@ -17,8 +17,8 @@ A 2D browser chase game built with Phaser 3 and plain JavaScript. The cat runs a
 
 ## Controls
 
-- **Keyboard:** Space, Up or W to jump, Down or S to slide, E for the Super Paw, Esc or P to pause
-- **Touch:** tap to jump, swipe down to slide (mobile development is paused, so this is no longer tested or tuned)
+- **Keyboard:** Left and Right or A and D to run, Space, Up or W to jump, Down or S to slide, E for the Super Paw, Esc or P to pause, M to switch to the always-running mode
+- **Touch:** tap to jump, swipe down to slide. There's no way to run by touch yet, so the game can't currently be played on a phone (mobile development is paused)
 - Tap again in the air for a double jump
 - Pressing slide in the air is a dive: the cat drops quickly, then slides on landing
 - Landing on top of an obstacle is safe, and landing on a bin bounces the cat high. Hitting an obstacle's side still slows the cat
@@ -26,7 +26,10 @@ A 2D browser chase game built with Phaser 3 and plain JavaScript. The cat runs a
 - Floating ledges can be jumped up through and landed on. Press Down on one to drop through
 - Fish treats earn up to 3 stars per level
 - Checkpoints let you continue from partway through a level after being caught
-- The chaser sometimes lunges: jump as she dashes. A miss costs her distance, and a grab costs the cat a lot
+- The chaser keeps a constant speed, and lunges more often the closer they get: jump as they dash. A miss costs them distance, and a grab costs the cat a lot
+- A chaser left out of sight takes a shortcut back, with a warning. Treats count double until they land
+- A cat high on a ledge can't be caught from the road, but one that stops up there gets climbed after
+- Walls stop the cat dead and lose all its speed. A wall too tall to jump needs a lift, or a bounce and a double jump
 - A Super Paw box floats high up. Collect it, then press E to knock the chaser off screen for a while. The next chaser in the level's list then runs in
 
 ## Project layout
@@ -68,7 +71,7 @@ The game fills the browser window at any shape, and adjusts when the window is r
 
 **A combo:** add `combo: true` to the second obstacle of a pair in a level. This allows tighter spacing, so check that it feels fair.
 
-**A moving obstacle:** there are three kinds in `src/data/obstacles.js`: `charge`, `fall` and `swing`. To add a charger, add its frames to `tools/prepare-assets.mjs` and `src/data/characters.js`, then add a type with a `motion` block to `src/data/obstacles.js`. In a level, `at` is where it meets the cat at full speed, so moving and static obstacles are spaced the same way. `npm test` checks that the obstacle starts off-screen and leaves time to jump over it. Copy the `dog` type for a ground charger, or `leapingDog` for one that sails overhead.
+**A moving obstacle:** the kinds are listed in `src/data/obstacles.js`. To add a charger, add its frames to `tools/prepare-assets.mjs` and `src/data/characters.js`, then add a type with a `motion` block to `src/data/obstacles.js`. In a level, `at` is where it meets the cat at full speed, so moving and static obstacles are spaced the same way. `npm test` checks that the obstacle starts off-screen and leaves time to jump over it. Copy the `dog` type for a ground charger, or `leapingDog` for one that sails overhead.
 
 **A world:** draw its layers, obstacles and gate in `tools/world-art.mjs`, add its art to `IMAGE_ASSETS` and a theme to `src/data/themes.js`, and add its obstacle versions at the end of `src/data/obstacles.js`. The theme's `swap` turns the shared sections into that world's obstacles, then set `theme` on a level.
 

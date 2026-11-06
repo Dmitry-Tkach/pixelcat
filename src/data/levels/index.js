@@ -2,29 +2,24 @@
 // To add a level: add a plan, then run `npm test` and `npm run test:play`. They check that spacing
 // is fair and that the level can be completed.
 //
-// cat:      the cat's full running speed
-// chase:    ownerSpeed must be below cat.speed, or the cat can never win back distance.
+// cat:      the cat's top speed, reached by running clean. It also sets the level's spacing
+// chase:    the chaser's constant speed. It must be below cat.speed, or the cat can never win back distance.
 //           The owner catches the cat when the gap shrinks to catchGap.
 // music:    which track from data/music.js plays, and how fast
 // chasers:  who chases, from data/chasers.js. The first starts, and each knockout brings the next.
-// warningSeconds: how much warning the level's lunges give
 // title, intro, outro: the story shown before and after the level
 // theme:    the world, from data/themes.js. It swaps shared obstacles for that world's own.
 // light:    an optional tint over the scenery, for the time of day as the journey goes on
-// finalRush: { seconds, extraSpeed }, the chaser speeds up for this long before the escape point
 // finalDash: { seconds, multiplier, hint }, the cat gets one last burst of speed before the end
 // pack:     every chaser is on screen at once, and each knockout brings the next one forward
-// airSteering: the left and right keys steer the cat in the air
-// freeMove: platformer controls. The chaser keeps a constant speed, and swings keep time on their own
 // startHint: a message shown as the level begins
 // lunges:   { farGap, nearGap, farEverySeconds, nearEverySeconds, warningSeconds, dodgeBonus }, lunges
-//           that depend on how close the chaser is, in place of the ones in the plan's sections
+//           that depend on how close the chaser is
 // shortcut: { offscreenSeconds, warningSeconds, landGap, cooldownSeconds, graceSeconds }, a chaser
 //           left far behind takes a shortcut back into view, and treats count double until then
 // highGround: { safeHeight, holdMargin, beneathRange, climbSeconds }, a cat this high can't be caught
 //           from the road. A chaser waits holdMargin past catchGap, and one within beneathRange
 //           of that climbs up after climbSeconds
-// tallCamera: the camera rises with a climbing cat, so ledges can go higher than one screen
 // plan:     section names in order. { section, hint } also shows a message on arriving there, and
 //           { section, mouse: true } hides the level's toy mouse in that section's mouseSpot.
 //           A plan should rise and fall: calm, build-up, a peak, then relief before the end.
@@ -41,6 +36,24 @@ const ARC_BASE = 40;
 const LINE_STEP_SECONDS = 0.135;
 const HINT_LEAD_SECONDS = 1.1;
 
+// How hard the family pushes, gentlest first. Level 5's numbers were tried out by hand, and the
+// others are set around them.
+const HIGH_GROUND = { safeHeight: 150, holdMargin: 20, beneathRange: 100, climbSeconds: 2.5 };
+const PRESSURE = {
+  gentle: {
+    lunges: { farGap: 450, nearGap: 260, farEverySeconds: 10, nearEverySeconds: 5, warningSeconds: 0.8, dodgeBonus: 200 },
+    shortcut: { offscreenSeconds: 6, warningSeconds: 2, landGap: 520, cooldownSeconds: 20, graceSeconds: 3 },
+  },
+  normal: {
+    lunges: { farGap: 520, nearGap: 300, farEverySeconds: 7, nearEverySeconds: 3.5, warningSeconds: 0.7, dodgeBonus: 180 },
+    shortcut: { offscreenSeconds: 4, warningSeconds: 1.5, landGap: 450, cooldownSeconds: 14, graceSeconds: 2 },
+  },
+  fierce: {
+    lunges: { farGap: 580, nearGap: 340, farEverySeconds: 5.5, nearEverySeconds: 2.8, warningSeconds: 0.6, dodgeBonus: 160 },
+    shortcut: { offscreenSeconds: 3.5, warningSeconds: 1.3, landGap: 400, cooldownSeconds: 11, graceSeconds: 1.5 },
+  },
+};
+
 // A curve of treats that follows a jump over `center`.
 function arcTreats(center, speed) {
   const half = (ARC_TREATS - 1) / 2;
@@ -55,10 +68,11 @@ function lineTreats(start, count, height, speed) {
 }
 
 // Turns a plan into world positions, using the level's speed.
-function buildLevel({ plan, warningSeconds, finalRush, finalDash, ...config }) {
+function buildLevel({ plan, finalDash, ...config }) {
   const speed = config.cat.speed;
   const { swap = {}, ledges = {} } = THEMES[config.theme];
   const level = {
+    highGround: HIGH_GROUND,
     ...config,
     obstacles: [],
     platforms: [],
@@ -87,7 +101,6 @@ function buildLevel({ plan, warningSeconds, finalRush, finalDash, ...config }) {
     }
     for (const { t, type } of section.pickups ?? []) level.pickups.push({ type, at: worldAt(t) });
     for (const { t } of section.wagons ?? []) level.wagons.push({ at: worldAt(t) });
-    for (const { t } of section.attacks ?? []) level.attacks.push({ at: worldAt(t), warningSeconds });
     if (section.checkpoint) level.checkpoints.push(worldAt(section.checkpoint.t));
     for (const treat of section.treats ?? []) {
       if (treat.arc !== undefined) level.treats.push(...arcTreats(worldAt(treat.arc), speed));
@@ -97,9 +110,6 @@ function buildLevel({ plan, warningSeconds, finalRush, finalDash, ...config }) {
   }
   level.length = Math.round(cursor + END_MARGIN_SECONDS * speed);
   level.treats = level.treats.map((treat) => ({ ...treat, at: Math.round(treat.at) }));
-  if (finalRush) {
-    level.finalRush = { at: Math.round(level.length - finalRush.seconds * speed), extraSpeed: finalRush.extraSpeed };
-  }
   if (finalDash) {
     level.finalDash = { ...finalDash, at: Math.round(level.length - finalDash.seconds * speed) };
   }
@@ -115,25 +125,27 @@ export const LEVELS = [
     light: 0xffe4cf,
     theme: 'city',
     title: 'Vet Day',
-    intro: 'The carrier is out, and she has that look in her eye. Today is vet day. Out of the door, and run!',
+    intro: 'The carrier is out, and she has that look in her eye. Today is vet day. Hold the right arrow to run, and get out of the door!',
     outro: 'You made it out of the front garden. But the family isn\'t giving up that easily.',
     cat: { speed: 360 },
     music: { track: 'chase', bpm: 138 },
-    chase: { ownerSpeed: 330, startGap: 560, maxGap: 640, catchGap: 110 },
+    chase: { ownerSpeed: 252, startGap: 750, maxGap: 1200, catchGap: 110 },
     chasers: ['girl', 'boy'],
+    ...PRESSURE.gentle,
+    startHint: 'Hold right to run! Clean running builds speed',
     plan: [
       'breather',
       { section: 'hops', hint: 'Collect fish coins for stars!' },
       { section: 'benches', hint: 'You can land on top of obstacles!' },
-      { section: 'lunge', hint: 'Lunge! Jump as she dashes' },
+      'breather',
       'duck',
       { section: 'checkpoint', hint: 'A checkpoint: you restart here if caught' },
       { section: 'ledges', hint: 'Jump up onto the ledges. Press Down to drop off' },
       { section: 'van', hint: 'Too tall? Press jump again in the air', mouse: true },
       'breather',
-      { section: 'crossingIntro', hint: 'Green light: keep running. Red light: jump the car!' },
+      { section: 'crossingIntro', hint: 'Green light: run across. Red light: wait for the car, or jump it' },
       { section: 'combos', hint: 'Press Down in the air to dive into a slide' },
-      'lunge',
+      { section: 'wallIntro', hint: 'Walls stop you dead! Jump them' },
       { section: 'flock', hint: 'Low birds: slide. High birds: stay down' },
       { section: 'bounce', hint: 'Land on a bin to bounce high' },
       'homeStretch',
@@ -148,23 +160,25 @@ export const LEVELS = [
     outro: 'Past the shops at last. Over the back fence, the city is thinning out.',
     cat: { speed: 395 },
     music: { track: 'chase', bpm: 146 },
-    chase: { ownerSpeed: 364, startGap: 550, maxGap: 630, catchGap: 110 },
+    chase: { ownerSpeed: 285, startGap: 700, maxGap: 1200, catchGap: 110 },
     chasers: ['boy', 'grandma'],
+    ...PRESSURE.normal,
     plan: [
       'breather',
       'bounce',
       'benches',
       'breather',
       { section: 'dogs', hint: 'Look out above!' },
-      'lunge',
-      { section: 'crates', hint: 'Crate low: jump. Crate high: slide' },
+      'breather',
+      { section: 'crates', hint: 'Crate low: jump. Crate high: slide. Or wait for your moment' },
       'checkpoint',
       { section: 'twoRoutes', hint: 'Ledges: more treats, but watch for the bird. Road: safer', mouse: true },
-      { section: 'sprinklers', hint: 'Sprinkler on: jump. Off: run through' },
+      { section: 'sprinklers', hint: 'Sprinkler on: jump, or wait. Off: run through' },
       'crossings',
       'breather',
+      'wallIntro',
+      { section: 'liftGate', hint: 'Too tall! Wait for the lift, or bounce and double jump' },
       'van',
-      'lunge',
       'checkpoint',
       'combos',
       'flock',
@@ -181,27 +195,27 @@ export const LEVELS = [
     outro: 'The city is behind you. Up ahead there are red roofs and green fields. Surely they won\'t follow you here?',
     cat: { speed: 425 },
     music: { track: 'chase', bpm: 154 },
-    chase: { ownerSpeed: 393, startGap: 550, maxGap: 620, catchGap: 110 },
+    chase: { ownerSpeed: 315, startGap: 700, maxGap: 1200, catchGap: 110 },
     chasers: ['grandma', 'boy', 'girl'],
-    finalRush: { seconds: 8, extraSpeed: 25 },
+    ...PRESSURE.normal,
     plan: [
       'breather',
       'benches',
       'dogs',
       'breather',
       'duck',
-      'lunge',
+      'breather',
       'sprinklers',
       'checkpoint',
       'combos',
       { section: 'rushHour', hint: 'Rush hour! Watch every light' },
       'breather',
-      { section: 'rooftops', hint: 'Bounce off the bin and take the rooftops!', mouse: true },
+      { section: 'bigClimb', hint: 'Climb the scaffolding! Awnings collapse, and walls wait below', mouse: true },
       'breather',
-      'lunge',
       'checkpoint',
       'crates',
       'flock',
+      'wallIntro',
       'van',
       'homeStretch',
     ],
@@ -215,20 +229,23 @@ export const LEVELS = [
     outro: 'Through the hedge and away. The village green is just ahead.',
     cat: { speed: 410 },
     music: { track: 'village', bpm: 148 },
-    chase: { ownerSpeed: 381, startGap: 550, maxGap: 630, catchGap: 110 },
+    chase: { ownerSpeed: 290, startGap: 750, maxGap: 1200, catchGap: 110 },
     chasers: ['girl', 'boy'],
+    ...PRESSURE.gentle,
     plan: [
       'breather',
       { section: 'hops', hint: 'New place, same moves. Jump the rocks and stumps!' },
       'benches',
       'breather',
       'duck',
-      'lunge',
+      'breather',
       { section: 'checkpoint', hint: 'Checkpoint ahead!' },
       { section: 'fallingMarket', hint: 'Market day! Watch for shadows' },
       { section: 'twoRoutes', hint: 'High or low? Ledges have more treats', mouse: true },
       'breather',
-      { section: 'sprinklers', hint: 'Sprinkler on: jump. Off: run through' },
+      'wallIntro',
+      { section: 'sprinklers', hint: 'Sprinkler on: jump, or wait. Off: run through' },
+      { section: 'liftGate', hint: 'Too tall! Wait for the lift, or bounce and double jump' },
       { section: 'bounce', hint: 'Land on the mushroom to bounce high' },
       'homeStretch',
     ],
@@ -239,30 +256,24 @@ export const LEVELS = [
     light: 0xfff2d9,
     theme: 'park',
     title: 'The Village Green',
-    intro: 'It\'s market day on the green, and apples are falling from every tree.\nNEW: you control the cat! Left and right to run, Space to jump. Clean running builds speed. Press M to try the always-running mode.',
+    intro: 'It\'s market day on the green, and apples are falling from every tree. Watch your head, and don\'t stop.',
     outro: 'Out of the village at last. There\'s a dirt road, and the smell of hay.',
     cat: { speed: 435 },
     music: { track: 'village', bpm: 156 },
     chase: { ownerSpeed: 330, startGap: 700, maxGap: 1200, catchGap: 110 },
     chasers: ['boy', 'grandma'],
-    freeMove: true,
-    tallCamera: true,
-    startHint: 'Hold right to run! Clean running builds speed',
-    lunges: { farGap: 520, nearGap: 300, farEverySeconds: 7, nearEverySeconds: 3.5, warningSeconds: 0.7, dodgeBonus: 180 },
-    shortcut: { offscreenSeconds: 4, warningSeconds: 1.5, landGap: 450, cooldownSeconds: 14, graceSeconds: 2 },
-    highGround: { safeHeight: 150, holdMargin: 20, beneathRange: 100, climbSeconds: 2.5 },
+    ...PRESSURE.normal,
     plan: [
       'breather',
       'trip',
-      { section: 'wallIntro', hint: 'Stone walls stop you dead! Jump them' },
+      'wallIntro',
       { section: 'dogs', hint: 'Falling apples! Watch for the shadow' },
       'breather',
-      'lunge',
       { section: 'crates', hint: 'Tire swing low: jump. High: slide' },
       'checkpoint',
       'fallingMarket',
       'breather',
-      { section: 'marketClimb', hint: 'Climb the market! Awnings collapse, and walls wait below', mouse: true },
+      { section: 'bigClimb', hint: 'Climb the market! Awnings collapse, and walls wait below', mouse: true },
       'breather',
       'checkpoint',
       { section: 'liftGate', hint: 'Too tall! Wait for the lift, or bounce and double jump' },
@@ -283,24 +294,25 @@ export const LEVELS = [
     outro: 'You lost them in the barn, or so you thought.',
     cat: { speed: 450 },
     music: { track: 'farm', bpm: 158 },
-    chase: { ownerSpeed: 426, startGap: 530, maxGap: 610, catchGap: 110 },
+    chase: { ownerSpeed: 335, startGap: 700, maxGap: 1200, catchGap: 110 },
     chasers: ['grandma', 'girl'],
+    ...PRESSURE.normal,
     plan: [
       'breather',
       { section: 'benches', hint: 'Hop the troughs and hay!' },
       { section: 'mudPatch', hint: 'Mud slows you down. Jump across it!' },
       'sprinklers',
-      'lunge',
       'breather',
       { section: 'dogs', hint: 'The farm dog wants to play!' },
       'checkpoint',
-      { section: 'tractors', hint: 'Red flag: jump the tractor. Green flag: keep running' },
+      { section: 'tractors', hint: 'Red flag: wait for the tractor, or jump it. Green flag: run' },
       { section: 'hayRoll', hint: 'Big bales coming! Keep jumping' },
       'breather',
       { section: 'hayWagon', hint: 'Jump on the hay wagon for a fast ride!', mouse: true },
       'breather',
-      'lunge',
       'checkpoint',
+      'wallIntro',
+      { section: 'liftGate', hint: 'Too tall! Wait for the lift, or bounce and double jump' },
       'muddyRoad',
       'crates',
       'homeStretch',
@@ -316,28 +328,25 @@ export const LEVELS = [
     outro: 'The fields end at a road. It leads back into town, and there\'s no other way out. It goes right past the vet\'s door.',
     cat: { speed: 470 },
     music: { track: 'farm', bpm: 164 },
-    chase: { ownerSpeed: 448, startGap: 520, maxGap: 590, catchGap: 110 },
+    chase: { ownerSpeed: 365, startGap: 700, maxGap: 1200, catchGap: 110 },
     chasers: ['boy', 'grandma', 'girl'],
-    warningSeconds: 0.6,
-    finalRush: { seconds: 8, extraSpeed: 25 },
+    ...PRESSURE.fierce,
     plan: [
       'breather',
       'muddyRoad',
-      'lunge',
       'breather',
       'hayRoll',
       'tractors',
       'checkpoint',
-      { section: 'highRoad', mouse: true },
+      { section: 'bigClimb', hint: 'Up the hay stacks! They collapse, and fences wait below', mouse: true },
       'flock',
       'crates',
-      'lunge',
       'breather',
       'hayWagon',
       'breather',
       'checkpoint',
       'combos',
-      'lunge',
+      'wallIntro',
       'muddyRoad',
       'homeStretch',
     ],
@@ -351,30 +360,29 @@ export const LEVELS = [
     outro: 'You ran right past the vet\'s door and out onto the open road. No vet today, and maybe no vet ever.',
     cat: { speed: 490 },
     music: { track: 'finale', bpm: 172 },
-    chase: { ownerSpeed: 472, startGap: 500, maxGap: 570, catchGap: 110 },
+    chase: { ownerSpeed: 390, startGap: 650, maxGap: 1200, catchGap: 110 },
     chasers: ['girl', 'boy', 'grandma'],
     pack: true,
-    warningSeconds: 0.55,
-    finalRush: { seconds: 10, extraSpeed: 25 },
+    ...PRESSURE.fierce,
     finalDash: { seconds: 4, multiplier: 1.2, hint: 'The vet\'s door! RUN!' },
     plan: [
       { section: 'breather', hint: 'The whole family! Super Paws knock them out one by one' },
       'van',
       'gauntlet',
-      'lunge',
       'breather',
-      'highRoad',
       'dogs',
       'checkpoint',
       'twoRoutes',
       { section: 'bounce', mouse: true },
       'crates',
-      'lunge',
+      'wallIntro',
       'flock',
       'breather',
       'checkpoint',
+      'bigClimb',
+      'breather',
+      'liftGate',
       { section: 'finale', hint: 'Everything you ran through, all at once!' },
-      'lunge',
       'combos',
       'breather',
       'vetDash',

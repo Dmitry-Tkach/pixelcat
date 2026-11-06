@@ -256,8 +256,8 @@ export const OBSTACLES = {
     },
   },
 
-  // A car crossing the road. Red light: it's there when the cat arrives, so jump over it.
-  // Green light: keep running, and a car passes just behind the cat.
+  // Cars keep crossing the road. Red light: one is coming, so wait for it or jump over it.
+  // Green light: run across. Levels add `position`, which is what a cat at top speed finds there.
   crossingCar: {
     texture: 'car-1',
     avoid: 'read',
@@ -266,8 +266,8 @@ export const OBSTACLES = {
     motion: {
       kind: 'crossing',
       crossSeconds: 1.6,
-      passBehindSeconds: 1, // on green, how long after the cat arrives the car is in the lane
-      hitSeconds: 0.45, // how long either side of the cat arriving the car can hit it
+      cycleSeconds: 3.6, // how often a car crosses
+      hitSeconds: 0.45, // how long either side of the middle of its crossing a car can hit the cat
       cars: ['car-1', 'car-2', 'car-3'],
       stripesTexture: 'zebra-crossing',
       redLight: 'traffic-light-red',
@@ -391,4 +391,14 @@ Object.assign(OBSTACLES, {
       sound: 'rumble',
     },
   },
+});
+
+// Each world's walls.
+Object.assign(OBSTACLES, {
+  brickWall: reskin('stoneWall', 'brick-wall'),
+  tallBrickWall: reskin('tallStoneWall', 'brick-wall-tall'),
+  gateBrickWall: reskin('gateWall', 'brick-wall-gate'),
+  woodWall: reskin('stoneWall', 'wood-wall'),
+  tallWoodWall: reskin('tallStoneWall', 'wood-wall-tall'),
+  gateWoodWall: reskin('gateWall', 'wood-wall-gate'),
 });

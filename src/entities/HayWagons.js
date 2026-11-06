@@ -1,5 +1,5 @@
 import { GAME, WAGON } from '../config/gameConfig.js';
-import { wagonRearX } from '../systems/obstacleMotion.js';
+import { wagonStartX } from '../systems/obstacleMotion.js';
 
 const TEXTURE = 'hay-wagon';
 const DECK_THICKNESS = 34;
@@ -7,17 +7,18 @@ const LANDING_TOLERANCE = 10;
 const RIDING_TOLERANCE = 4;
 const OFF_SCREEN_BEHIND = 300;
 
-// Hay wagons driving along the road. The cat can jump on for a faster ride, or stay on the road.
-// Like the swinging crates, they follow the cat's progress rather than the clock, so a wagon is
-// still in the right place after a hit changes when the cat arrives.
+// Hay wagons driving along the road. Each sets off as the cat gets close, and carries a cat riding
+// on it, on top of the cat's own running. Standing still up there is only as fast as the wagon.
 export class HayWagons {
   constructor(scene, level) {
     this.scene = scene;
     this.boarded = () => {};
     this.wasRiding = false;
+    this.driveSpeed = level.cat.speed * WAGON.SPEED_RATIO;
     this.items = (level.wagons ?? []).map(({ at }) => {
-      const wagon = scene.physics.add.image(at, GAME.GROUND_Y + GAME.GROUND_OVERLAP, TEXTURE);
-      wagon.meetAt = at;
+      const wagon = scene.physics.add.image(wagonStartX(at, WAGON.START_AHEAD, WAGON.SPEED_RATIO), GAME.GROUND_Y + GAME.GROUND_OVERLAP, TEXTURE);
+      wagon.setsOffAt = at - WAGON.START_AHEAD;
+      wagon.driving = false;
       wagon.setOrigin(0, 1).setDepth(3);
       wagon.body.setAllowGravity(false);
       wagon.body.setImmovable(true);
@@ -47,29 +48,31 @@ export class HayWagons {
     this.boarded = callback;
   }
 
-  isRiding(cat) {
-    if (!cat.onGround) return false;
+  // The wagon the cat is standing on, if any.
+  ridden(cat) {
+    if (!cat.onGround) return null;
     const deckY = GAME.GROUND_Y - WAGON.DECK_HEIGHT;
-    if (Math.abs(cat.body.bottom - deckY) > RIDING_TOLERANCE) return false;
-    return this.items.some((wagon) => {
-      const x = cat.body.center.x;
-      return wagon.visible && x >= wagon.x && x <= wagon.x + WAGON.DECK_WIDTH;
-    });
+    if (Math.abs(cat.body.bottom - deckY) > RIDING_TOLERANCE) return null;
+    const x = cat.body.center.x;
+    return this.items.find((wagon) => wagon.visible && x >= wagon.x && x <= wagon.x + WAGON.DECK_WIDTH) ?? null;
   }
 
-  update(cat) {
+  update(ms, cat) {
     const leftEdge = this.scene.cameras.main.scrollX - OFF_SCREEN_BEHIND;
+    const riding = this.ridden(cat);
+    const distance = this.driveSpeed * (ms / 1000);
     for (const wagon of this.items) {
       if (!wagon.visible) continue;
-      wagon.x = wagonRearX(cat.x, wagon.meetAt, WAGON.SPEED_RATIO);
+      if (!wagon.driving && cat.x >= wagon.setsOffAt) wagon.driving = true;
+      if (wagon.driving) wagon.x += distance;
+      if (wagon === riding) cat.x += distance;
       if (wagon.x + wagon.width < leftEdge) {
         wagon.setVisible(false);
         wagon.body.enable = false;
       }
     }
-    const riding = this.isRiding(cat);
-    if (riding && !this.wasRiding) this.boarded();
-    this.wasRiding = riding;
-    return riding;
+    const isRiding = Boolean(riding);
+    if (isRiding && !this.wasRiding) this.boarded();
+    this.wasRiding = isRiding;
   }
 }

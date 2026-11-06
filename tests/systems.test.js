@@ -222,20 +222,6 @@ describe('chaser roster', () => {
     expect(director.chaserId).toBe('grandma');
   });
 
-  it('gives grandma sudden rushes that close the distance', () => {
-    const director = new ChaseDirector({ chase: { ...chase, startGap: 500 }, chasers: ['grandma'] });
-    const { rush } = CHASERS.grandma;
-    expect(step(director, rush.everySeconds - 0.1)).not.toContain('rush');
-    const before = director.tracker.gap;
-    expect(step(director, 0.2)).toContain('rush');
-    expect(director.isRushing).toBe(true);
-    step(director, rush.seconds * 0.8);
-    expect(director.tracker.gap).toBeLessThan(before);
-    step(director, 0.5);
-    expect(director.isRushing).toBe(false);
-    expect(director.tracker.ownerSpeed).toBe(chase.ownerSpeed + CHASERS.grandma.speedDelta);
-  });
-
   it('gives every chaser every pose the game needs', () => {
     for (const { character } of Object.values(CHASERS)) {
       for (const role of ['idle', 'run', 'hop', 'catch', 'stumble', 'lose']) {

@@ -8,7 +8,7 @@ export const PACK_SPACING = 85; // how far apart the family runs when they're al
 
 // Decides what the chaser is doing: following, lunging, recovering or knocked out.
 // It has no Phaser dependency, so it can be unit-tested. update() returns what just happened:
-//   warn, dash, grabbed, dodged, recovered, returned, rush, finalRush, shortcutWarn, shortcutArrive,
+//   warn, dash, grabbed, dodged, recovered, returned, shortcutWarn, shortcutArrive,
 //   climbWarn, climbCancel, climbCatch
 export class ChaseDirector {
   // `startX` and `rosterIndex` are for restarting from a checkpoint.
@@ -25,10 +25,7 @@ export class ChaseDirector {
     this.warningMs = 0;
     this.returningMs = 0;
     this.returnFrom = PAW.RETURN_FROM_BEHIND;
-    this.finalRush = level.finalRush ?? null;
-    this.finalRushStarted = false;
     this.pack = Boolean(level.pack);
-    this.constantSpeed = Boolean(level.freeMove); // no sudden sprints with platformer controls
     // Lunges that depend on how close the chaser is, in place of the ones the level plans.
     this.lungeRule = level.lunges ?? null;
     if (this.lungeRule) this.attacks = [];
@@ -117,16 +114,6 @@ export class ChaseDirector {
     return this.pack ? this.roster.slice(this.rosterIndex + 1) : [];
   }
 
-  // The speed-up near the end of a level. It only narrows the gap: a clean run still holds on.
-  updateFinalRush(ms, catX, events) {
-    if (!this.finalRush || catX < this.finalRush.at) return;
-    if (!this.finalRushStarted) {
-      this.finalRushStarted = true;
-      events.push('finalRush');
-    }
-    this.tracker.adjust((-this.finalRush.extraSpeed * ms) / 1000);
-  }
-
   get chaserId() {
     return this.roster[this.rosterIndex];
   }
@@ -137,30 +124,6 @@ export class ChaseDirector {
 
   applyChaser() {
     this.tracker.ownerSpeed = this.baseSpeed + this.chaser.speedDelta;
-    this.rushMs = 0;
-    this.nextRushMs = (this.chaser.rush?.everySeconds ?? 0) * 1000;
-  }
-
-  // Sudden sprints, for chasers who have them. They only start while simply chasing.
-  updateRush(ms, events) {
-    const { rush } = this.chaser;
-    if (!rush || this.constantSpeed) return;
-    if (this.rushMs > 0) {
-      this.rushMs = Math.max(0, this.rushMs - ms);
-      this.tracker.ownerSpeed = this.baseSpeed + this.chaser.speedDelta + (this.rushMs > 0 ? rush.extraSpeed : 0);
-      return;
-    }
-    this.nextRushMs -= ms;
-    if (this.nextRushMs <= 0 && this.phase === 'chasing' && this.returningMs === 0) {
-      this.nextRushMs = rush.everySeconds * 1000;
-      this.rushMs = rush.seconds * 1000;
-      this.tracker.ownerSpeed = this.baseSpeed + this.chaser.speedDelta + rush.extraSpeed;
-      events.push('rush');
-    }
-  }
-
-  get isRushing() {
-    return this.rushMs > 0;
   }
 
   get isKnockedOut() {
@@ -229,9 +192,7 @@ export class ChaseDirector {
     }
 
     this.returningMs = Math.max(0, this.returningMs - ms);
-    this.updateRush(ms, events);
     this.tracker.update(ms / 1000, catSpeed);
-    this.updateFinalRush(ms, catX, events);
     this.updateShortcut(ms, ownerOffscreen, safeForShortcut, events);
     this.updateHighGround(ms, catHeight, catRunning, events);
     if (this.lungeRule && this.phase === 'chasing') this.updateDistanceLunge(ms, catX, catHeight);
