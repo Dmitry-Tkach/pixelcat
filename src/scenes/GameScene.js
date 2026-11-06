@@ -1,0 +1,584 @@
+import Phaser from 'phaser';
+import { GAME, SPRINT, VIEW, WAGON } from '../config/gameConfig.js';
+import { LEVELS, worldName } from '../data/levels/index.js';
+import { CHASERS } from '../data/chasers.js';
+import { ESCAPE_ANIMATION } from '../data/screens.js';
+import { THEMES } from '../data/themes.js';
+import { Cat } from '../entities/Cat.js';
+import { Chaser } from '../entities/Chaser.js';
+import { HayWagons } from '../entities/HayWagons.js';
+import { ObstacleField } from '../entities/ObstacleField.js';
+import { Pickups } from '../entities/Pickups.js';
+import { Platforms } from '../entities/Platforms.js';
+import { ToyMouse } from '../entities/ToyMouse.js';
+import { Treats } from '../entities/Treats.js';
+import { ParallaxBackground } from '../entities/ParallaxBackground.js';
+import { InputController } from '../input/InputController.js';
+import { ChaseDirector, PACK_SPACING } from '../systems/ChaseDirector.js';
+import { GameStateMachine, STATE } from '../systems/GameStateMachine.js';
+import { StreakTracker } from '../systems/StreakTracker.js';
+import { starGoals, starText, starsFor } from '../systems/stars.js';
+import { Effects } from '../ui/Effects.js';
+import { Hud } from '../ui/Hud.js';
+
+const START_X = 0;
+const END_SCREEN_DELAY_MS = 1000;
+const HUG_START_MS = 260;
+const HUG_SCREEN_DELAY_MS = 2600; // long enough to enjoy the hug before the menu covers it
+const GROUND_HEIGHT = 80;
+const WORLD_MARGIN = 4000;
+// Two thresholds, so hovering around one value can't make the warning repeat.
+const DANGER_ENTER = 0.3;
+const DANGER_EXIT = 0.4;
+const FINAL_DASH_SHAKE = 0.002;
+const MUD_COLOR = 0x7a4f2a;
+const HAY_COLOR = 0xf2c440;
+const GRAB_PENALTY = { speedMultiplier: 0.6, durationMs: 700 };
+
+// Runs one level: it connects the entities and systems, and holds no game rules of its own.
+export class GameScene extends Phaser.Scene {
+  constructor() {
+    super('Game');
+  }
+
+  // `checkpoint`, when restarting from one, holds where the cat was and what it had collected.
+  // `screen` is the menu to open first when the level doesn't start straight away.
+  init({ levelIndex = 0, autoStart = false, checkpoint = null, screen = 'menu' }) {
+    this.levelIndex = levelIndex;
+    this.level = LEVELS[levelIndex];
+    this.autoStart = autoStart;
+    this.startPoint = checkpoint;
+    this.firstScreen = screen;
+  }
+
+  create() {
+    const { level } = this;
+    this.overlay = this.registry.get('overlay');
+    this.audio = this.registry.get('audio');
+    this.progress = this.registry.get('progress');
+    this.overlay.hide();
+    this.inDanger = false;
+    const startX = this.startPoint?.x ?? START_X;
+    this.savedCheckpoint = this.startPoint;
+    this.nextHint = (level.hints ?? []).filter((hint) => hint.at <= startX).length;
+    this.nextCheckpoint = (level.checkpoints ?? []).filter((x) => x <= startX).length;
+    this.pawFiring = false;
+    this.streak = new StreakTracker(SPRINT.STREAK);
+    this.effects = new Effects(this);
+
+    this.cameras.main.setZoom(GAME.CAMERA_ZOOM);
+    this.background = new ParallaxBackground(this, THEMES[level.theme], level.light);
+    this.gate = this.createEscapeGate();
+    this.obstacles = new ObstacleField(this, level, startX);
+
+    this.chase = new ChaseDirector(level, { startX, rosterIndex: this.startPoint?.rosterIndex ?? 0 });
+    this.tracker = this.chase.tracker;
+    this.pickups = new Pickups(this, level, startX);
+    this.platforms = new Platforms(this, level, startX);
+    this.wagons = new HayWagons(this, level);
+    this.treats = new Treats(this, level, startX);
+    for (const x of (level.checkpoints ?? []).filter((flagX) => flagX > startX)) {
+      this.add.image(x, GAME.GROUND_Y + 4, 'checkpoint-flag').setOrigin(0.15, 1).setDepth(3);
+    }
+    this.cat = new Cat(this, startX, level.cat.speed);
+    this.cat.treats = this.startPoint?.treats ?? 0;
+    this.cat.hasPaw = this.startPoint?.hasPaw ?? false;
+    this.grabs = this.startPoint?.grabs ?? 0;
+    this.foundMouse = this.startPoint?.foundMouse ?? false;
+    this.toyMouse = new ToyMouse(this, level, this.foundMouse);
+    this.finalDashDone = false;
+    this.chaser = new Chaser(this, startX - this.tracker.gap, this.chase.chaser.character);
+    this.catShadow = this.add.ellipse(0, GAME.GROUND_Y + 4, 120, 18, 0x1d1a44, 0.35).setDepth(3);
+    this.chaserShadow = this.add.ellipse(0, GAME.GROUND_Y + 4, 140, 20, 0x1d1a44, 0.35).setDepth(3);
+    this.followers = this.chase.followers.map((id) => new Chaser(this, startX - this.tracker.gap, CHASERS[id].character));
+    for (const sound of ['jump', 'slide', 'land', 'doubleJump', 'dive', 'bounce']) {
+      this.cat.on(sound, () => this.audio.playSfx(sound));
+    }
+    for (const event of ['doubleJump', 'bounce']) {
+      this.cat.on(event, () => this.effects.puff(this.cat.x, this.cat.body.bottom));
+    }
+
+    const ground = this.add.rectangle(level.length / 2, GAME.GROUND_Y + GROUND_HEIGHT / 2, level.length + WORLD_MARGIN * 2, GROUND_HEIGHT);
+    this.physics.add.existing(ground, true);
+    this.physics.add.collider(this.cat, ground);
+    this.obstacles.onHit(this.cat, (item) => this.handleHit(item));
+    this.obstacles.onAlert((sound) => this.audio.playSfx(sound));
+    this.obstacles.onAvoided(() => this.handleAvoided());
+    this.pickups.onCollect(this.cat, () => this.handlePawPickup());
+    this.platforms.onLand(this.cat);
+    this.wagons.onLand(this.cat);
+    this.wagons.onBoard(() => {
+      this.effects.puff(this.cat.x, this.cat.body.bottom, HAY_COLOR);
+      this.audio.playSfx('hayRide');
+    });
+    this.obstacles.onSplash(() => {
+      this.effects.puff(this.cat.x, this.cat.body.bottom, MUD_COLOR);
+      this.audio.playSfx('splat');
+    });
+    this.treats.onCollect(this.cat, () => this.handleTreat());
+    this.toyMouse.onCollect(this.cat, () => {
+      this.foundMouse = true;
+      this.hud.showHint('You found the toy mouse!');
+      this.audio.playSfx('squeak');
+    });
+    this.physics.add.overlap(this.cat, this.gate, () => this.handleEscape());
+
+    this.hud = new Hud(this, level.name, () => this.togglePause());
+    this.hud.setTreats(this.cat.treats);
+    this.hud.setPawReady(this.cat.hasPaw);
+    this.controls = new InputController(this, {
+      onJump: () => this.isPlaying && this.cat.requestJump(),
+      onSlide: () => this.isPlaying && this.cat.requestSlide(),
+      onPause: () => this.togglePause(),
+      onPaw: () => this.usePaw(),
+    });
+    this.state = new GameStateMachine((next) => this.onStateChange(next));
+
+    // Runs after the physics step, so the camera and owner use this frame's cat position.
+    this.events.on('postupdate', this.syncView, this);
+    const pauseIfPlaying = () => this.isPlaying && this.togglePause();
+    this.game.events.on(Phaser.Core.Events.BLUR, pauseIfPlaying);
+    const relayout = () => this.hud.layout();
+    this.scale.on('resize', relayout);
+    this.events.once('shutdown', () => {
+      this.scale.off('resize', relayout);
+      this.events.off('postupdate', this.syncView, this);
+      this.game.events.off(Phaser.Core.Events.BLUR, pauseIfPlaying);
+    });
+
+    this.syncView();
+    this.hud.update(this.tracker.safety, 0);
+    if (this.chase.chaser.arrival) this.hud.showHint(this.chase.chaser.arrival);
+    if (this.autoStart) this.state.to(STATE.PLAYING);
+    else if (this.firstScreen === 'intro') this.showIntroScreen();
+    else if (this.firstScreen === 'levels') this.showLevelsScreen();
+    else this.showStartScreen();
+  }
+
+  createEscapeGate() {
+    const { level } = this;
+    const gate = this.physics.add.staticImage(level.length + 100, GAME.GROUND_Y - 62, THEMES[level.theme].gate);
+    gate.setOrigin(0.5, 1).setDepth(2);
+    gate.refreshBody();
+    gate.body.setSize(40, 340, false);
+    gate.body.setOffset(160, 0);
+    return gate;
+  }
+
+  get isPlaying() {
+    return this.state?.is(STATE.PLAYING);
+  }
+
+  update(time, delta) {
+    if (!this.isPlaying) return;
+    const ms = Math.min(delta, 50);
+    this.lastFrameMs = ms;
+    this.controls.update(time);
+    const riding = this.wagons.update(this.cat);
+    this.cat.speedControl.setTerrain(riding ? WAGON.RIDE_SPEED : this.obstacles.terrainUnder(this.cat));
+    this.cat.tick(ms);
+    this.obstacles.update(ms, this.cat);
+    const catHeight = GAME.GROUND_Y - this.cat.body.bottom;
+    const events = this.chase.update(ms, { catX: this.cat.x, catSpeed: this.cat.speed, catHeight });
+    events.forEach((event) => this.handleChaseEvent(event));
+    this.hud.update(this.tracker.safety, this.cat.x / this.level.length);
+    this.updateDanger();
+    this.updateHints();
+    this.updateCheckpoints();
+    this.updateFinalDash();
+    if (this.tracker.isCaught) this.state.to(STATE.FAILED);
+  }
+
+  // The last moments of a finale: a burst of speed, with the screen shaking.
+  updateFinalDash() {
+    const dash = this.level.finalDash;
+    if (!dash || this.finalDashDone || this.cat.x < dash.at) return;
+    this.finalDashDone = true;
+    const durationMs = dash.seconds * 1000;
+    this.cat.applyBoost({ multiplier: dash.multiplier, durationMs });
+    this.effects.startSprint(this.cat, durationMs);
+    this.hud.showHint(dash.hint);
+    this.audio.playSfx('sprint');
+    this.cameras.main.shake(durationMs, FINAL_DASH_SHAKE);
+  }
+
+  // Warns once as the owner closes in, and keeps tense music playing until the cat pulls away.
+  updateDanger() {
+    const threshold = this.inDanger ? DANGER_EXIT : DANGER_ENTER;
+    const inDanger = this.tracker.safety < threshold;
+    if (inDanger === this.inDanger) return;
+    this.inDanger = inDanger;
+    this.audio.setDanger(inDanger);
+    if (inDanger) this.audio.playSfx('danger');
+  }
+
+  updateHints() {
+    const hints = this.level.hints ?? [];
+    if (this.nextHint < hints.length && this.cat.x >= hints[this.nextHint].at) {
+      this.hud.showHint(hints[this.nextHint].text);
+      this.nextHint += 1;
+    }
+  }
+
+  // Remembers progress on reaching a checkpoint, for restarting there if caught.
+  updateCheckpoints() {
+    const checkpoints = this.level.checkpoints ?? [];
+    if (this.nextCheckpoint >= checkpoints.length || this.cat.x < checkpoints[this.nextCheckpoint]) return;
+    this.savedCheckpoint = {
+      x: checkpoints[this.nextCheckpoint],
+      treats: this.cat.treats,
+      hasPaw: Boolean(this.cat.hasPaw),
+      rosterIndex: this.chase.rosterIndex,
+    };
+    this.nextCheckpoint += 1;
+    this.hud.showHint('Checkpoint!');
+    this.audio.playSfx('checkpoint');
+  }
+
+  handleTreat() {
+    this.cat.treats += 1;
+    this.hud.setTreats(this.cat.treats);
+    this.audio.playSfx('treat');
+  }
+
+  syncView() {
+    const cam = this.cameras.main;
+    cam.scrollY = VIEW.SCROLL_Y;
+    if (!this.state?.is(STATE.COMPLETE)) cam.scrollX = this.cat.x - VIEW.CAT_OFFSET;
+    this.background.sync(cam.scrollX);
+    if ((this.isPlaying || this.state?.is(STATE.READY)) && !this.chase.isKnockedOut) {
+      const simplyChasing = this.chase.phase === 'chasing' && !this.chase.returningMs;
+      this.chaser.follow(this.cat.x, this.chase.visibleDistance, this.obstacles.items, simplyChasing, this.lastFrameMs);
+    }
+    this.syncFollowers();
+    this.catShadow.x = this.cat.x;
+    this.chaserShadow.x = this.chaser.x;
+    const airHeight = Math.max(0, GAME.GROUND_Y - this.cat.body.bottom);
+    this.catShadow.setScale(1 - Math.min(0.5, airHeight / 450));
+    this.chaserShadow.setScale(1 - Math.min(0.5, (GAME.GROUND_Y - this.chaser.y) / 300));
+  }
+
+  // The rest of the family runs behind the front chaser, and keeps coming during a knockout.
+  syncFollowers() {
+    if (!(this.isPlaying || this.state?.is(STATE.READY))) return;
+    const base = this.chase.isKnockedOut ? this.tracker.maxGap - PACK_SPACING : this.tracker.gap;
+    this.followers.forEach((follower, i) => {
+      follower.follow(this.cat.x, base + PACK_SPACING * (i + 1), this.obstacles.items, false);
+    });
+  }
+
+  handleHit(item) {
+    if (!this.isPlaying) return;
+    this.cat.applyPenalty(item.penalty);
+    this.streak.recordHit();
+    this.hud.setStreak(0);
+    this.effects.stopSprint();
+    this.audio.playSfx('hit');
+    this.cameras.main.shake(140, 0.006);
+  }
+
+  // Enough clean passes in a row earn a sprint, which pulls the cat away from the owner.
+  handleAvoided() {
+    if (!this.isPlaying) return;
+    const earnedSprint = this.streak.recordAvoided();
+    this.hud.setStreak(this.streak.count);
+    if (!earnedSprint) return;
+    this.cat.applyBoost({ multiplier: SPRINT.MULTIPLIER, durationMs: SPRINT.DURATION_MS });
+    this.effects.startSprint(this.cat, SPRINT.DURATION_MS);
+    this.hud.showHint('Sprint!');
+    this.audio.playSfx('sprint');
+  }
+
+  handleChaseEvent(event) {
+    switch (event) {
+      case 'warn':
+        this.chaser.windUp();
+        this.audio.playSfx('lungeWarn');
+        break;
+      case 'dash':
+        this.chaser.dash();
+        this.audio.playSfx('lungeDash');
+        break;
+      case 'grabbed':
+        this.handleGrabbed();
+        break;
+      case 'dodged':
+        this.chaser.fallDown();
+        this.audio.playSfx('lungeMiss');
+        this.handleAvoided();
+        break;
+      case 'recovered':
+        this.chaser.startRunning();
+        break;
+      case 'returned':
+        this.followers.shift()?.remove();
+        this.chaser.comeBack(this.chase.chaser.character);
+        this.chaserShadow.setVisible(true);
+        this.audio.playSfx('chaserBack');
+        if (this.chase.chaser.arrival) this.hud.showHint(this.chase.chaser.arrival);
+        break;
+      case 'rush':
+        this.audio.playSfx('chaserRush');
+        break;
+      case 'finalRush':
+        this.hud.showHint('Almost there! They\'re speeding up!');
+        this.audio.playSfx('chaserRush');
+        break;
+      default:
+        break;
+    }
+  }
+
+  handleGrabbed() {
+    this.grabs += 1;
+    this.cat.applyPenalty(GRAB_PENALTY);
+    this.streak.recordHit();
+    this.hud.setStreak(0);
+    this.effects.stopSprint();
+    this.chaser.stumble();
+    this.audio.playSfx('hit');
+    this.cameras.main.shake(200, 0.009);
+  }
+
+  handlePawPickup() {
+    this.cat.hasPaw = true;
+    this.hud.setPawReady(true);
+    this.hud.showHint('Super Paw! Press E to use it');
+    this.audio.playSfx('pawPickup');
+  }
+
+  // Fires the Super Paw, if the cat has one and there's someone to hit.
+  usePaw() {
+    if (!this.isPlaying || !this.cat.hasPaw || this.chase.isKnockedOut || this.pawFiring) return;
+    this.cat.hasPaw = false;
+    this.pawFiring = true;
+    this.hud.setPawReady(false);
+    const targetY = this.chaser.y - 130;
+    this.effects.punch(this.cat, () => this.chaser.x + 50, targetY, () => {
+      this.pawFiring = false;
+      if (!this.isPlaying) return;
+      const counter = this.chase.knockOut();
+      this.effects.stars(this.chaser.x, targetY);
+      this.chaser.flyOff();
+      this.chaserShadow.setVisible(false);
+      this.audio.setDanger(false);
+      this.inDanger = false;
+      this.audio.playSfx('punch');
+      this.cameras.main.shake(260, 0.014);
+      this.hud.showHint(counter ? 'Perfect counter!' : 'Knocked out!');
+    });
+  }
+
+  handleEscape() {
+    if (this.isPlaying) this.state.to(STATE.COMPLETE);
+  }
+
+  togglePause() {
+    if (this.isPlaying) this.state.to(STATE.PAUSED);
+    else if (this.state.is(STATE.PAUSED)) this.state.to(STATE.PLAYING);
+  }
+
+  onStateChange(next) {
+    if (next === STATE.PLAYING) this.resumeOrBegin();
+    else if (next === STATE.PAUSED) this.enterPause();
+    else if (next === STATE.COMPLETE) this.enterComplete();
+    else if (next === STATE.FAILED) this.enterFailed();
+  }
+
+  resumeOrBegin() {
+    this.overlay.hide();
+    if (this.physics.world.isPaused) {
+      this.physics.resume();
+      this.anims.resumeAll();
+      this.tweens.resumeAll();
+      this.time.paused = false;
+      this.audio.resumeMusic();
+      return;
+    }
+    this.cat.startRunning();
+    this.chaser.startRunning();
+    this.followers.forEach((follower) => follower.startRunning());
+    this.audio.startMusic(this.level.music);
+  }
+
+  // The two sound toggles, shared by menus. Pressing one redraws its menu with the new label.
+  soundToggles(redraw) {
+    const { music, sound } = this.audio.settings;
+    return [
+      { label: `Music: ${music ? 'On' : 'Off'}`, onClick: () => { this.audio.toggleMusic(); redraw(); } },
+      { label: `Sound: ${sound ? 'On' : 'Off'}`, onClick: () => { this.audio.toggleSound(); redraw(); } },
+    ];
+  }
+
+  enterPause() {
+    this.physics.pause();
+    this.anims.pauseAll();
+    this.tweens.pauseAll();
+    this.time.paused = true;
+    this.audio.pauseMusic();
+    this.showPauseScreen();
+  }
+
+  showPauseScreen() {
+    this.overlay.show({
+      title: 'Paused',
+      actions: [
+        { label: 'Restart', onClick: () => this.loadLevel(this.levelIndex) },
+        { label: 'Resume', primary: true, onClick: () => this.togglePause() },
+        { label: 'Levels', onClick: () => this.openScreen(this.levelIndex, 'levels') },
+        ...this.soundToggles(() => this.showPauseScreen()),
+      ],
+    });
+  }
+
+  enterComplete() {
+    this.audio.stopMusic();
+    this.audio.playSfx('escape');
+    this.obstacles.stopMovers();
+    this.progress.record(this.level.id, starsFor(this.starResult), this.cat.treats, this.foundMouse);
+    this.followers.forEach((follower) => follower.giveUp());
+    this.chaser.giveUp();
+    this.chaserShadow.setVisible(false);
+    // The cat keeps running through the gate and disappears.
+    this.tweens.add({ targets: [this.cat, this.catShadow], alpha: 0, duration: 450, delay: 150 });
+    this.time.delayedCall(END_SCREEN_DELAY_MS, () => this.showCompleteScreen());
+  }
+
+  enterFailed() {
+    const { catchMessage, catchSound } = this.chase.chaser;
+    const hugs = this.chaser.canHug;
+    this.audio.stopMusic();
+    this.audio.playSfx(catchSound ?? 'caught');
+    this.obstacles.stopMovers();
+    this.cat.beCaught();
+    this.followers.forEach((follower) => follower.pose('idle'));
+    this.chaser.lungeAt(this.cat.x);
+    if (hugs) {
+      // The cat is part of the hug frames, so it disappears into their arms.
+      this.time.delayedCall(HUG_START_MS, () => {
+        this.cat.setVisible(false);
+        this.catShadow.setVisible(false);
+        this.chaser.hug(this.cat.x);
+      });
+    }
+    this.time.delayedCall(hugs ? HUG_SCREEN_DELAY_MS : END_SCREEN_DELAY_MS, () => {
+      this.overlay.show({
+        title: 'Caught!',
+        message: catchMessage ?? "Into the carrier you go. There's still time for one more try.",
+        actions: this.savedCheckpoint
+          ? [
+            { label: 'Restart level', onClick: () => this.loadLevel(this.levelIndex) },
+            // Being caught counts as being grabbed, even when the run carries on from a checkpoint.
+            { label: 'Continue from checkpoint', primary: true, onClick: () => this.loadLevel(this.levelIndex, { ...this.savedCheckpoint, grabs: this.grabs + 1, foundMouse: this.foundMouse }) },
+          ]
+          : [{ label: 'Try again', primary: true, onClick: () => this.loadLevel(this.levelIndex) }],
+      });
+    });
+  }
+
+  showStartScreen() {
+    const { hasStarted, nextIndex } = this.progress;
+    this.overlay.show({
+      title: 'Cat Escape',
+      message: "It's vet day, and the whole family wants to catch you. Run!\nSpace: jump, and again in the air to double jump. Down arrow: slide or dive. Jump when they lunge! Collect a Super Paw box, then press E.",
+      actions: [
+        { label: hasStarted ? 'Continue' : 'Play', primary: true, onClick: () => this.openScreen(nextIndex, 'intro') },
+        { label: 'Levels', onClick: () => this.showLevelsScreen() },
+        ...this.soundToggles(() => this.showStartScreen()),
+      ],
+    });
+  }
+
+  showLevelsScreen() {
+    this.overlay.show({
+      title: 'Choose a level',
+      message: `${this.progress.totalStars} of ${LEVELS.length * 3} stars, ${this.progress.totalMice} of ${LEVELS.length} toy mice`,
+      tiles: LEVELS.map((level, index) => {
+        const result = this.progress.resultFor(level.id);
+        const locked = !this.progress.isUnlocked(index);
+        return {
+          label: `${index + 1}. ${level.title}`,
+          detail: locked ? 'Locked' : `${starText(result?.stars ?? 0)}${result?.mouse ? ' 🐭' : ''}`,
+          world: worldName(level),
+          locked,
+          current: index === this.progress.nextIndex,
+          onClick: () => this.openScreen(index, 'intro'),
+        };
+      }),
+      actions: [{ label: 'Back', primary: true, onClick: () => this.openScreen(this.levelIndex, 'menu') }],
+    });
+  }
+
+  showIntroScreen() {
+    const { level } = this;
+    this.overlay.show({
+      title: level.title,
+      message: `${level.name}\n${level.intro}`,
+      actions: [
+        { label: 'Levels', onClick: () => this.showLevelsScreen() },
+        { label: 'Run!', primary: true, onClick: () => this.state.to(STATE.PLAYING) },
+      ],
+    });
+  }
+
+  showCompleteScreen() {
+    const next = this.levelIndex + 1;
+    const outro = this.level.outro ?? 'You got away, for now.';
+    if (next < LEVELS.length) {
+      this.overlay.show({
+        title: 'Level complete!',
+        image: ESCAPE_ANIMATION,
+        message: `${outro}\n${this.treatSummary()}`,
+        actions: [
+          { label: 'Replay', onClick: () => this.openScreen(this.levelIndex, 'intro') },
+          { label: 'Levels', onClick: () => this.openScreen(this.levelIndex, 'levels') },
+          { label: 'Next level', primary: true, onClick: () => this.openScreen(next, 'intro') },
+        ],
+      });
+    } else {
+      this.overlay.show({
+        title: 'You escaped!',
+        image: ESCAPE_ANIMATION,
+        message: `${outro}\n${this.treatSummary()}\nYou've earned ${this.progress.totalStars} of ${LEVELS.length * 3} stars.`,
+        actions: [
+          { label: 'Levels', onClick: () => this.openScreen(this.levelIndex, 'levels') },
+          { label: 'Play again', primary: true, onClick: () => this.openScreen(0, 'intro') },
+        ],
+      });
+    }
+  }
+
+  get starResult() {
+    return { collected: this.cat.treats, total: this.treats.total, grabs: this.grabs };
+  }
+
+  // The stars earned, and what each one was for, so the player knows how to earn the rest.
+  treatSummary() {
+    const goals = starGoals(this.starResult);
+    const mark = (done) => (done ? '✓' : '✗');
+    const lines = [
+      `${starText(starsFor(this.starResult))}`,
+      `${mark(goals.treats)} ${this.cat.treats} of ${this.treats.total} treats   ${mark(goals.untouched)} ${goals.untouched ? 'Never grabbed' : 'Grabbed'}`,
+    ];
+    lines.push(this.foundMouse ? '🐭 You found the toy mouse!' : 'A toy mouse is hiding somewhere here.');
+    return lines.join('\n');
+  }
+
+  // Loads a level without starting it, showing one of the menus over it.
+  openScreen(levelIndex, screen) {
+    this.time.paused = false;
+    this.audio.stopMusic();
+    this.anims.resumeAll();
+    this.overlay.hide();
+    this.scene.restart({ levelIndex, autoStart: false, screen });
+  }
+
+  // Loads a level and starts it straight away.
+  loadLevel(levelIndex, checkpoint = null) {
+    this.time.paused = false;
+    this.audio.stopMusic();
+    this.anims.resumeAll();
+    this.overlay.hide();
+    this.scene.restart({ levelIndex, autoStart: true, checkpoint });
+  }
+}

@@ -1,0 +1,93 @@
+// Global tuning values. Per-level values (speeds, chase distances) live in data/levels.
+
+const BASE_WIDTH = 1280;
+const BASE_HEIGHT = 720;
+const WORLD_BOTTOM = BASE_HEIGHT; // the lowest world y that's drawn, the bottom of the road
+const BASE_CAT_SCREEN_X = 670;
+
+export const GAME = {
+  WIDTH: BASE_WIDTH, // updated by setViewAspect to match the window's shape
+  HEIGHT: BASE_HEIGHT,
+  GROUND_Y: 665,
+  CAMERA_ZOOM: 0.9, // below 1 shows more of the world, at the cost of smaller characters
+  GROUND_OVERLAP: 8, // obstacles sit this far into the road, so they look planted
+};
+
+// What the zoomed camera can see, in world pixels. Kept up to date by setViewAspect.
+export const VIEW = {
+  // How far ahead of the cat the player can see. It never changes with the window's shape,
+  // so a wider screen doesn't make the game easier: extra width goes behind the cat.
+  AHEAD: (BASE_WIDTH - BASE_CAT_SCREEN_X) / GAME.CAMERA_ZOOM,
+};
+
+// Sizes the game view to fill a window of this shape. The ground stays at the bottom of the
+// screen. Wider windows see more behind the cat, and taller ones see more sky.
+export function setViewAspect(aspect) {
+  const wider = aspect >= BASE_WIDTH / BASE_HEIGHT;
+  GAME.WIDTH = wider ? Math.round(BASE_HEIGHT * aspect) : BASE_WIDTH;
+  GAME.HEIGHT = wider ? BASE_HEIGHT : Math.round(BASE_WIDTH / aspect);
+
+  const { WIDTH, HEIGHT, CAMERA_ZOOM } = GAME;
+  VIEW.WIDTH = WIDTH / CAMERA_ZOOM;
+  VIEW.HEIGHT = HEIGHT / CAMERA_ZOOM;
+  VIEW.LEFT_OFFSET = (WIDTH - VIEW.WIDTH) / 2; // visible left edge, relative to camera scrollX
+  VIEW.RIGHT_OFFSET = (WIDTH + VIEW.WIDTH) / 2; // visible right edge, relative to camera scrollX
+  VIEW.TOP = WORLD_BOTTOM - VIEW.HEIGHT; // the highest visible world y
+  VIEW.SCROLL_Y = WORLD_BOTTOM - HEIGHT / 2 - VIEW.HEIGHT / 2; // lines up the bottom of the world
+  VIEW.CAT_OFFSET = VIEW.RIGHT_OFFSET - VIEW.AHEAD; // how far the cat stands from camera scrollX
+  return { width: WIDTH, height: HEIGHT };
+}
+setViewAspect(BASE_WIDTH / BASE_HEIGHT);
+
+export const MOVEMENT = {
+  GRAVITY: 2000,
+  JUMP_VELOCITY: -960,
+  AIR_JUMP_VELOCITY: -800, // the second jump, pressed in the air
+  FAST_FALL_VELOCITY: 1300,
+  SLIDE_DISTANCE: 420, // measured in distance, so slides fit obstacles at every level speed
+  JUMP_BUFFER_MS: 130,
+  PLATFORM_DROP_MS: 220, // how long the cat ignores ledges after dropping through one
+};
+
+// A clean run of avoided obstacles earns a short burst of speed.
+export const SPRINT = {
+  STREAK: 3,
+  MULTIPLIER: 1.2,
+  DURATION_MS: 1500,
+};
+
+// Hay wagons on the farm. Riding one is faster than running, so it pulls away from the chaser.
+export const WAGON = {
+  SPEED_RATIO: 0.6, // how fast the wagon drives, compared with the cat's progress
+  RIDE_SPEED: 1.35, // the cat's speed while riding, as a multiple of its normal speed
+  DECK_WIDTH: 720,
+  DECK_HEIGHT: 150,
+};
+
+// The chaser's lunge. The cat must be at least DODGE_HEIGHT off the ground for the whole strike.
+export const LUNGE = {
+  WARNING_SECONDS: 0.7,
+  DASH_MS: 350,
+  STRIKE_MS: 220,
+  RECOVER_MS: 700,
+  DODGE_HEIGHT: 110,
+  GRAB_DISTANCE_LOSS: 220,
+  MISS_DISTANCE_BONUS: 70,
+};
+
+// The Super Paw knocks the chaser off screen for a while.
+export const PAW = {
+  KO_MS: 3500,
+  COUNTER_KO_MS: 5500, // for hitting her during a lunge
+  RETURN_MS: 1000,
+  RETURN_FROM_BEHIND: 500, // how far off-screen she starts running back from
+};
+
+// How high one jump lifts the cat's feet.
+export const SINGLE_JUMP_HEIGHT = MOVEMENT.JUMP_VELOCITY ** 2 / (2 * MOVEMENT.GRAVITY);
+
+// How long one jump stays in the air, in seconds.
+export const JUMP_AIR_TIME = (2 * -MOVEMENT.JUMP_VELOCITY) / MOVEMENT.GRAVITY;
+
+// The reaction time levels must leave between one obstacle and the next.
+export const MIN_REACTION_SECONDS = 0.35;

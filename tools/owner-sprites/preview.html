@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Owner Sprite Preview</title>
+<style>
+  body { margin: 0; padding: 24px; background: #CFE9F7; color: #12324A; font: 16px system-ui, sans-serif; }
+  h1 { margin: 0 0 16px; font-size: 22px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  figure { margin: 0; padding: 12px; background: #E8F5FC; border-radius: 12px; }
+  figcaption { font-weight: 600; margin-bottom: 8px; }
+  canvas { width: 100%; height: auto; display: block; }
+</style>
+</head>
+<body>
+<h1>Owner animations beside the cat (open this file from disk)</h1>
+<div class="grid" id="grid"></div>
+<script>
+  const ANIMS = [
+    { name: 'Run', count: 8, fps: 14, cat: 'Run', catCount: 8 },
+    { name: 'Idle', count: 10, fps: 8, cat: 'Idle', catCount: 10 },
+    { name: 'Catch', count: 8, fps: 8, cat: 'Hurt', catCount: 10 },
+    { name: 'Frustrated', count: 10, fps: 10, cat: 'Run', catCount: 8 },
+  ];
+  const load = (dir, name, n) => Array.from({ length: n }, (_, i) => {
+    const img = new Image();
+    img.src = `../../images/sprites/${dir}/${name} (${i + 1}).png`;
+    return img;
+  });
+  const grid = document.getElementById('grid');
+  for (const a of ANIMS) {
+    const fig = document.createElement('figure');
+    const cap = document.createElement('figcaption');
+    cap.textContent = a.name;
+    const canvas = document.createElement('canvas');
+    canvas.width = 640;
+    canvas.height = 400;
+    fig.append(cap, canvas);
+    grid.append(fig);
+    const owner = load('owner', a.name, a.count);
+    const cat = load('cat', a.cat, a.catCount);
+    const ctx = canvas.getContext('2d');
+    const start = performance.now();
+    const draw = (now) => {
+      const i = Math.floor(((now - start) / 1000) * a.fps);
+      ctx.clearRect(0, 0, 640, 400);
+      ctx.fillStyle = '#6C5B8C';
+      ctx.fillRect(0, 370, 640, 30);
+      const o = owner[i % a.count];
+      const c = cat[i % a.catCount];
+      if (o.complete && o.naturalWidth) ctx.drawImage(o, 0, 3, 380, 380);
+      if (c.complete && c.naturalWidth) ctx.drawImage(c, 400, 248, 143, 125);
+      requestAnimationFrame(draw);
+    };
+    requestAnimationFrame(draw);
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,295 @@
+import { afterEach, describe, expect, it } from 'vitest';
+import { GAME, VIEW, setViewAspect } from '../src/config/gameConfig.js';
+import { CHARACTERS } from '../src/data/characters.js';
+import { CHASERS } from '../src/data/chasers.js';
+import { ChaseDirector } from '../src/systems/ChaseDirector.js';
+import { DistanceTracker } from '../src/systems/DistanceTracker.js';
+import { GameStateMachine, STATE } from '../src/systems/GameStateMachine.js';
+import { pulseStrength } from '../src/systems/obstacleMotion.js';
+import { starText, starsFor } from '../src/systems/stars.js';
+import { SpeedController } from '../src/systems/SpeedController.js';
+import { StreakTracker } from '../src/systems/StreakTracker.js';
+
+const chase = { ownerSpeed: 300, startGap: 500, maxGap: 600, catchGap: 100 };
+
+describe('DistanceTracker', () => {
+  it('grows the gap when the cat outruns the owner, up to the maximum', () => {
+    const tracker = new DistanceTracker(chase);
+    tracker.update(1, 350);
+    expect(tracker.gap).toBe(550);
+    tracker.update(10, 350);
+    expect(tracker.gap).toBe(600);
+  });
+
+  it('catches the cat once a slowed cat loses enough distance', () => {
+    const tracker = new DistanceTracker(chase);
+    tracker.update(1, 100);
+    expect(tracker.isCaught).toBe(false);
+    tracker.update(1, 100);
+    expect(tracker.isCaught).toBe(true);
+    expect(tracker.safety).toBe(0);
+  });
+
+  it('reports full safety at the maximum gap', () => {
+    const tracker = new DistanceTracker({ ...chase, startGap: 600 });
+    expect(tracker.safety).toBe(1);
+  });
+});
+
+describe('SpeedController', () => {
+  it('slows down during a penalty, then recovers', () => {
+    const speed = new SpeedController(400);
+    speed.applyPenalty({ speedMultiplier: 0.5, durationMs: 900 });
+    expect(speed.speed).toBe(200);
+    speed.update(899);
+    expect(speed.isSlowed).toBe(true);
+    speed.update(2);
+    expect(speed.isSlowed).toBe(false);
+    expect(speed.speed).toBe(400);
+  });
+});
+
+describe('sprint boost', () => {
+  it('speeds up for its duration, then returns to normal', () => {
+    const speed = new SpeedController(400);
+    speed.applyBoost({ multiplier: 1.2, durationMs: 1000 });
+    expect(speed.speed).toBeCloseTo(480);
+    speed.update(1001);
+    expect(speed.isSprinting).toBe(false);
+    expect(speed.speed).toBe(400);
+  });
+
+  it('ends when the cat is hit', () => {
+    const speed = new SpeedController(400);
+    speed.applyBoost({ multiplier: 1.2, durationMs: 1000 });
+    speed.applyPenalty({ speedMultiplier: 0.5, durationMs: 500 });
+    expect(speed.isSprinting).toBe(false);
+    expect(speed.speed).toBe(200);
+  });
+});
+
+describe('StreakTracker', () => {
+  it('earns a sprint on the third pass in a row, then starts again', () => {
+    const streak = new StreakTracker(3);
+    expect(streak.recordAvoided()).toBe(false);
+    expect(streak.recordAvoided()).toBe(false);
+    expect(streak.recordAvoided()).toBe(true);
+    expect(streak.count).toBe(0);
+  });
+
+  it('resets when the cat is hit', () => {
+    const streak = new StreakTracker(3);
+    streak.recordAvoided();
+    streak.recordAvoided();
+    streak.recordHit();
+    expect(streak.recordAvoided()).toBe(false);
+    expect(streak.count).toBe(1);
+  });
+});
+
+describe('ChaseDirector', () => {
+  const level = { chase, attacks: [{ at: 100 }] };
+  const run = (director, seconds, { catX = 200, catSpeed = 300, catHeight = 0 } = {}) => {
+    const events = [];
+    const steps = Math.round(seconds * 60);
+    for (let i = 0; i < steps; i++) {
+      events.push(...director.update(1000 / 60, { catX, catSpeed, catHeight }));
+    }
+    return events;
+  };
+
+  it('warns, dashes, and grabs a cat on the ground', () => {
+    const director = new ChaseDirector(level);
+    const before = director.tracker.gap;
+    const events = run(director, 1.2);
+    expect(events).toEqual(expect.arrayContaining(['warn', 'dash', 'grabbed']));
+    expect(director.tracker.gap).toBeLessThan(before);
+  });
+
+  it('misses a cat that stays in the air through the strike, and loses ground', () => {
+    const director = new ChaseDirector(level);
+    const before = director.tracker.gap;
+    const events = run(director, 1.4, { catHeight: 200 });
+    expect(events).toContain('dodged');
+    expect(events).not.toContain('grabbed');
+    expect(director.tracker.gap).toBeGreaterThan(before);
+  });
+
+  it('reaches the cat at the strike, then backs off', () => {
+    const director = new ChaseDirector(level);
+    run(director, 1.12, { catHeight: 200 });
+    expect(director.phase).toBe('striking');
+    expect(director.visibleDistance).toBeLessThan(100);
+    run(director, 1, { catHeight: 200 });
+    expect(director.phase).toBe('chasing');
+    expect(director.visibleDistance).toBeGreaterThan(400);
+  });
+
+  it('counts a knockout during a lunge as a counter, and skips attacks while she is away', () => {
+    const director = new ChaseDirector({ chase, attacks: [{ at: 100 }, { at: 150 }] });
+    run(director, 0.2);
+    expect(director.isAttacking).toBe(true);
+    expect(director.knockOut()).toBe(true);
+    expect(director.attacks).toHaveLength(1);
+    const events = run(director, 6);
+    expect(director.attacks).toHaveLength(0);
+    expect(events).toContain('returned');
+    expect(events).not.toContain('warn');
+  });
+
+  it('keeps the distance full during a knockout, even if the cat is slowed', () => {
+    const director = new ChaseDirector({ chase });
+    director.knockOut();
+    run(director, 1, { catSpeed: 0 });
+    expect(director.tracker.gap).toBe(chase.maxGap);
+  });
+
+  it('runs back in from off-screen after a knockout', () => {
+    const director = new ChaseDirector({ chase });
+    director.knockOut();
+    run(director, 3.55);
+    expect(director.visibleDistance).toBeGreaterThan(chase.maxGap + 300);
+    run(director, 1.2);
+    expect(director.visibleDistance).toBeLessThanOrEqual(chase.maxGap);
+  });
+});
+
+describe('chaser roster', () => {
+  const step = (director, seconds, catSpeed = 300) => {
+    const events = [];
+    for (let i = 0; i < Math.round(seconds * 60); i++) {
+      events.push(...director.update(1000 / 60, { catX: 0, catSpeed, catHeight: 0 }));
+    }
+    return events;
+  };
+
+  it('starts with the first chaser, and uses their speed', () => {
+    const director = new ChaseDirector({ chase, chasers: ['boy', 'grandma'] });
+    expect(director.chaserId).toBe('boy');
+    expect(director.tracker.ownerSpeed).toBe(chase.ownerSpeed + CHASERS.boy.speedDelta);
+  });
+
+  it('moves to the next chaser after a knockout, and repeats the last', () => {
+    const director = new ChaseDirector({ chase, chasers: ['girl', 'grandma'] });
+    director.knockOut();
+    step(director, 3.6);
+    expect(director.chaserId).toBe('grandma');
+    expect(director.tracker.ownerSpeed).toBe(chase.ownerSpeed + CHASERS.grandma.speedDelta);
+    director.knockOut();
+    step(director, 3.6);
+    expect(director.chaserId).toBe('grandma');
+  });
+
+  it('gives grandma sudden rushes that close the distance', () => {
+    const director = new ChaseDirector({ chase: { ...chase, startGap: 500 }, chasers: ['grandma'] });
+    const { rush } = CHASERS.grandma;
+    expect(step(director, rush.everySeconds - 0.1)).not.toContain('rush');
+    const before = director.tracker.gap;
+    expect(step(director, 0.2)).toContain('rush');
+    expect(director.isRushing).toBe(true);
+    step(director, rush.seconds * 0.8);
+    expect(director.tracker.gap).toBeLessThan(before);
+    step(director, 0.5);
+    expect(director.isRushing).toBe(false);
+    expect(director.tracker.ownerSpeed).toBe(chase.ownerSpeed + CHASERS.grandma.speedDelta);
+  });
+
+  it('gives every chaser every pose the game needs', () => {
+    for (const { character } of Object.values(CHASERS)) {
+      for (const role of ['idle', 'run', 'hop', 'catch', 'stumble', 'lose']) {
+        expect(CHARACTERS[character].anims[role], `${character} ${role}`).toBeDefined();
+      }
+    }
+  });
+});
+
+describe('view shape', () => {
+  afterEach(() => setViewAspect(16 / 9));
+  const STANDARD = 16 / 9;
+
+  it('matches the original layout at 16:9', () => {
+    expect(setViewAspect(STANDARD)).toEqual({ width: 1280, height: 720 });
+    expect(VIEW.CAT_OFFSET).toBeCloseTo(673.33, 1);
+    expect(VIEW.SCROLL_Y).toBeCloseTo(-40);
+    expect(VIEW.TOP).toBeCloseTo(-80);
+  });
+
+  it('fills a wider window, adding space behind the cat rather than ahead', () => {
+    const aheadAt16By9 = VIEW.AHEAD;
+    expect(setViewAspect(2.2).height).toBe(720);
+    expect(GAME.WIDTH).toBe(1584);
+    expect(VIEW.RIGHT_OFFSET - VIEW.CAT_OFFSET).toBeCloseTo(aheadAt16By9);
+    expect(VIEW.CAT_OFFSET).toBeGreaterThan(673.33);
+  });
+
+  it('fills a taller window by showing more sky, with the road still at the bottom', () => {
+    expect(setViewAspect(1.25)).toEqual({ width: 1280, height: 1024 });
+    expect(VIEW.TOP).toBeLessThan(-80);
+    // Where the bottom of the world lands on screen: it must be the bottom edge.
+    const screenY = (720 - VIEW.SCROLL_Y - GAME.HEIGHT / 2) * GAME.CAMERA_ZOOM + GAME.HEIGHT / 2;
+    expect(screenY).toBeCloseTo(GAME.HEIGHT);
+    expect(VIEW.RIGHT_OFFSET - VIEW.CAT_OFFSET).toBeCloseTo(VIEW.AHEAD);
+  });
+});
+
+describe('stars', () => {
+  it('gives one for finishing, one for most treats, and one for never being grabbed', () => {
+    expect(starsFor({ collected: 0, total: 40, grabs: 2 })).toBe(1);
+    expect(starsFor({ collected: 28, total: 40, grabs: 2 })).toBe(2);
+    expect(starsFor({ collected: 0, total: 40, grabs: 0 })).toBe(2);
+    expect(starsFor({ collected: 28, total: 40, grabs: 0 })).toBe(3);
+    expect(starText(2)).toBe('★★☆');
+  });
+});
+
+describe('checkpoint restart', () => {
+  it('skips lunges behind the checkpoint, and keeps the chaser', () => {
+    const level = { chase, chasers: ['girl', 'boy'], attacks: [{ at: 100 }, { at: 900 }] };
+    const director = new ChaseDirector(level, { startX: 500, rosterIndex: 1 });
+    expect(director.attacks).toHaveLength(1);
+    expect(director.chaserId).toBe('boy');
+  });
+});
+
+describe('sprinkler state', () => {
+  it('is fully on or off when a full-speed cat arrives, as the level asks', () => {
+    expect(pulseStrength(5, 5, 2.4, 'on')).toBe(1);
+    expect(pulseStrength(5, 5, 2.4, 'off')).toBe(0);
+    expect(pulseStrength(5 - 1.2, 5, 2.4, 'on')).toBe(0);
+  });
+});
+
+describe('GameStateMachine', () => {
+  it('follows the level flow and reports each change', () => {
+    const seen = [];
+    const machine = new GameStateMachine((next) => seen.push(next));
+    expect(machine.to(STATE.PLAYING)).toBe(true);
+    expect(machine.to(STATE.PAUSED)).toBe(true);
+    expect(machine.to(STATE.PLAYING)).toBe(true);
+    expect(machine.to(STATE.COMPLETE)).toBe(true);
+    expect(seen).toEqual(['playing', 'paused', 'playing', 'complete']);
+  });
+
+  it('ignores moves that the flow does not allow', () => {
+    const machine = new GameStateMachine();
+    expect(machine.to(STATE.COMPLETE)).toBe(false);
+    machine.to(STATE.PLAYING);
+    machine.to(STATE.FAILED);
+    expect(machine.to(STATE.COMPLETE)).toBe(false);
+    expect(machine.is(STATE.FAILED)).toBe(true);
+  });
+});
+
+describe('terrain speed', () => {
+  it('changes speed while on the terrain, and combines with hits', () => {
+    const control = new SpeedController(400);
+    control.setTerrain(0.5);
+    expect(control.speed).toBe(200);
+    control.applyPenalty({ speedMultiplier: 0.5, durationMs: 100 });
+    expect(control.speed).toBe(100);
+    control.update(200);
+    expect(control.speed).toBe(200);
+    control.setTerrain(1);
+    expect(control.speed).toBe(400);
+  });
+});

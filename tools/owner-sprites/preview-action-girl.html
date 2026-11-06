@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Action Girl Preview</title>
+<style>
+  body { margin: 0; padding: 24px; background: #CFE9F7; color: #12324A; font: 16px system-ui, sans-serif; }
+  h1 { margin: 0 0 16px; font-size: 22px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  figure { margin: 0; padding: 12px; background: #E8F5FC; border-radius: 12px; }
+  figcaption { font-weight: 600; margin-bottom: 8px; }
+  canvas { width: 100%; height: auto; display: block; }
+</style>
+</head>
+<body>
+<h1>Cut frames from the action-girl sheet, beside the cat</h1>
+<div class="grid" id="grid"></div>
+<script>
+  const ANIMS = [
+    { name: 'Run', count: 6, fps: 12, cat: 'Run', catCount: 8 },
+    { name: 'Idle', count: 4, fps: 5, cat: 'Idle', catCount: 10 },
+    { name: 'Jump', count: 3, fps: 5, cat: 'Jump', catCount: 8 },
+    { name: 'Hurt', count: 1, fps: 1, cat: 'Hurt', catCount: 10 },
+    { name: 'Lunge', count: 1, fps: 1, cat: 'Hurt', catCount: 10 },
+    { name: 'Down', count: 1, fps: 1, cat: 'Idle', catCount: 10 },
+  ];
+  const load = (dir, name, n) => Array.from({ length: n }, (_, i) => {
+    const img = new Image();
+    img.src = `../../images/sprites/${dir}/${name} (${i + 1}).png`;
+    return img;
+  });
+  const grid = document.getElementById('grid');
+  for (const a of ANIMS) {
+    const fig = document.createElement('figure');
+    const cap = document.createElement('figcaption');
+    cap.textContent = a.name;
+    const canvas = document.createElement('canvas');
+    canvas.width = 640;
+    canvas.height = 400;
+    fig.append(cap, canvas);
+    grid.append(fig);
+    const owner = load('owner-action-girl', a.name, a.count);
+    const cat = load('cat', a.cat, a.catCount);
+    const ctx = canvas.getContext('2d');
+    const start = performance.now();
+    const draw = (now) => {
+      const i = Math.floor(((now - start) / 1000) * a.fps);
+      ctx.clearRect(0, 0, 640, 400);
+      ctx.fillStyle = '#6C5B8C';
+      ctx.fillRect(0, 370, 640, 30);
+      const o = owner[i % a.count];
+      const c = cat[Math.floor(((now - start) / 1000) * 12) % a.catCount];
+      if (o.complete && o.naturalWidth) {
+        const h = 340;
+        const w = (o.naturalWidth / o.naturalHeight) * h;
+        ctx.drawImage(o, 20, 372 - h, w, h);
+      }
+      if (c.complete && c.naturalWidth) ctx.drawImage(c, 400, 222, 170, 149);
+      requestAnimationFrame(draw);
+    };
+    requestAnimationFrame(draw);
+  }
+</script>
+</body>
+</html>
