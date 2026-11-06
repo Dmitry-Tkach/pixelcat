@@ -1,6 +1,9 @@
 import { VIEW } from '../config/gameConfig.js';
 
 const MAX_LAYER_WIDTH = 4000; // wide enough for any window: what's off-screen isn't visible
+// Skips the art's top row. Otherwise it blends with the bottom row when the textures repeat, which
+// draws a faint line across the sky along the top of each layer.
+const TOP_ROW_SKIP = 1;
 
 // Draws a theme's repeating layers and scrolls each one at its own rate.
 export class ParallaxBackground {
@@ -19,13 +22,15 @@ export class ParallaxBackground {
         .setOrigin(0)
         .setScrollFactor(0, 1)
         .setDepth(depth ?? 1 + i * 0.1)
-        .setTint(light),
+        .setTint(light)
+        .setTilePosition(0, TOP_ROW_SKIP),
     }));
   }
 
   // Follows the camera, and the window's shape, which can change at any time.
-  sync(cameraX) {
-    this.backdrop.setPosition(VIEW.LEFT_OFFSET, VIEW.TOP).setDisplaySize(VIEW.WIDTH, VIEW.HEIGHT);
+  // The sky stays behind the camera when it rises. The scenery stays in the world, and sinks.
+  sync(cameraX, rise = 0) {
+    this.backdrop.setPosition(VIEW.LEFT_OFFSET, VIEW.TOP - rise).setDisplaySize(VIEW.WIDTH, VIEW.HEIGHT);
     for (const { sprite, factor } of this.layers) {
       sprite.x = VIEW.LEFT_OFFSET;
       sprite.tilePositionX = cameraX * factor;

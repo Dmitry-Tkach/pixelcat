@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME, MOVEMENT } from '../config/gameConfig.js';
+import { BIG_LAND, GAME, MOVEMENT, STEER } from '../config/gameConfig.js';
 import { CHARACTERS, animKey, frameKey } from '../data/characters.js';
 import { SpeedController } from '../systems/SpeedController.js';
 
@@ -26,6 +26,10 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     this.onPlatform = false;
     this.dropMs = 0;
     this.treats = 0;
+    this.steerDirection = 0;
+    this.steerVelocity = 0;
+    this.screenShift = 0;
+    this.fallSpeed = 0;
     this.play(animKey('cat', 'idle'));
   }
 
@@ -110,6 +114,7 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     this.slideQueued = false;
     this.jumpBufferMs = 0;
     this.wasAirborne = false;
+    this.fallSpeed = 0;
     this.emit('bounce');
   }
 
@@ -127,6 +132,26 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     return this.running ? this.speedControl.speed : 0;
   }
 
+  // -1 brakes, 1 surges, and 0 lets go. It only has an effect in the air.
+  steer(direction) {
+    this.steerDirection = direction;
+  }
+
+  updateSteering(ms) {
+    const seconds = ms / 1000;
+    if (this.onGround || !this.running) {
+      this.steerVelocity = 0;
+      this.screenShift *= Math.exp(-STEER.RETURN_RATE * seconds);
+      return;
+    }
+    const target = this.steerDirection * STEER.SPEED;
+    const change = STEER.ACCELERATION * seconds;
+    this.steerVelocity = Phaser.Math.Clamp(target, this.steerVelocity - change, this.steerVelocity + change);
+    if (this.body.blocked.right) return;
+    const shift = this.screenShift + this.steerVelocity * seconds;
+    this.screenShift = Phaser.Math.Clamp(shift, -STEER.MAX_SCREEN_SHIFT, STEER.MAX_SCREEN_SHIFT);
+  }
+
   // Called once per frame while the level is being played.
   tick(ms) {
     this.speedControl.update(ms);
@@ -135,10 +160,16 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     this.dropMs = Math.max(0, this.dropMs - ms);
     if (!this.onGround) this.onPlatform = false;
 
-    this.setVelocityX(this.speed);
+    this.updateSteering(ms);
+    this.setVelocityX(this.speed + this.steerVelocity);
 
-    if (this.onGround && this.wasAirborne) this.emit('land');
+    if (this.onGround && this.wasAirborne) {
+      this.emit('land');
+      if (this.fallSpeed >= BIG_LAND.FALL_SPEED) this.emit('bigLand');
+    }
     this.wasAirborne = !this.onGround;
+    // The body's speed is already cleared by the time the cat counts as landed.
+    this.fallSpeed = this.onGround ? 0 : Math.max(this.fallSpeed, this.body.velocity.y);
 
     if (this.onGround) {
       this.airJumpsLeft = 1;

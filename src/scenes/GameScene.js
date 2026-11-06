@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME, SPRINT, VIEW, WAGON } from '../config/gameConfig.js';
+import { BIG_LAND, CLIMB_CAMERA, GAME, SPRINT, VIEW, WAGON, WALL } from '../config/gameConfig.js';
 import { LEVELS, worldName } from '../data/levels/index.js';
 import { CHASERS } from '../data/chasers.js';
 import { ESCAPE_ANIMATION } from '../data/screens.js';
@@ -63,6 +63,8 @@ export class GameScene extends Phaser.Scene {
     this.nextHint = (level.hints ?? []).filter((hint) => hint.at <= startX).length;
     this.nextCheckpoint = (level.checkpoints ?? []).filter((x) => x <= startX).length;
     this.pawFiring = false;
+    this.stuckOn = null;
+    this.cameraRise = 0;
     this.streak = new StreakTracker(SPRINT.STREAK);
     this.effects = new Effects(this);
 
@@ -102,10 +104,13 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.existing(ground, true);
     this.physics.add.collider(this.cat, ground);
     this.obstacles.onHit(this.cat, (item) => this.handleHit(item));
+    this.obstacles.onWallHit((item) => this.handleWallHit(item));
     this.obstacles.onAlert((sound) => this.audio.playSfx(sound));
     this.obstacles.onAvoided(() => this.handleAvoided());
     this.pickups.onCollect(this.cat, () => this.handlePawPickup());
     this.platforms.onLand(this.cat);
+    this.platforms.onCollapseEvents(() => this.audio.playSfx('creak'), () => this.audio.playSfx('collapse'));
+    if (level.tallCamera) this.cat.on('bigLand', () => this.handleBigLand());
     this.wagons.onLand(this.cat);
     this.wagons.onBoard(() => {
       this.effects.puff(this.cat.x, this.cat.body.bottom, HAY_COLOR);
@@ -174,12 +179,15 @@ export class GameScene extends Phaser.Scene {
     const ms = Math.min(delta, 50);
     this.lastFrameMs = ms;
     this.controls.update(time);
+    if (this.level.airSteering) this.cat.steer(this.controls.steer);
+    this.platforms.update(ms, this.cat);
     const riding = this.wagons.update(this.cat);
     this.cat.speedControl.setTerrain(riding ? WAGON.RIDE_SPEED : this.obstacles.terrainUnder(this.cat));
+    this.updateStuck();
     this.cat.tick(ms);
     this.obstacles.update(ms, this.cat);
     const catHeight = GAME.GROUND_Y - this.cat.body.bottom;
-    const events = this.chase.update(ms, { catX: this.cat.x, catSpeed: this.cat.speed, catHeight });
+    const events = this.chase.update(ms, { catX: this.cat.x, catSpeed: this.chaseSpeed, catHeight });
     events.forEach((event) => this.handleChaseEvent(event));
     this.hud.update(this.tracker.safety, this.cat.x / this.level.length);
     this.updateDanger();
@@ -187,6 +195,20 @@ export class GameScene extends Phaser.Scene {
     this.updateCheckpoints();
     this.updateFinalDash();
     if (this.tracker.isCaught) this.state.to(STATE.FAILED);
+  }
+
+  // Getting away from a wall leaves the cat slow for a moment, while it picks up speed again.
+  updateStuck() {
+    if (!this.stuckOn || this.cat.body.blocked.right) return;
+    this.cat.applyPenalty(this.stuckOn.penalty);
+    this.stuckOn = null;
+  }
+
+  // The speed the chaser compares itself with. A surge in the air doesn't outrun them, because
+  // holding it on every jump would be free safety. Braking does let them catch up.
+  get chaseSpeed() {
+    if (this.cat.body.blocked.right) return this.tracker.ownerSpeed - WALL.CLOSE_SPEED;
+    return this.cat.speed + Math.min(0, this.cat.steerVelocity);
   }
 
   // The last moments of a finale: a burst of speed, with the screen shaking.
@@ -243,9 +265,10 @@ export class GameScene extends Phaser.Scene {
 
   syncView() {
     const cam = this.cameras.main;
-    cam.scrollY = VIEW.SCROLL_Y;
-    if (!this.state?.is(STATE.COMPLETE)) cam.scrollX = this.cat.x - VIEW.CAT_OFFSET;
-    this.background.sync(cam.scrollX);
+    this.updateCameraRise();
+    cam.scrollY = VIEW.SCROLL_Y - this.cameraRise;
+    if (!this.state?.is(STATE.COMPLETE)) cam.scrollX = this.cat.x - this.cat.screenShift - VIEW.CAT_OFFSET;
+    this.background.sync(cam.scrollX, this.cameraRise);
     if ((this.isPlaying || this.state?.is(STATE.READY)) && !this.chase.isKnockedOut) {
       const simplyChasing = this.chase.phase === 'chasing' && !this.chase.returningMs;
       this.chaser.follow(this.cat.x, this.chase.visibleDistance, this.obstacles.items, simplyChasing, this.lastFrameMs);
@@ -256,6 +279,15 @@ export class GameScene extends Phaser.Scene {
     const airHeight = Math.max(0, GAME.GROUND_Y - this.cat.body.bottom);
     this.catShadow.setScale(1 - Math.min(0.5, airHeight / 450));
     this.chaserShadow.setScale(1 - Math.min(0.5, (GAME.GROUND_Y - this.chaser.y) / 300));
+  }
+
+  // Follows a climbing cat upward. A normal jump never gets high enough to move the camera.
+  updateCameraRise() {
+    if (!this.level.tallCamera || !this.lastFrameMs) return;
+    const height = GAME.GROUND_Y - this.cat.body.bottom;
+    const target = Math.max(0, height - CLIMB_CAMERA.FOLLOW_ABOVE);
+    const blend = 1 - Math.exp(-CLIMB_CAMERA.RATE * (this.lastFrameMs / 1000));
+    this.cameraRise += (target - this.cameraRise) * blend;
   }
 
   // The rest of the family runs behind the front chaser, and keeps coming during a knockout.
@@ -275,6 +307,28 @@ export class GameScene extends Phaser.Scene {
     this.effects.stopSprint();
     this.audio.playSfx('hit');
     this.cameras.main.shake(140, 0.006);
+  }
+
+  // The cat is stopped dead, and stays stopped until the player jumps over the wall.
+  handleWallHit(item) {
+    if (!this.isPlaying) return;
+    this.stuckOn = item;
+    this.streak.recordHit();
+    this.hud.setStreak(0);
+    this.effects.stopSprint();
+    this.hud.showHint(item.stuckHint);
+    this.audio.playSfx('thud');
+    this.cameras.main.shake(180, 0.01);
+  }
+
+  // A long drop: dust, a thump, and a burst of speed that rewards taking the high road.
+  handleBigLand() {
+    if (!this.isPlaying) return;
+    this.effects.puff(this.cat.x, this.cat.body.bottom);
+    this.cameras.main.shake(180, BIG_LAND.SHAKE);
+    this.cat.applyBoost({ multiplier: BIG_LAND.MULTIPLIER, durationMs: BIG_LAND.DURATION_MS });
+    this.effects.startSprint(this.cat, BIG_LAND.DURATION_MS);
+    this.audio.playSfx('sprint');
   }
 
   // Enough clean passes in a row earn a sprint, which pulls the cat away from the owner.
@@ -415,6 +469,7 @@ export class GameScene extends Phaser.Scene {
     this.anims.pauseAll();
     this.tweens.pauseAll();
     this.time.paused = true;
+    this.controls.releaseSteering();
     this.audio.pauseMusic();
     this.showPauseScreen();
   }

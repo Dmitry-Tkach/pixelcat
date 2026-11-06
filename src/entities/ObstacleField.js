@@ -12,6 +12,8 @@ export class ObstacleField {
   constructor(scene, level, startX = 0) {
     this.scene = scene;
     this.group = scene.physics.add.staticGroup();
+    this.walls = scene.physics.add.staticGroup();
+    this.wallHit = () => {};
     this.movers = [];
     this.alert = () => {};
     this.avoided = () => {};
@@ -26,12 +28,12 @@ export class ObstacleField {
         return mover;
       }
       if (definition.zone) return this.placeZone(definition, entry.at);
-      return this.placeStatic(definition, entry.at);
+      return this.placeStatic(definition, entry.at, definition.solid ? this.walls : this.group);
     });
   }
 
-  placeStatic(type, at) {
-    const item = this.group.create(at, GAME.GROUND_Y + GAME.GROUND_OVERLAP, type.texture);
+  placeStatic(type, at, group) {
+    const item = group.create(at, GAME.GROUND_Y + GAME.GROUND_OVERLAP, type.texture);
     item.setOrigin(0.5, 1).setDepth(4);
     const { x, y, w, h } = type.hitbox;
     item.refreshBody();
@@ -42,6 +44,8 @@ export class ObstacleField {
     item.landable = Boolean(type.landable);
     item.bounce = type.bounce;
     item.heavy = Boolean(type.heavy);
+    item.solid = Boolean(type.solid);
+    item.stuckHint = type.stuckHint;
     item.wasHit = false;
     return item;
   }
@@ -102,6 +106,18 @@ export class ObstacleField {
     const isHit = (_cat, item) => !item.wasHit && !(item.landable && this.cameFromAbove(cat, item));
     physics.add.overlap(cat, this.group, handle, isHit);
     if (this.movers.length > 0) physics.add.overlap(cat, this.movers, handle, isHit);
+
+    // Walls are solid: running into one stops the cat, and the top is safe to land on.
+    physics.add.collider(cat, this.walls, (_cat, item) => {
+      if (item.wasHit || !cat.body.blocked.right) return;
+      item.wasHit = true;
+      this.wallHit(item);
+    });
+  }
+
+  // `callback` runs once for each wall the cat runs into.
+  onWallHit(callback) {
+    this.wallHit = callback;
   }
 
   // `callback` receives the name of a sound when a moving obstacle needs to be heard.

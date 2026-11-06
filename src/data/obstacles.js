@@ -12,6 +12,8 @@
 // bounce:   launches a cat that lands on top, at this vertical speed
 // heavy:    stays upright when hit
 // zone:     for terrain: { width, speedMultiplier }, how wide it is and how much it slows the cat
+// solid:    stops the cat dead until it jumps over, while the chaser closes in. Safe to land on.
+//           `penalty` is how the cat picks up speed afterward, and `stuckHint` says what to do.
 //
 // A type with a `motion` block moves, and in a level its `at` is where it meets the cat.
 //
@@ -37,6 +39,7 @@
 
 const STANDARD_HIT = { speedMultiplier: 0.5, durationMs: 900 };
 const HEAVY_HIT = { speedMultiplier: 0.42, durationMs: 1000 };
+const WALL_RECOVERY = { speedMultiplier: 0.5, durationMs: 600 };
 
 export const OBSTACLES = {
   cone: {
@@ -315,6 +318,23 @@ Object.assign(OBSTACLES, {
     bounce: -1350,
     hitbox: { x: 37, y: 64, w: 116, h: 116 },
     penalty: HEAVY_HIT,
+  },
+  // Stone walls stop the cat dead. The tall one takes a double jump.
+  stoneWall: {
+    texture: 'stone-wall',
+    avoid: 'jump',
+    solid: true,
+    stuckHint: 'Stuck! JUMP!',
+    hitbox: { x: 10, y: 8, w: 90, h: 142 },
+    penalty: WALL_RECOVERY,
+  },
+  tallStoneWall: {
+    texture: 'stone-wall-tall',
+    avoid: 'doubleJump',
+    solid: true,
+    stuckHint: 'Too tall! Jump twice!',
+    hitbox: { x: 10, y: 8, w: 90, h: 272 },
+    penalty: WALL_RECOVERY,
   },
   // Farm
   pumpkin: reskin('cone', 'pumpkin'),

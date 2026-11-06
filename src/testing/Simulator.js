@@ -63,7 +63,9 @@ function autopilot(scene, state) {
   if (avoid === 'stay' || avoid === 'none') {
     if (distance < 120) state.handled.add(next);
   } else if (avoid === 'doubleJump') {
-    if (distance < closing * 0.5 + 240 + early) {
+    // A wall is thin, so the double jump's peak has to be right over it.
+    const reach = next.solid ? closing * 0.6 + 80 : closing * 0.5 + 240;
+    if (distance < reach + early) {
       state.handled.add(next);
       cat.requestJump();
       state.pendingAirJumpAt = state.seconds + DOUBLE_JUMP_DELAY_SECONDS;
@@ -168,7 +170,8 @@ export class Simulator {
       rand: seededRandom(spec.skill?.seed ?? 1),
       mistakes: new Map(),
     };
-    const out = { peak: 0, onTop: false, sprint: false, maxGap: tracker.gap, minGap: tracker.gap, ledgesTouched: new Set(), rode: false, minSpeed: Infinity, maxSpeed: 0 };
+    const out = { peak: 0, onTop: false, sprint: false, maxGap: tracker.gap, minGap: tracker.gap, ledgesTouched: new Set(), rode: false, minSpeed: Infinity, maxSpeed: 0, stuckSeconds: 0, maxRise: 0, maxShift: 0, ledgeDrops: 0 };
+    let wasOnLedge = false;
 
     let seconds = 0;
     let frames = 0;
@@ -178,6 +181,8 @@ export class Simulator {
         if (action.afterSeconds !== undefined) {
           const previous = actions[action.after ?? 0].doneAt;
           if (previous === undefined || seconds - previous < action.afterSeconds) continue;
+        } else if (action.stuckFor !== undefined) {
+          if (out.stuckSeconds < action.stuckFor) continue;
         } else if (action.strikeLead !== undefined) {
           const remaining = scene.chase.secondsToStrike;
           if (remaining === null || remaining > action.strikeLead) continue;
@@ -201,6 +206,9 @@ export class Simulator {
         action.doneAt = seconds;
         if (action.press === 'jump') cat.requestJump();
         else if (action.press === 'paw') scene.usePaw();
+        else if (action.press === 'right') scene.controls.right = true;
+        else if (action.press === 'left') scene.controls.left = true;
+        else if (action.press === 'release') scene.controls.releaseSteering();
         else cat.requestSlide();
       }
       if (spec.autopilot) {
@@ -223,6 +231,16 @@ export class Simulator {
           if (Math.abs(cat.x - ledge.x) < ledge.width / 2 + 60) out.ledgesTouched.add(i);
         });
       }
+      if (cat.body.blocked.right) out.stuckSeconds += frameMs / 1000;
+      out.maxRise = Math.max(out.maxRise, scene.cameraRise);
+      out.maxShift = Math.max(out.maxShift, Math.abs(cat.screenShift));
+      const onLedge = cat.onGround && cat.onPlatform;
+      if (wasOnLedge && !onLedge) out.ledgeDrops += 1;
+      wasOnLedge = onLedge;
+      if (actions.some((action) => action.doneAt !== undefined)) {
+        if (!cat.onGround && out.jumpX === undefined) out.jumpX = cat.x;
+        if (cat.onGround && out.jumpX !== undefined && out.landX === undefined) out.landX = cat.x;
+      }
       if (cat.speedControl.isSprinting) out.sprint = true;
       if (cat.speedControl.terrainMultiplier > 1) out.rode = true;
       out.minSpeed = Math.min(out.minSpeed, cat.speed);
@@ -238,6 +256,9 @@ export class Simulator {
     return {
       ...out,
       ledgesTouched: [...out.ledgesTouched],
+      fallen: scene.platforms.items.map((item) => item.fallen),
+      endHeight: GROUND_Y - cat.body.bottom,
+      endShift: cat.screenShift,
       treats: cat.treats,
       treatTotal: scene.treats.total,
       startX: spec.startCheckpoint?.x ?? 0,

@@ -620,6 +620,25 @@ function journeyArt() {
     <path d="M26 60 L46 30 M80 60 L100 30" stroke="#BFE7F7" stroke-width="6"/>
     <path d="M0 96 H128 M0 112 H128 M32 96 V112 M96 96 V112 M64 112 V128" stroke="#B37557" stroke-width="3"/>`, 128, 128);
 
+  // ----- Village: solid stone walls, built so they look like they'd stop a cat -----
+  const stones = (height) => {
+    const courses = Math.floor((height - 16) / 30);
+    return Array.from({ length: courses }, (_, row) => {
+      const y = 16 + row * 30;
+      const blocks = row % 2
+        ? [[4, 50, '#8F949C'], [56, 50, '#A5AAB2']]
+        : [[4, 30, '#A5AAB2'], [36, 38, '#8F949C'], [76, 30, '#9A9FA7']];
+      return blocks.map(([x, w, fill]) => `<rect x="${x}" y="${y}" width="${w}" height="28" rx="4" fill="${fill}" stroke="#5F646C" stroke-width="2"/>`).join('');
+    }).join('');
+  };
+  const wall = (name, height) => save(name, `
+    <rect x="2" y="8" width="106" height="${height - 8}" rx="4" fill="#5F646C"/>
+    ${stones(height)}
+    <rect x="0" y="4" width="110" height="14" rx="5" fill="#C4C8CE" stroke="#5F646C" stroke-width="2"/>
+    <path d="M8 18 C14 30 24 18 30 26 C36 18 46 22 52 18 Z" fill="#6FA23F"/>`, 110, height);
+  wall('stone-wall', 150);
+  wall('stone-wall-tall', 280);
+
   // ----- The hidden collectible -----
   save('toy-mouse', `
     <path d="M60 46 C74 48 84 40 86 28" stroke="#F4779F" stroke-width="5" fill="none" stroke-linecap="round"/>

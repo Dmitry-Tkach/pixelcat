@@ -27,6 +27,16 @@ export const SOUNDS = {
 
   whistle: [{ wave: 'sine', from: 1500, to: 520, duration: 0.5, gain: 0.14 }],
 
+  // Running into a wall.
+  thud: [
+    { wave: 'sine', from: 140, to: 50, duration: 0.22, gain: 0.55 },
+    { wave: 'square', from: 90, to: 60, duration: 0.08, gain: 0.16, cutoff: 500 },
+  ],
+
+  // A collapsing ledge starting to give way, then falling.
+  creak: [{ wave: 'sawtooth', from: 180, to: 300, duration: 0.3, gain: 0.14, cutoff: 900 }],
+  collapse: [{ wave: 'triangle', from: 320, to: 70, duration: 0.4, gain: 0.3 }],
+
   smash: [
     { kind: 'noise', filter: 'highpass', cutoff: 2200, duration: 0.16, gain: 0.34 },
     { wave: 'sine', from: 170, to: 80, duration: 0.09, gain: 0.3 },

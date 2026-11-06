@@ -16,7 +16,13 @@ const BIG_JUMP = [
   { press: 'jump', lead: 0.5, extra: 240 },
   { press: 'jump', afterSeconds: 0.22, after: 0 },
 ];
+// A wall is thin, so the peak of the double jump has to be right over it.
+const WALL_BIG_JUMP = [
+  { press: 'jump', lead: 0.6, extra: 80 },
+  { press: 'jump', afterSeconds: 0.22, after: 0 },
+];
 const JUMP_TO_LAND = { press: 'jump', lead: 0.86 };
+const TEST_LEVEL = 4; // the level trying out air steering, walls, lifts and collapsing ledges
 
 // Obstacles are checked at the slowest, middle and fastest level speeds.
 const SPEED_LEVELS = [0, Math.floor((LEVELS.length - 1) / 2), LEVELS.length - 1];
@@ -43,11 +49,13 @@ function checksFor(name, type) {
         { label: 'slide clears', obstacles: place(), actions: [SLIDE], expect: clean },
         { label: 'doing nothing hits', obstacles: place(), expect: hit },
       ];
-    case 'doubleJump':
+    case 'doubleJump': {
+      const bigJump = type.solid ? WALL_BIG_JUMP : BIG_JUMP;
       return [
-        { label: 'double jump clears', obstacles: place(), actions: BIG_JUMP, expect: clean },
-        { label: 'single jump hits', obstacles: place(), actions: [BIG_JUMP[0]], expect: hit },
+        { label: 'double jump clears', obstacles: place(), actions: bigJump, expect: clean },
+        { label: 'single jump hits', obstacles: place(), actions: [bigJump[0]], expect: hit },
       ];
+    }
     case 'read': {
       const moves = { jump: [JUMP], slide: [SLIDE], none: [] };
       const checks = [];
@@ -407,6 +415,204 @@ export function buildScenarios() {
     detail: (r) => `found=${r.foundMouse}`,
   });
 
+  // Steering in the air.
+  const plainAirDistance = (speed) => speed * 0.96;
+  const jumpThenSteer = (press) => [{ press: 'jump', lead: 0.42, extra: 40 }, { press, afterSeconds: 0, after: 0 }];
+  const steerSpeed = LEVELS[TEST_LEVEL].cat.speed;
+  const steerCone = [{ type: 'cone', at: 1000 }];
+  const airDistance = (r) => r.landX - r.jumpX;
+  const airDetail = (r) => `distance=${Math.round(airDistance(r))} plain=${Math.round(plainAirDistance(steerSpeed))} shift=${Math.round(r.maxShift)}`;
+  add('steering: holding right carries the jump further', {
+    levelIndex: TEST_LEVEL,
+    obstacles: steerCone,
+    actions: jumpThenSteer('right'),
+    until: 1800,
+    expect: (r) => airDistance(r) > plainAirDistance(steerSpeed) + 150 && r.maxShift > 100,
+    detail: airDetail,
+  });
+  add('steering: holding left shortens the jump', {
+    levelIndex: TEST_LEVEL,
+    obstacles: [{ type: 'cone', at: 900 }, { type: 'cone', at: 15000 }],
+    actions: [{ press: 'jump', lead: 0.9 }, { press: 'left', afterSeconds: 0, after: 0 }],
+    until: 1800,
+    expect: (r) => airDistance(r) < plainAirDistance(steerSpeed) - 150,
+    detail: airDetail,
+  });
+  add('steering: the camera catches up after landing', {
+    levelIndex: TEST_LEVEL,
+    obstacles: steerCone,
+    actions: [...jumpThenSteer('right'), { press: 'release', afterSeconds: 0.9, after: 0 }],
+    until: 4000,
+    expect: (r) => r.maxShift > 100 && Math.abs(r.endShift) < 5,
+    detail: (r) => `${airDetail(r)} end=${Math.round(r.endShift)}`,
+  });
+  add('steering: braking lets the chaser catch up', {
+    levelIndex: TEST_LEVEL,
+    obstacles: [{ type: 'cone', at: 900 }, { type: 'cone', at: 15000 }],
+    chase: { startGap: 400, maxGap: 2000 },
+    actions: [{ press: 'jump', lead: 0.9 }, { press: 'left', afterSeconds: 0, after: 0 }],
+    until: 1400,
+    expect: (r) => r.minGap < 300,
+    detail: (r) => `minGap=${Math.round(r.minGap)}`,
+  });
+  add('steering: surging doesn\'t outrun the chaser', {
+    levelIndex: TEST_LEVEL,
+    obstacles: steerCone,
+    chase: { startGap: 400, maxGap: 2000 },
+    actions: jumpThenSteer('right'),
+    until: 1400,
+    expect: (r) => r.maxGap < 400 + 260,
+    detail: (r) => `maxGap=${Math.round(r.maxGap)}`,
+  });
+  add('steering: levels without it ignore the keys', {
+    levelIndex: 0,
+    obstacles: steerCone,
+    actions: jumpThenSteer('right'),
+    until: 1800,
+    expect: (r) => Math.abs(airDistance(r) - plainAirDistance(LEVELS[0].cat.speed)) < 40 && r.maxShift === 0,
+    detail: (r) => `distance=${Math.round(airDistance(r))} shift=${r.maxShift}`,
+  });
+
+  // Solid walls.
+  const WALL_AT = 1200;
+  const stoneWall = [{ type: 'stoneWall', at: WALL_AT }];
+  const tallWall = [{ type: 'tallStoneWall', at: WALL_AT }];
+  add('walls: doing nothing stops the cat until the chaser arrives', {
+    levelIndex: TEST_LEVEL,
+    obstacles: stoneWall,
+    expect: (r) => r.state === 'failed' && r.hits[0] && r.x < WALL_AT && r.stuckSeconds > 1 && r.sounds.includes('thud') && r.streak === 0,
+    detail: (r) => `state=${r.state} x=${Math.round(r.x)} stuck=${r.stuckSeconds.toFixed(2)} sounds=${r.sounds.join(',')}`,
+  });
+  add('walls: a close chaser gives much less time', {
+    levelIndex: TEST_LEVEL,
+    obstacles: stoneWall,
+    chase: { startGap: 200 },
+    expect: (r) => r.state === 'failed' && r.stuckSeconds < 1,
+    detail: (r) => `state=${r.state} stuck=${r.stuckSeconds.toFixed(2)}`,
+  });
+  for (const fps of FRAME_RATES) {
+    add(`walls: jumping from a standstill escapes, ${fps}fps`, {
+      levelIndex: TEST_LEVEL,
+      frameMs: 1000 / fps,
+      obstacles: stoneWall,
+      actions: [{ press: 'jump', stuckFor: 0.4 }],
+      until: WALL_AT + 500,
+      expect: (r) => r.state === 'playing' && r.x >= WALL_AT + 500 && r.hits[0] && r.gap < 540,
+      detail: (r) => `state=${r.state} x=${Math.round(r.x)} gap=${Math.round(r.gap)}`,
+    });
+    add(`walls: a double jump from a standstill clears the tall wall, ${fps}fps`, {
+      levelIndex: TEST_LEVEL,
+      frameMs: 1000 / fps,
+      obstacles: tallWall,
+      actions: [{ press: 'jump', stuckFor: 0.3 }, { press: 'jump', afterSeconds: 0.25, after: 0 }],
+      until: WALL_AT + 500,
+      expect: (r) => r.state === 'playing' && r.x >= WALL_AT + 500,
+      detail: (r) => `state=${r.state} x=${Math.round(r.x)} peak=${Math.round(r.peak)}`,
+    });
+  }
+  add('walls: one jump from a standstill doesn\'t clear the tall wall', {
+    levelIndex: TEST_LEVEL,
+    obstacles: tallWall,
+    actions: [{ press: 'jump', stuckFor: 0.2 }],
+    expect: (r) => r.state === 'failed' && r.x < WALL_AT,
+    detail: (r) => `state=${r.state} x=${Math.round(r.x)}`,
+  });
+  add('walls: sliding into one still gets stuck, and a jump escapes', {
+    levelIndex: TEST_LEVEL,
+    obstacles: stoneWall,
+    actions: [{ press: 'slide', item: 0, lead: 0.3 }, { press: 'jump', stuckFor: 0.3 }],
+    until: WALL_AT + 500,
+    expect: (r) => r.hits[0] && r.state === 'playing' && r.x >= WALL_AT + 500,
+    detail: (r) => `hits=${r.hits} state=${r.state} x=${Math.round(r.x)}`,
+  });
+  add('walls: running into a tall wall in mid-jump leaves the double jump to escape', {
+    levelIndex: TEST_LEVEL,
+    obstacles: tallWall,
+    actions: [{ press: 'jump', item: 0, lead: 0.4 }, { press: 'jump', stuckFor: 0.05 }],
+    until: WALL_AT + 500,
+    expect: (r) => r.state === 'playing' && r.x >= WALL_AT + 500,
+    detail: (r) => `state=${r.state} x=${Math.round(r.x)} stuck=${r.stuckSeconds.toFixed(2)}`,
+  });
+  add('walls: the cat is slow for a moment after escaping', {
+    levelIndex: TEST_LEVEL,
+    obstacles: stoneWall,
+    actions: [{ press: 'jump', stuckFor: 0.3 }],
+    until: WALL_AT + 80,
+    expect: (r) => r.minSpeed <= LEVELS[TEST_LEVEL].cat.speed * 0.5 + 1,
+    detail: (r) => `slowest=${Math.round(r.minSpeed)}`,
+  });
+
+  // Moving ledges.
+  const longFarCone = [{ type: 'cone', at: 15000 }];
+  for (const fps of FRAME_RATES) {
+    add(`lifts: a riding cat stays on through a full cycle, ${fps}fps`, {
+      levelIndex: TEST_LEVEL,
+      frameMs: 1000 / fps,
+      obstacles: longFarCone,
+      platforms: [{ at: 900, width: 1800, height: 150, style: 'plank', lift: { travel: 45, seconds: 2 } }],
+      actions: [{ press: 'jump', platform: 0, lead: 0.3 }],
+      until: 2600,
+      expect: (r) => r.ledgesTouched.includes(0) && r.ledgeDrops === 0 && r.endHeight > 100,
+      detail: (r) => `touched=${r.ledgesTouched} drops=${r.ledgeDrops} end=${Math.round(r.endHeight)}`,
+    });
+    add(`collapse: a ledge falls soon after landing, ${fps}fps`, {
+      levelIndex: TEST_LEVEL,
+      frameMs: 1000 / fps,
+      obstacles: longFarCone,
+      platforms: [{ at: 900, width: 1200, height: 150, style: 'marketAwning', collapse: true }],
+      actions: [{ press: 'jump', platform: 0, lead: 0.3 }],
+      until: 1900,
+      expect: (r) => r.fallen[0] && r.sounds.includes('creak') && r.sounds.includes('collapse') && r.endHeight < 2,
+      detail: (r) => `fallen=${r.fallen} end=${Math.round(r.endHeight)} sounds=${r.sounds.join(',')}`,
+    });
+  }
+  add('collapse: it holds until the cat lands on it', {
+    levelIndex: TEST_LEVEL,
+    obstacles: longFarCone,
+    platforms: [{ at: 900, width: 1200, height: 150, style: 'marketAwning', collapse: true }],
+    until: 1900,
+    expect: (r) => !r.fallen[0],
+    detail: (r) => `fallen=${r.fallen}`,
+  });
+
+  // The whole climb, from several start points so the lift is somewhere different each time.
+  const climbLedges = LEVELS[TEST_LEVEL].platforms.filter((p, i, all) => {
+    const firstLift = all.findIndex((q) => q.lift);
+    return i >= firstLift - 2 && i <= firstLift + 3;
+  });
+  const climbStart = climbLedges[0].at;
+  [900, 1050, 1200, 1350, 1500, 1700].forEach((startAt) => {
+    const platforms = climbLedges.map((p) => ({ ...p, at: p.at - climbStart + startAt }));
+    const roof = platforms.at(-1);
+    add(`climb: the whole route can be followed, starting at ${startAt}`, {
+      levelIndex: TEST_LEVEL,
+      obstacles: longFarCone,
+      platforms,
+      actions: [
+        { press: 'jump', platform: 0, lead: 0.3 },
+        { press: 'jump', platform: 1, lead: 0.6 },
+        { press: 'jump', platform: 2, lead: 0.6 },
+        { press: 'jump', platform: 3, lead: 0.6 },
+        // The wide gap: steer across it.
+        { press: 'jump', platform: 4, lead: 1.25 },
+        { press: 'right', afterSeconds: 0, after: 4 },
+        { press: 'release', afterSeconds: 0.7, after: 4 },
+        { press: 'jump', platform: 5, lead: 0.6 },
+      ],
+      until: roof.at + roof.width + 900,
+      expect: (r) => platforms.every((_p, i) => r.ledgesTouched.includes(i)) && r.maxRise > 250 && r.endHeight < 2 && r.sprint,
+      detail: (r) => `touched=${r.ledgesTouched} rise=${Math.round(r.maxRise)} end=${Math.round(r.endHeight)} sprint=${r.sprint}`,
+    });
+  });
+  add('climb: the camera stays put for a normal jump', {
+    levelIndex: TEST_LEVEL,
+    obstacles: steerCone,
+    actions: [JUMP],
+    until: 1800,
+    expect: (r) => r.maxRise === 0,
+    detail: (r) => `rise=${r.maxRise}`,
+  });
+
   // The rooftops, the market and the finale's dash.
   add('rooftops: a bin bounce reaches the roof', {
     levelIndex: 2,
@@ -597,6 +803,7 @@ export function buildScenarios() {
       }
       const key = chain.map((c) => c.height).join('-');
       if (chain.length < 2 || seen.has(key)) return;
+      if (chain.some((c) => c.lift || c.collapse)) return; // the climb has its own scenarios
       seen.add(key);
       // Rooftops are too high to jump onto from the road: a bin's bounce gets the cat up there.
       const fromBin = p.style === 'rooftop';

@@ -64,6 +64,27 @@ export const WAGON = {
   DECK_HEIGHT: 150,
 };
 
+// Steering in the air. The cat drifts on screen while steering, and the camera catches up after
+// it lands, so the player can always see what's coming.
+export const STEER = {
+  SPEED: 260, // added to or taken from the cat's speed while a direction is held
+  ACCELERATION: 2600,
+  MAX_SCREEN_SHIFT: 200,
+  RETURN_RATE: 4, // how quickly the camera catches up after landing
+};
+
+// A solid wall stops the cat. Stuck there, the chaser closes in at this speed, whatever the level.
+export const WALL = { CLOSE_SPEED: 220 };
+
+// The camera rises once the cat's feet are this far above the road.
+export const CLIMB_CAMERA = { FOLLOW_ABOVE: 300, RATE: 6 };
+
+// How long a collapsing ledge holds after the cat lands, and how long it takes to fall.
+export const COLLAPSE = { DELAY_MS: 550, FALL_MS: 600, SHAKE: 3 };
+
+// Landing from a big drop gives a burst of speed.
+export const BIG_LAND = { FALL_SPEED: 1250, MULTIPLIER: 1.2, DURATION_MS: 1500, SHAKE: 0.008 };
+
 // The chaser's lunge. The cat must be at least DODGE_HEIGHT off the ground for the whole strike.
 export const LUNGE = {
   WARNING_SECONDS: 0.7,

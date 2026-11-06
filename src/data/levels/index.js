@@ -14,6 +14,8 @@
 // finalRush: { seconds, extraSpeed }, the chaser speeds up for this long before the escape point
 // finalDash: { seconds, multiplier, hint }, the cat gets one last burst of speed before the end
 // pack:     every chaser is on screen at once, and each knockout brings the next one forward
+// airSteering: the left and right keys steer the cat in the air
+// tallCamera: the camera rises with a climbing cat, so ledges can go higher than one screen
 // plan:     section names in order. { section, hint } also shows a message on arriving there, and
 //           { section, mouse: true } hides the level's toy mouse in that section's mouseSpot.
 //           A plan should rise and fall: calm, build-up, a peak, then relief before the end.
@@ -235,21 +237,25 @@ export const LEVELS = [
     chase: { ownerSpeed: 408, startGap: 540, maxGap: 620, catchGap: 110 },
     chasers: ['boy', 'grandma'],
     finalRush: { seconds: 8, extraSpeed: 25 },
+    airSteering: true,
+    tallCamera: true,
     plan: [
-      'breather',
+      { section: 'breather', hint: 'NEW! Hold left or right in the air to steer your jump' },
       'trip',
+      { section: 'wallIntro', hint: 'Stone walls stop you dead! Jump them' },
       { section: 'dogs', hint: 'Falling apples! Watch for the shadow' },
       'breather',
       'lunge',
       { section: 'crates', hint: 'Tire swing low: jump. High: slide' },
       'checkpoint',
       'fallingMarket',
-      'climb',
       'breather',
-      { section: 'marketStalls', hint: 'Bounce along the market stalls!', mouse: true },
+      { section: 'marketClimb', hint: 'Climb the market! Awnings collapse, and walls wait below', mouse: true },
       'breather',
       'lunge',
       'checkpoint',
+      { section: 'marketStalls', hint: 'Bounce along the market stalls!' },
+      'breather',
       'flock',
       'gauntlet',
       'homeStretch',

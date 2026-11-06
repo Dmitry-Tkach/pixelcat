@@ -6,7 +6,8 @@
 // A double-jump obstacle also needs 2.2s of room before it, for the run-up.
 //
 // obstacles: { type, t, combo, position }
-// platforms: { t, seconds, height, style }, floating ledges the cat can jump up through
+// platforms: { t, seconds, height, style }, floating ledges the cat can jump up through. Optional:
+//            lift: { travel, seconds } rises and falls on the clock, collapse: true falls after landing
 // treats:    { arc: t } follows a jump over that moment, or { line: t, count, height }
 // pickups:   { t, type }, attacks: { t }, checkpoint: { t }
 // wagons:    { t }, a hay wagon whose rear reaches the cat at this moment
@@ -247,6 +248,44 @@ export const SECTIONS = {
       { line: 1.25, count: 6, height: 430 },
       { line: 2.6, count: 6, height: 430 },
       { line: 3.95, count: 4, height: 300 },
+    ],
+  },
+
+  // Teaches that a wall stops the cat, somewhere it's easy to get going again.
+  wallIntro: {
+    duration: 3.2,
+    obstacles: [{ type: 'stoneWall', t: 1 }],
+    treats: arcs(1),
+  },
+  // Up through the market on ledges, a lift and collapsing awnings, along the rooftops, then a big
+  // drop that lands with a burst of speed. Fall off, and the road below is lined with stone walls.
+  marketClimb: {
+    duration: 12.4,
+    mouseSpot: { t: 9.2, height: 700 },
+    obstacles: [
+      { type: 'stoneWall', t: 2 },
+      { type: 'hydrant', t: 3.4 },
+      { type: 'stoneWall', t: 4.75 },
+      { type: 'tallStoneWall', t: 7 },
+      { type: 'stoneWall', t: 9.4 },
+    ],
+    platforms: [
+      { t: 0.6, seconds: 1, height: 170, style: 'plank' },
+      { t: 2.1, seconds: 1, height: 300, style: 'plank' },
+      { t: 3.6, seconds: 1.1, height: 420, style: 'plank', lift: { travel: 45, seconds: 2.6 } },
+      { t: 5.2, seconds: 0.8, height: 520, style: 'marketAwning', collapse: true },
+      // The gap before this one is too wide for one plain jump: steer across, or double jump.
+      { t: 6.9, seconds: 0.8, height: 590, style: 'marketAwning', collapse: true },
+      { t: 8.2, seconds: 2, height: 620, style: 'rooftop' },
+    ],
+    treats: [
+      { line: 0.7, count: 5, height: 220 },
+      { line: 2.2, count: 5, height: 350 },
+      { line: 3.7, count: 5, height: 500 },
+      { line: 5.3, count: 4, height: 570 },
+      { line: 6.2, count: 4, height: 700 },
+      { line: 7, count: 4, height: 640 },
+      { line: 8.4, count: 11, height: 670 },
     ],
   },
 
