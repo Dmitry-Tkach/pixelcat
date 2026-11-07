@@ -240,18 +240,18 @@ export const SECTIONS = {
   },
   // Land on the first awning and bounce from stall to stall, high over the market.
   marketStalls: {
-    duration: 6.5,
+    duration: 6.2,
     mouseSpot: { t: 3, height: 450 },
     obstacles: [
       { type: 'marketStall', t: 1 },
-      { type: 'marketStall', t: 2.35 },
-      { type: 'marketStall', t: 3.7 },
-      { type: 'fruitCrate', t: 5.05 },
+      { type: 'marketStall', t: 2.19 },
+      { type: 'marketStall', t: 3.38 },
+      { type: 'fruitCrate', t: 4.73 },
     ],
     treats: [
-      { line: 1.25, count: 6, height: 430 },
-      { line: 2.6, count: 6, height: 430 },
-      { line: 3.95, count: 4, height: 300 },
+      { line: 1.2, count: 6, height: 430 },
+      { line: 2.39, count: 6, height: 430 },
+      { line: 3.58, count: 4, height: 300 },
     ],
   },
 
@@ -279,8 +279,8 @@ export const SECTIONS = {
       { t: 3.6, seconds: 1.1, height: 420, style: 'plank', lift: { travel: 45, seconds: 2.6 } },
       { t: 5.2, seconds: 0.8, height: 520, style: 'collapsing', collapse: true },
       // A wide gap: it takes full speed, or a double jump.
-      { t: 6.7, seconds: 1, height: 590, style: 'collapsing', collapse: true },
-      { t: 8.2, seconds: 2, height: 620, style: 'rooftop' },
+      { t: 6.5, seconds: 0.9, height: 590, style: 'collapsing', collapse: true },
+      { t: 7.9, seconds: 2.3, height: 620, style: 'rooftop' },
     ],
     treats: [
       { line: 0.7, count: 5, height: 220 },
@@ -289,7 +289,7 @@ export const SECTIONS = {
       { line: 5.3, count: 4, height: 570 },
       { line: 6, count: 4, height: 700 },
       { line: 6.9, count: 4, height: 640 },
-      { line: 8.4, count: 11, height: 670 },
+      { line: 8.1, count: 13, height: 670 },
     ],
   },
 
@@ -297,9 +297,9 @@ export const SECTIONS = {
   // way: bounce off the mushroom and double jump, without slowing down at all.
   liftGate: {
     duration: 5,
-    obstacles: [{ type: 'bin', t: 1.3 }, { type: 'gateWall', t: 2.65 }],
-    platforms: [{ t: 1.5, seconds: 0.9, height: 300, style: 'plank', lift: { travel: 130, seconds: 2.4 } }],
-    treats: [{ line: 2.55, count: 3, height: 540 }],
+    obstacles: [{ type: 'bin', t: 1.3 }, { type: 'gateWall', t: 2.5 }],
+    platforms: [{ t: 1.45, seconds: 0.8, height: 300, style: 'plank', lift: { travel: 130, seconds: 2.4 } }],
+    treats: [{ line: 2.4, count: 3, height: 540 }],
   },
 
   // ----- Farm -----

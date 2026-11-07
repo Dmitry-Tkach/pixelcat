@@ -57,11 +57,24 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     this.running = true;
   }
 
+  // Leaves the ground straight away, rather than at the next update, so a jump never feels late.
+  startJump() {
+    this.jumpBufferMs = 0;
+    this.endSlide();
+    this.setVelocityY(MOVEMENT.JUMP_VELOCITY);
+    this.play(animKey('cat', 'jump'), true);
+    this.emit('jump');
+  }
+
   // On the ground this jumps. In the air it uses the double jump, if one is left.
   // With none left, the press is remembered briefly in case the cat is about to land.
   requestJump() {
     this.slideQueued = false;
-    if (!this.onGround && this.airJumpsLeft > 0) {
+    if (this.onGround) {
+      this.startJump();
+      return;
+    }
+    if (this.airJumpsLeft > 0) {
       this.airJumpsLeft -= 1;
       this.jumpBufferMs = 0;
       this.setVelocityY(MOVEMENT.AIR_JUMP_VELOCITY);
@@ -207,10 +220,7 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     if (this.onGround) {
       this.airJumpsLeft = 1;
       if (this.jumpBufferMs > 0) {
-        this.jumpBufferMs = 0;
-        this.endSlide();
-        this.setVelocityY(MOVEMENT.JUMP_VELOCITY);
-        this.emit('jump');
+        this.startJump();
       } else if (this.slideQueued && !this.isDropping) {
         this.beginSlide();
       }

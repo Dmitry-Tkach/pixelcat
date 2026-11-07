@@ -54,7 +54,7 @@ export const OBSTACLES = {
     texture: 'bin',
     avoid: 'jump',
     landable: true,
-    bounce: -1180,
+    bounce: -1357,
     hitbox: { x: 16, y: 14, w: 68, h: 116 },
     penalty: HEAVY_HIT,
   },
@@ -62,7 +62,7 @@ export const OBSTACLES = {
     texture: 'boxes',
     avoid: 'jump',
     landable: true,
-    hitbox: { x: 10, y: 24, w: 126, h: 100 },
+    hitbox: { x: 20, y: 24, w: 106, h: 100 },
     penalty: STANDARD_HIT,
   },
   hydrant: {
@@ -76,7 +76,7 @@ export const OBSTACLES = {
     texture: 'bench',
     avoid: 'jump',
     landable: true,
-    hitbox: { x: 10, y: 14, w: 130, h: 76 },
+    hitbox: { x: 13, y: 14, w: 124, h: 76 },
     penalty: STANDARD_HIT,
   },
   barrier: {
@@ -246,7 +246,7 @@ export const OBSTACLES = {
   crate: {
     texture: 'crate',
     avoid: 'read',
-    hitbox: { x: 8, y: 6, w: 114, h: 104 },
+    hitbox: { x: 17, y: 6, w: 96, h: 104 },
     penalty: HEAVY_HIT,
     motion: {
       kind: 'swing',
@@ -261,7 +261,7 @@ export const OBSTACLES = {
   crossingCar: {
     texture: 'car-1',
     avoid: 'read',
-    hitbox: { x: 20, y: 26, w: 110, h: 110 },
+    hitbox: { x: 30, y: 26, w: 90, h: 110 },
     penalty: HEAVY_HIT,
     motion: {
       kind: 'crossing',
@@ -281,7 +281,7 @@ export const OBSTACLES = {
   sprinkler: {
     texture: 'sprinkler',
     avoid: 'read',
-    hitbox: { x: 22, y: 12, w: 56, h: 148 },
+    hitbox: { x: 23, y: 12, w: 54, h: 148 },
     penalty: STANDARD_HIT,
     motion: {
       kind: 'pulse',
@@ -316,8 +316,8 @@ Object.assign(OBSTACLES, {
     texture: 'market-stall',
     avoid: 'jump',
     landable: true,
-    bounce: -1350,
-    hitbox: { x: 37, y: 64, w: 116, h: 116 },
+    bounce: -1552,
+    hitbox: { x: 48, y: 64, w: 93, h: 116 },
     penalty: HEAVY_HIT,
   },
   // Stone walls stop the cat dead. The tall one takes a double jump.
@@ -326,7 +326,7 @@ Object.assign(OBSTACLES, {
     avoid: 'jump',
     solid: true,
     stuckHint: 'Stuck! JUMP!',
-    hitbox: { x: 10, y: 8, w: 90, h: 142 },
+    hitbox: { x: 11, y: 8, w: 88, h: 120 },
     penalty: WALL_RECOVERY,
   },
   tallStoneWall: {

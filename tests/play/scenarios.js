@@ -10,18 +10,18 @@ const MIN_PRESS_WINDOW_SECONDS = 0.12;
 const MIN_BOUNCE_PEAK = 300;
 const ROOFTOP_START = 1500;
 
-const JUMP = { press: 'jump', lead: 0.42, extra: 40 };
+const JUMP = { press: 'jump', lead: 0.365, extra: 40 };
 const SLIDE = { press: 'slide', lead: 0.45, extra: 60 };
 const BIG_JUMP = [
   { press: 'jump', lead: 0.5, extra: 240 },
-  { press: 'jump', afterSeconds: 0.22, after: 0 },
+  { press: 'jump', afterSeconds: 0.19, after: 0 },
 ];
 // A wall is thin, so the peak of the double jump has to be right over it.
 const WALL_BIG_JUMP = [
-  { press: 'jump', lead: 0.6, extra: 80 },
-  { press: 'jump', afterSeconds: 0.22, after: 0 },
+  { press: 'jump', lead: 0.52, extra: 80 },
+  { press: 'jump', afterSeconds: 0.19, after: 0 },
 ];
-const JUMP_TO_LAND = { press: 'jump', lead: 0.86 };
+const JUMP_TO_LAND = { press: 'jump', lead: 0.75 };
 const TEST_LEVEL = 4; // a level in the middle of the game, for checking movement and walls
 
 // Obstacles are checked at the slowest, middle and fastest level speeds.
@@ -67,7 +67,7 @@ function checksFor(name, type) {
     }
     case 'terrain':
       return [
-        { label: 'jumping across avoids it', obstacles: place(), actions: [{ press: 'jump', lead: 0.48 }], expect: clean },
+        { label: 'jumping across avoids it', obstacles: place(), actions: [{ press: 'jump', lead: 0.42 }], expect: clean },
         {
           label: 'running through slows the cat, which recovers',
           obstacles: place(),
@@ -92,7 +92,7 @@ function movesFor(entry, index) {
   const avoid = type.avoid === 'read' ? type.motion.moves[entry.position] : type.avoid;
   if (avoid === 'stay' || avoid === 'none') return [];
   if (avoid === 'slide') return [{ ...SLIDE, item: index }];
-  if (avoid === 'terrain') return [{ press: 'jump', lead: 0.48, item: index }];
+  if (avoid === 'terrain') return [{ press: 'jump', lead: 0.42, item: index }];
   if (avoid === 'doubleJump') return BIG_JUMP.map((a) => ({ ...a, item: index }));
   return [{ ...JUMP, item: index }];
 }
@@ -224,8 +224,8 @@ export function buildScenarios() {
   // The Super Paw.
   const box = [{ type: 'superPaw', at: 900 }];
   const toBox = [
-    { press: 'jump', pickup: 0, lead: 0.72 },
-    { press: 'jump', afterSeconds: 0.3, after: 0 },
+    { press: 'jump', pickup: 0, lead: 0.63 },
+    { press: 'jump', afterSeconds: 0.26, after: 0 },
   ];
   LEVELS.forEach((level, levelIndex) => {
     add(`paw box: a double jump collects it, ${level.id}`, {
@@ -241,7 +241,7 @@ export function buildScenarios() {
       obstacles: clearRoad,
       pickups: box,
       until: 1400,
-      actions: [{ press: 'jump', pickup: 0, lead: 0.48 }],
+      actions: [{ press: 'jump', pickup: 0, lead: 0.42 }],
       expect: (r) => !r.collected[0],
     });
     add(`paw: knocks the chaser out, then she comes back, ${level.id}`, {
@@ -532,8 +532,8 @@ export function buildScenarios() {
         { press: 'jump', platform: 1, lead: 0.6 },
         { press: 'jump', platform: 2, lead: 0.6 },
         { press: 'jump', platform: 3, lead: 0.6 },
-        { press: 'jump', platform: 4, lead: 0.8 },
-        { press: 'jump', platform: 5, lead: 0.6 },
+        { press: 'jump', platform: 4, lead: 0.65 },
+        { press: 'jump', platform: 5, lead: 0.7 },
       ],
       until: roof.at + roof.width + 900,
       expect: (r) => platforms.every((_p, i) => r.ledgesTouched.includes(i)) && r.maxRise > 250 && r.endHeight < 2 && r.sprint,
@@ -547,8 +547,8 @@ export function buildScenarios() {
     const gate = { type: 'gateWall', at: LIFT_GATE_AT };
     add(`lift gate: bouncing and double jumping gets over, ${levelName(levelIndex)}`, {
       levelIndex,
-      obstacles: [{ type: 'bin', at: LIFT_GATE_AT - 1.35 * top }, gate],
-      actions: [{ press: 'jump', item: 0, lead: 0.86 }, { press: 'jump', afterSeconds: 1.36, after: 0 }],
+      obstacles: [{ type: 'bin', at: LIFT_GATE_AT - 1.2 * top }, gate],
+      actions: [{ press: 'jump', item: 0, lead: 0.75 }, { press: 'jump', afterSeconds: 1.19, after: 0 }],
       until: LIFT_GATE_AT + 600,
       expect: (r) => !r.hits[0] && !r.hits[1] && r.x >= LIFT_GATE_AT + 600,
       detail: (r) => `hits=${r.hits} x=${Math.round(r.x)} peak=${Math.round(r.peak)}`,
@@ -563,13 +563,13 @@ export function buildScenarios() {
     add(`lift gate: waiting for the lift and riding it gets over, ${levelName(levelIndex)}`, {
       levelIndex,
       obstacles: [gate, { type: 'cone', at: 15000 }],
-      platforms: [{ at: LIFT_GATE_AT - 1.15 * top, width: Math.round(0.9 * top), height: 300, style: 'plank', lift: { travel: 130, seconds: 2.4 } }],
+      platforms: [{ at: LIFT_GATE_AT - 1.05 * top, width: Math.round(0.8 * top), height: 300, style: 'plank', lift: { travel: 130, seconds: 2.4 } }],
       chase: { startGap: 1100 },
       highGround: LEVELS[levelIndex].highGround,
       // The player stops under the lift and watches it. They jump as it comes down, ride it back
       // up, then run along it and jump over.
       actions: [
-        { press: 'release', catX: LIFT_GATE_AT - 1.0 * top },
+        { press: 'release', catX: LIFT_GATE_AT - 0.9 * top },
         { press: 'jump', liftGoing: 'down', height: 300, after: 0 },
         { press: 'right', liftGoing: 'up', height: 340, after: 1 },
         { press: 'jump', afterSeconds: 0.35, after: 2 },
@@ -728,15 +728,15 @@ export function buildScenarios() {
     levelIndex: 2,
     obstacles: [{ type: 'bin', at: 1400 }],
     platforms: [{ at: 1650, width: 850, height: 300, style: 'rooftop' }],
-    actions: [{ press: 'jump', lead: 0.7 }],
+    actions: [{ press: 'jump', lead: 0.61 }],
     until: 2400,
     expect: (r) => r.onTop && r.ledgesTouched.includes(0) && !r.hits[0],
     detail: (r) => `onTop=${r.onTop} touched=${r.ledgesTouched} hits=${r.hits} peak=${r.peak}`,
   });
   add('market: one bounce carries the cat to the next stall', {
     levelIndex: 4,
-    obstacles: [{ type: 'marketStall', at: 1400 }, { type: 'marketStall', at: 1987 }],
-    actions: [{ press: 'jump', lead: 0.7 }],
+    obstacles: [{ type: 'marketStall', at: 1400 }, { type: 'marketStall', at: 1918 }],
+    actions: [{ press: 'jump', lead: 0.61 }],
     until: 2300,
     expect: (r) => !r.hits[0] && !r.hits[1] && r.sounds.filter((n) => n === 'bounce').length === 2,
     detail: (r) => `hits=${r.hits} sounds=${r.sounds.join(',')} peak=${r.peak}`,
@@ -765,14 +765,14 @@ export function buildScenarios() {
   });
   add('crossing: a red light warns with a horn before the car can hit', {
     obstacles: [{ type: 'crossingCar', at: 1900, position: 'red' }],
-    actions: [{ press: 'jump', lead: 0.42, extra: 40 }],
+    actions: [{ press: 'jump', lead: 0.365, extra: 40 }],
     until: 2300,
     expect: (r) => !r.hits[0] && r.sounds.includes('honk'),
     detail: (r) => `hits=${r.hits} sounds=${r.sounds.join(',')}`,
   });
   add('crossing: jumping on green is harmless', {
     obstacles: [{ type: 'crossingCar', at: 1900, position: 'green' }],
-    actions: [{ press: 'jump', lead: 0.42, extra: 40 }],
+    actions: [{ press: 'jump', lead: 0.365, extra: 40 }],
     until: 2300,
     expect: (r) => !r.hits[0],
     detail: (r) => `hits=${r.hits}`,
@@ -783,8 +783,8 @@ export function buildScenarios() {
     levelIndex: 5,
     obstacles: [{ type: 'cone', at: 1200 }, { type: 'mudPool', at: 2200 }, { type: 'cone', at: 3400 }],
     actions: [
-      { press: 'jump', item: 0, lead: 0.42, extra: 40 },
-      { press: 'jump', item: 2, lead: 0.42, extra: 40 },
+      { press: 'jump', item: 0, lead: 0.365, extra: 40 },
+      { press: 'jump', item: 2, lead: 0.365, extra: 40 },
     ],
     until: 3700,
     expect: (r) => !r.hits[0] && r.hits[1] && !r.hits[2] && r.streak === 2 && !r.sounds.includes('hit') && r.sounds.includes('splat'),
@@ -793,7 +793,7 @@ export function buildScenarios() {
   add('mud: a clean jump across counts toward a streak', {
     levelIndex: 5,
     obstacles: [{ type: 'mudPool', at: 1200 }],
-    actions: [{ press: 'jump', item: 0, lead: 0.48 }],
+    actions: [{ press: 'jump', item: 0, lead: 0.42 }],
     until: 1800,
     expect: (r) => !r.hits[0] && r.passed[0] && r.streak === 1 && !r.sounds.includes('splat'),
     detail: (r) => `hits=${r.hits} passed=${r.passed} streak=${r.streak}`,

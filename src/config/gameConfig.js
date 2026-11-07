@@ -40,10 +40,11 @@ export function setViewAspect(aspect) {
 setViewAspect(BASE_WIDTH / BASE_HEIGHT);
 
 export const MOVEMENT = {
-  GRAVITY: 2000,
-  JUMP_VELOCITY: -960,
-  AIR_JUMP_VELOCITY: -800, // the second jump, pressed in the air
-  FAST_FALL_VELOCITY: 1300,
+  // A faster jump at the same height: multiply speeds by a number, and gravity by its square.
+  GRAVITY: 2645,
+  JUMP_VELOCITY: -1104,
+  AIR_JUMP_VELOCITY: -920, // the second jump, pressed in the air
+  FAST_FALL_VELOCITY: 1495,
   SLIDE_DISTANCE: 420, // measured in distance, so slides fit obstacles at every level speed
   JUMP_BUFFER_MS: 130,
   PLATFORM_DROP_MS: 220, // how long the cat ignores ledges after dropping through one
@@ -85,10 +86,10 @@ export const FREE_MOVE = {
 export const CLIMB_CAMERA = { FOLLOW_ABOVE: 300, RATE: 6 };
 
 // How long a collapsing ledge holds after the cat lands, and how long it takes to fall.
-export const COLLAPSE = { DELAY_MS: 550, FALL_MS: 600, SHAKE: 3 };
+export const COLLAPSE = { DELAY_MS: 650, FALL_MS: 600, SHAKE: 3 };
 
 // Landing from a big drop gives a burst of speed.
-export const BIG_LAND = { FALL_SPEED: 1250, MULTIPLIER: 1.2, DURATION_MS: 1500, SHAKE: 0.008 };
+export const BIG_LAND = { FALL_SPEED: 1437, MULTIPLIER: 1.2, DURATION_MS: 1500, SHAKE: 0.008 };
 
 // The chaser's lunge. The cat must be at least DODGE_HEIGHT off the ground for the whole strike.
 export const LUNGE = {
@@ -118,8 +119,8 @@ export const BOSS = {
   HURT_SAFE_MS: 1600, // how long the cat can't be hurt again, after being hurt
   HURT_PENALTY: { speedMultiplier: 0.7, durationMs: 500 },
   KNOCK_BACK_SPEED: 340,
-  KNOCK_UP_VELOCITY: -560,
-  STOMP_BOUNCE: -1000,
+  KNOCK_UP_VELOCITY: -644,
+  STOMP_BOUNCE: -1150,
   STOMP_TOLERANCE: 34, // how far below the top of the boss the cat's feet can be for a stomp
   CAMERA_RATE: 5,
 };

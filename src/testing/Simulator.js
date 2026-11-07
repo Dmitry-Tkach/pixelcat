@@ -7,9 +7,9 @@ const MAX_LOAD_FRAMES = 60;
 const MAX_FRAMES = 60 * 180;
 const AIR_THRESHOLD = 20;
 const GROUND_Y = 665;
-const DOUBLE_JUMP_DELAY_SECONDS = 0.22;
+const DOUBLE_JUMP_DELAY_SECONDS = 0.19;
 const LUNGE_JUMP_LEAD = 0.4;
-const BOUNCE_THEN_AIR_JUMP_SECONDS = 1.36;
+const BOUNCE_THEN_AIR_JUMP_SECONDS = 1.19;
 
 // A small seeded generator, so a simulated player's mistakes can be repeated exactly.
 function seededRandom(seed) {
@@ -61,7 +61,7 @@ function autopilot(scene, state) {
   // The skilful way past a wall too tall to jump: land on the bounce before it, then double jump.
   const following = obstacles.items[obstacles.items.indexOf(next) + 1];
   if (next.bounce && following?.avoid === 'lift') {
-    if (distance < closing * 0.86) {
+    if (distance < closing * 0.75) {
       state.handled.add(next);
       state.handled.add(following);
       cat.requestJump();
@@ -77,7 +77,7 @@ function autopilot(scene, state) {
     if (distance < 120) state.handled.add(next);
   } else if (avoid === 'doubleJump') {
     // A wall is thin, so the double jump's peak has to be right over it.
-    const reach = next.solid ? closing * 0.6 + 80 : closing * 0.5 + 240;
+    const reach = next.solid ? closing * 0.52 + 80 : closing * 0.5 + 240;
     if (distance < reach + early) {
       state.handled.add(next);
       cat.requestJump();
@@ -85,12 +85,12 @@ function autopilot(scene, state) {
     }
   } else if (avoid === 'terrain') {
     // Jumps so that the middle of the jump is over the middle of the zone.
-    if (distance < closing * 0.48 + early) {
+    if (distance < closing * 0.42 + early) {
       state.handled.add(next);
       cat.requestJump();
     }
   } else if (avoid === 'jump') {
-    if (distance < closing * 0.42 + 40 + early) {
+    if (distance < closing * 0.365 + 40 + early) {
       state.handled.add(next);
       cat.requestJump();
     }

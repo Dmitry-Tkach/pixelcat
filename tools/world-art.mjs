@@ -642,7 +642,7 @@ function journeyArt() {
     <rect x="0" y="4" width="110" height="14" rx="5" fill="${colors.cap}" stroke="${colors.dark}" stroke-width="2"/>
     <path d="M8 18 C14 30 24 18 30 26 C36 18 46 22 52 18 Z" fill="${colors.moss}"/>`, 110, height);
   for (const [material, colors] of Object.entries(WALLS)) {
-    wall(`${material}-wall`, 150, colors);
+    wall(`${material}-wall`, 128, colors);
     wall(`${material}-wall-tall`, 280, colors);
     wall(`${material}-wall-gate`, 480, colors);
   }

@@ -28,7 +28,8 @@ export const CHARACTERS = {
     anims: {
       idle: { file: 'idle', frames: 10, fps: 12, repeat: -1 },
       run: { file: 'run', frames: 8, fps: 16, repeat: -1 },
-      jump: { file: 'jump', frames: 8, fps: 16, repeat: 0 },
+      // Skips the first two frames, which look like standing, so a jump shows the moment it starts.
+      jump: { file: 'jump', frames: 8, frameList: [3, 4, 5, 6, 7, 8], fps: 16, repeat: 0 },
       fall: { file: 'fall', frames: 8, fps: 16, repeat: -1 },
       slide: { file: 'slide', frames: 10, fps: 18, repeat: -1 },
       hurt: { file: 'hurt', frames: 10, fps: 24, repeat: 0 },

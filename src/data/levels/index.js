@@ -30,7 +30,7 @@ import { SECTIONS } from './sections.js';
 const START_AT = 900; // the first section begins here, after a moment to get going
 const END_MARGIN_SECONDS = 2;
 const ARC_TREATS = 5;
-const ARC_STEP_SECONDS = 0.115;
+const ARC_STEP_SECONDS = 0.1;
 const ARC_PEAK = 185;
 const ARC_BASE = 40;
 const LINE_STEP_SECONDS = 0.135;
