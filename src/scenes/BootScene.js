@@ -27,10 +27,13 @@ export class BootScene extends Phaser.Scene {
     }
   }
 
-  // For trying a boss while developing: open the page with ?boss.
+  // For trying a boss while developing: open the page with ?boss for the first one, or name one,
+  // as in ?boss=orangeCat.
   firstLevel() {
-    const wantsBoss = import.meta.env.DEV && new URLSearchParams(location.search).has('boss');
-    const levelIndex = wantsBoss ? LEVELS.findIndex((level) => level.boss) : -1;
+    const params = new URLSearchParams(location.search);
+    const wantsBoss = import.meta.env.DEV && params.has('boss');
+    const type = params.get('boss');
+    const levelIndex = wantsBoss ? LEVELS.findIndex((level) => level.boss && (!type || level.boss.type === type)) : -1;
     if (levelIndex < 0) return { levelIndex: 0, autoStart: false };
     const x = LEVELS[levelIndex].boss.at - BOSS_TRY_OUT_RUN_UP;
     return { levelIndex, autoStart: true, checkpoint: { x, treats: 0, hasPaw: false, rosterIndex: 0 } };

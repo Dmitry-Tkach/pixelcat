@@ -96,6 +96,22 @@ export const SOUNDS = {
 
   lungeDash: [{ kind: 'noise', filter: 'bandpass', cutoff: 700, sweepTo: 3000, q: 0.8, duration: 0.3, gain: 0.5, attack: 0.03 }],
 
+  // The Gunner boss: one shot, the beam charging up, the beam, and his rage bursting into flames.
+  shot: [
+    { kind: 'noise', filter: 'bandpass', cutoff: 1600, sweepTo: 500, q: 1.2, duration: 0.07, gain: 0.32 },
+    { wave: 'square', from: 220, to: 90, duration: 0.05, gain: 0.1, cutoff: 1200 },
+  ],
+  beamCharge: [{ wave: 'sine', from: 300, to: 1400, duration: 0.95, gain: 0.2, attack: 0.1 }],
+  beam: [
+    { wave: 'sawtooth', from: 900, to: 500, duration: 0.5, gain: 0.14, cutoff: 2600 },
+    { kind: 'noise', filter: 'highpass', cutoff: 2400, duration: 0.5, gain: 0.25 },
+  ],
+  flameBurst: [
+    { kind: 'noise', filter: 'lowpass', cutoff: 400, sweepTo: 2400, duration: 0.6, gain: 0.55, attack: 0.05 },
+    { wave: 'sine', from: 110, to: 45, duration: 0.5, gain: 0.45 },
+  ],
+  overheat: [{ kind: 'noise', filter: 'highpass', cutoff: 3500, sweepTo: 1500, duration: 0.6, gain: 0.22, attack: 0.02 }],
+
   lungeMiss: [
     { wave: 'triangle', from: 520, to: 180, duration: 0.3, gain: 0.3 },
     { kind: 'noise', filter: 'lowpass', cutoff: 900, at: 0.26, duration: 0.14, gain: 0.45 },

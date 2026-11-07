@@ -86,13 +86,13 @@ export class Boss extends Phaser.GameObjects.Sprite {
     }
   }
 
-  // Keeps moving through an attack. `limits` are the left and right edges he can reach. Returns true
-  // on running into a wall.
+  // Keeps moving through an attack. `limits` are the left and right edges he can reach. Returns
+  // 'crash' on running into a wall.
   update(ms, limits) {
     const { state, attack, attackData, stateMs } = this.director;
     let zone = STANDING;
     let lift = 0;
-    let crashed = false;
+    let outcome = null;
     if (state === 'active' && attack === 'lunge') {
       const progress = Math.min(1, stateMs / (attackData.active * 1000));
       this.x = Phaser.Math.Clamp(Phaser.Math.Linear(this.leapFromX, this.leapToX, progress), limits.left, limits.right);
@@ -103,7 +103,7 @@ export class Boss extends Phaser.GameObjects.Sprite {
       zone = CHARGING;
       if (this.x <= limits.left || this.x >= limits.right) {
         this.x = Phaser.Math.Clamp(this.x, limits.left, limits.right);
-        crashed = true;
+        outcome = 'crash';
       }
     }
     this.y = GAME.GROUND_Y - lift;
@@ -111,11 +111,11 @@ export class Boss extends Phaser.GameObjects.Sprite {
     this.setOrigin(0.5, 1 - BELOW_FEET / this.height);
     this.shadow.x = this.x;
     this.shadow.setScale(1 - Math.min(0.5, lift / 400));
-    return crashed;
+    return outcome;
   }
 
   // During the swipe, the claw reaches anything on the road nearby.
-  clawReaches(cat) {
+  reaches(cat) {
     const { state, attack, attackData } = this.director;
     if (state !== 'active' || attack !== 'claw') return false;
     const height = GAME.GROUND_Y - cat.body.bottom;

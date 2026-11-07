@@ -628,6 +628,36 @@ export function buildScenarios() {
     detail: (r) => `started=${r.bossStarted} lives=${r.lives} health=${r.bossHealth}`,
   });
 
+  // The Ginger Gunner, at the end of Level 6.
+  const gunnerSpec = { levelIndex: 5, obstacles: bossRoad, boss: { type: 'orangeCat', at: BOSS_AT }, length: 4000 };
+  add('gunner: his shots beat a cat that just stands there', {
+    ...gunnerSpec,
+    actions: [{ press: 'release', catX: BOSS_AT + 300 }],
+    expect: (r) => r.state === 'failed' && r.lives === 0 && r.bossesAttacks.includes('burst') && r.sounds.includes('shot'),
+    detail: (r) => `state=${r.state} lives=${r.lives} attacks=${r.bossesAttacks}`,
+  });
+  for (const fps of FRAME_RATES) {
+    add(`gunner: a cat that dodges by the rules survives all his attacks and stomps him three times, ${fps}fps`, {
+      ...gunnerSpec,
+      frameMs: 1000 / fps,
+      actions: [{ press: 'release', catX: BOSS_AT + 300 }],
+      dodgeGunner: true,
+      stompWhenOpen: true,
+      expect: (r) => r.state === 'complete' && r.bossHealth === 0 && r.lives === 3
+        && ['burst', 'spray', 'dash', 'slideKick', 'rage', 'beam', 'leap'].every((a) => r.bossesAttacks.includes(a)),
+      detail: (r) => `state=${r.state} health=${r.bossHealth} lives=${r.lives} attacks=${r.bossesAttacks}`,
+    });
+  }
+  add('gunner: the Super Paw hits him at any time', {
+    ...gunnerSpec,
+    startCheckpoint: { x: 700, treats: 0, hasPaw: true, rosterIndex: 0 },
+    actions: [{ press: 'paw', catX: BOSS_AT + 300 }],
+    until: BOSS_AT + 500,
+    settleSeconds: 0.5,
+    expect: (r) => r.bossHealth === 2 && !r.hasPaw,
+    detail: (r) => `health=${r.bossHealth} hasPaw=${r.hasPaw}`,
+  });
+
   // Being chased on platform-controls rules.
   add('high ground: a cat on a ledge can\'t be caught from the road, until it stays too long', {
     levelIndex: TEST_LEVEL,

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { GAME, VIEW, setViewAspect } from '../src/config/gameConfig.js';
+import { GAME, JUMP_AIR_TIME, VIEW, setViewAspect } from '../src/config/gameConfig.js';
 import { CHARACTERS } from '../src/data/characters.js';
 import { CHASERS } from '../src/data/chasers.js';
 import { BOSSES } from '../src/data/bosses.js';
@@ -81,10 +81,89 @@ describe('BossDirector', () => {
     expect(director.finishActive()).toEqual(['recover']);
   });
 
-  it('has a pattern and a pause for every amount of health, using attacks it knows', () => {
-    for (let health = 1; health <= definition.health; health++) {
-      expect(definition.idleSeconds[health]).toBeGreaterThan(0);
-      for (const attack of definition.patterns[health]) expect(definition.attacks[attack]).toBeDefined();
+  it('has a pattern and a pause for every amount of health, using attacks it knows, for every boss', () => {
+    for (const boss of Object.values(BOSSES)) {
+      for (let health = 1; health <= boss.health; health++) {
+        expect(boss.idleSeconds[health]).toBeGreaterThan(0);
+        for (const attack of boss.patterns[health]) expect(boss.attacks[attack]).toBeDefined();
+      }
+    }
+  });
+
+  it('gives every boss attacks of his own, and uses them all', () => {
+    const owners = {};
+    for (const [id, boss] of Object.entries(BOSSES)) {
+      const used = new Set(Object.values(boss.patterns).flat());
+      for (const attack of Object.keys(boss.attacks)) {
+        expect(owners[attack], `${attack} is used by ${owners[attack]} and ${id}`).toBeUndefined();
+        owners[attack] = id;
+        expect(used.has(attack), `${id} never uses ${attack}`).toBe(true);
+      }
+    }
+  });
+});
+
+describe('BossDirector for the Ginger Gunner', () => {
+  const definition = BOSSES.orangeCat;
+  const FRAME_MS = 50;
+
+  // One frame. A dash or a slide ends when it gets where it's going, which the game decides.
+  const step = (director) => {
+    director.update(FRAME_MS);
+    if (director.state === 'active' && director.attackData.active === undefined) director.finishActive();
+  };
+
+  // Steps through his attacks, noting which ones leave him open to a stomp.
+  const openAfter = (health) => {
+    const director = new BossDirector(definition);
+    director.health = health;
+    director.start();
+    const open = new Set();
+    const closed = new Set();
+    for (let i = 0; i < 2000; i++) {
+      step(director);
+      if (director.state === 'recover') (director.isVulnerable ? open : closed).add(director.attack);
+    }
+    return { open: [...open].sort(), closed: [...closed].sort() };
+  };
+
+  it('can only be stomped once his gun overheats, after a spray or the beam', () => {
+    expect(openAfter(3)).toEqual({ open: ['spray'], closed: ['burst'] });
+    expect(openAfter(2)).toEqual({ open: ['spray'], closed: ['burst', 'dash', 'slideKick'] });
+    expect(openAfter(1)).toEqual({ open: ['beam', 'spray'], closed: ['dash', 'leap', 'rage', 'slideKick'] });
+  });
+
+  it('opens with his rage when he\'s down to his last hit', () => {
+    const director = new BossDirector(definition);
+    director.start();
+    for (let hit = 0; hit < 2; hit++) {
+      for (let i = 0; i < 2000 && !director.isVulnerable; i++) step(director);
+      expect(director.hit()).toEqual(['hurt']);
+    }
+    for (let i = 0; i < 2000 && director.state !== 'windup'; i++) step(director);
+    expect(director.attack).toBe('rage');
+  });
+
+  it('hurts by touch only when he rushes at the cat or bursts into flames, not while he shoots', () => {
+    const director = new BossDirector(definition);
+    const touchHurts = {};
+    for (const attack of Object.keys(definition.attacks)) {
+      director.attack = attack;
+      director.enter('active');
+      touchHurts[attack] = director.isDangerous;
+    }
+    expect(touchHurts).toEqual({ burst: false, spray: false, beam: false, dash: true, slideKick: true, leap: true, rage: true });
+  });
+
+  // A cat jumps a little before the last low shot reaches it, and must land before the first high one.
+  it('pauses between lanes for longer than a jump lasts, so a cat can land and then slide', () => {
+    const JUMP_EARLY_SECONDS = 0.1;
+    expect(definition.attacks.spray.laneGap).toBeGreaterThan(JUMP_AIR_TIME - JUMP_EARLY_SECONDS);
+  });
+
+  it('cools down long enough for the cat to cross most of the arena', () => {
+    for (const attack of ['spray', 'beam']) {
+      expect(definition.attacks[attack].recover).toBeGreaterThanOrEqual(2);
     }
   });
 });

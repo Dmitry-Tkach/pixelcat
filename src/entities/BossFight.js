@@ -4,6 +4,10 @@ import { OBSTACLES } from '../data/obstacles.js';
 import { THEMES } from '../data/themes.js';
 import { BossDirector } from '../systems/BossDirector.js';
 import { Boss } from './Boss.js';
+import { GunnerBoss } from './GunnerBoss.js';
+
+// The code that moves each style of boss. See data/bosses.js.
+const STYLES = { brawler: Boss, gunner: GunnerBoss };
 
 const WALL_THICKNESS = 60;
 const WALL_BODY_HEIGHT = 1600;
@@ -29,7 +33,8 @@ export class BossFight {
     this.cat = null;
     const { theme } = scene.level;
     this.wallTexture = OBSTACLES[THEMES[theme].swap?.gateWall ?? 'gateWall'].texture;
-    this.boss = new Boss(scene, this.right - BOSS.WALL_MARGIN * 2, this.definition, this.director);
+    const BossStyle = STYLES[this.definition.style];
+    this.boss = new BossStyle(scene, this.right - BOSS.WALL_MARGIN * 2, this.definition, this.director);
     // He waits in front of the far wall, in plain sight, as the cat runs in.
     this.rightWall = this.addWallArt(this.right);
   }
@@ -125,10 +130,17 @@ export class BossFight {
   handleEvents(events) {
     for (const event of events) {
       this.boss.handleEvent(event, this.cat);
-      if (event === 'attackWindup') this.scene.audio.playSfx('lungeWarn');
-      if (event === 'attackActive') this.scene.audio.playSfx('lungeDash');
+      const { attackData } = this.director;
+      if (event === 'attackWindup') this.playSound(attackData.warnSound, 'lungeWarn');
+      if (event === 'attackActive') this.playSound(attackData.sound, 'lungeDash');
       if (event === 'defeated') this.finish();
     }
+  }
+
+  // An attack's own sound, or the usual one when it names none. null means silence.
+  playSound(name, usual) {
+    const sound = name === undefined ? usual : name;
+    if (sound) this.scene.audio.playSfx(sound);
   }
 
   // The far wall comes down, and the cat is free to run on.
@@ -140,6 +152,7 @@ export class BossFight {
     this.leftWall.destroy();
     scene.tweens.add({ targets: this.rightWall, y: this.rightWall.y + WALL_DROP_FROM, alpha: 0, duration: OPEN_MS, ease: 'Quad.easeIn' });
     this.boss.hitZone.destroy();
+    this.boss.clearAttacks?.();
   }
 
   gloat() {
@@ -155,11 +168,12 @@ export class BossFight {
     this.safeMs = Math.max(0, this.safeMs - ms);
     this.handleEvents(this.director.update(ms));
     const limits = { left: this.left + BOSS.WALL_MARGIN, right: this.right - BOSS.WALL_MARGIN };
-    if (this.boss.update(ms, limits)) {
+    const outcome = this.boss.update(ms, limits, cat);
+    if (outcome === 'crash') {
       this.scene.audio.playSfx('thud');
       this.scene.cameras.main.shake(220, 0.012);
-      this.handleEvents(this.director.finishActive());
     }
-    if (this.boss.clawReaches(cat)) this.hurtCat();
+    if (outcome) this.handleEvents(this.director.finishActive());
+    if (this.boss.reaches(cat)) this.hurtCat();
   }
 }

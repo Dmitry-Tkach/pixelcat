@@ -293,7 +293,7 @@ export const LEVELS = [
     theme: 'farm',
     title: 'Sunny Farm',
     intro: 'Pumpkins, hay and very confused sheep. A farm seems like a perfect place to hide, until grandma climbs over the fence.',
-    outro: 'You lost them in the barn, or so you thought.',
+    outro: 'Not even the Ginger Gunner could stop you, and you lost the family in the barn. Or so you thought.',
     cat: { speed: 450 },
     music: { track: 'farm', bpm: 158 },
     chase: { ownerSpeed: 335, startGap: 700, maxGap: 1200, catchGap: 110 },
@@ -318,6 +318,8 @@ export const LEVELS = [
       'muddyRoad',
       'crates',
       'homeStretch',
+      'checkpoint',
+      'orangeCatArena',
     ],
   }),
   buildLevel({

@@ -11,6 +11,55 @@ const DOUBLE_JUMP_DELAY_SECONDS = 0.19;
 const LUNGE_JUMP_LEAD = 0.4;
 const BOUNCE_THEN_AIR_JUMP_SECONDS = 1.19;
 
+// Dodges the Ginger Gunner the way a player is told to: jump low shots, the beam, his dash and his
+// slide; slide under high shots; run from his leap and his flames. Otherwise it stands still, so his
+// attacks come to it. It has to dodge fairly, because the gunner's own code decides what hits.
+const SHOT_JUMP_SECONDS = 0.16;
+const SHOT_SLIDE_SECONDS = 0.3;
+const BEAM_JUMP_SECONDS = 0.11;
+const RUSH_JUMP_DISTANCE = 200;
+const RUN_FROM_FLAMES = 330;
+const ROOM = 320; // between attacks, it keeps this far from him, as a player would after a stomp
+const RUSH_WINDUP_JUMP_SECONDS = 0.08;
+const LEAP_ROOM = 260;
+function dodgeGunner(scene) {
+  const { cat, controls, bossFight: fight } = scene;
+  const { boss, director } = fight;
+  const { state, attack, attackData, stateMs } = director;
+  const away = cat.x < boss.x ? -1 : 1;
+  let run = 0;
+  // When he crouches to leap, it picks a way to run and sticks to it: on away from him, or back
+  // under him when a wall is too close.
+  if (attack === 'leap' && (state === 'windup' || state === 'active')) {
+    const leap = `${director.health}:${director.patternStep}`;
+    if (fight.simulatedLeap?.leap !== leap) {
+      const ahead = cat.x >= boss.x ? 1 : -1;
+      const room = ahead > 0 ? fight.right - cat.x : cat.x - fight.left;
+      fight.simulatedLeap = { leap, run: room > LEAP_ROOM ? ahead : -ahead };
+    }
+    run = fight.simulatedLeap.run;
+  }
+  if (attack === 'rage' && (state === 'windup' || state === 'active') && Math.abs(cat.x - boss.x) < RUN_FROM_FLAMES) run = away;
+  if ((state === 'hurt' || state === 'idle' || (state === 'windup' && attack !== 'leap')) && Math.abs(cat.x - boss.x) < ROOM) run = away;
+  controls.left = run < 0;
+  controls.right = run > 0;
+  if (!cat.onGround) return;
+  for (const shot of boss.shots) {
+    const ahead = cat.x - shot.sprite.x;
+    if (Math.sign(ahead) !== shot.direction) continue;
+    const seconds = Math.abs(ahead) / shot.speed;
+    const high = shot.lane === 'high';
+    if (!high && seconds < SHOT_JUMP_SECONDS) { cat.requestJump(); return; }
+    if (high && seconds < SHOT_SLIDE_SECONDS && !cat.isSliding) { cat.requestSlide(); return; }
+  }
+  if (attack === 'beam' && state === 'windup' && attackData.windup * 1000 - stateMs < BEAM_JUMP_SECONDS * 1000) cat.requestJump();
+  const rush = attack === 'dash' || attack === 'slideKick';
+  // A dash from close by comes too fast to react to, so it jumps as the warning ends.
+  if (rush && state === 'windup' && Math.abs(cat.x - boss.x) < RUSH_JUMP_DISTANCE && attackData.windup * 1000 - stateMs < RUSH_WINDUP_JUMP_SECONDS * 1000) cat.requestJump();
+  const rushing = rush && state === 'active';
+  if (rushing && Math.sign(cat.x - boss.x) === boss.moveDirection && Math.abs(cat.x - boss.x) < RUSH_JUMP_DISTANCE) cat.requestJump();
+}
+
 // A small seeded generator, so a simulated player's mistakes can be repeated exactly.
 function seededRandom(seed) {
   let s = seed >>> 0;
@@ -256,6 +305,9 @@ export class Simulator {
         // Simulated players only run and jump. A boss has scenarios of its own, so it's waved past.
         if (scene.bossFight?.isActive) scene.bossFight.pawHit();
       }
+      if (spec.dodgeGunner && scene.bossFight?.isActive) dodgeGunner(scene);
+      // Once he's beaten, it runs on out of the arena.
+      if (spec.dodgeGunner && scene.bossFight?.isOver) scene.controls.right = true;
       // Drops the cat on a boss's head whenever it's open to a stomp.
       if (spec.stompWhenOpen && scene.bossFight?.director.isVulnerable && cat.onGround) {
         const { boss } = scene.bossFight;

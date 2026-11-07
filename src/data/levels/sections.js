@@ -231,6 +231,14 @@ export const SECTIONS = {
     pickups: [{ t: 1.9, type: 'superPaw' }],
   },
 
+  // The Ginger Gunner's arena. Like the Crown Cat's, it has no ledges, so nothing gets in the way
+  // of a stomp, and nothing hides the cat from his shots.
+  orangeCatArena: {
+    duration: 4.3,
+    boss: { t: 0.4, type: 'orangeCat' },
+    pickups: [{ t: 1.9, type: 'superPaw' }],
+  },
+
   // ----- Village -----
   // Crates and laundry fall as the cat runs through the market.
   fallingMarket: {

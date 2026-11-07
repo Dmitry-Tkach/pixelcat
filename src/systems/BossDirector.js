@@ -18,14 +18,14 @@ export class BossDirector {
     return this.definition.attacks[this.attack];
   }
 
-  // A stomp only counts while it's recovering from an attack.
+  // A stomp only counts while it's recovering from an attack, and only after attacks that tire it out.
   get isVulnerable() {
-    return this.state === 'recover';
+    return this.state === 'recover' && this.attackData.stompable !== false;
   }
 
-  // Touching it only hurts during an attack.
+  // Touching it only hurts during an attack, and not during attacks that hurt in other ways.
   get isDangerous() {
-    return this.state === 'active';
+    return this.state === 'active' && this.attackData.touchHurts !== false;
   }
 
   get isDefeated() {

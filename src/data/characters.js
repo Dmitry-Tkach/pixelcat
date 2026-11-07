@@ -22,6 +22,36 @@ export const CHARACTERS = {
     },
   },
 
+  // A boss. His frames are enlarged when they're prepared (tools/prepare-assets.mjs), so he plays at
+  // scale 1. `belowFeet` is the room under his feet in those frames.
+  orangeCat: {
+    folder: 'orange-cat',
+    scale: 1,
+    belowFeet: 16,
+    anims: {
+      idle: { file: 'idle', frames: 4, fps: 6, repeat: -1 },
+      run: { file: 'run', frames: 6, fps: 14, repeat: -1 },
+      aim: { file: 'shoot', frames: 7, frameList: [1, 2], fps: 6, repeat: 0 },
+      fire: { file: 'shoot', frames: 7, frameList: [3, 4, 5, 6, 7], fps: 16, repeat: -1 },
+      spray: { file: 'spray', frames: 4, fps: 18, repeat: -1 },
+      // Steam rising from his head: the first defeated frame, held while his gun cools.
+      overheat: { file: 'defeated', frames: 6, frameList: [1], fps: 1, repeat: 0 },
+      hit: { file: 'hit', frames: 3, fps: 8, repeat: 0 },
+      rageUp: { file: 'rage', frames: 4, frameList: [1, 2], fps: 6, repeat: -1 },
+      rageBlast: { file: 'rage', frames: 4, frameList: [3, 4], fps: 8, repeat: -1 },
+      defeated: { file: 'defeated', frames: 6, fps: 8, repeat: 0 },
+      crouch: { file: 'jump', frames: 4, frameList: [1], fps: 1, repeat: 0 },
+      leap: { file: 'jump', frames: 4, frameList: [2, 3], fps: 6, repeat: 0 },
+      land: { file: 'jump', frames: 4, frameList: [4], fps: 1, repeat: 0 },
+      slide: { file: 'slide', frames: 4, fps: 14, repeat: -1 },
+      dash: { file: 'dash', frames: 3, fps: 14, repeat: -1 },
+      charge: { file: 'charge', frames: 4, frameList: [1, 2, 3], fps: 8, repeat: -1 },
+      beam: { file: 'charge', frames: 4, frameList: [4], fps: 1, repeat: 0 },
+      // The beam's blast at his gun, not him.
+      beamBlast: { file: 'beam', frames: 1, fps: 1, repeat: 0 },
+    },
+  },
+
   cat: {
     folder: 'cat',
     scale: 0.72,
