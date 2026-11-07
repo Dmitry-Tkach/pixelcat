@@ -8,6 +8,7 @@ import { GameScene } from './scenes/GameScene.js';
 import { Progress } from './systems/Progress.js';
 import { showFpsCounter } from './ui/FpsCounter.js';
 import { Overlay } from './ui/Overlay.js';
+import { ScreenFx } from './ui/ScreenFx.js';
 
 const FONT_WAIT_MS = 1200;
 
@@ -55,6 +56,7 @@ function start() {
   }
   game.registry.set('overlay', overlay);
   game.registry.set('audio', audio);
+  game.registry.set('screenFx', new ScreenFx({ instant: simulate }));
   game.registry.set('progress', new Progress({
     levelIds: LEVELS.map((level) => level.id),
     // For checking any level while developing: open the page with ?unlockAll.

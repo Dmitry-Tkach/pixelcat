@@ -2,6 +2,7 @@
 // and update its entry here. Game code only uses the role names (run, catch, lose, ...).
 //
 // `file` is the frame name prefix, `frames` the frame count. `frameList` plays only those frames.
+// `face` is where the face is in the first idle frame, as a square, for the HUD's little portraits.
 // Optional hug roles: `hug` plays when they catch the cat, and `hugLoop` follows it, if present.
 
 export const CHARACTERS = {
@@ -9,6 +10,7 @@ export const CHARACTERS = {
   crownCat: {
     folder: 'crown-cat',
     scale: 0.72,
+    face: { x: 85, y: 2, size: 125 },
     anims: {
       idle: { file: 'idle', frames: 4, fps: 5, repeat: -1 },
       run: { file: 'run', frames: 8, fps: 16, repeat: -1 },
@@ -27,6 +29,7 @@ export const CHARACTERS = {
   orangeCat: {
     folder: 'orange-cat',
     scale: 1,
+    face: { x: 82, y: 14, size: 96 },
     belowFeet: 16,
     anims: {
       idle: { file: 'idle', frames: 4, fps: 6, repeat: -1 },
@@ -55,6 +58,7 @@ export const CHARACTERS = {
   cat: {
     folder: 'cat',
     scale: 0.72,
+    face: { x: 50, y: 8, size: 146 },
     anims: {
       idle: { file: 'idle', frames: 10, fps: 12, repeat: -1 },
       run: { file: 'run', frames: 8, fps: 16, repeat: -1 },
@@ -75,6 +79,7 @@ export const CHARACTERS = {
   owner: {
     folder: 'owner',
     scale: 1.45,
+    face: { x: 48, y: 8, size: 92 },
     originY: 0.97, // the feet sit this far down the frame
     anims: {
       idle: { file: 'idle', frames: 4, fps: 5, repeat: -1 },
@@ -91,6 +96,7 @@ export const CHARACTERS = {
   boy: {
     folder: 'boy',
     scale: 1.4,
+    face: { x: 28, y: 10, size: 78 },
     originY: 0.96,
     anims: {
       idle: { file: 'idle', frames: 4, fps: 5, repeat: -1 },
@@ -109,6 +115,7 @@ export const CHARACTERS = {
   grandma: {
     folder: 'grandma',
     scale: 0.9,
+    face: { x: 72, y: 4, size: 100 },
     originY: 0.985,
     poseAngles: { stumble: -14, lose: 82 },
     poseLifts: { stumble: 14, lose: 34 }, // leaning this far would otherwise put her partly below the road
@@ -150,4 +157,10 @@ export const CHARACTERS = {
 };
 
 export const animKey = (character, role) => `${character}-${role}`;
+
+// The texture key of a character's first idle frame, which their `face` is measured on.
+export function idleFrameKey(character) {
+  const { file, frameList } = CHARACTERS[character].anims.idle;
+  return `${character}-${file}-${frameList?.[0] ?? 1}`;
+}
 export const frameKey = (character, file, index) => `${character}-${file}-${index}`;

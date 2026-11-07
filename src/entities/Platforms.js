@@ -10,6 +10,7 @@ const ROPE_INSET = 24;
 const ROPE_COLOR = 0x6b4a2b;
 const SHAKE_RATE = 0.06;
 const FALL_DISTANCE = 900;
+const SHADOW = { gap: 2, height: 12, alpha: 0.16, color: 0x1d1a44 }; // a soft shade under each ledge
 
 // Floating ledges. The cat jumps up through them and lands on top, so they never block it.
 // A `lift` rises and falls on the clock, and a `collapse` ledge falls soon after the cat lands.
@@ -30,6 +31,11 @@ export class Platforms {
     const top = GAME.GROUND_Y - height;
     const item = scene.add.tileSprite(at + width / 2, top + THICKNESS / 2, width, THICKNESS, TEXTURES[style]);
     item.setDepth(4);
+    // A building's roof needs none, because its wall is right under it.
+    if (!BUILDING_WALLS[style]) {
+      item.shadow = scene.add.rectangle(item.x, top + THICKNESS + SHADOW.gap, width - 12, SHADOW.height, SHADOW.color, SHADOW.alpha)
+        .setOrigin(0.5, 0).setDepth(3.9);
+    }
     // The cat on the road runs in front of the building's wall.
     if (BUILDING_WALLS[style]) {
       const wallHeight = height - THICKNESS + WALL_BURIED;
@@ -99,17 +105,20 @@ export class Platforms {
     const y = item.baseY + wave * item.lift.travel;
     if (this.rider === item) cat.y += y - item.y;
     item.y = y;
+    if (item.shadow) item.shadow.y = y + THICKNESS / 2 + SHADOW.gap;
     for (const rope of item.ropes) rope.y = y;
   }
 
   shakeOrFall(item, ms) {
     item.collapseMs -= ms;
     item.x = item.baseX + Math.sin(this.clockMs * SHAKE_RATE) * COLLAPSE.SHAKE;
+    if (item.shadow) item.shadow.x = item.x;
     if (item.collapseMs > 0) return;
     item.fallen = true;
     item.x = item.baseX;
     item.body.enable = false;
     if (this.rider === item) this.rider = null;
+    item.shadow?.destroy();
     this.scene.tweens.add({
       targets: item,
       y: item.y + FALL_DISTANCE,

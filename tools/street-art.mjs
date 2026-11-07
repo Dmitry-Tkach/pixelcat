@@ -40,10 +40,17 @@ function widths(rand, min, max) {
   return out;
 }
 
+// A morning sky, with the sun's glow in the corner the light comes from.
 function sky() {
   const inner = `<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#2FA4F2"/><stop offset="0.55" stop-color="#7CCDF8"/><stop offset="1" stop-color="#DDF4FD"/>
-    </linearGradient></defs><rect width="1280" height="720" fill="url(#g)"/>`;
+    </linearGradient>
+    <radialGradient id="sun" cx="0.86" cy="0.12" r="0.5">
+      <stop offset="0" stop-color="#FFF7D6" stop-opacity="0.95"/><stop offset="0.12" stop-color="#FFF2B8" stop-opacity="0.7"/>
+      <stop offset="0.45" stop-color="#FFE9A8" stop-opacity="0.18"/><stop offset="1" stop-color="#FFE9A8" stop-opacity="0"/>
+    </radialGradient></defs>
+    <rect width="1280" height="720" fill="url(#g)"/><rect width="1280" height="720" fill="url(#sun)"/>
+    <circle cx="1100" cy="86" r="44" fill="#FFFBE6"/>`;
   save('sky', inner, 1280, 720);
 }
 
@@ -55,22 +62,36 @@ function clouds() {
     const x = 120 + i * 230 + rand() * 60;
     const y = 90 + rand() * 150;
     const s = 0.7 + rand() * 0.8;
-    inner += `<g transform="translate(${x} ${y}) scale(${s})" fill="#FFFFFF" opacity="0.92">
-      <circle cx="0" cy="20" r="34"/><circle cx="44" cy="0" r="46"/><circle cx="96" cy="16" r="38"/><circle cx="138" cy="28" r="26"/>
-      <rect x="-34" y="24" width="198" height="30" rx="15"/></g>`;
+    // A pale blue underside under the white, so each cloud looks round.
+    const puff = (dy) => `<circle cx="0" cy="${20 + dy}" r="34"/><circle cx="44" cy="${dy}" r="46"/><circle cx="96" cy="${16 + dy}" r="38"/><circle cx="138" cy="${28 + dy}" r="26"/>
+      <rect x="-34" y="${24 + dy}" width="198" height="30" rx="15"/>`;
+    inner += `<g transform="translate(${x} ${y}) scale(${s})" opacity="0.94">
+      <g fill="#CFE6F7">${puff(6)}</g><g fill="#FFFFFF">${puff(0)}</g>
+      <ellipse cx="40" cy="-14" rx="26" ry="12" fill="#FFFFFF"/></g>`;
   }
   save('clouds', inner, TILE, 320);
 }
 
+// Distant buildings, pale like anything far away, with a haze rising from the street.
 function farCity() {
   const rand = rng(21);
   let x = 0;
-  let inner = '';
+  let inner = `<defs><linearGradient id="haze" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#DDF4FD" stop-opacity="0"/><stop offset="1" stop-color="#EAF8FE" stop-opacity="0.85"/>
+    </linearGradient></defs>`;
   for (const w of widths(rand, 90, 190)) {
     const h = 260 + rand() * 230;
     const fill = rand() > 0.5 ? '#A8DBF3' : '#BDE4F6';
     const top = STREET_TOP - h;
-    inner += `<rect x="${x}" y="${top}" width="${w}" height="${h}" fill="${fill}"/>`;
+    inner += `<rect x="${x}" y="${top}" width="${w}" height="${h}" fill="${fill}"/>
+      <rect x="${x}" y="${top}" width="${w}" height="6" fill="#CDEBF8"/>`;
+    // Now and then something on the roof: an antenna or a water tower.
+    const roof = rand();
+    if (roof < 0.25) {
+      inner += `<rect x="${x + w * 0.6}" y="${top - 46}" width="4" height="46" fill="${fill}"/><rect x="${x + w * 0.6 - 10}" y="${top - 34}" width="24" height="3" fill="${fill}"/>`;
+    } else if (roof < 0.45) {
+      inner += `<rect x="${x + w * 0.25}" y="${top - 34}" width="34" height="26" rx="4" fill="${fill}"/><rect x="${x + w * 0.25 + 4}" y="${top - 8}" width="4" height="8" fill="${fill}"/><rect x="${x + w * 0.25 + 26}" y="${top - 8}" width="4" height="8" fill="${fill}"/>`;
+    }
     for (let wy = top + 22; wy < STREET_TOP - 30; wy += 38) {
       for (let wx = x + 16; wx < x + w - 24; wx += 34) {
         inner += `<rect x="${wx}" y="${wy}" width="16" height="20" rx="2" fill="#D7F0FA"/>`;
@@ -78,6 +99,7 @@ function farCity() {
     }
     x += w;
   }
+  inner += `<rect y="${STREET_TOP - 260}" width="${TILE}" height="260" fill="url(#haze)"/>`;
   save('far', inner, TILE, STREET_TOP);
 }
 
@@ -95,7 +117,19 @@ function building(rand, x, w, wallIndex) {
   const stripe = STRIPES[Math.floor(rand() * STRIPES.length)];
   let s = `<rect x="${x}" y="${top}" width="${w}" height="${h}" fill="${wall}"/>
     <rect x="${x + w - 16}" y="${top}" width="16" height="${h}" fill="${shade}"/>
-    <rect x="${x - 6}" y="${top - 16}" width="${w + 12}" height="20" rx="4" fill="${shade}"/>`;
+    <rect x="${x - 6}" y="${top - 16}" width="${w + 12}" height="20" rx="4" fill="${shade}"/>
+    <rect x="${x - 6}" y="${top - 16}" width="${w + 12}" height="5" rx="2.5" fill="#FFFFFF" opacity="0.45"/>
+    <rect x="${x}" y="${top + 4}" width="${w}" height="10" fill="#000000" opacity="0.08"/>`;
+  // Something on the roof: a chimney, an air conditioner or a little garden.
+  const roof = rand();
+  if (roof < 0.3) {
+    s += `<rect x="${x + 24}" y="${top - 52}" width="26" height="38" fill="${shade}"/><rect x="${x + 20}" y="${top - 58}" width="34" height="9" rx="3" fill="#3F4C73"/>`;
+  } else if (roof < 0.6) {
+    s += `<rect x="${x + w - 92}" y="${top - 44}" width="54" height="30" rx="4" fill="#DCE3F0"/><rect x="${x + w - 92}" y="${top - 44}" width="54" height="6" rx="3" fill="#FFFFFF"/>
+      <circle cx="${x + w - 65}" cy="${top - 27}" r="9" fill="#AEB8CE"/>`;
+  } else if (roof < 0.8) {
+    for (let i = 0; i < 3; i++) s += `<circle cx="${x + 30 + i * 26}" cy="${top - 26}" r="15" fill="${i % 2 ? '#3CC46E' : '#57CF62'}"/>`;
+  }
 
   // Upper-floor windows.
   const shopTop = STREET_TOP - 118;
@@ -108,7 +142,13 @@ function building(rand, x, w, wallIndex) {
         <rect x="${wx}" y="${wy}" width="48" height="66" rx="3" fill="#39A6DE"/>
         <path d="M${wx} ${wy + 40} L${wx + 34} ${wy} L${wx + 48} ${wy} L${wx} ${wy + 58} Z" fill="#7FD0F2"/>
         <rect x="${wx + 21}" y="${wy}" width="5" height="66" fill="#FFFFFF"/>
-        <rect x="${wx - 8}" y="${wy + 70}" width="64" height="8" rx="3" fill="${shade}"/>`;
+        <rect x="${wx - 8}" y="${wy + 70}" width="64" height="8" rx="3" fill="${shade}"/>
+        <rect x="${wx - 8}" y="${wy + 70}" width="64" height="2.5" rx="1" fill="#FFFFFF" opacity="0.5"/>`;
+      // A few windows have a box of flowers.
+      if (rand() < 0.22) {
+        s += `<rect x="${wx - 2}" y="${wy + 56}" width="52" height="14" rx="3" fill="#9B5F33"/>`;
+        for (let f = 0; f < 4; f++) s += `<circle cx="${wx + 6 + f * 12}" cy="${wy + 54}" r="6" fill="${['#FF6B8A', '#FFD568', '#FFFFFF', '#FF8A1E'][f]}"/>`;
+      }
     }
   }
 
@@ -127,6 +167,10 @@ function building(rand, x, w, wallIndex) {
     const color = i % 2 ? '#FFFFFF' : stripe;
     s += `<path d="M${sx} ${awningY} h${sw} v30 a${sw / 2} 9 0 0 1 ${-sw} 0 Z" fill="${color}"/>`;
   }
+  // The awning's shadow on the shop window, and the building's shadow where it meets the street.
+  s += `<rect x="${x}" y="${awningY + 34}" width="${w - 16}" height="14" fill="#000000" opacity="0.12"/>
+    <rect x="${x}" y="${awningY}" width="${w - 16}" height="4" fill="#000000" opacity="0.15"/>
+    <rect x="${x}" y="${STREET_TOP - 10}" width="${w}" height="10" fill="#000000" opacity="0.1"/>`;
   return s;
 }
 
@@ -162,18 +206,53 @@ function nearCity() {
   save('near', inner, TILE, STREET_TOP + 20);
 }
 
+// Paving slabs, a bevelled kerb and a textured road. The cats and chasers run on the road.
 function street() {
-  let inner = `<rect y="${STREET_TOP}" width="${TILE}" height="70" fill="#E3D8EF"/>
-    <rect y="${STREET_TOP}" width="${TILE}" height="8" fill="#F5EEFB"/>`;
-  for (let x = 0; x < TILE; x += 128) {
-    inner += `<rect x="${x}" y="${STREET_TOP + 8}" width="4" height="62" fill="#C7B8DA"/>`;
+  const rand = rng(99);
+  const SLAB = 128;
+  const ROWS = [STREET_TOP + 8, STREET_TOP + 39];
+  let inner = `<defs><linearGradient id="road" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3D3873"/><stop offset="0.45" stop-color="#4A4585"/><stop offset="1" stop-color="#3F3A78"/>
+    </linearGradient></defs>
+    <rect y="${STREET_TOP}" width="${TILE}" height="70" fill="#E3D8EF"/>
+    <rect y="${STREET_TOP}" width="${TILE}" height="8" fill="#C9BCDD"/>`;
+  // Two rows of slabs, offset like real paving, each with a lit top edge and a shaded bottom one.
+  ROWS.forEach((rowY, row) => {
+    const offset = row ? SLAB / 2 : 0;
+    for (let x = -offset; x < TILE; x += SLAB) {
+      const tint = rand() < 0.3 ? '#DDD0EA' : '#E6DCF1';
+      inner += `<rect x="${x + 2}" y="${rowY + 1}" width="${SLAB - 4}" height="29" rx="3" fill="${tint}"/>
+        <rect x="${x + 2}" y="${rowY + 1}" width="${SLAB - 4}" height="3" rx="1.5" fill="#F7F2FC"/>
+        <rect x="${x + 2}" y="${rowY + 27}" width="${SLAB - 4}" height="3" rx="1.5" fill="#C9BCDD"/>`;
+      if (rand() < 0.12) inner += `<path d="M${x + 30 + rand() * 50} ${rowY + 8} l10 7 l-4 6 l9 6" stroke="#C9BCDD" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+    }
+  });
+  // Weeds in a few cracks between slabs.
+  for (let x = 90; x < TILE; x += 300 + Math.floor(rand() * 200)) {
+    const y = ROWS[1];
+    inner += `<path d="M${x} ${y + 2} q-3 -10 -8 -14 M${x} ${y + 2} q1 -12 4 -16 M${x} ${y + 2} q5 -8 10 -10" stroke="#4FB960" stroke-width="3" fill="none" stroke-linecap="round"/>`;
   }
+  // The kerb: a bright top, its painted face, then the shadow it throws on the road.
   inner += `<rect y="${STREET_TOP + 70}" width="${TILE}" height="14" fill="#FFFFFF"/>
+    <rect y="${STREET_TOP + 70}" width="${TILE}" height="4" fill="#FFFFFF"/>
+    <rect y="${STREET_TOP + 80}" width="${TILE}" height="4" fill="#E9E4F2"/>
     <rect y="${STREET_TOP + 84}" width="${TILE}" height="9" fill="#FF8A1E"/>
-    <rect y="${STREET_TOP + 93}" width="${TILE}" height="${HEIGHT - STREET_TOP - 93}" fill="#46417E"/>
-    <rect y="${STREET_TOP + 93}" width="${TILE}" height="14" fill="#38336A"/>`;
+    <rect y="${STREET_TOP + 84}" width="${TILE}" height="2" fill="#FFB061"/>
+    <rect y="${STREET_TOP + 93}" width="${TILE}" height="${HEIGHT - STREET_TOP - 93}" fill="url(#road)"/>
+    <rect y="${STREET_TOP + 93}" width="${TILE}" height="16" fill="#2E2A5E" opacity="0.75"/>
+    <rect y="${STREET_TOP + 109}" width="${TILE}" height="6" fill="#2E2A5E" opacity="0.3"/>`;
+  // Asphalt grain.
+  for (let i = 0; i < 900; i++) {
+    const gx = rand() * TILE;
+    const gy = STREET_TOP + 100 + rand() * (HEIGHT - STREET_TOP - 104);
+    inner += `<rect x="${gx.toFixed(1)}" y="${gy.toFixed(1)}" width="${(2 + rand() * 3).toFixed(1)}" height="2" rx="1" fill="${rand() < 0.5 ? '#5A5596' : '#332F68'}" opacity="0.7"/>`;
+  }
+  // Lane markings, slightly worn, with a shadow line under each.
   for (let x = 40; x < TILE; x += 256) {
-    inner += `<rect x="${x}" y="682" width="136" height="12" rx="6" fill="#FFFFFF"/>`;
+    inner += `<rect x="${x}" y="684" width="136" height="12" rx="6" fill="#28245A" opacity="0.5"/>
+      <rect x="${x}" y="682" width="136" height="12" rx="6" fill="#FFFFFF"/>
+      <rect x="${x + 6}" y="683" width="124" height="3" rx="1.5" fill="#FFFFFF" opacity="0.9"/>
+      <rect x="${x + 30 + rand() * 60}" y="686" width="${10 + rand() * 18}" height="6" rx="3" fill="#D9D4EC"/>`;
   }
   save('street', `<g transform="translate(0 -${STREET_TOP})">${inner}</g>`, TILE, HEIGHT - STREET_TOP);
 }
@@ -404,16 +483,32 @@ function obstacles() {
     <path d="M68 172 L85 192 L102 172 M68 194 L85 214 L102 194" fill="none" stroke="#E8456E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`, 170, 290);
 
   // Repeating tiles for floating ledges.
+  // Each has a lit top edge to land on, and a shaded underside.
   save('platform-awning', `
     <path d="M0 0 H64 V20 A16 8 0 0 1 32 20 A16 8 0 0 1 0 20 Z" fill="#FFFFFF"/>
     <path d="M0 0 H32 V20 A16 8 0 0 1 0 20 Z" fill="#E8456E"/>
-    <rect width="64" height="6" fill="#3F4C73"/>`, 64, 34);
+    <path d="M0 14 H64 V20 A16 8 0 0 1 32 20 A16 8 0 0 1 0 20 Z" fill="#000000" opacity="0.12"/>
+    <path d="M6 8 V18 M38 8 V18" stroke="#FFFFFF" stroke-width="3" opacity="0.35" stroke-linecap="round"/>
+    <rect width="64" height="6" fill="#3F4C73"/>
+    <rect width="64" height="2" fill="#7A87B0"/>`, 64, 34);
   save('platform-plank', `
     <rect y="2" width="64" height="24" fill="#D9A066"/>
     <rect y="2" width="64" height="6" fill="#F0CC96"/>
+    <rect y="2" width="64" height="2" fill="#FFE6BF"/>
+    <path d="M4 15 Q20 12 34 16 T62 15" stroke="#C4874B" stroke-width="1.5" fill="none"/>
     <rect y="22" width="64" height="8" fill="#A8743F"/>
+    <rect y="28" width="64" height="4" fill="#7E5530"/>
     <rect x="62" y="2" width="2" height="28" fill="#A8743F"/>
     <circle cx="8" cy="14" r="2.5" fill="#6E4A2A"/><circle cx="54" cy="14" r="2.5" fill="#6E4A2A"/>`, 64, 34);
+
+  // Light coming down through the morning air, drawn over the buildings but behind the street.
+  let beams = '';
+  [[760, 150], [930, 110], [1060, 170], [1210, 90]].forEach(([x, w], i) => {
+    beams += `<path d="M${x} -20 L${x + w} -20 L${x + w - 520} 760 L${x - 760} 760 Z" fill="url(#beam)" opacity="${[0.55, 0.4, 0.5, 0.35][i]}"/>`;
+  });
+  save('sunbeams', `<defs><linearGradient id="beam" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFF6D0" stop-opacity="0.9"/><stop offset="0.7" stop-color="#FFF6D0" stop-opacity="0.15"/><stop offset="1" stop-color="#FFF6D0" stop-opacity="0"/>
+    </linearGradient></defs>${beams}`, 1280, 720);
 
   // A gold fish coin: a soft glow, saturated gold with a darker rim, and a drop shadow.
   save('fish', `

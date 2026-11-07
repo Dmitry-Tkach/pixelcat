@@ -1,4 +1,5 @@
 // Visual worlds for levels. `factor` is how fast a layer scrolls relative to the camera,
+// `drift` how fast it moves on its own (pixels a second, for clouds), and
 // `y` and `height` place the layer on screen. Keeping layers only as tall as their art
 // avoids drawing transparent pixels, which matters on phones.
 // A new theme is a new set of layer images plus an entry here.
@@ -6,7 +7,7 @@
 const FOREGROUND_DEPTH = 8;
 
 const layers = (world, clouds = `${world}-clouds`) => [
-  { texture: clouds, factor: 0.04, y: -80, height: 320 },
+  { texture: clouds, factor: 0.04, drift: 9, y: -80, height: 320 },
   { texture: `${world}-far`, factor: 0.15, y: 0, height: 520 },
   { texture: `${world}-near`, factor: 0.55, y: 0, height: 540 },
   { texture: `${world}-street`, factor: 1, y: 520, height: 200 },
@@ -19,10 +20,14 @@ const BRICK_WALLS = { stoneWall: 'brickWall', tallStoneWall: 'tallBrickWall', ga
 // gate:  the escape point's image.
 // swap:  replaces obstacle types from the shared level sections with this world's own.
 // ledges: replaces ledge styles the same way.
+// sunbeams: an optional image of light over the buildings, behind the street.
+// ambience: optional things drifting through the air: 'motes' (specks in the sunlight) or 'leaves'.
 export const THEMES = {
   city: {
     backdrop: 'city-sky',
     layers: layers('city'),
+    sunbeams: 'city-sunbeams',
+    ambience: ['motes', 'leaves'],
     gate: 'gate',
     swap: BRICK_WALLS,
   },
@@ -106,6 +111,7 @@ export const IMAGE_ASSETS = {
   'city-far': 'assets/city/far.png',
   'city-near': 'assets/city/near.png',
   'city-street': 'assets/city/street.png',
+  'city-sunbeams': 'assets/city/sunbeams.png',
   cone: 'assets/city/cone.png',
   bin: 'assets/city/bin.png',
   boxes: 'assets/city/boxes.png',

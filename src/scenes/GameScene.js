@@ -39,6 +39,13 @@ const OFFSCREEN_MARGIN = 80; // how far past the left edge of the screen a chase
 const SHORTCUT_CLEAR_AHEAD = 400; // a chaser doesn't take a shortcut with an obstacle this close to the cat
 const ON_ROAD_HEIGHT = 5;
 const BOSS_MIDDLE_HEIGHT = 110;
+// Dust and sparks, which are only for looks.
+const LANDING_DUST = 6;
+const TAKE_OFF_DUST = 3;
+const CRASH_DUST = 14;
+const RUN_DUST_SHARE = 0.6; // running faster than this share of top speed kicks up dust
+const IMPACT_AHEAD = 40;
+const IMPACT_HEIGHT = 70;
 const MODE_HINTS = {
   free: 'Free move: left and right run, and you can stop',
   hybrid: 'Always running: right is faster, left is slower',
@@ -63,6 +70,7 @@ export class GameScene extends Phaser.Scene {
   create() {
     const { level } = this;
     this.overlay = this.registry.get('overlay');
+    this.screenFx = this.registry.get('screenFx');
     this.audio = this.registry.get('audio');
     this.progress = this.registry.get('progress');
     this.overlay.hide();
@@ -114,6 +122,8 @@ export class GameScene extends Phaser.Scene {
     for (const event of ['doubleJump', 'bounce']) {
       this.cat.on(event, () => this.effects.puff(this.cat.x, this.cat.body.bottom));
     }
+    this.cat.on('land', () => this.effects.dust(this.cat.x, this.cat.body.bottom, LANDING_DUST));
+    this.cat.on('jump', () => this.effects.dust(this.cat.x, this.cat.body.bottom, TAKE_OFF_DUST));
 
     const ground = this.add.rectangle(level.length / 2, GAME.GROUND_Y + GROUND_HEIGHT / 2, level.length + WORLD_MARGIN * 2, GROUND_HEIGHT);
     this.physics.add.existing(ground, true);
@@ -135,7 +145,10 @@ export class GameScene extends Phaser.Scene {
       this.effects.puff(this.cat.x, this.cat.body.bottom, MUD_COLOR);
       this.audio.playSfx('splat');
     });
-    this.treats.onCollect(this.cat, () => this.handleTreat());
+    this.treats.onCollect(this.cat, (item) => {
+      this.effects.sparkle(item.x, item.y - item.displayHeight / 2);
+      this.handleTreat();
+    });
     this.toyMouse.onCollect(this.cat, () => {
       this.foundMouse = true;
       this.hud.showHint('You found the toy mouse!');
@@ -143,7 +156,8 @@ export class GameScene extends Phaser.Scene {
     });
     this.physics.add.overlap(this.cat, this.gate, () => this.handleEscape());
 
-    this.hud = new Hud(this, level.name, () => this.togglePause());
+    this.hud = new Hud(this, level, () => this.togglePause());
+    this.hud.setChaser(this.chase.chaser.character);
     this.hud.setTreats(this.cat.treats + this.bonusTreats);
     this.hud.setPawReady(this.cat.hasPaw);
     this.controls = new InputController(this, {
@@ -168,6 +182,7 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.syncView();
+    this.screenFx.reveal();
     this.hud.update(this.tracker.safety, 0);
     if (this.chase.chaser.arrival) this.hud.showHint(this.chase.chaser.arrival);
     if (this.autoStart) this.state.to(STATE.PLAYING);
@@ -202,6 +217,9 @@ export class GameScene extends Phaser.Scene {
     fight?.update(ms, this.cat);
     this.cat.speedControl.setTerrain(this.obstacles.terrainUnder(this.cat));
     this.cat.tick(ms);
+    if (this.cat.onGround && (this.cat.isSliding || Math.abs(this.cat.moveVelocity) > this.cat.topSpeed * RUN_DUST_SHARE)) {
+      this.effects.runDust(this.cat, ms);
+    }
     this.obstacles.update(ms, this.cat);
     const catHeight = GAME.GROUND_Y - this.cat.body.bottom;
     const catSpeed = (this.cat.x - this.lastCatX) / (ms / 1000);
@@ -354,7 +372,7 @@ export class GameScene extends Phaser.Scene {
     this.chaserShadow.setVisible(false);
     this.followers.forEach((follower) => follower.setVisible(false));
     this.hud.showEdgeWarning(false);
-    this.hud.showBoss(fight.definition.name);
+    this.hud.showBoss(fight.definition.name, fight.definition.character);
     this.hud.setStreak(fight.livesLeft);
     this.hud.showHint(fight.definition.startHint);
     this.audio.setDanger(false);
@@ -411,6 +429,7 @@ export class GameScene extends Phaser.Scene {
     this.effects.stopSprint();
     this.audio.playSfx('hit');
     this.cameras.main.shake(140, 0.006);
+    this.effects.impact(this.cat.x + IMPACT_AHEAD, this.cat.y - IMPACT_HEIGHT);
   }
 
   // The cat is stopped dead, and stays stopped until the player jumps over the wall.
@@ -424,12 +443,15 @@ export class GameScene extends Phaser.Scene {
     this.hud.showHint(item.stuckHint);
     this.audio.playSfx('thud');
     this.cameras.main.shake(180, 0.01);
+    this.effects.impact(this.cat.x + IMPACT_AHEAD, this.cat.y - IMPACT_HEIGHT, 1.5);
+    this.effects.dust(this.cat.x + IMPACT_AHEAD, this.cat.body.bottom, CRASH_DUST);
   }
 
   // A long drop: dust, a thump, and a burst of speed that rewards taking the high road.
   handleBigLand() {
     if (!this.isPlaying) return;
     this.effects.puff(this.cat.x, this.cat.body.bottom);
+    this.effects.dust(this.cat.x, this.cat.body.bottom, CRASH_DUST);
     this.cameras.main.shake(180, BIG_LAND.SHAKE);
     this.cat.applyBoost({ multiplier: BIG_LAND.MULTIPLIER, durationMs: BIG_LAND.DURATION_MS });
     this.effects.startSprint(this.cat, BIG_LAND.DURATION_MS);
@@ -476,6 +498,7 @@ export class GameScene extends Phaser.Scene {
       case 'returned':
         this.followers.shift()?.remove();
         this.chaser.comeBack(this.chase.chaser.character);
+        this.hud.setChaser(this.chase.chaser.character);
         this.chaserShadow.setVisible(true);
         this.audio.playSfx('chaserBack');
         if (this.chase.chaser.arrival) this.hud.showHint(this.chase.chaser.arrival);
@@ -596,6 +619,8 @@ export class GameScene extends Phaser.Scene {
     this.followers.forEach((follower) => follower.startRunning());
     this.audio.startMusic(this.level.music);
     if (this.level.startHint) this.hud.showHint(this.level.startHint);
+    // A title card when starting from the beginning, not when carrying on from a checkpoint.
+    if (!this.startPoint) this.screenFx.showTitle({ number: this.level.name, title: this.level.title, world: worldName(this.level) });
   }
 
   // The two sound toggles, shared by menus. Pressing one redraws its menu with the new label.
@@ -637,8 +662,12 @@ export class GameScene extends Phaser.Scene {
     this.followers.forEach((follower) => follower.giveUp());
     this.chaser.giveUp();
     this.chaserShadow.setVisible(false);
-    // The cat keeps running through the gate and disappears.
+    // The cat keeps running through the gate and disappears, to cheers and confetti.
     this.tweens.add({ targets: [this.cat, this.catShadow], alpha: 0, duration: 450, delay: 150 });
+    this.effects.confetti(this.gate.x, this.gate.y - this.gate.displayHeight * 0.75);
+    this.effects.sparkle(this.gate.x, this.gate.y - this.gate.displayHeight * 0.5);
+    this.cameras.main.flash(220, 255, 250, 225);
+    this.screenFx.showBanner('Escaped!');
     this.time.delayedCall(END_SCREEN_DELAY_MS, () => this.showCompleteScreen());
   }
 
@@ -787,19 +816,23 @@ export class GameScene extends Phaser.Scene {
 
   // Loads a level without starting it, showing one of the menus over it.
   openScreen(levelIndex, screen) {
-    this.time.paused = false;
-    this.audio.stopMusic();
-    this.anims.resumeAll();
-    this.overlay.hide();
-    this.scene.restart({ levelIndex, autoStart: false, screen });
+    this.screenFx.cover(() => {
+      this.time.paused = false;
+      this.audio.stopMusic();
+      this.anims.resumeAll();
+      this.overlay.hide();
+      this.scene.restart({ levelIndex, autoStart: false, screen });
+    });
   }
 
   // Loads a level and starts it straight away.
   loadLevel(levelIndex, checkpoint = null) {
-    this.time.paused = false;
-    this.audio.stopMusic();
-    this.anims.resumeAll();
-    this.overlay.hide();
-    this.scene.restart({ levelIndex, autoStart: true, checkpoint });
+    this.screenFx.cover(() => {
+      this.time.paused = false;
+      this.audio.stopMusic();
+      this.anims.resumeAll();
+      this.overlay.hide();
+      this.scene.restart({ levelIndex, autoStart: true, checkpoint });
+    });
   }
 }

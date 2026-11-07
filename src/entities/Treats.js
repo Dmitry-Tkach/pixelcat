@@ -2,6 +2,9 @@ import { GAME } from '../config/gameConfig.js';
 
 const FADE_MS = 160;
 const COIN_SCALE = 0.78;
+// Each coin bobs gently and spins now and then, each at its own moment.
+const BOB = { height: 5, ms: 900 };
+const SPIN = { ms: 160, every: 2600 };
 
 // Fish treats to collect. They give no direct advantage: they earn stars at the end of a level.
 export class Treats {
@@ -15,6 +18,10 @@ export class Treats {
         item.setOrigin(0.5, 1).setScale(COIN_SCALE).setDepth(5);
         item.refreshBody();
         item.collected = false;
+        // Only the picture moves: the body stays put, so collecting works the same.
+        const offset = Math.abs(at * 7) % SPIN.every;
+        item.bob = scene.tweens.add({ targets: item, y: item.y - BOB.height, duration: BOB.ms, yoyo: true, repeat: -1, ease: 'Sine.easeInOut', delay: offset % BOB.ms });
+        item.spin = scene.tweens.add({ targets: item, scaleX: COIN_SCALE * 0.12, duration: SPIN.ms, yoyo: true, repeat: -1, repeatDelay: SPIN.every, delay: offset, ease: 'Sine.easeIn' });
         return item;
       });
   }
@@ -26,6 +33,9 @@ export class Treats {
       this.items,
       (_cat, item) => {
         item.collected = true;
+        item.bob.remove();
+        item.spin.remove();
+        item.setScale(COIN_SCALE);
         this.scene.tweens.add({
           targets: item,
           y: item.y - 40,
@@ -33,7 +43,7 @@ export class Treats {
           duration: FADE_MS,
           onComplete: () => item.setVisible(false),
         });
-        callback();
+        callback(item);
       },
       (_cat, item) => !item.collected,
     );
