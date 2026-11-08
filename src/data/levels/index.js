@@ -271,7 +271,7 @@ export const LEVELS = [
     theme: 'park',
     title: 'The Village Green',
     intro: 'It\'s market day on the green, and apples are falling from every tree. Watch your head, and don\'t stop.',
-    outro: 'Out of the village at last. There\'s a dirt road, and the smell of hay.',
+    outro: 'Not even the Bomber Rat could stop you. Out of the village at last. There\'s a dirt road, and the smell of hay.',
     cat: { speed: 435 },
     music: { track: 'village', bpm: 156 },
     chase: { ownerSpeed: 330, startGap: 700, maxGap: 1200, catchGap: 110 },
@@ -299,6 +299,8 @@ export const LEVELS = [
       'flock',
       'gauntlet',
       'homeStretch',
+      'checkpoint',
+      'bomberRatArena',
     ],
   }),
   buildLevel({

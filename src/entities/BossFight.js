@@ -4,10 +4,11 @@ import { OBSTACLES } from '../data/obstacles.js';
 import { THEMES } from '../data/themes.js';
 import { BossDirector } from '../systems/BossDirector.js';
 import { Boss } from './Boss.js';
+import { BomberBoss } from './BomberBoss.js';
 import { GunnerBoss } from './GunnerBoss.js';
 
 // The code that moves each style of boss. See data/bosses.js.
-const STYLES = { brawler: Boss, gunner: GunnerBoss };
+const STYLES = { brawler: Boss, gunner: GunnerBoss, bomber: BomberBoss };
 
 const WALL_THICKNESS = 60;
 const WALL_BODY_HEIGHT = 1600;

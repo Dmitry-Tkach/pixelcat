@@ -96,6 +96,17 @@ export const SOUNDS = {
 
   lungeDash: [{ kind: 'noise', filter: 'bandpass', cutoff: 700, sweepTo: 3000, q: 0.8, duration: 0.3, gain: 0.5, attack: 0.03 }],
 
+  // The Bomber Rat: a bomb's fuse fizzing, the bomb going off, and him cheering.
+  fuse: [{ kind: 'noise', filter: 'highpass', cutoff: 4200, duration: 0.5, gain: 0.16 }],
+  boom: [
+    { kind: 'noise', filter: 'lowpass', cutoff: 1400, sweepTo: 200, duration: 0.5, gain: 0.6 },
+    { wave: 'sine', from: 120, to: 40, duration: 0.45, gain: 0.55 },
+  ],
+  cheer: [
+    { wave: 'square', from: 880, to: 1320, duration: 0.09, gain: 0.12, cutoff: 3000 },
+    { wave: 'square', at: 0.11, from: 990, to: 1480, duration: 0.12, gain: 0.12, cutoff: 3000 },
+  ],
+
   // Bumping a paw-print block from below.
   bump: [
     { wave: 'square', from: 520, to: 780, duration: 0.07, gain: 0.18, cutoff: 2400 },

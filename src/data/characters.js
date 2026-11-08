@@ -55,6 +55,35 @@ export const CHARACTERS = {
     },
   },
 
+  // A boss, cut by tools/cut-boss-rat.mjs and enlarged when prepared, so he plays at scale 1.
+  bomberRat: {
+    folder: 'bomber-rat',
+    scale: 1,
+    belowFeet: 16,
+    face: { x: 72, y: 48, size: 60 },
+    anims: {
+      idle: { file: 'idle', frames: 4, fps: 6, repeat: -1 },
+      run: { file: 'run', frames: 6, fps: 14, repeat: -1 },
+      crouch: { file: 'jump', frames: 4, frameList: [1], fps: 1, repeat: 0 },
+      hop: { file: 'jump', frames: 4, frameList: [2, 3], fps: 6, repeat: 0 },
+      land: { file: 'jump', frames: 4, frameList: [4], fps: 1, repeat: 0 },
+      windUp: { file: 'throw', frames: 3, frameList: [1, 2], fps: 6, repeat: 0 },
+      throw: { file: 'throw', frames: 3, frameList: [3], fps: 1, repeat: 0 },
+      pounceReady: { file: 'lunge', frames: 4, frameList: [1], fps: 1, repeat: 0 },
+      pounce: { file: 'lunge', frames: 4, frameList: [2, 3], fps: 10, repeat: -1 },
+      pounceEnd: { file: 'lunge', frames: 4, frameList: [4], fps: 1, repeat: 0 },
+      powerUp: { file: 'power', frames: 4, frameList: [1, 2, 3], fps: 7, repeat: 0 },
+      powerHit: { file: 'power', frames: 4, frameList: [3], fps: 1, repeat: 0 },
+      // He stops to cheer, sure he's won: his weak moment.
+      cheer: { file: 'won', frames: 4, fps: 7, repeat: -1 },
+      hit: { file: 'defeated', frames: 5, frameList: [1], fps: 1, repeat: 0 },
+      defeated: { file: 'defeated', frames: 5, frameList: [2, 3, 4, 5], fps: 6, repeat: 0 },
+      // Not him: his bomb, and its explosion.
+      bomb: { file: 'bomb', frames: 1, fps: 1, repeat: 0 },
+      blast: { file: 'blast', frames: 1, fps: 1, repeat: 0 },
+    },
+  },
+
   cat: {
     folder: 'cat',
     scale: 0.72,

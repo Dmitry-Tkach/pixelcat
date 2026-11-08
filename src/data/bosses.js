@@ -2,8 +2,8 @@
 // its frames to data/characters.js and an entry here, then put `boss` in a section of a level.
 // Every boss has a style of his own, with attacks no other boss uses.
 //
-// style:    how he fights, which picks the code that moves him: 'brawler' (entities/Boss.js) or
-//           'gunner' (entities/GunnerBoss.js)
+// style:    how he fights, which picks the code that moves him: 'brawler' (entities/Boss.js),
+//           'gunner' (entities/GunnerBoss.js) or 'bomber' (entities/BomberBoss.js)
 // health:   how many hits beat it
 // patterns: the attacks it repeats, for each amount of health left. It gets harsher as it's hurt
 // idleSeconds: how long it pauses between attacks, for each amount of health left
@@ -26,6 +26,14 @@
 //   leap       jumps to where the cat is, `height` high
 //   rage       bursts into flames, reaching `range` either side, up to `reachHeight`
 // retreatSpeed: how fast he backs away between attacks, to keep the cat at a distance
+// Bomber attacks. Bombs arc to where the cat is, land, and go off after `fuse` seconds, reaching
+// `blastRadius` either side, up to `blastHeight`: move away from where they land.
+//   bombToss   throws one bomb, taking `flight` seconds to land
+//   bombRain   throws `bombs` bombs, `every` seconds apart, `spread` apart around the cat
+//   pounce     lunges low along the ground at `speed`, to where the cat was: jump it
+//   hop        jumps to the far side of the arena, `height` high, to keep the cat on the move
+//   powerHit   powers up, then punches a shockwave along the ground at `waveSpeed`, `waveHeight`
+//              high: jump it. Afterward he stops to cheer, sure he's won, which is the time to stomp
 
 export const BOSSES = {
   crownCat: {
@@ -50,6 +58,37 @@ export const BOSSES = {
       lunge: { windup: 0.75, active: 0.7, recover: 1.3, height: 170 },
       claw: { windup: 0.7, active: 0.45, recover: 0.9, range: 180, reachHeight: 100 },
       charge: { windup: 0.6, recover: 2.2, speed: 560 },
+    },
+  },
+
+  // He lobs bombs and lunges, and he's a show-off: after his big punch he stops to cheer, and that's
+  // the only time a stomp counts.
+  bomberRat: {
+    style: 'bomber',
+    character: 'bomberRat',
+    name: 'The Bomber Rat',
+    startHint: 'The Bomber Rat! Run from his bombs, jump his pounce. Stomp him while he cheers',
+    notYetHint: 'Not yet! Wait until he stops to cheer',
+    defeatHint: 'The Bomber Rat is out of bombs! Run!',
+    beatenMessage: 'The Bomber Rat cheers as you\'re carried home. One more try?',
+    music: { track: 'finale', bpm: 172 },
+    health: 3,
+    hurtSeconds: 0.9,
+    introSeconds: 1.4,
+    idleSeconds: { 3: 1, 2: 0.75, 1: 0.55 },
+    patterns: {
+      3: ['bombToss', 'bombToss', 'pounce', 'powerHit'],
+      2: ['bombRain', 'hop', 'pounce', 'bombToss', 'powerHit'],
+      1: ['bombRain', 'pounce', 'hop', 'bombRain', 'powerHit'],
+    },
+    attacks: {
+      bombToss: { windup: 0.45, active: 0.3, recover: 0.35, stompable: false, touchHurts: false, bombs: 1, every: 0, spread: 0, flight: 0.85, fuse: 0.9, blastRadius: 120, blastHeight: 130, warnSound: null, sound: null },
+      // Spread so a gap about 110 wide is left between each pair of blasts, to stand in.
+      bombRain: { windup: 0.55, active: 0.9, recover: 0.35, stompable: false, touchHurts: false, bombs: 3, every: 0.3, spread: 300, flight: 0.9, fuse: 0.9, blastRadius: 95, blastHeight: 130, warnSound: null, sound: null },
+      pounce: { windup: 0.45, recover: 0.4, stompable: false, speed: 780, sound: 'lungeDash' },
+      // Only for getting to the other side: touching him on the way is harmless.
+      hop: { windup: 0.3, active: 0.7, recover: 0.3, stompable: false, touchHurts: false, height: 240, sound: 'lungeDash' },
+      powerHit: { windup: 0.9, active: 0.35, recover: 2.4, touchHurts: false, waveSpeed: 700, waveHeight: 60, warnSound: 'flameBurst', sound: 'boom' },
     },
   },
 

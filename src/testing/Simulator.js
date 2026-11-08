@@ -60,6 +60,56 @@ function dodgeGunner(scene) {
   if (rushing && Math.sign(cat.x - boss.x) === boss.moveDirection && Math.abs(cat.x - boss.x) < RUSH_JUMP_DISTANCE) cat.requestJump();
 }
 
+// Dodges the Bomber Rat the way a player is told to: get clear of where his bombs land, jump his
+// pounce and his shockwave, and get out from under his hop. Otherwise it stands still.
+const BOMB_CLEARANCE = 36;
+const SAFE_STEP = 20;
+const WAVE_JUMP_SECONDS = 0.1;
+const WAVE_HIT_WIDTH = 56; // see BomberBoss.js
+const FREE_MOVE_BACK_SHARE = 0.55; // see FREE_MOVE.BACK_SHARE
+const PUNCH_CLOSE = 320;
+const PUNCH_JUMP_SECONDS = 0.04;
+const POUNCE_WINDUP_JUMP_SECONDS = 0.12; // his pounce is fast, so from close by it jumps a little early
+function dodgeBomber(scene) {
+  const { cat, controls, bossFight: fight } = scene;
+  const { boss, director } = fight;
+  const { state, attack, attackData, stateMs } = director;
+  const edge = { left: fight.left + 70, right: fight.right - 70 };
+  const danger = boss.bombs.map((bomb) => ({ x: bomb.landX, r: bomb.data.blastRadius + BOMB_CLEARANCE }));
+  if (attack === 'hop' && state === 'active') danger.push({ x: boss.targetX, r: 140 });
+  const safe = (x) => danger.every((d) => Math.abs(x - d.x) > d.r);
+  let goal = cat.x;
+  if (!safe(cat.x)) {
+    // The quickest safe spot to reach: running backward is slower than running forward.
+    const seconds = (x) => Math.abs(x - cat.x) / (cat.topSpeed * (x > cat.x ? 1 : FREE_MOVE_BACK_SHARE));
+    let best = null;
+    for (let x = edge.left; x <= edge.right; x += SAFE_STEP) {
+      if (safe(x) && (best === null || seconds(x) < seconds(best))) best = x;
+    }
+    if (best !== null) goal = best;
+  }
+  const run = Math.abs(goal - cat.x) > 8 ? Math.sign(goal - cat.x) : 0;
+  controls.left = run < 0;
+  controls.right = run > 0;
+  if (!cat.onGround) return;
+  // Jumps as the wave's front edge is about to reach it.
+  for (const wave of boss.waves) {
+    const ahead = cat.x - wave.sprite.x;
+    const reach = (WAVE_HIT_WIDTH + cat.body.width) / 2;
+    if (Math.sign(ahead) === wave.direction && (Math.abs(ahead) - reach) / wave.speed < WAVE_JUMP_SECONDS) { cat.requestJump(); return; }
+  }
+  // Close to him, his shockwave comes too fast to react to, so it jumps as his punch lands.
+  if (attack === 'powerHit' && state === 'windup' && Math.abs(cat.x - boss.x) < PUNCH_CLOSE && attackData.windup * 1000 - stateMs < PUNCH_JUMP_SECONDS * 1000) {
+    cat.requestJump();
+    return;
+  }
+  if (attack === 'pounce') {
+    const close = Math.abs(cat.x - boss.x) < RUSH_JUMP_DISTANCE;
+    if (state === 'windup' && close && attackData.windup * 1000 - stateMs < POUNCE_WINDUP_JUMP_SECONDS * 1000) cat.requestJump();
+    if (state === 'active' && Math.sign(cat.x - boss.x) === boss.moveDirection && close) cat.requestJump();
+  }
+}
+
 // A small seeded generator, so a simulated player's mistakes can be repeated exactly.
 function seededRandom(seed) {
   let s = seed >>> 0;
@@ -308,6 +358,8 @@ export class Simulator {
         if (scene.bossFight?.isActive) scene.bossFight.pawHit();
       }
       if (spec.dodgeGunner && scene.bossFight?.isActive) dodgeGunner(scene);
+      if (spec.dodgeBomber && scene.bossFight?.isActive) dodgeBomber(scene);
+      if (spec.dodgeBomber && scene.bossFight?.isOver) scene.controls.right = true;
       // Once he's beaten, it runs on out of the arena.
       if (spec.dodgeGunner && scene.bossFight?.isOver) scene.controls.right = true;
       // Drops the cat on a boss's head whenever it's open to a stomp.
