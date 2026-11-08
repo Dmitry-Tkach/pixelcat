@@ -1,5 +1,5 @@
 // Draws the home screen's scenery: the bathroom on bath day, with a door open onto a sunny park.
-// The family and the cat are the game's own sprites, placed by src/ui/HomeScreen.js.
+// It's a still backdrop behind the menu, placed by src/ui/HomeScreen.js.
 // Run: npm run assets
 import { Resvg } from '@resvg/resvg-js';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -108,16 +108,8 @@ function duck() {
     <path d="M14 40 q12 -14 26 0" stroke="#E0A22B" stroke-width="3" fill="none"/>`, 76, 64);
 }
 
-// A soap bubble: clear, with a rim and a shine.
-function bubble() {
-  save('bubble', `
-    <circle cx="32" cy="32" r="28" fill="#DDF3FF" fill-opacity="0.35" stroke="#FFFFFF" stroke-opacity="0.9" stroke-width="3"/>
-    <path d="M18 20 a18 18 0 0 1 14 -8" stroke="#FFFFFF" stroke-width="5" fill="none" stroke-linecap="round"/>
-    <circle cx="44" cy="44" r="3" fill="#FFFFFF" opacity="0.7"/>`, 64, 64);
-}
 
 bathroom();
 bath();
 duck();
-bubble();
 console.log('Home art drawn in public/assets/home');

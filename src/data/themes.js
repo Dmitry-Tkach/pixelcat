@@ -121,7 +121,6 @@ export const IMAGE_ASSETS = {
   'home-bathroom': 'assets/home/bathroom.png',
   'home-bath': 'assets/home/bath.png',
   'home-duck': 'assets/home/duck.png',
-  'home-bubble': 'assets/home/bubble.png',
   'city-sky': 'assets/city/sky.png',
   'city-clouds': 'assets/city/clouds.png',
   'city-far': 'assets/city/far.png',
