@@ -5,6 +5,8 @@ import { CHASERS } from '../data/chasers.js';
 import { ESCAPE_ANIMATION } from '../data/screens.js';
 import { THEMES } from '../data/themes.js';
 import { BossFight } from '../entities/BossFight.js';
+import { BOSSES } from '../data/bosses.js';
+import { journeyMap } from '../ui/JourneyMap.js';
 import { Cat } from '../entities/Cat.js';
 import { Chaser } from '../entities/Chaser.js';
 import { HayWagons } from '../entities/HayWagons.js';
@@ -863,22 +865,26 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  // The level menu: a road from home to the vet, with a stop for each level.
   showLevelsScreen() {
+    const stops = LEVELS.map((level, index) => {
+      const result = this.progress.resultFor(level.id);
+      const locked = !this.progress.isUnlocked(index);
+      return {
+        number: index + 1,
+        title: level.title,
+        detail: locked ? 'Locked' : `${starText(result?.stars ?? 0)}${result?.mouse ? ' 🐭' : ''}`,
+        world: worldName(level),
+        locked,
+        current: index === this.progress.nextIndex,
+        boss: level.boss ? BOSSES[level.boss.type].character : null,
+        onPick: () => this.openScreen(index, 'intro'),
+      };
+    });
     this.overlay.show({
       title: 'Choose a level',
       message: `${this.progress.totalStars} of ${LEVELS.length * 3} stars, ${this.progress.totalMice} of ${LEVELS.length} toy mice`,
-      tiles: LEVELS.map((level, index) => {
-        const result = this.progress.resultFor(level.id);
-        const locked = !this.progress.isUnlocked(index);
-        return {
-          label: `${index + 1}. ${level.title}`,
-          detail: locked ? 'Locked' : `${starText(result?.stars ?? 0)}${result?.mouse ? ' 🐭' : ''}`,
-          world: worldName(level),
-          locked,
-          current: index === this.progress.nextIndex,
-          onClick: () => this.openScreen(index, 'intro'),
-        };
-      }),
+      content: journeyMap({ stops, instant: this.screenFx.instant }),
       actions: [{ label: 'Back', primary: true, onClick: () => this.openScreen(this.levelIndex, 'menu') }],
     });
   }
