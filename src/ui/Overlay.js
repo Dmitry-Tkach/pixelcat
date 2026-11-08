@@ -8,6 +8,10 @@ export class Overlay {
     this.message = root.querySelector('[data-message]');
     this.actions = root.querySelector('[data-actions]');
     this.tiles = root.querySelector('[data-tiles]');
+    // A slot for a screen's own content, such as the journey map, before the buttons.
+    this.content = document.createElement('div');
+    this.content.dataset.content = '';
+    this.actions.before(this.content);
     this.onAction = () => {}; // runs on every button press, before the button's own action
   }
 
@@ -32,11 +36,13 @@ export class Overlay {
 
   // `image` is an optional picture: { src, alt }.
   // `tiles` is an optional grid: { label, detail, world, locked, current, onClick }.
-  show({ title, message = '', image, actions, tiles = [] }) {
+  // `content` is an optional element of the screen's own, such as the journey map.
+  show({ title, message = '', image, actions, tiles = [], content = null }) {
     this.title.textContent = title;
     this.message.textContent = message;
     this.setImage(image);
-    this.root.querySelector('.panel').classList.toggle('wide', tiles.length > 0);
+    this.root.querySelector('.panel').classList.toggle('wide', tiles.length > 0 || Boolean(content));
+    this.content.replaceChildren(...(content ? [content] : []));
     this.tiles.replaceChildren(
       ...tiles.map(({ label, detail, world, locked, current, onClick }) => {
         const tile = this.button('', onClick);
@@ -68,5 +74,6 @@ export class Overlay {
     this.setImage(null);
     this.actions.replaceChildren();
     this.tiles.replaceChildren();
+    this.content.replaceChildren();
   }
 }

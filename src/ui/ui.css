@@ -362,3 +362,180 @@ html, body, #game {
     animation-duration: 1ms;
   }
 }
+
+/* ----- The journey map: the level menu as a road from home to the vet ----- */
+
+.map {
+  position: relative;
+  height: clamp(250px, 46vh, 360px);
+  margin-top: 14px;
+  border: 4px solid var(--paper);
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--ink);
+}
+
+.map-world {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background-repeat: repeat-x, no-repeat;
+  background-size: auto 78%, 100% 100%;
+  background-position: left bottom, center;
+  border-right: 3px dashed rgba(255, 255, 255, 0.55);
+}
+
+.map-world:last-of-type {
+  border-right: none;
+}
+
+.map-world-name {
+  position: absolute;
+  left: 50%;
+  top: 8px;
+  transform: translateX(-50%);
+  padding: 2px 12px;
+  border-radius: 12px;
+  background: rgba(30, 42, 74, 0.7);
+  font: 600 clamp(12px, 2.4vmin, 16px) var(--font);
+  white-space: nowrap;
+}
+
+.map-road {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.map-road-edge { stroke: #5a4a3a; }
+.map-road-top { stroke: #e9d7b0; }
+.map-road-dash { stroke: #ffffff; stroke-dasharray: 6 8; }
+
+.map-end {
+  position: absolute;
+  top: 66%;
+  transform: translate(-50%, -50%);
+  font-size: clamp(20px, 4vmin, 30px);
+  filter: drop-shadow(0 2px 0 rgba(30, 42, 74, 0.6));
+}
+
+.map-home { left: 3%; top: 66%; }
+.map-vet {
+  left: 95%;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: #26a69a;
+  color: #fff;
+  font-weight: 700;
+  font-size: 22px;
+}
+
+/* A stop is still a .tile, so the menu's checks and focus styles apply to it. */
+.map-stop.tile {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  min-height: 0;
+  width: clamp(54px, 9vw, 92px);
+  padding: 0;
+  border: none;
+  background: none;
+  box-shadow: none;
+  gap: 2px;
+}
+
+.map-stop.tile:hover:not(:disabled) {
+  transform: translate(-50%, calc(-50% - 3px));
+  box-shadow: none;
+}
+
+.map-stop.tile:active:not(:disabled) {
+  transform: translate(-50%, -50%) scale(0.95);
+}
+
+.map-stop-number {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--paper);
+  border-radius: 50%;
+  background: var(--sun);
+  color: var(--ink);
+  font: 700 20px var(--font);
+  box-shadow: 0 4px 0 rgba(30, 42, 74, 0.45);
+}
+
+.map-stop:disabled .map-stop-number {
+  background: #8a94ad;
+  font-size: 16px;
+}
+
+.map-stop.current .map-stop-number {
+  animation: stop-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes stop-pulse {
+  50% { box-shadow: 0 0 0 7px rgba(255, 197, 49, 0.45), 0 4px 0 rgba(30, 42, 74, 0.45); }
+}
+
+.map-stop strong {
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: rgba(30, 42, 74, 0.72);
+  font-size: clamp(11px, 1.8vmin, 14px);
+  line-height: 1.15;
+}
+
+.map-stop small {
+  font-size: clamp(11px, 1.7vmin, 13px);
+  text-shadow: 0 1px 0 var(--ink), 0 0 3px var(--ink);
+}
+
+.map-stop:disabled strong,
+.map-stop:disabled small {
+  opacity: 0.75;
+}
+
+.map-boss,
+.map-cat {
+  position: absolute;
+  border-radius: 50%;
+  background-color: #f3f6ff;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+
+.map-boss {
+  top: -28px;
+  right: 4px;
+  width: 30px;
+  height: 30px;
+  border: 3px solid #f0455f;
+}
+
+.map-cat {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--paper);
+  transform: translate(-50%, -125%);
+  transition: left 650ms ease-in-out, top 650ms ease-in-out;
+  animation: cat-bob 0.9s ease-in-out infinite;
+  z-index: 2;
+}
+
+.map-cat.walking {
+  animation-duration: 0.25s;
+}
+
+@keyframes cat-bob {
+  50% { margin-top: -6px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-cat { transition: none; animation: none; }
+}
