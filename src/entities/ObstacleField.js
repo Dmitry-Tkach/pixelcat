@@ -13,6 +13,7 @@ const PIECES = 6;
 const SHADOW = { drop: 6, widthShare: 1.15, height: 16, color: 0x1d1a44, alpha: 0.3 };
 const PIECE_MS = 650;
 const STONE_TINT = 0x9a9fa7;
+const CULL_MARGIN = 200; // past the screen's edges, so nothing pops into view
 
 // Places a level's obstacles, moves the ones that move, and reports hits, landings and clean passes.
 export class ObstacleField {
@@ -213,6 +214,21 @@ export class ObstacleField {
       if (item.x + PASSED_MARGIN + (item.zone ? item.zone.width / 2 : 0) < cat.x) {
         item.passed = true;
         this.avoided(item);
+      }
+    }
+  }
+
+  // Draws only what's near the camera. Everything outlined costs an extra drawing pass each frame,
+  // even off screen, so the rest of the level is hidden until it comes into view. Moving obstacles
+  // show and hide themselves.
+  cull(left, right) {
+    for (const item of this.items) {
+      if (item.tick || item.broken) continue;
+      const half = item.displayWidth / 2 + CULL_MARGIN;
+      const near = item.x + half > left && item.x - half < right;
+      if (item.visible !== near) {
+        item.setVisible(near);
+        item.shadow?.setVisible(near);
       }
     }
   }
