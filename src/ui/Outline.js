@@ -1,18 +1,7 @@
-// A dark outline around what the cat plays with, so it stands out in front of the scenery, as in
-// classic platformers. It's drawn by the game, so no art needs changing. Browsers drawing without
-// WebGL have no effects, and simply go without it.
-const OUTLINE = {
-  color: 0x2e3a5e,
-  strength: 2, // how dark and solid the edge is
-  distance: 1, // how far it reaches out from the art, in pixels
-  quality: 0.2,
-  padding: 4, // room around the art for the outline to show
-};
-
+// The thin dark edge that lifts characters, obstacles and power-ups off the scenery is drawn into
+// their art by tools/outline-art.mjs, so it costs nothing while the game runs. An outline effect
+// added here cost a drawing pass for every object, every frame, and the frame rate fell.
+// Kept as a no-op so the places that mark what gets an outline still read clearly.
 export function outline(object) {
-  const fx = object?.preFX;
-  if (!fx) return object;
-  fx.setPadding(OUTLINE.padding);
-  fx.addGlow(OUTLINE.color, OUTLINE.strength, 0, false, OUTLINE.quality, OUTLINE.distance);
   return object;
 }
