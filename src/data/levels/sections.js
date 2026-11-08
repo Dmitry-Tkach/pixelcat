@@ -12,6 +12,7 @@
 // pickups:   { t, type }, checkpoint: { t }
 // pawBlocks: { t, reward, count }, blocks to bump from below. `reward` is 'treats' or 'superPaw'
 // catFlap:   { t, exit }, a cat flap to slide through, coming out of another at `exit`
+// crow:      { t, until }, a crow dropping acorns from overhead between these moments
 // wagons:    { t }, a hay wagon whose rear reaches the cat at this moment
 // boss:      { t, type }, a boss from data/bosses.js. The arena starts here, and the section must be long enough for it
 // mouseSpot: { t, height }, where the level's hidden toy mouse sits, if its plan picks this section
@@ -58,6 +59,30 @@ export const SECTIONS = {
     obstacles: [{ type: 'boxStack', t: 0.4 }],
     treats: [lowLine(1.1, 5)],
   },
+  // ----- Phase 4's threats and power-up -----
+  // A crow flies over, dropping acorns where the cat is heading. Little else, so its shadow stands out.
+  crowOverhead: {
+    duration: 7,
+    crow: { t: 0.2, until: 6.2 },
+    obstacles: [{ type: 'cone', t: 3.2 }],
+    treats: [lowLine(1, 6), arcs(3.2)[0], lowLine(4.6, 6)],
+  },
+  // Dogs hiding in bins (or hedges, or haystacks) burst out and leap: slide under them.
+  binDogs: {
+    duration: 4.4,
+    obstacles: [{ type: 'binDog', t: 0.5 }, { type: 'binDog', t: 2.4 }],
+    treats: [lowLine(1.4, 4), lowLine(3.3, 4)],
+  },
+  // Catnip, then a busy stretch to bowl straight through. Without it, it's still fair to dodge.
+  catnipRun: {
+    duration: 6.6,
+    pickups: [{ t: 0.3, type: 'catnip' }],
+    obstacles: [
+      { type: 'cone', t: 1.3 }, { type: 'boxes', t: 2.65 }, { type: 'bench', t: 4 }, { type: 'barrier', t: 5.35 },
+    ],
+    treats: arcs(1.3, 2.65, 4, 5.35),
+  },
+
   // A cat flap: slide through it to skip the road, or run on and deal with what's there.
   catFlapShortcut: {
     duration: 5.4,

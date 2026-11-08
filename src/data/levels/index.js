@@ -80,6 +80,7 @@ function buildLevel({ plan, finalDash, ...config }) {
     pickups: [],
     pawBlocks: [],
     catFlaps: [],
+    crows: [],
     wagons: [],
     attacks: [],
     checkpoints: [],
@@ -104,6 +105,7 @@ function buildLevel({ plan, finalDash, ...config }) {
     for (const { t, type } of section.pickups ?? []) level.pickups.push({ type, at: worldAt(t) });
     for (const { t, reward, count } of section.pawBlocks ?? []) level.pawBlocks.push({ at: worldAt(t), reward, count });
     if (section.catFlap) level.catFlaps.push({ at: worldAt(section.catFlap.t), exitAt: worldAt(section.catFlap.exit) });
+    if (section.crow) level.crows.push({ at: worldAt(section.crow.t), until: worldAt(section.crow.until) });
     if (section.boss) level.boss = { type: section.boss.type, at: worldAt(section.boss.t) };
     for (const { t } of section.wagons ?? []) level.wagons.push({ at: worldAt(t) });
     if (section.checkpoint) level.checkpoints.push(worldAt(section.checkpoint.t));
@@ -215,6 +217,8 @@ export const LEVELS = [
       'duck',
       'breather',
       'sprinklers',
+      'breather',
+      { section: 'binDogs', hint: 'Dogs in the bins! Slide when they leap' },
       'checkpoint',
       'combos',
       { section: 'rushHour', hint: 'Rush hour! Watch every light' },
@@ -284,6 +288,7 @@ export const LEVELS = [
       { section: 'dogs', hint: 'Falling apples! Watch for the shadow' },
       'breather',
       { section: 'crates', hint: 'Tire swing low: jump. High: slide' },
+      { section: 'crowOverhead', hint: 'A crow! It drops acorns where its shadow falls: jump them' },
       'checkpoint',
       'fallingMarket',
       'breather',
@@ -323,6 +328,8 @@ export const LEVELS = [
       'sprinklers',
       'breather',
       { section: 'dogs', hint: 'The farm dog wants to play!' },
+      'breather',
+      { section: 'catnipRun', hint: 'Catnip! Grab it and bowl right through' },
       'checkpoint',
       { section: 'tractors', hint: 'Red flag: wait for the tractor, or jump it. Green flag: run' },
       { section: 'hayRoll', hint: 'Big bales coming! Keep jumping' },
@@ -364,6 +371,8 @@ export const LEVELS = [
       'checkpoint',
       { section: 'bigClimb', hint: 'Up the hay stacks! They collapse, and fences wait below', mouse: true },
       'flock',
+      'binDogs',
+      'crowOverhead',
       'crates',
       'breather',
       'hayWagon',
@@ -406,6 +415,10 @@ export const LEVELS = [
       'flock',
       'breather',
       'checkpoint',
+      'catnipRun',
+      'binDogs',
+      'crowOverhead',
+      'breather',
       'bigClimb',
       'breather',
       'liftGate',

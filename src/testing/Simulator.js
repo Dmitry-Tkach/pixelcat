@@ -135,8 +135,24 @@ function mistakeFor(state, key) {
 }
 
 // Plays the correct move for each obstacle, using only what a player can see on screen.
+// Jumps each acorn the crow drops on the road ahead, as it would any obstacle.
+const ACORN_JUMP_LEAD = 0.33;
+function dodgeAcorns(scene, state) {
+  const { cat, crows } = scene;
+  if (!cat.onGround) return;
+  for (const acorn of crows.acorns) {
+    if (acorn.used || state.handled.has(acorn)) continue;
+    const ahead = acorn.sprite.x - cat.x;
+    if (ahead <= 0 || ahead > cat.speed * ACORN_JUMP_LEAD + 40) continue;
+    state.handled.add(acorn);
+    if (!mistakeFor(state, acorn).misses) cat.requestJump();
+    return;
+  }
+}
+
 function autopilot(scene, state) {
   const { cat, obstacles, chase } = scene;
+  dodgeAcorns(scene, state);
   if (chase.secondsToStrike !== null && state.lungeJumped !== chase.warningStart) {
     const mistake = mistakeFor(state, `lunge-${chase.warningStart}`);
     if (chase.secondsToStrike <= LUNGE_JUMP_LEAD + mistake.timing) {
@@ -236,6 +252,7 @@ export class Simulator {
         pickups: spec.pickups ?? [],
         pawBlocks: spec.pawBlocks ?? [],
         catFlaps: spec.catFlaps ?? [],
+        crows: spec.crows ?? [],
         chasers: spec.chasers ?? base.chasers,
         platforms: spec.platforms ?? [],
         wagons: spec.wagons ?? [],
@@ -429,6 +446,8 @@ export class Simulator {
       collected: scene.pickups.items.map((item) => item.collected),
       blocksUsed: scene.pawBlocks.items.map((item) => item.used),
       flapsUsed: scene.catFlaps.items.map((item) => item.used),
+      crowHits: scene.crowHits,
+      catnipLeft: scene.catnipMs,
       koMs: chase.koMs,
       hits: obstacles.items.map((item) => item.wasHit),
       passed: obstacles.items.map((item) => Boolean(item.passed)),

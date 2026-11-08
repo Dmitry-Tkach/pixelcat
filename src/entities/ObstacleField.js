@@ -10,6 +10,7 @@ const DITCH_LIP = 52; // the ditch's art starts this far above where the cat run
 const FALLEN_IN = 10; // feet this far below the road mean the cat has fallen into a ditch
 const PIECES = 6;
 const PIECE_MS = 650;
+const STONE_TINT = 0x9a9fa7;
 
 // Places a level's obstacles, moves the ones that move, and reports hits, landings and clean passes.
 export class ObstacleField {
@@ -24,6 +25,7 @@ export class ObstacleField {
     this.splash = () => {};
     this.fellIn = () => {};
     this.smashed = () => {};
+    this.unstoppable = () => false; // the scene says when the cat bowls through everything
     this.zones = [];
     this.ditches = [];
     // The cat can stop, so swings, sprinklers and traffic keep time on their own. Their motion
@@ -142,7 +144,7 @@ export class ObstacleField {
       this.wallHit(item);
     }, (_cat, item) => {
       if (item.broken) return false;
-      if (item.breakable && cat.isSliding) {
+      if ((item.breakable && cat.isSliding) || (this.unstoppable() && item.avoid !== 'lift')) {
         this.smash(item);
         return false;
       }
@@ -221,6 +223,7 @@ export class ObstacleField {
     item.setVisible(false);
     for (let i = 0; i < PIECES; i++) {
       const piece = this.scene.add.image(item.x + (Math.random() - 0.5) * 60, item.y - 40 - i * 40, 'box-piece').setDepth(6);
+      if (!item.breakable) piece.setTint(STONE_TINT); // a wall smashed by a cat on catnip
       this.scene.tweens.add({
         targets: piece,
         x: piece.x + 120 + Math.random() * 260,

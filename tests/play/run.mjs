@@ -14,7 +14,7 @@ const started = Date.now();
 const { pages, runAll, close, workers } = await startHarness();
 
 // Only the part of a scenario that the browser needs: functions stay here.
-const SPEC_KEYS = ['boss', 'stompWhenOpen', 'dodgeGunner', 'dodgeBomber', 'length', 'idle', 'fullSpeed', 'lunges', 'shortcut', 'highGround', 'pack', 'finalDash', 'mouse', 'skill', 'levelIndex', 'frameMs', 'obstacles', 'attacks', 'pickups', 'pawBlocks', 'catFlaps', 'platforms', 'wagons', 'treats', 'checkpoints', 'startCheckpoint', 'chasers', 'chase', 'actions', 'until', 'autopilot', 'settleSeconds'];
+const SPEC_KEYS = ['boss', 'stompWhenOpen', 'dodgeGunner', 'dodgeBomber', 'length', 'idle', 'fullSpeed', 'lunges', 'shortcut', 'highGround', 'pack', 'finalDash', 'mouse', 'skill', 'levelIndex', 'frameMs', 'obstacles', 'attacks', 'pickups', 'pawBlocks', 'catFlaps', 'crows', 'platforms', 'wagons', 'treats', 'checkpoints', 'startCheckpoint', 'chasers', 'chase', 'actions', 'until', 'autopilot', 'settleSeconds'];
 const toSpec = (scenario) => Object.fromEntries(SPEC_KEYS.map((key) => [key, scenario[key]]));
 
 let failed = 0;

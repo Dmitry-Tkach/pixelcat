@@ -1153,6 +1153,42 @@ export function buildScenarios() {
     detail: (r) => `health=${r.bossHealth} hasPaw=${r.hasPaw}`,
   });
 
+  // Phase 4: the crow and catnip. (Dogs in bins are covered with the other obstacles, above.)
+  const CROW_AT = 1200;
+  const crowSpec = { levelIndex: TEST_LEVEL, obstacles: [{ type: 'cone', at: 15000 }], crows: [{ at: CROW_AT, until: CROW_AT + 3600 }], until: CROW_AT + 3800 };
+  add('crow: a cat that never jumps is hit by its acorns', {
+    ...crowSpec,
+    expect: (r) => r.crowHits > 0 && r.sounds.includes('caw'),
+    detail: (r) => `crowHits=${r.crowHits}`,
+  });
+  for (const fps of FRAME_RATES) {
+    add(`crow: a cat that jumps each acorn stays clear, ${fps}fps`, {
+      ...crowSpec,
+      frameMs: 1000 / fps,
+      autopilot: true,
+      expect: (r) => r.crowHits === 0 && r.state === 'playing',
+      detail: (r) => `crowHits=${r.crowHits} state=${r.state}`,
+    });
+  }
+  add('catnip: the cat bowls through obstacles and a wall without slowing', {
+    levelIndex: TEST_LEVEL,
+    obstacles: [{ type: 'cone', at: 1700 }, { type: 'bench', at: 2050 }, { type: 'stoneWall', at: 2400 }, { type: 'cone', at: 15000 }],
+    pickups: [{ type: 'catnip', at: 1250 }],
+    actions: [{ press: 'jump', catX: 1100 }],
+    until: 2700,
+    expect: (r) => r.collected[0] && r.stuckSeconds === 0 && r.minSpeed >= LEVELS[TEST_LEVEL].cat.speed * 0.95 && r.sounds.includes('smash'),
+    detail: (r) => `collected=${r.collected} stuck=${r.stuckSeconds.toFixed(2)} minSpeed=${Math.round(r.minSpeed)} sounds=${r.sounds.join(',')}`,
+  });
+  add('catnip: it wears off, and then obstacles slow the cat again', {
+    levelIndex: TEST_LEVEL,
+    obstacles: [{ type: 'cone', at: 1250 + LEVELS[TEST_LEVEL].cat.speed * 7 }, { type: 'cone', at: 15000 }],
+    pickups: [{ type: 'catnip', at: 1250 }],
+    actions: [{ press: 'jump', catX: 1100 }],
+    until: 1250 + LEVELS[TEST_LEVEL].cat.speed * 7 + 300,
+    expect: (r) => r.collected[0] && r.hits[0] && r.catnipLeft === 0 && r.minSpeed < LEVELS[TEST_LEVEL].cat.speed * 0.7,
+    detail: (r) => `hit=${r.hits[0]} left=${r.catnipLeft} minSpeed=${Math.round(r.minSpeed)}`,
+  });
+
   // Phase 3's level objects.
   const FAR = [{ type: 'cone', at: 15000 }];
   const DITCH_AT = 1500;
