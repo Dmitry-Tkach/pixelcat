@@ -693,12 +693,14 @@ export function buildScenarios() {
     expect: (r) => r.minSpeed < LEVELS[TEST_LEVEL].chase.ownerSpeed && r.maxSpeed > LEVELS[TEST_LEVEL].chase.ownerSpeed && r.finalSpeed === LEVELS[TEST_LEVEL].cat.speed,
     detail: (r) => `speeds=${Math.round(r.minSpeed)}-${Math.round(r.maxSpeed)} final=${Math.round(r.finalSpeed)}`,
   });
+  // The cat starts at top speed here, so its slowest moment is just after the hit. It soon builds
+  // speed again, which is fine: the chase tests check that hits still let the chaser catch up.
   add('momentum: a hit loses it', {
     levelIndex: TEST_LEVEL,
     obstacles: [{ type: 'cone', at: 1200 }],
     until: 1500,
-    expect: (r) => r.hits[0] && r.finalSpeed < LEVELS[TEST_LEVEL].cat.speed * 0.8,
-    detail: (r) => `final=${Math.round(r.finalSpeed)}`,
+    expect: (r) => r.hits[0] && r.minSpeed < LEVELS[TEST_LEVEL].cat.speed * 0.6,
+    detail: (r) => `slowest=${Math.round(r.minSpeed)} top=${LEVELS[TEST_LEVEL].cat.speed}`,
   });
   add('standing still: the chaser closes in at their own speed', {
     levelIndex: TEST_LEVEL,

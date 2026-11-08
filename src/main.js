@@ -6,7 +6,7 @@ import { LEVELS } from './data/levels/index.js';
 import { BootScene } from './scenes/BootScene.js';
 import { GameScene } from './scenes/GameScene.js';
 import { Progress } from './systems/Progress.js';
-import { showFpsCounter } from './ui/FpsCounter.js';
+import { setUpFpsCounter } from './ui/FpsCounter.js';
 import { Overlay } from './ui/Overlay.js';
 import { ScreenFx } from './ui/ScreenFx.js';
 
@@ -63,7 +63,7 @@ function start() {
     unlockAll: import.meta.env.DEV && new URLSearchParams(location.search).has('unlockAll'),
   }));
   if (import.meta.env.DEV) window.__catEscape = game;
-  if (import.meta.env.DEV && new URLSearchParams(location.search).has('fps')) showFpsCounter(game);
+  if (import.meta.env.DEV && !simulate) setUpFpsCounter(game, { shown: new URLSearchParams(location.search).has('fps') });
   if (simulate) {
     import('./testing/Simulator.js').then(({ Simulator }) => {
       const waitForLevel = () => {

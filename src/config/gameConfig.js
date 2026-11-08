@@ -69,11 +69,14 @@ export const WAGON = {
 // the chaser. The hybrid mode always runs, with the keys changing the speed. Speeds are shares of
 // the level's top speed.
 export const FREE_MOVE = {
-  START_SHARE: 0.55, // just started, or just hit something
-  BUILD_SECONDS: 3, // how long running clean takes to reach top speed
+  START_SHARE: 0.7, // just started from standing
+  // A hit or a crash drops momentum below a standing start, to this share of top speed, so it
+  // still costs time while the chaser keeps coming.
+  HIT_SHARE: 0.55,
+  BUILD_SECONDS: 1.5, // how long running clean takes to reach top speed
   LOSS_RATE: 2, // momentum lost per second when not running forward
   BACK_SHARE: 0.55,
-  ACCELERATION: 1800,
+  ACCELERATION: 2800, // how quickly the cat's speed follows the keys
   AIR_CONTROL: 0.6, // how much of that acceleration the cat has in the air
   CRASH_SPEED: 100, // walking into a wall slower than this isn't a crash
   RUNNING_SPEED: 100, // going forward faster than this counts as running on, not hanging around

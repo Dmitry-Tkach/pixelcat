@@ -4,6 +4,8 @@ import { CHARACTERS, animKey, frameKey } from '../data/characters.js';
 import { SpeedController } from '../systems/SpeedController.js';
 
 const MANIFEST = CHARACTERS.cat;
+// Momentum 0 is a standing start, and 1 is top speed. A hit drops it to this, which gives HIT_SHARE.
+const HIT_MOMENTUM = (FREE_MOVE.HIT_SHARE - FREE_MOVE.START_SHARE) / (1 - FREE_MOVE.START_SHARE);
 
 // The player character. It runs where it's told, builds momentum, and responds to jump and slide
 // requests.
@@ -150,8 +152,9 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     return this.running ? this.speedControl.speed : 0;
   }
 
+  // Below zero, so the cat is slower than a standing start for a while. See FREE_MOVE.HIT_SHARE.
   loseMomentum() {
-    this.momentum = 0;
+    this.momentum = HIT_MOMENTUM;
   }
 
   // -1 is left, 1 is right, and 0 is neither.
@@ -162,15 +165,17 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
   updateMomentum(seconds) {
     const hybrid = this.moveMode === 'hybrid';
     if (this.moveDirection > 0) {
-      this.momentum += seconds / FREE_MOVE.BUILD_SECONDS;
+      // A slide coasts: it doesn't build speed, or it would end sooner, under whatever it's avoiding.
+      if (!this.isSliding) this.momentum += seconds / FREE_MOVE.BUILD_SECONDS;
     } else if (hybrid && this.moveDirection === 0) {
       const change = seconds * FREE_MOVE.LOSS_RATE;
       const towardCruise = FREE_MOVE.HYBRID_MOMENTUM - this.momentum;
       this.momentum += Phaser.Math.Clamp(towardCruise, -change, change);
     } else {
-      this.momentum -= seconds * FREE_MOVE.LOSS_RATE;
+      // Slows back down to a standing start, but a hit's deeper loss isn't undone by stopping.
+      this.momentum = Math.max(Math.min(this.momentum, 0), this.momentum - seconds * FREE_MOVE.LOSS_RATE);
     }
-    this.momentum = Phaser.Math.Clamp(this.momentum, 0, 1);
+    this.momentum = Phaser.Math.Clamp(this.momentum, HIT_MOMENTUM, 1);
     this.speedControl.baseSpeed = this.topSpeed * Phaser.Math.Linear(FREE_MOVE.START_SHARE, 1, this.momentum);
   }
 
