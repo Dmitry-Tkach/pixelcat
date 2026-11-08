@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { BIG_LAND, BOSS, CLIMB_CAMERA, FREE_MOVE, GAME, SPRINT, VIEW } from '../config/gameConfig.js';
 import { LEVELS, worldName } from '../data/levels/index.js';
 import { CHASERS } from '../data/chasers.js';
-import { ESCAPE_ANIMATION } from '../data/screens.js';
+import { ESCAPE_ANIMATION, HOME_ANIMATION } from '../data/screens.js';
 import { THEMES } from '../data/themes.js';
 import { BossFight } from '../entities/BossFight.js';
 import { BOSSES } from '../data/bosses.js';
@@ -54,6 +54,7 @@ const RUN_DUST_SHARE = 0.6; // running faster than this share of top speed kicks
 const IMPACT_AHEAD = 40;
 const DITCH_SPLASH = 0x8cc6e6;
 const CAT_FLAP_LEAD = 250;
+const HOME_MUSIC = { track: 'home', bpm: 120 };
 const CATNIP_HUE_MS = 700; // how fast the cat's catnip shimmer runs through the colours
 const CATNIP_TINT_SATURATION = 0.45; // how much further ahead of the chaser a cat flap puts the cat
 const IMPACT_HEIGHT = 70;
@@ -859,16 +860,37 @@ export class GameScene extends Phaser.Scene {
       this.homeShown = true;
       showHomeScreen(this);
     }
+    this.playHomeMusic();
     this.overlay.show({
       layout: 'home',
       title: 'Cat Escape',
-      message: "It's bath day, and the whole family wants to catch you. Run to the park!\nLeft and right arrows: run, and clean running builds speed. Space: jump, and again in the air to double jump. Down arrow: slide or dive. Jump when they lunge! Collect a Super Paw box, then press E.",
+      image: HOME_ANIMATION,
+      message: "It's bath day, and the whole family wants to catch you. Run to the park!\nArrows: run. Space: jump, and again in the air. Down: slide. E: use a Super Paw.",
       actions: [
         { label: hasStarted ? 'Continue' : 'Play', primary: true, onClick: () => this.openScreen(nextIndex, 'intro') },
         { label: 'Levels', onClick: () => this.showLevelsScreen() },
         ...this.soundToggles(() => this.showStartScreen()),
       ],
     });
+  }
+
+  // The home screen's tune. Browsers only allow sound after a click or a key press, so before the
+  // first one it waits, and starts then if the home screen is still showing.
+  playHomeMusic() {
+    if (this.audio.track === HOME_MUSIC.track) return;
+    if (this.audio.ctx) {
+      this.audio.startMusic(HOME_MUSIC);
+      return;
+    }
+    const start = () => {
+      window.removeEventListener('pointerdown', start);
+      window.removeEventListener('keydown', start);
+      this.audio.unlock();
+      const onHome = this.overlay.root.classList.contains('home') || this.overlay.content.childElementCount > 0;
+      if (onHome && this.audio.track === null) this.audio.startMusic(HOME_MUSIC);
+    };
+    window.addEventListener('pointerdown', start);
+    window.addEventListener('keydown', start);
   }
 
   // The level menu: a road from home to the parks, with a stop for each level.

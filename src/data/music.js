@@ -55,6 +55,42 @@ export const MUSIC_TRACKS = {
     ],
   },
 
+  // The home screen: a cheerful bath-time tune, with little plinks like bubbles popping.
+  home: {
+    swing: 0.15,
+    instruments: {
+      lead: [{ wave: 'triangle', duration: 0.2, gain: 0.3 }],
+      bass: [{ wave: 'triangle', duration: 0.16, gain: 0.32, cutoff: 700 }],
+      stab: [{ wave: 'triangle', duration: 0.08, gain: 0.08, cutoff: 2400 }],
+      plink: [{ wave: 'sine', duration: 0.07, gain: 0.14 }],
+      kick: [{ wave: 'sine', from: 120, to: 50, duration: 0.09, gain: 0.32 }],
+      hat: [{ kind: 'noise', filter: 'highpass', cutoff: 7000, duration: 0.03, gain: 0.08 }],
+    },
+    parts: [
+      {
+        instrument: 'lead',
+        bars: [
+          'C5 . E5 . G5 . E5 . C5 . . . G4 . . .',
+          'A4 . C5 . F5 . C5 . A4 . . . F4 . . .',
+          'G4 . B4 . D5 . G5 . F5 . D5 . B4 . . .',
+          'C5 . G4 . E4 . G4 . C5 . . . . . . .',
+          'E5 . E5 . D5 . C5 . D5 . . . G4 . . .',
+          'F5 . F5 . E5 . D5 . E5 . . . C5 . . .',
+          'A4 . C5 . B4 . D5 . C5 . E5 . D5 . . .',
+          'C5 . . . G4 . E4 . C4 . . . . . . .',
+        ],
+      },
+      { instrument: 'bass', bars: ['C', 'F', 'G', 'C', 'C', 'F', 'G', 'C'].map(walk) },
+      {
+        instrument: 'stab',
+        bars: ['C4+E4+G4', 'F3+A3+C4', 'G3+B3+D4', 'C4+E4+G4', 'C4+E4+G4', 'F3+A3+C4', 'G3+B3+D4', 'C4+E4+G4'].map(stabs),
+      },
+      { instrument: 'plink', bars: ['. . . . . . . . . . . . G6 . E6 .', '. . . . . . C7 . . . . . . . . .'] },
+      { instrument: 'kick', bars: ['x . . . . . . . x . . . . . . .'] },
+      { instrument: 'hat', bars: ['. . x . . . x . . . x . . . x .'] },
+    ],
+  },
+
   // The village: a bouncy folk tune in a major key.
   village: {
     swing: 0.18,
