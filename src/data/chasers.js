@@ -10,21 +10,21 @@ export const CHASERS = {
   girl: {
     character: 'owner',
     speedDelta: 0,
-    catchMessage: 'So many cuddles! And then, the carrier. There\'s still time for one more try.',
+    catchMessage: 'So many cuddles! And then, the bath. There\'s still time for one more try.',
     catchSound: 'caughtHug',
   },
   boy: {
     character: 'boy',
     speedDelta: 10,
     arrival: 'The boy joins the chase. He\'s quick!',
-    catchMessage: 'He got you, and he\'s not letting go. Then it\'s the carrier. There\'s still time for one more try.',
+    catchMessage: 'He got you, and he\'s not letting go. Then it\'s bubbles for you. There\'s still time for one more try.',
     catchSound: 'caughtHug',
   },
   grandma: {
     character: 'grandma',
     speedDelta: -15,
     arrival: 'Grandma\'s coming, and she never slows down!',
-    catchMessage: 'Grandma scoops you up for a long, long cuddle. Then it\'s the carrier. There\'s still time for one more try.',
+    catchMessage: 'Grandma scoops you up for a long, long cuddle. Then it\'s the bath. There\'s still time for one more try.',
     catchSound: 'caughtHug',
   },
 };

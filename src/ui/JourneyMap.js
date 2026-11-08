@@ -37,7 +37,7 @@ function face(character, size, className) {
   return el;
 }
 
-// The level menu as a road from home to the vet. `stops` are the levels, in order:
+// The level menu as a road from home, past a park at the end of every level, to the last park. `stops` are the levels, in order:
 // { number, title, detail, world, locked, current, boss, onPick }, where `boss` is a character id.
 // `instant` skips the cat's walk, for the fast in-game tests.
 export function journeyMap({ stops, instant = false }) {
@@ -65,7 +65,7 @@ export function journeyMap({ stops, instant = false }) {
     map.append(band);
   });
 
-  // The road, through every stop, from home to the vet.
+  // The road, through every stop, from home to the last park.
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('viewBox', '0 0 100 100');
   svg.setAttribute('preserveAspectRatio', 'none');
@@ -92,10 +92,10 @@ export function journeyMap({ stops, instant = false }) {
   const home = document.createElement('span');
   home.className = 'map-end map-home';
   home.textContent = '🏠';
-  const vet = document.createElement('span');
-  vet.className = 'map-end map-vet';
-  vet.textContent = '✚';
-  map.append(home, vet);
+  const park = document.createElement('span');
+  park.className = 'map-end map-park';
+  park.textContent = '🌳';
+  map.append(home, park);
 
   // The cat waits on the level the player is up to.
   const startAt = Math.max(0, stops.findIndex((stop) => stop.current));

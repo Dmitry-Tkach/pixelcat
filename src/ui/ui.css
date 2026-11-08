@@ -363,7 +363,7 @@ html, body, #game {
   }
 }
 
-/* ----- The journey map: the level menu as a road from home to the vet ----- */
+/* ----- The journey map: the level menu as a road from home to the last park ----- */
 
 .map {
   position: relative;
@@ -421,18 +421,9 @@ html, body, #game {
 }
 
 .map-home { left: 3%; top: 66%; }
-.map-vet {
+.map-park {
   left: 95%;
   top: 50%;
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  background: #26a69a;
-  color: #fff;
-  font-weight: 700;
-  font-size: 22px;
 }
 
 /* A stop is still a .tile, so the menu's checks and focus styles apply to it. */

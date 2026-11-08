@@ -4,7 +4,7 @@ import { Resvg } from '@resvg/resvg-js';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { farTown, townRow, townStreet } from './english-town.mjs';
+import { farTown, parkGate, townRow, townStreet } from './english-town.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = join(ROOT, 'public', 'assets', 'city');
@@ -363,24 +363,8 @@ function obstacles() {
     <path d="M20 10 L104 34 L20 58 Z" fill="#37C871" stroke="#FFFFFF" stroke-width="5" stroke-linejoin="round"/>
     <ellipse cx="15" cy="178" rx="20" ry="6" fill="#2C3657"/>`, 112, 186);
 
-  // The escape point: a garden gate left open, with daylight and a paw sign.
-  let planks = '';
-  for (let x = 0; x < 360; x += 40) {
-    planks += `<path d="M${x + 3} 96 L${x + 19} 76 L${x + 35} 96 L${x + 35} 340 L${x + 3} 340 Z" fill="${(x / 40) % 2 ? '#C98F54' : '#D9A066'}"/>`;
-  }
-  save('gate', `
-    ${planks}
-    <rect x="0" y="136" width="360" height="16" fill="#A8743F"/>
-    <rect x="0" y="266" width="360" height="16" fill="#A8743F"/>
-    <path d="M104 340 V176 A76 76 0 0 1 256 176 V340 Z" fill="#6E4A2A"/>
-    <path d="M118 340 V180 A62 62 0 0 1 242 180 V340 Z" fill="#FFF6C2"/>
-    <path d="M118 340 V290 C160 270 200 270 242 290 V340 Z" fill="#7BE39A"/>
-    <rect x="130" y="4" width="100" height="72" rx="14" fill="#22A67E" stroke="#FFFFFF" stroke-width="6"/>
-    <g transform="translate(180 44)" fill="#FFFFFF">
-      <ellipse cx="0" cy="8" rx="16" ry="13"/>
-      <circle cx="-17" cy="-7" r="6.5"/><circle cx="-6" cy="-16" r="6.5"/>
-      <circle cx="6" cy="-16" r="6.5"/><circle cx="17" cy="-7" r="6.5"/>
-    </g>`, 360, 340);
+  // The escape point: the gates of a city park, open, with the park beyond.
+  save('gate', parkGate({ sign: 'PARK', pillar: '#B4513A', pillarShade: '#9A4130' }), 360, 340);
 }
 
 sky();

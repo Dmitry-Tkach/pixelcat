@@ -848,7 +848,7 @@ export class GameScene extends Phaser.Scene {
       });
     }
     this.time.delayedCall(hugs ? HUG_SCREEN_DELAY_MS : END_SCREEN_DELAY_MS, () => {
-      this.showCaughtScreen(catchMessage ?? "Into the carrier you go. There's still time for one more try.");
+      this.showCaughtScreen(catchMessage ?? "Into the bath you go. There's still time for one more try.");
     });
   }
 
@@ -856,7 +856,7 @@ export class GameScene extends Phaser.Scene {
     const { hasStarted, nextIndex } = this.progress;
     this.overlay.show({
       title: 'Cat Escape',
-      message: "It's vet day, and the whole family wants to catch you. Run!\nLeft and right arrows: run, and clean running builds speed. Space: jump, and again in the air to double jump. Down arrow: slide or dive. Jump when they lunge! Collect a Super Paw box, then press E.",
+      message: "It's bath day, and the whole family wants to catch you. Run to the park!\nLeft and right arrows: run, and clean running builds speed. Space: jump, and again in the air to double jump. Down arrow: slide or dive. Jump when they lunge! Collect a Super Paw box, then press E.",
       actions: [
         { label: hasStarted ? 'Continue' : 'Play', primary: true, onClick: () => this.openScreen(nextIndex, 'intro') },
         { label: 'Levels', onClick: () => this.showLevelsScreen() },
@@ -865,7 +865,7 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  // The level menu: a road from home to the vet, with a stop for each level.
+  // The level menu: a road from home to the parks, with a stop for each level.
   showLevelsScreen() {
     const stops = LEVELS.map((level, index) => {
       const result = this.progress.resultFor(level.id);
