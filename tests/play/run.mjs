@@ -89,8 +89,8 @@ try {
     let tiles = [...document.querySelectorAll('.tile')];
     check('every level has a tile', tiles.length === 8, String(tiles.length));
     check('only level 1 starts open', tiles.filter((t) => t.disabled).length === 7);
-    press('Vet Day');
-    check('a level opens on its story', title() === 'Vet Day', title());
+    press('Bath Day');
+    check('a level opens on its story', title() === 'Bath Day', title());
     check('it waits for the player', sim.scene.state.state === 'ready', sim.scene.state.state);
     press('Run!');
     check('Run! starts the level', sim.scene.isPlaying, sim.scene.state.state);
@@ -126,7 +126,7 @@ try {
     // The last level ends the story.
     sim.scene.openScreen(7, 'intro');
     settle();
-    check('the final level has its story', title() === "The Vet's Door", title());
+    check('the final level has its story', title() === 'Sunset Park', title());
     check('the final level shows the family', sim.scene.followers.length === 2, String(sim.scene.followers.length));
     press('Run!');
     sim.scene.handleEscape();

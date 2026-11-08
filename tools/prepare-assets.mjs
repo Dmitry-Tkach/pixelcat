@@ -81,5 +81,6 @@ for (let frame = 1; frame <= FLOCK.frames; frame++) {
 const UI_DEST = join(ROOT, 'public', 'assets', 'ui');
 mkdirSync(UI_DEST, { recursive: true });
 copyFileSync(join(SRC, 'cat-eating', 'cat-eating-2.gif'), join(UI_DEST, 'escape-success.gif'));
+copyFileSync(join(SRC, 'gif', 'cat-refusing-bath.gif'), join(UI_DEST, 'bath-refused.gif'));
 
 console.log('Sprites prepared in public/assets/sprites');

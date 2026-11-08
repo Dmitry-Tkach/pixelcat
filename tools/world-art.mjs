@@ -5,7 +5,7 @@ import { Resvg } from '@resvg/resvg-js';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { DUSK_FILTER, farTown, townRow, townStreet } from './english-town.mjs';
+import { DUSK_FILTER, farTown, parkGate, townRow, townStreet } from './english-town.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = join(ROOT, 'public', 'assets', 'worlds');
@@ -403,29 +403,7 @@ function farmArt() {
   save('farm-street', `<g transform="translate(0 -${STREET_TOP})">${ground}</g>`, TILE, HEIGHT - STREET_TOP);
 }
 
-// ----- Sunset: the English town again, at dusk, by the vet's -----
-
-// The vet's clinic: white stucco and a teal sign, with its windows lit.
-function vetClinic(x) {
-  const body = `<rect x="${x}" y="${STREET_TOP - 300}" width="340" height="300" fill="#F6F1FA"/>
-    <rect x="${x + 310}" y="${STREET_TOP - 300}" width="30" height="300" fill="#CFC6DC"/>
-    <rect x="${x - 8}" y="${STREET_TOP - 314}" width="356" height="20" rx="4" fill="#26A69A"/>
-    <rect x="${x - 8}" y="${STREET_TOP - 314}" width="356" height="5" rx="2" fill="#7FE0D6"/>
-    <rect x="${x + 136}" y="${STREET_TOP - 124}" width="68" height="124" rx="5" fill="#26A69A"/>
-    <circle cx="${x + 194}" cy="${STREET_TOP - 54}" r="5" fill="#FFFFFF"/>
-    ${[36, 208].map((wx) => `<rect x="${x + wx - 6}" y="${STREET_TOP - 192}" width="108" height="112" rx="6" fill="#FFFFFF"/>`).join('')}`;
-  // The lights, drawn over the dusk: its sign, its windows and its door.
-  const lights = `<rect x="${x + 40}" y="${STREET_TOP - 282}" width="260" height="68" rx="10" fill="#26A69A"/>
-    <rect x="${x + 34}" y="${STREET_TOP - 288}" width="272" height="80" rx="14" fill="#7FE0D6" opacity="0.25"/>
-    <text x="${x + 170}" y="${STREET_TOP - 232}" font-family="Arial, Helvetica, sans-serif" font-size="46" font-weight="700" fill="#FFFFFF" text-anchor="middle">VET</text>
-    <path d="M${x + 62} ${STREET_TOP - 248} h14 v-14 h12 v14 h14 v12 h-14 v14 h-12 v-14 h-14 Z" fill="#FFFFFF"/>
-    <path d="M${x + 238} ${STREET_TOP - 248} h14 v-14 h12 v14 h14 v12 h-14 v14 h-12 v-14 h-14 Z" fill="#FFFFFF"/>
-    ${[36, 208].map((wx) => `<rect x="${x + wx}" y="${STREET_TOP - 186}" width="96" height="100" rx="5" fill="#FFD27A"/>
-      <rect x="${x + wx}" y="${STREET_TOP - 186}" width="96" height="34" rx="5" fill="#FFF0C2" opacity="0.5"/>
-      <path d="M${x + wx + 48} ${STREET_TOP - 186} v100 M${x + wx} ${STREET_TOP - 136} h96" stroke="#FFFFFF" stroke-width="4"/>`).join('')}
-    <rect x="${x + 146}" y="${STREET_TOP - 114}" width="48" height="50" rx="4" fill="#FFD27A"/>`;
-  return `<g filter="url(#dusk)">${body}</g>${lights}`;
-}
+// ----- Sunset: the English town again, at dusk, on the way to the last park -----
 
 function sunsetArt() {
   // The sun is low, near the rooftops, and the sky runs from violet to gold.
@@ -445,7 +423,7 @@ function sunsetArt() {
   }
   save('vet-clouds', cloudArt, TILE, 320);
   save('vet-far', `<defs>${DUSK_FILTER}</defs><g filter="url(#dusk)">${farTown()}</g>${haze('#F49A7A', 220)}`, TILE, STREET_TOP);
-  save('vet-near', townRow({ dusk: true }) + vetClinic(860), TILE, STREET_TOP + 20);
+  save('vet-near', townRow({ dusk: true }), TILE, STREET_TOP + 20);
   save('vet-street', townStreet({ dusk: true }), TILE, HEIGHT - STREET_TOP);
 }
 
@@ -532,13 +510,8 @@ function villageObstacles() {
     <ellipse cx="12" cy="6" rx="9" ry="4" fill="#7AD98A"/><ellipse cx="44" cy="5" rx="10" ry="4" fill="#86E294"/>
     <ellipse cx="30" cy="19" rx="14" ry="5" fill="#2F8A3F" opacity="0.6"/>
     <rect y="0" width="64" height="6" fill="#2F9E4F"/><rect y="0" width="64" height="2" fill="#6CCB78"/>`, 64, 34);
-  save('park-gate', `
-    <rect x="0" y="60" width="360" height="280" rx="30" fill="#2F9E4F"/>
-    <circle cx="44" cy="74" r="44" fill="#3CB460"/><circle cx="130" cy="58" r="50" fill="#46C46B"/><circle cx="230" cy="58" r="50" fill="#3CB460"/><circle cx="316" cy="74" r="44" fill="#46C46B"/>
-    <path d="M104 340 V176 A76 76 0 0 1 256 176 V340 Z" fill="#1F6E37"/>
-    <path d="M118 340 V180 A62 62 0 0 1 242 180 V340 Z" fill="#FFF6C2"/>
-    <path d="M118 340 V290 C160 270 200 270 242 290 V340 Z" fill="#8CE678"/>
-    <circle cx="70" cy="170" r="9" fill="#F58FAB"/><circle cx="300" cy="200" r="9" fill="#FFD568"/><circle cx="56" cy="270" r="8" fill="#FFFFFF"/><circle cx="312" cy="290" r="8" fill="#F58FAB"/>`, 360, 340);
+  // The village green's gates, in honey-coloured stone.
+  save('park-gate', parkGate({ sign: 'THE GREEN', pillar: '#D9B77A', pillarShade: '#C49E5E', signColour: '#2F5D3A' }), 360, 340);
 }
 
 const TRACTOR = `
@@ -659,26 +632,13 @@ function farmObstacles() {
     <rect y="22" width="64" height="10" fill="#D6A42A"/>
     <rect y="29" width="64" height="4" fill="#B8861E"/>
     <path d="M10 6 V20 M28 8 V18 M46 6 V20 M58 10 V18" stroke="#C4921E" stroke-width="4" stroke-linecap="round"/>`, 64, 34);
-  save('farm-gate', `
-    <path d="M0 340 V70 L180 4 L360 70 V340 Z" fill="#D8402F"/>
-    <path d="M0 70 L180 4 L360 70" fill="none" stroke="#FFF3D6" stroke-width="12"/>
-    <rect x="96" y="120" width="168" height="220" fill="#6E2A1E"/>
-    <rect x="110" y="134" width="140" height="206" fill="#FFF6C2"/>
-    <path d="M110 340 V296 C150 276 210 276 250 296 V340 Z" fill="#A9E879"/>
-    <circle cx="180" cy="74" r="24" fill="#FFF3D6"/>
-    <g transform="translate(180 76) scale(0.7)" fill="#D8402F">
-      <ellipse cx="0" cy="8" rx="16" ry="13"/><circle cx="-17" cy="-7" r="6.5"/><circle cx="-6" cy="-16" r="6.5"/><circle cx="6" cy="-16" r="6.5"/><circle cx="17" cy="-7" r="6.5"/>
-    </g>`, 360, 340);
+  // The meadow's gates, in weathered stone.
+  save('farm-gate', parkGate({ sign: 'MEADOW', pillar: '#B8AB8E', pillarShade: '#9A8E72', signColour: '#6E4A2A' }), 360, 340);
 }
 
+// The last park's gates, lit by lamps as the sun goes down.
 function vetGate() {
-  save('vet-gate', `
-    <rect x="30" y="20" width="16" height="320" rx="4" fill="#2C2650"/>
-    <rect x="314" y="20" width="16" height="320" rx="4" fill="#2C2650"/>
-    <rect x="10" y="30" width="340" height="96" rx="12" fill="#26A69A" stroke="#FFFFFF" stroke-width="6"/>
-    <text x="180" y="96" font-family="Arial, Helvetica, sans-serif" font-size="50" font-weight="700" fill="#FFFFFF" text-anchor="middle">FREEDOM</text>
-    <path d="M60 340 V190 H300 V340 Z" fill="#FFD76A" opacity="0.35"/>
-    <path d="M60 340 C110 290 250 290 300 340 Z" fill="#8CE678"/>`, 360, 340);
+  save('vet-gate', parkGate({ sign: 'PARK', pillar: '#9C5945', pillarShade: '#824837', signColour: '#2B2D3A', dusk: true }), 360, 340);
 }
 
 // A low layer that passes in front of the cat. The tile repeats without a seam, and everything

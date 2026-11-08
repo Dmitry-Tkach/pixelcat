@@ -536,3 +536,43 @@ export function townStreet({ dusk = false } = {}) {
   return dusk ? `<defs>${DUSK_FILTER}</defs><g filter="url(#dusk)">${layer}</g>` : layer;
 }
 
+
+// The escape point: a park's entrance, with its gates open and the park beyond. Every world has one,
+// in its own stone and with its own sign. 360 by 340, with the way through in the middle.
+export function parkGate({ sign, pillar = '#C9BC9F', pillarShade = '#A99C80', signColour = '#1F4D3A', dusk = false }) {
+  const pillarAt = (x) => `<rect x="${x}" y="70" width="64" height="270" fill="${pillar}"/>
+    <rect x="${x + 44}" y="70" width="20" height="270" fill="${pillarShade}"/>
+    ${[110, 160, 210, 260, 310].map((y) => `<rect x="${x}" y="${y}" width="64" height="4" fill="${pillarShade}" opacity="0.7"/>`).join('')}
+    <rect x="${x - 8}" y="56" width="80" height="18" rx="3" fill="${pillarShade}"/>
+    <rect x="${x - 8}" y="56" width="80" height="5" rx="2" fill="#FFFFFF" opacity="0.45"/>
+    <circle cx="${x + 32}" cy="40" r="17" fill="${pillar}"/><circle cx="${x + 26}" cy="35" r="6" fill="#FFFFFF" opacity="0.4"/>`;
+  // One gate leaf, swung open toward the viewer: bars with spear tips, and a curl at the top.
+  const leaf = (x, flip) => {
+    let bars = '';
+    for (let i = 0; i < 6; i++) {
+      const bx = x + (flip ? -i * 9 : i * 9);
+      bars += `<rect x="${bx}" y="120" width="4" height="214" fill="#23262F"/><path d="M${bx - 3} 121 L${bx + 2} 110 L${bx + 7} 121 Z" fill="#23262F"/>`;
+    }
+    const left = flip ? x - 50 : x;
+    return `${bars}<rect x="${left}" y="150" width="54" height="5" fill="#23262F"/><rect x="${left}" y="300" width="54" height="5" fill="#23262F"/>
+      <path d="M${left + 8} 150 q19 -26 38 0" stroke="#23262F" stroke-width="4" fill="none"/>`;
+  };
+  const sky = dusk ? '#F2A67A' : '#BFE7F7';
+  const lawn = dusk ? '#4E8F55' : '#7BE39A';
+  const glow = dusk ? '<circle cx="180" cy="200" r="70" fill="#FFD27A" opacity="0.25"/>' : '';
+  return `
+    <rect x="64" y="96" width="232" height="244" fill="${sky}"/>${glow}
+    <path d="M64 250 Q180 220 296 250 V340 H64 Z" fill="${lawn}"/>
+    <path d="M160 340 Q172 280 180 246 Q188 280 200 340 Z" fill="#E9D7B0"/>
+    <rect x="216" y="170" width="10" height="70" fill="#7A5232"/>
+    <circle cx="221" cy="160" r="34" fill="#3E9A4A"/><circle cx="208" cy="168" r="22" fill="#57CF62"/><circle cx="236" cy="150" r="14" fill="#7AD98A"/>
+    <circle cx="110" cy="232" r="12" fill="#57CF62"/><circle cx="98" cy="238" r="9" fill="#3E9A4A"/>
+    <circle cx="104" cy="226" r="3" fill="#F58FAB"/><circle cx="116" cy="236" r="3" fill="#FFD568"/>
+    ${leaf(70, false)}${leaf(290, true)}
+    ${pillarAt(0)}${pillarAt(296)}
+    <path d="M40 104 Q180 22 320 104" stroke="#23262F" stroke-width="8" fill="none"/>
+    <path d="M58 104 Q180 40 302 104" stroke="#23262F" stroke-width="3" fill="none"/>
+    <rect x="110" y="48" width="140" height="40" rx="8" fill="${signColour}" stroke="#E7C66B" stroke-width="3"/>
+    <text x="180" y="76" font-family="Georgia, 'Times New Roman', serif" font-weight="bold" font-size="${sign.length > 5 ? 18 : 24}" fill="#F2D48A" text-anchor="middle" letter-spacing="2">${sign}</text>
+    ${dusk ? '<circle cx="32" cy="22" r="12" fill="#FFE7A8"/><circle cx="328" cy="22" r="12" fill="#FFE7A8"/><circle cx="32" cy="22" r="26" fill="#FFD27A" opacity="0.3"/><circle cx="328" cy="22" r="26" fill="#FFD27A" opacity="0.3"/>' : ''}`;
+}

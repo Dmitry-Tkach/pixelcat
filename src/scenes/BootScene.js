@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { CHARACTERS, animKey, frameKey } from '../data/characters.js';
-import { ESCAPE_ANIMATION } from '../data/screens.js';
+import { ESCAPE_ANIMATION, HOME_ANIMATION } from '../data/screens.js';
 import { LEVELS } from '../data/levels/index.js';
 import { IMAGE_ASSETS } from '../data/themes.js';
 
@@ -15,6 +15,7 @@ export class BootScene extends Phaser.Scene {
   preload() {
     // Fetched early so it's ready the moment a level ends. It's shown in the HTML menu, not Phaser.
     new Image().src = ESCAPE_ANIMATION.src;
+    new Image().src = HOME_ANIMATION.src;
     for (const [key, path] of Object.entries(IMAGE_ASSETS)) {
       this.load.image(key, path);
     }

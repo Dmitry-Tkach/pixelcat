@@ -27,6 +27,7 @@ export class AudioManager {
     this.tracks = new Map();
     this.ctx = null;
     this.playing = false;
+    this.track = null; // the tune playing now, if any
     document.addEventListener('visibilitychange', () => this.handleVisibility());
   }
 
@@ -69,10 +70,12 @@ export class AudioManager {
     this.sequencer.load(this.tracks.get(track), bpm);
     this.sequencer.run();
     this.playing = true;
+    this.track = track;
   }
 
   stopMusic() {
     this.playing = false;
+    this.track = null;
     if (!this.ctx) return;
     this.sequencer.halt();
     this.fadeMusic(0);
