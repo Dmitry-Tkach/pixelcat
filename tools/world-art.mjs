@@ -1,9 +1,11 @@
 // Draws the village, farm and sunset worlds: repeating background layers, obstacles and gates.
+// They follow the City's English look: a village, the countryside, and the town again at dusk.
 // Run: npm run assets
 import { Resvg } from '@resvg/resvg-js';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { DUSK_FILTER, farTown, townRow, townStreet } from './english-town.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = join(ROOT, 'public', 'assets', 'worlds');
@@ -23,7 +25,8 @@ function rng(seed) {
 
 function save(name, inner, w = TILE, h = HEIGHT) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${inner}</svg>`;
-  writeFileSync(join(OUT, `${name}.png`), new Resvg(svg).render().asPng());
+  // System fonts, for the lettering on signs.
+  writeFileSync(join(OUT, `${name}.png`), new Resvg(svg, { font: { loadSystemFonts: true, defaultFontFamily: 'Georgia' } }).render().asPng());
 }
 
 // Splits the tile into widths that sum to it exactly, so the layer repeats without a seam.
@@ -50,21 +53,6 @@ function hills(base, waves, fill) {
   return `<path d="${d} L${TILE} ${STREET_TOP} Z" fill="${fill}"/>`;
 }
 
-function sky(name, stops) {
-  const gradient = stops.map(([offset, color]) => `<stop offset="${offset}" stop-color="${color}"/>`).join('');
-  save(name, `<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">${gradient}</linearGradient></defs><rect width="1280" height="720" fill="url(#g)"/>`, 1280, 720);
-}
-
-function tree(x, rand, palette, base = STREET_TOP + 8) {
-  const h = 90 + rand() * 50;
-  const [dark, mid, light] = palette[Math.floor(rand() * palette.length)];
-  return `<rect x="${x - 10}" y="${base - h}" width="20" height="${h}" rx="6" fill="#8E5A30"/>
-    <rect x="${x + 1}" y="${base - h}" width="9" height="${h}" rx="4" fill="#6F4522"/>
-    <ellipse cx="${x}" cy="${base - h - 46}" rx="74" ry="78" fill="${dark}"/>
-    <ellipse cx="${x - 8}" cy="${base - h - 54}" rx="64" ry="68" fill="${mid}"/>
-    <ellipse cx="${x - 28}" cy="${base - h - 82}" rx="24" ry="18" fill="${light}"/>`;
-}
-
 function flowers(rand, y, spread, colors) {
   let out = '';
   for (let x = 20; x < TILE - 20; x += 40 + rand() * 60) {
@@ -75,233 +63,390 @@ function flowers(rand, y, spread, colors) {
   return out;
 }
 
-// ----- Village -----
+// A sky with a sun and its glow. `sun` is { x, y, r, glow } in screen pixels, or nothing.
+function sky(name, stops, sun) {
+  const gradient = stops.map(([offset, color]) => `<stop offset="${offset}" stop-color="${color}"/>`).join('');
+  let inner = `<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">${gradient}</linearGradient>`;
+  if (sun) {
+    inner += `<radialGradient id="sunGlow" cx="${sun.x / 1280}" cy="${sun.y / 720}" r="${sun.spread ?? 0.5}">
+      <stop offset="0" stop-color="${sun.glow}" stop-opacity="0.95"/><stop offset="0.15" stop-color="${sun.glow}" stop-opacity="0.6"/>
+      <stop offset="0.5" stop-color="${sun.glow}" stop-opacity="0.16"/><stop offset="1" stop-color="${sun.glow}" stop-opacity="0"/>
+    </radialGradient>`;
+  }
+  inner += `</defs><rect width="1280" height="720" fill="url(#g)"/>`;
+  if (sun) inner += `<rect width="1280" height="720" fill="url(#sunGlow)"/><circle cx="${sun.x}" cy="${sun.y}" r="${sun.r}" fill="${sun.disc}"/>`;
+  save(name, inner, 1280, 720);
+}
 
+// Rays of light across the screen, from the sun's side. Drawn over the buildings, behind the street.
+function sunbeams(name, color, beams) {
+  const paths = beams.map(([top, width, slant, opacity]) => `<path d="M${top} -20 L${top + width} -20 L${top + width - slant} 760 L${top - slant - width * 4} 760 Z" fill="url(#beam)" opacity="${opacity}"/>`).join('');
+  save(name, `<defs><linearGradient id="beam" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${color}" stop-opacity="0.9"/><stop offset="0.7" stop-color="${color}" stop-opacity="0.15"/><stop offset="1" stop-color="${color}" stop-opacity="0"/>
+    </linearGradient></defs>${paths}`, 1280, 720);
+}
+
+// A haze over the bottom of a far layer, so distance looks pale.
+const haze = (color, height = 220) => `<defs><linearGradient id="haze" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="${color}" stop-opacity="0"/><stop offset="1" stop-color="${color}" stop-opacity="0.8"/>
+  </linearGradient></defs><rect y="${STREET_TOP - height}" width="${TILE}" height="${height}" fill="url(#haze)"/>`;
+
+// A hill covered in fields: strips of crops in different colours, divided by hedgerows with trees.
+function fieldHill(id, base, waves, colors, hedge, rand, furrows = false) {
+  const outline = hills(base, waves, '#000');
+  const d = outline.match(/d="([^"]+)"/)[1];
+  let fields = '';
+  let x = 0;
+  for (const w of widths(rand, 110, 230)) {
+    const color = colors[Math.floor(rand() * colors.length)];
+    const lean = (rand() - 0.5) * 60;
+    fields += `<path d="M${x} ${STREET_TOP} L${x + lean} ${base - 80} L${x + w + lean} ${base - 80} L${x + w} ${STREET_TOP} Z" fill="${color}"/>`;
+    if (furrows && rand() < 0.4) {
+      for (let f = 8; f < w; f += 12) fields += `<path d="M${x + f} ${STREET_TOP} L${x + f + lean} ${base - 80}" stroke="#000" stroke-opacity="0.08" stroke-width="3"/>`;
+    }
+    fields += `<path d="M${x} ${STREET_TOP} L${x + lean} ${base - 80}" stroke="${hedge}" stroke-width="5"/>`;
+    for (let t = 0; t < 3; t++) {
+      const k = 0.25 + rand() * 0.6;
+      fields += `<circle cx="${x + lean * (1 - k)}" cy="${STREET_TOP - (STREET_TOP - base + 80) * (1 - k)}" r="${6 + rand() * 5}" fill="${hedge}"/>`;
+    }
+    x += w;
+  }
+  return `<defs><clipPath id="${id}"><path d="${d}"/></clipPath></defs>
+    <path d="${d}" fill="${colors[0]}"/><g clip-path="url(#${id})">${fields}</g>
+    <path d="${d.replace(/ L2048 520 Z$/, '').replace(/^M0 520 L0 [\d.]+/, (m) => m.replace('M0 520 L0', 'M0'))}" fill="none" stroke="${hedge}" stroke-width="6" stroke-opacity="0.8"/>`;
+}
+
+// An English oak: a broad, lumpy crown on a short trunk.
+function oak(x, rand, base = STREET_TOP + 8, size = 1) {
+  const h = (70 + rand() * 30) * size;
+  const top = base - h;
+  const dark = '#2F7D3E';
+  const mid = '#3E9A4A';
+  const light = '#6CC062';
+  let crown = '';
+  for (let i = 0; i < 7; i++) {
+    const a = (i / 7) * Math.PI * 2;
+    crown += `<circle cx="${x + Math.cos(a) * 52 * size}" cy="${top - 50 * size + Math.sin(a) * 34 * size}" r="${(34 + rand() * 10) * size}" fill="${dark}"/>`;
+  }
+  crown += `<circle cx="${x}" cy="${top - 62 * size}" r="${54 * size}" fill="${mid}"/><circle cx="${x - 30 * size}" cy="${top - 44 * size}" r="${36 * size}" fill="${mid}"/>
+    <circle cx="${x + 34 * size}" cy="${top - 52 * size}" r="${34 * size}" fill="${mid}"/>
+    <circle cx="${x - 20 * size}" cy="${top - 92 * size}" r="${18 * size}" fill="${light}"/><circle cx="${x + 22 * size}" cy="${top - 80 * size}" r="${13 * size}" fill="${light}"/>`;
+  return `<path d="M${x - 14 * size} ${base} L${x - 8 * size} ${top} L${x + 8 * size} ${top} L${x + 14 * size} ${base} Z" fill="#7A5232"/>
+    <path d="M${x} ${top + 10} L${x - 30 * size} ${top - 30 * size} M${x} ${top + 4} L${x + 28 * size} ${top - 26 * size}" stroke="#7A5232" stroke-width="${8 * size}" stroke-linecap="round"/>${crown}`;
+}
+
+// A dry-stone wall along the bottom of the layer, with upright coping stones on top.
+function dryStoneWall(x0, x1, rand, base = STREET_TOP + 14, height = 40) {
+  let s = `<rect x="${x0}" y="${base - height}" width="${x1 - x0}" height="${height}" fill="#8C8270"/>`;
+  for (let row = 0; row < 3; row++) {
+    for (let x = x0 - (row % 2) * 14; x < x1; x += 24 + rand() * 14) {
+      const w = 22 + rand() * 12;
+      s += `<rect x="${x}" y="${base - height + 6 + row * 11}" width="${Math.min(w, x1 - x)}" height="10" rx="4" fill="${['#C9BC9F', '#B8AB8E', '#D6CAAE'][Math.floor(rand() * 3)]}"/>`;
+    }
+  }
+  for (let x = x0; x < x1 - 6; x += 9) s += `<rect x="${x}" y="${base - height - 8}" width="7" height="12" rx="2" fill="${rand() < 0.5 ? '#B8AB8E' : '#A79A7E'}"/>`;
+  return s;
+}
+
+// ----- Village: an English village -----
+
+// A thatched cottage: whitewash or honey-coloured stone, a thick straw roof with a window peeping
+// out of it, small-paned windows, a stable door under a little hood, and roses climbing the wall.
 function cottage(rand, x, w) {
-  const WALLS = [['#FFF2D6', '#EBD7AE'], ['#FCE3C4', '#E9C79D'], ['#E8F2D8', '#CCDDB3'], ['#FBD9C9', '#EDBBA6']];
-  const ROOFS = [['#E2483D', '#B8322B'], ['#D9622B', '#AE4A1E'], ['#C93F5E', '#A02E49']];
-  const [wall, shade] = WALLS[Math.floor(rand() * WALLS.length)];
-  const [roof, roofDark] = ROOFS[Math.floor(rand() * ROOFS.length)];
-  const h = 120 + Math.floor(rand() * 3) * 34;
+  const WALLS = [['#FBF6EA', '#E8DEC8', null], ['#F6E7C8', '#E2CDA3', null], ['#D9B77A', '#C49E5E', 'cotswold']];
+  const [wall, shade, pattern] = WALLS[Math.floor(rand() * WALLS.length)];
+  const h = 150 + Math.floor(rand() * 2) * 20;
   const top = STREET_TOP - h;
-  const roofH = 86;
-  let s = `<rect x="${x + 14}" y="${top}" width="${w - 28}" height="${h}" fill="${wall}"/>
-    <rect x="${x + w - 34}" y="${top}" width="20" height="${h}" fill="${shade}"/>
-    <rect x="${x + w * 0.68}" y="${top - roofH - 8}" width="24" height="60" fill="#A0604A"/>
-    <path d="M${x - 2} ${top + 4} L${x + w / 2} ${top - roofH} L${x + w + 2} ${top + 4} Z" fill="${roof}"/>
-    <path d="M${x + w / 2} ${top - roofH} L${x + w + 2} ${top + 4} L${x + w * 0.72} ${top + 4} Z" fill="${roofDark}"/>`;
-  const doorX = x + w / 2 - 22;
-  s += `<path d="M${doorX} ${STREET_TOP} V${STREET_TOP - 70} A22 22 0 0 1 ${doorX + 44} ${STREET_TOP - 70} V${STREET_TOP} Z" fill="#2F9E8F"/>
-    <circle cx="${doorX + 36}" cy="${STREET_TOP - 44}" r="4" fill="#FFD568"/>`;
-  for (const wx of [x + 34, x + w - 92]) {
-    s += `<rect x="${wx - 4}" y="${STREET_TOP - 94}" width="66" height="60" rx="4" fill="#FFFFFF"/>
-      <rect x="${wx}" y="${STREET_TOP - 90}" width="58" height="52" rx="3" fill="#57B7E0"/>
-      <rect x="${wx + 26}" y="${STREET_TOP - 90}" width="5" height="52" fill="#FFFFFF"/>
-      <rect x="${wx - 6}" y="${STREET_TOP - 36}" width="70" height="14" rx="4" fill="#9B5F33"/>
-      <circle cx="${wx + 8}" cy="${STREET_TOP - 38}" r="7" fill="#F0556A"/><circle cx="${wx + 28}" cy="${STREET_TOP - 40}" r="7" fill="#FFC531"/><circle cx="${wx + 48}" cy="${STREET_TOP - 38}" r="7" fill="#F0556A"/>`;
+  const ridge = top - 112;
+  const fill = pattern ? 'url(#cotswold)' : wall;
+  const doorColour = ['#6B8F71', '#3E6E8E', '#7A1E2C', '#2F5D3A'][Math.floor(rand() * 4)];
+  let s = `<rect x="${x + 10}" y="${top}" width="${w - 20}" height="${h}" fill="${fill}"/>
+    <rect x="${x + w - 26}" y="${top}" width="16" height="${h}" fill="${shade}" opacity="0.8"/>`;
+  // The chimney, at one end of the ridge.
+  const cx = rand() < 0.5 ? x + 30 : x + w - 64;
+  s += `<rect x="${cx}" y="${ridge - 30}" width="34" height="90" fill="#B4513A"/><rect x="${cx - 3}" y="${ridge - 36}" width="40" height="8" fill="#9A4130"/>
+    <rect x="${cx + 6}" y="${ridge - 50}" width="9" height="16" fill="#C8693F"/><rect x="${cx + 20}" y="${ridge - 48}" width="9" height="14" fill="#C8693F"/>`;
+  // The thatch: thick and rounded, with a scalloped edge, straw lines, and a patterned ridge.
+  s += `<path d="M${x - 16} ${top + 18} C${x - 16} ${top - 30} ${x + w * 0.2} ${ridge} ${x + w / 2} ${ridge} C${x + w * 0.8} ${ridge} ${x + w + 16} ${top - 30} ${x + w + 16} ${top + 18} Z" fill="#D8B160"/>
+    <path d="M${x + w / 2} ${ridge} C${x + w * 0.8} ${ridge} ${x + w + 16} ${top - 30} ${x + w + 16} ${top + 18} L${x + w * 0.72} ${top + 18} C${x + w * 0.74} ${top - 30} ${x + w * 0.62} ${ridge + 20} ${x + w / 2} ${ridge} Z" fill="#C49A48"/>`;
+  for (let i = 0; i < w + 32; i += 9) {
+    const sx = x - 16 + i;
+    s += `<path d="M${sx} ${top + 14} q${(sx - (x + w / 2)) * 0.05} -24 ${(sx - (x + w / 2)) * 0.12} -44" stroke="#B88E3E" stroke-width="2" fill="none" opacity="0.7"/>`;
+  }
+  for (let i = 0; i < (w + 32) / 22; i++) s += `<path d="M${x - 16 + i * 22} ${top + 16} a11 8 0 0 0 22 0" fill="#B88E3E"/>`;
+  s += `<path d="M${x + w * 0.22} ${ridge + 22} Q${x + w / 2} ${ridge - 8} ${x + w * 0.78} ${ridge + 22}" stroke="#A97E33" stroke-width="10" fill="none" stroke-linecap="round"/>`;
+  for (let i = 0; i < 8; i++) {
+    const zx = x + w * 0.26 + (i * w * 0.48) / 8;
+    s += `<path d="M${zx} ${ridge + 18} l${w * 0.03} 10 l${w * 0.03} -10" stroke="#8E6A2A" stroke-width="2.5" fill="none"/>`;
+  }
+  // A window peeping out of the thatch, under an eyebrow of straw.
+  const ex = x + w / 2 - 20;
+  s += `<path d="M${ex - 18} ${top + 2} Q${ex + 20} ${top - 70} ${ex + 58} ${top + 2} Z" fill="#D8B160"/>
+    <rect x="${ex}" y="${top - 30}" width="40" height="30" fill="#FFFFFF"/><rect x="${ex + 4}" y="${top - 26}" width="32" height="24" fill="#5FA8D3"/>
+    <path d="M${ex + 20} ${top - 26} v24 M${ex + 4} ${top - 14} h32" stroke="#FFFFFF" stroke-width="2.5"/>
+    <path d="M${ex - 18} ${top + 2} Q${ex + 20} ${top - 70} ${ex + 58} ${top + 2}" stroke="#B88E3E" stroke-width="6" fill="none"/>`;
+  // Little windows of square panes, with flower boxes.
+  const doorX = x + w / 2 - 24;
+  for (const wx of [x + 26, x + w - 92]) {
+    if (Math.abs(wx - doorX) < 70) continue;
+    const wy = STREET_TOP - 104;
+    s += `<rect x="${wx - 4}" y="${wy - 4}" width="66" height="58" rx="3" fill="#FFFFFF"/>
+      <rect x="${wx}" y="${wy}" width="58" height="50" fill="#5FA8D3"/>
+      <path d="M${wx} ${wy + 34} L${wx + 40} ${wy} L${wx + 52} ${wy} L${wx} ${wy + 46} Z" fill="#9DD0EE" opacity="0.7"/>
+      <path d="M${wx + 19} ${wy} v50 M${wx + 39} ${wy} v50 M${wx} ${wy + 17} h58 M${wx} ${wy + 34} h58" stroke="#FFFFFF" stroke-width="2.5"/>
+      <rect x="${wx - 6}" y="${wy + 50}" width="70" height="12" rx="3" fill="#7A5232"/>
+      <circle cx="${wx + 6}" cy="${wy + 48}" r="7" fill="#E8456E"/><circle cx="${wx + 22}" cy="${wy + 46}" r="7" fill="#FFFFFF"/>
+      <circle cx="${wx + 38}" cy="${wy + 48}" r="7" fill="#B79CEB"/><circle cx="${wx + 54}" cy="${wy + 46}" r="7" fill="#FFD568"/>`;
+  }
+  // The stable door under a little tiled hood, with roses climbing up beside it.
+  s += `<rect x="${doorX}" y="${STREET_TOP - 92}" width="48" height="92" fill="${doorColour}"/>
+    <rect x="${doorX}" y="${STREET_TOP - 48}" width="48" height="4" fill="#000000" opacity="0.2"/>
+    <rect x="${doorX + 6}" y="${STREET_TOP - 84}" width="36" height="28" rx="2" fill="#000000" opacity="0.12"/>
+    <circle cx="${doorX + 40}" cy="${STREET_TOP - 40}" r="3.5" fill="#F2C230"/>
+    <path d="M${doorX - 14} ${STREET_TOP - 92} L${doorX + 24} ${STREET_TOP - 118} L${doorX + 62} ${STREET_TOP - 92} Z" fill="#9A4130"/>
+    <rect x="${doorX - 14}" y="${STREET_TOP - 94}" width="76" height="5" fill="#7A3326"/>`;
+  for (let r = 0; r < 9; r++) {
+    const rx = doorX - 12 + (r % 2) * 8;
+    const ry = STREET_TOP - 10 - r * 12;
+    s += `<circle cx="${rx}" cy="${ry}" r="9" fill="#3E9A4A"/>`;
+    if (r % 2 === 0) s += `<circle cx="${rx + 3}" cy="${ry - 3}" r="4.5" fill="#E8456E"/>`;
   }
   return s;
 }
 
-function villageArt() {
-  const GREENS = [['#2FA65A', '#4CC96F', '#8CEB9B'], ['#3C9E48', '#5CC15C', '#A2E88D']];
-  sky('park-sky', [[0, '#1E9CF0'], [0.6, '#76D0F8'], [1, '#E2F8E8']]);
-  save('park-far', [
-    hills(345, [[2, 40, 0], [5, 16, 1]], '#A9E3A5'),
-    hills(405, [[3, 30, 2], [7, 10, 0.4]], '#7FD27F'),
-  ].join(''), TILE, STREET_TOP);
+// A village church in the distance: a square tower with a pointed spire.
+function church(x, base, fill) {
+  return `<rect x="${x}" y="${base - 120}" width="150" height="120" fill="${fill}"/>
+    <path d="M${x - 6} ${base - 118} L${x + 75} ${base - 170} L${x + 156} ${base - 118} Z" fill="${fill}"/>
+    <rect x="${x + 150}" y="${base - 190}" width="56" height="190" fill="${fill}"/>
+    <path d="M${x + 146} ${base - 190} L${x + 178} ${base - 300} L${x + 210} ${base - 190} Z" fill="${fill}"/>
+    <path d="M${x + 168} ${base - 170} v-14 a10 10 0 0 1 20 0 v14 Z" fill="#FFFFFF" opacity="0.35"/>`;
+}
 
+function villageArt() {
+  sky('park-sky', [[0, '#3C9CE0'], [0.6, '#8FCDEE'], [1, '#E6F5E8']], { x: 1080, y: 96, r: 40, glow: '#FFF4C8', disc: '#FFFBE6' });
+  sunbeams('park-sunbeams', '#FFF6D0', [[740, 140, 520, 0.5], [920, 100, 520, 0.38], [1060, 160, 520, 0.46], [1200, 90, 520, 0.32]]);
   const rand = rng(77);
-  let near = hills(470, [[4, 16, 1.2]], '#4FC065');
+  let far = fieldHill('vfar', 330, [[2, 36, 0], [5, 14, 1]], ['#BFE3A8', '#D3E8A6', '#B2DB9C', '#E1E6AE'], '#86BE79', rand);
+  far += church(1180, 420, '#9CC496');
+  far += fieldHill('vmid', 400, [[3, 26, 2], [7, 9, 0.4]], ['#93D07F', '#A9D98B', '#C6DF88', '#86C873'], '#4E9A4F', rand);
+  far += haze('#EAF6EA', 200);
+  save('park-far', far, TILE, STREET_TOP);
+
+  let near = `<defs><pattern id="cotswold" width="36" height="14" patternUnits="userSpaceOnUse">
+      <rect width="36" height="14" fill="#D9B77A"/><rect x="1" y="1" width="20" height="5.5" rx="2" fill="#E3C48A"/><rect x="23" y="1" width="12" height="5.5" rx="2" fill="#CFAB6C"/>
+      <rect x="1" y="8" width="11" height="5" rx="2" fill="#CFAB6C"/><rect x="14" y="8" width="21" height="5" rx="2" fill="#E3C48A"/></pattern></defs>`;
+  near += hills(470, [[4, 16, 1.2]], '#5BB862');
   let x = 0;
-  widths(rand, 260, 360).forEach((w, i) => {
-    if (i % 3 === 2) {
-      near += tree(x + w / 2, rand, GREENS);
-    } else {
-      near += cottage(rand, x + 16, w - 32);
-    }
+  widths(rand, 280, 360).forEach((w, i) => {
+    if (i % 3 === 2) near += oak(x + w / 2, rand);
+    else near += cottage(rand, x + 18, w - 36);
     x += w;
   });
-  for (let tx = 110; tx < TILE - 110; tx += 460) near += tree(tx, rand, GREENS); // clear of the tile's edges
-  for (let hx = 0; hx < TILE; hx += 64) {
-    near += `<ellipse cx="${hx + 32}" cy="${STREET_TOP + 4}" rx="38" ry="22" fill="#2F9E4F"/>`;
+  for (let tx = 120; tx < TILE - 120; tx += 520) near += oak(tx, rand, STREET_TOP + 8, 0.8);
+  // Along the front: dry-stone walls, with a five-bar gate now and then, and hedges between.
+  for (let wx = 0; wx < TILE; wx += 512) {
+    near += dryStoneWall(wx, wx + 300, rand);
+    near += `<g transform="translate(${wx + 300} 0)">
+      <rect x="4" y="${STREET_TOP - 46}" width="8" height="60" fill="#7A5232"/><rect x="92" y="${STREET_TOP - 46}" width="8" height="60" fill="#7A5232"/>
+      ${[0, 1, 2, 3, 4].map((b) => `<rect x="12" y="${STREET_TOP - 40 + b * 10}" width="80" height="5" fill="#B88A58"/>`).join('')}
+      <path d="M14 ${STREET_TOP + 8} L90 ${STREET_TOP - 40}" stroke="#B88A58" stroke-width="5"/></g>`;
+    for (let hx = wx + 404; hx < wx + 512; hx += 34) near += `<circle cx="${hx}" cy="${STREET_TOP - 6}" r="24" fill="#2F8A3F"/><circle cx="${hx - 6}" cy="${STREET_TOP - 16}" r="10" fill="#4FAE55"/>`;
   }
   save('park-near', near, TILE, STREET_TOP + 20);
 
+  // A grass verge full of flowers, then a cobbled lane.
   const r2 = rng(5);
-  let ground = `<rect y="${STREET_TOP}" width="${TILE}" height="86" fill="#5FCB5B"/>
-    <rect y="${STREET_TOP}" width="${TILE}" height="9" fill="#8CE678"/>
-    ${flowers(r2, STREET_TOP + 18, 56, ['#FFFFFF', '#F58FAB', '#FFD568'])}
-    <rect y="${STREET_TOP + 86}" width="${TILE}" height="${HEIGHT - STREET_TOP - 86}" fill="#A9ABB8"/>
-    <rect y="${STREET_TOP + 86}" width="${TILE}" height="12" fill="#7D7F92"/>`;
-  for (let row = 0; row < 3; row++) {
-    for (let cx = (row % 2) * -32; cx < TILE; cx += 64) { // odd rows start off the edge, so the seam stays filled
-      ground += `<rect x="${cx + 3}" y="${STREET_TOP + 104 + row * 32}" width="58" height="26" rx="7" fill="${row % 2 ? '#BBBDC9' : '#B3B5C2'}"/>`;
+  let ground = `<rect y="${STREET_TOP}" width="${TILE}" height="86" fill="#5FBF5B"/>
+    <rect y="${STREET_TOP}" width="${TILE}" height="6" fill="#2F8A3F" opacity="0.45"/>
+    <rect y="${STREET_TOP + 6}" width="${TILE}" height="6" fill="#86D97A"/>`;
+  for (let gx = 8; gx < TILE - 8; gx += 14 + r2() * 20) {
+    const gy = STREET_TOP + 20 + r2() * 60;
+    ground += `<path d="M${gx} ${gy} l-4 -10 M${gx} ${gy} l0 -13 M${gx} ${gy} l4 -10" stroke="${r2() < 0.5 ? '#3F9E45' : '#7ACB6A'}" stroke-width="2.5" stroke-linecap="round"/>`;
+  }
+  ground += flowers(r2, STREET_TOP + 20, 56, ['#FFFFFF', '#F58FAB', '#FFD568', '#B79CEB']);
+  ground += `<rect y="${STREET_TOP + 80}" width="${TILE}" height="10" fill="#8C8270"/>`;
+  for (let kx = 0; kx < TILE; kx += 32) ground += `<rect x="${kx + 1}" y="${STREET_TOP + 78}" width="30" height="12" rx="4" fill="${r2() < 0.5 ? '#C9BC9F' : '#B8AB8E'}"/>`;
+  ground += `<rect y="${STREET_TOP + 90}" width="${TILE}" height="${HEIGHT - STREET_TOP - 90}" fill="#6E6A78"/>
+    <rect y="${STREET_TOP + 90}" width="${TILE}" height="10" fill="#4E4A58" opacity="0.7"/>`;
+  for (let row = 0; row < 4; row++) {
+    const y = STREET_TOP + 98 + row * 26;
+    for (let cx = (row % 2) * -24; cx < TILE; cx += 48) {
+      const tint = ['#A9A6B4', '#B6B3C0', '#9E9BAA', '#B1AEBB'][Math.floor(r2() * 4)];
+      ground += `<rect x="${cx + 2}" y="${y}" width="44" height="22" rx="9" fill="${tint}"/>
+        <rect x="${cx + 6}" y="${y + 2}" width="30" height="5" rx="2.5" fill="#FFFFFF" opacity="0.28"/>
+        <rect x="${cx + 4}" y="${y + 17}" width="40" height="4" rx="2" fill="#000000" opacity="0.14"/>`;
+      if (r2() < 0.05) ground += `<path d="M${cx} ${y + 22} l-3 -8 M${cx} ${y + 22} l2 -9" stroke="#5FAE55" stroke-width="2.5" stroke-linecap="round"/>`;
     }
   }
   save('park-street', `<g transform="translate(0 -${STREET_TOP})">${ground}</g>`, TILE, HEIGHT - STREET_TOP);
 }
 
-// ----- Farm -----
+// ----- Farm: the English countryside -----
 
 function barn(x) {
-  return `<rect x="${x}" y="${STREET_TOP - 210}" width="280" height="210" fill="#D8402F"/>
+  let planks = '';
+  for (let px = x + 14; px < x + 250; px += 18) planks += `<rect x="${px}" y="${STREET_TOP - 206}" width="2.5" height="206" fill="#A9301F" opacity="0.6"/>`;
+  let shingles = '';
+  for (let row = 0; row < 5; row++) {
+    const y = STREET_TOP - 296 + row * 19;
+    shingles += `<path d="M${x - 10 + (5 - row) * 10} ${y + 16} H${x + 290 - (5 - row) * 10}" stroke="#463029" stroke-width="3"/>`;
+  }
+  return `<rect x="${x}" y="${STREET_TOP - 210}" width="280" height="210" fill="#D8402F"/>${planks}
     <rect x="${x + 250}" y="${STREET_TOP - 210}" width="30" height="210" fill="#AE2F22"/>
-    <path d="M${x - 16} ${STREET_TOP - 206} L${x + 50} ${STREET_TOP - 300} H${x + 230} L${x + 296} ${STREET_TOP - 206} Z" fill="#5B4037"/>
+    <rect x="${x}" y="${STREET_TOP - 210}" width="280" height="10" fill="#000000" opacity="0.15"/>
+    <path d="M${x - 16} ${STREET_TOP - 206} L${x + 50} ${STREET_TOP - 300} H${x + 230} L${x + 296} ${STREET_TOP - 206} Z" fill="#5B4037"/>${shingles}
+    <path d="M${x - 16} ${STREET_TOP - 206} L${x + 50} ${STREET_TOP - 300} H${x + 230} L${x + 296} ${STREET_TOP - 206}" stroke="#F4EAD2" stroke-width="5" fill="none"/>
     <rect x="${x + 96}" y="${STREET_TOP - 122}" width="88" height="122" fill="#FFF3D6"/>
     <path d="M${x + 96} ${STREET_TOP - 122} L${x + 184} ${STREET_TOP} M${x + 184} ${STREET_TOP - 122} L${x + 96} ${STREET_TOP}" stroke="#D8402F" stroke-width="10"/>
-    <circle cx="${x + 140}" cy="${STREET_TOP - 178}" r="26" fill="#FFF3D6"/><circle cx="${x + 140}" cy="${STREET_TOP - 178}" r="18" fill="#6E4A2A"/>`;
+    <rect x="${x + 92}" y="${STREET_TOP - 126}" width="96" height="6" fill="#F4EAD2"/>
+    <circle cx="${x + 140}" cy="${STREET_TOP - 178}" r="26" fill="#FFF3D6"/><circle cx="${x + 140}" cy="${STREET_TOP - 178}" r="18" fill="#6E4A2A"/>
+    <path d="M${x + 124} ${STREET_TOP - 188} a18 18 0 0 1 14 -8" stroke="#F4EAD2" stroke-width="3" fill="none"/>`;
 }
 
 function silo(x) {
   return `<rect x="${x}" y="${STREET_TOP - 270}" width="96" height="270" fill="#C7CFDF"/>
+    <rect x="${x + 12}" y="${STREET_TOP - 270}" width="10" height="270" fill="#E3E8F1"/>
     <rect x="${x + 68}" y="${STREET_TOP - 270}" width="28" height="270" fill="#A5AFC4"/>
     <path d="M${x} ${STREET_TOP - 270} A48 44 0 0 1 ${x + 96} ${STREET_TOP - 270} Z" fill="#E2483D"/>
+    <path d="M${x + 14} ${STREET_TOP - 290} a40 36 0 0 1 26 -18" stroke="#F07A70" stroke-width="5" fill="none"/>
     <path d="M${x} ${STREET_TOP - 200} H${x + 96} M${x} ${STREET_TOP - 130} H${x + 96} M${x} ${STREET_TOP - 60} H${x + 96}" stroke="#8E96A3" stroke-width="4"/>`;
 }
 
 function windmill(x) {
   let blades = '';
   for (const angle of [15, 105, 195, 285]) {
-    blades += `<rect x="-11" y="-102" width="22" height="94" rx="3" fill="#FFF8E7" transform="rotate(${angle})"/>`;
+    blades += `<g transform="rotate(${angle})"><rect x="-11" y="-102" width="22" height="94" rx="3" fill="#FFF8E7"/>
+      <path d="M-11 -86 H11 M-11 -66 H11 M-11 -46 H11 M-11 -26 H11" stroke="#D9C9A8" stroke-width="2"/></g>`;
   }
   return `<path d="M${x - 44} ${STREET_TOP} L${x - 26} ${STREET_TOP - 210} H${x + 26} L${x + 44} ${STREET_TOP} Z" fill="#E9D2A6"/>
     <path d="M${x + 10} ${STREET_TOP} L${x + 8} ${STREET_TOP - 210} H${x + 26} L${x + 44} ${STREET_TOP} Z" fill="#CFB585"/>
+    <rect x="${x - 10}" y="${STREET_TOP - 60}" width="22" height="60" rx="3" fill="#8E5A30"/>
+    <rect x="${x - 8}" y="${STREET_TOP - 150}" width="16" height="22" rx="2" fill="#5FA8D3"/>
     <path d="M${x - 34} ${STREET_TOP - 208} L${x} ${STREET_TOP - 252} L${x + 34} ${STREET_TOP - 208} Z" fill="#8E5A30"/>
     <g transform="translate(${x} ${STREET_TOP - 214})">${blades}<circle r="11" fill="#6F4522"/></g>`;
 }
 
 function hayStack(x, base = STREET_TOP + 6) {
   return `<path d="M${x - 50} ${base} C${x - 50} ${base - 70} ${x + 50} ${base - 70} ${x + 50} ${base} Z" fill="#F2C440"/>
+    <path d="M${x - 40} ${base - 30} C${x - 30} ${base - 52} ${x - 10} ${base - 56} ${x} ${base - 56}" stroke="#FFE38A" stroke-width="5" fill="none" stroke-linecap="round"/>
     <path d="M${x - 26} ${base - 6} C${x - 22} ${base - 34} ${x - 10} ${base - 44} ${x - 2} ${base - 50} M${x + 18} ${base - 6} C${x + 18} ${base - 26} ${x + 22} ${base - 34} ${x + 28} ${base - 40}" stroke="#CC9620" stroke-width="5" fill="none" stroke-linecap="round"/>`;
 }
 
+// A round bale of hay, with its spiral showing.
+function roundBale(x, base = STREET_TOP + 4) {
+  return `<rect x="${x - 34}" y="${base - 58}" width="68" height="58" rx="10" fill="#E8B93C"/>
+    <ellipse cx="${x + 34}" cy="${base - 29}" rx="14" ry="29" fill="#F2C95A"/>
+    <path d="M${x + 34} ${base - 29} m-4 0 a4 6 0 1 1 8 0 a8 12 0 1 1 -16 0 a12 18 0 1 1 24 0" stroke="#C4921E" stroke-width="2.5" fill="none"/>
+    <path d="M${x - 30} ${base - 40} H${x + 24} M${x - 30} ${base - 20} H${x + 24}" stroke="#C4921E" stroke-width="2" opacity="0.6"/>`;
+}
+
+// A woolly sheep, as seen grazing on the hill.
+function sheep(x, y, flip = 1) {
+  return `<g transform="translate(${x} ${y}) scale(${flip} 1)">
+    <rect x="-14" y="2" width="5" height="16" rx="2" fill="#2B2D3A"/><rect x="8" y="2" width="5" height="16" rx="2" fill="#2B2D3A"/>
+    <circle cx="-12" cy="-4" r="11" fill="#F7F5EE"/><circle cx="0" cy="-8" r="13" fill="#FFFFFF"/><circle cx="12" cy="-4" r="11" fill="#F7F5EE"/><circle cx="0" cy="2" r="11" fill="#F0EDE4"/>
+    <ellipse cx="24" cy="-8" rx="8" ry="10" fill="#2B2D3A"/><circle cx="27" cy="-10" r="1.8" fill="#FFFFFF"/></g>`;
+}
+
 function farmArt() {
-  const GREENS = [['#3C9E48', '#65C451', '#A9E879']];
-  sky('farm-sky', [[0, '#35A5EC'], [0.6, '#A9DDF2'], [1, '#FFF3C4']]);
-  let far = hills(380, [[2, 36, 1], [5, 12, 0.3]], '#D8D977');
-  far += hills(430, [[3, 26, 0.2], [7, 8, 2]], '#F0C94F');
-  for (let row = 0; row < 2; row++) {
-    for (let cx = row * 60; cx < TILE; cx += 120) {
-      far += `<path d="M${cx} ${470 + row * 22} q30 -10 60 0" stroke="#D3A62F" stroke-width="5" fill="none"/>`;
-    }
-  }
+  sky('farm-sky', [[0, '#3E9EDF'], [0.6, '#A9D7EE'], [1, '#FFF1C8']], { x: 1060, y: 110, r: 44, glow: '#FFE9A8', disc: '#FFF8DC' });
+  sunbeams('farm-sunbeams', '#FFE9A8', [[700, 150, 560, 0.5], [880, 110, 560, 0.42], [1040, 170, 560, 0.5], [1190, 100, 560, 0.36]]);
+  const rand = rng(303);
+  let far = fieldHill('ffar', 360, [[2, 34, 1], [5, 12, 0.3]], ['#D9D98A', '#E6C95E', '#B9D57E', '#C7A266'], '#8DB062', rand, true);
+  far += fieldHill('fmid', 425, [[3, 24, 0.2], [7, 8, 2]], ['#F0C94F', '#E5B843', '#A6CF6A', '#C99A5A'], '#6E9E45', rand, true);
+  for (const [sx, sy, f] of [[300, 452, 1], [360, 458, -1], [1150, 448, 1], [1700, 455, -1], [1760, 450, 1]]) far += sheep(sx, sy, f);
+  far += haze('#FFF4D6', 200);
   save('farm-far', far, TILE, STREET_TOP);
 
-  const rand = rng(303);
   let near = hills(474, [[4, 12, 0.8]], '#8CD45B');
   near += barn(90) + silo(400) + windmill(680) + barn(1010) + silo(1320) + windmill(1640);
-  for (const hx of [560, 860, 1500, 1880]) near += hayStack(hx);
-  for (const tx of [960, 1460, 1930]) near += tree(tx, rand, GREENS); // clear of the tile's edges
+  for (const hx of [560, 1500]) near += hayStack(hx);
+  for (const bx of [850, 910, 1880]) near += roundBale(bx);
+  for (const tx of [960, 1460, 1960]) near += oak(tx, rand, STREET_TOP + 8, 0.9);
+  // A post-and-rail fence, lit along the top of each rail.
   for (let fx = 0; fx < TILE; fx += 64) {
-    near += `<rect x="${fx + 26}" y="${STREET_TOP - 42}" width="12" height="58" rx="3" fill="#B5854F"/>`;
+    near += `<rect x="${fx + 26}" y="${STREET_TOP - 46}" width="12" height="62" rx="3" fill="#A87A48"/><rect x="${fx + 26}" y="${STREET_TOP - 46}" width="4" height="62" fill="#C99A62"/>`;
   }
-  near += `<rect y="${STREET_TOP - 30}" width="${TILE}" height="10" fill="#C99A62"/><rect y="${STREET_TOP - 8}" width="${TILE}" height="10" fill="#C99A62"/>`;
+  near += `<rect y="${STREET_TOP - 32}" width="${TILE}" height="10" fill="#B88A58"/><rect y="${STREET_TOP - 32}" width="${TILE}" height="3" fill="#D8AE7A"/>
+    <rect y="${STREET_TOP - 10}" width="${TILE}" height="10" fill="#B88A58"/><rect y="${STREET_TOP - 10}" width="${TILE}" height="3" fill="#D8AE7A"/>`;
   save('farm-near', near, TILE, STREET_TOP + 20);
 
+  // A grass verge with dandelions, then a rutted dirt track with pebbles and puddles.
   const r2 = rng(19);
   let ground = `<rect y="${STREET_TOP}" width="${TILE}" height="86" fill="#7FCF4E"/>
-    <rect y="${STREET_TOP}" width="${TILE}" height="9" fill="#A9E879"/>`;
-  for (let gx = 12; gx < TILE - 12; gx += 26 + r2() * 30) {
-    const gy = STREET_TOP + 22 + r2() * 50;
-    ground += `<path d="M${gx} ${gy} l-5 -12 M${gx} ${gy} l0 -15 M${gx} ${gy} l5 -12" stroke="#59A838" stroke-width="3" stroke-linecap="round"/>`;
+    <rect y="${STREET_TOP}" width="${TILE}" height="6" fill="#4E9C2E" opacity="0.5"/>
+    <rect y="${STREET_TOP + 6}" width="${TILE}" height="6" fill="#A9E879"/>`;
+  for (let gx = 12; gx < TILE - 12; gx += 18 + r2() * 26) {
+    const gy = STREET_TOP + 22 + r2() * 56;
+    ground += `<path d="M${gx} ${gy} l-5 -12 M${gx} ${gy} l0 -15 M${gx} ${gy} l5 -12" stroke="${r2() < 0.5 ? '#59A838' : '#94D86A'}" stroke-width="3" stroke-linecap="round"/>`;
+    if (r2() < 0.15) ground += `<circle cx="${gx + 8}" cy="${gy - 12}" r="5" fill="#FFD23F"/><circle cx="${gx + 8}" cy="${gy - 12}" r="2" fill="#F2A900"/>`;
   }
-  ground += `<rect y="${STREET_TOP + 86}" width="${TILE}" height="${HEIGHT - STREET_TOP - 86}" fill="#B9794A"/>
-    <rect y="${STREET_TOP + 86}" width="${TILE}" height="12" fill="#8F5A33"/>`;
-  for (let tx = 16; tx < TILE; tx += 128) {
-    ground += `<rect x="${tx}" y="${STREET_TOP + 122}" width="84" height="8" rx="4" fill="#9C6238"/>
-      <rect x="${tx + 58}" y="${STREET_TOP + 164}" width="58" height="8" rx="4" fill="#9C6238"/>`;
+  ground += `<defs><linearGradient id="track" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A86A3E"/><stop offset="0.5" stop-color="#BF8150"/><stop offset="1" stop-color="#AE7044"/></linearGradient></defs>
+    <rect y="${STREET_TOP + 86}" width="${TILE}" height="${HEIGHT - STREET_TOP - 86}" fill="url(#track)"/>
+    <rect y="${STREET_TOP + 86}" width="${TILE}" height="10" fill="#8F5A33"/>
+    <path d="M0 ${STREET_TOP + 96} ${Array.from({ length: 65 }, (_, i) => `L${i * 32} ${STREET_TOP + 96 + (i % 2 ? 4 : -2)}`).join(' ')} L${TILE} ${STREET_TOP + 92} V${STREET_TOP + 86} H0 Z" fill="#6FB445"/>`;
+  // Two wheel ruts along the track, each with a lit edge.
+  for (const ry of [STREET_TOP + 122, STREET_TOP + 170]) {
+    ground += `<rect y="${ry}" width="${TILE}" height="9" fill="#93592F"/><rect y="${ry + 9}" width="${TILE}" height="3" fill="#D39A68"/>`;
+  }
+  for (let i = 0; i < 260; i++) {
+    const px = r2() * TILE;
+    const py = STREET_TOP + 100 + r2() * (HEIGHT - STREET_TOP - 104);
+    const r = 2 + r2() * 4;
+    ground += `<ellipse cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" rx="${r.toFixed(1)}" ry="${(r * 0.7).toFixed(1)}" fill="${r2() < 0.5 ? '#D8A878' : '#8F5A33'}"/>`;
+  }
+  for (const px of [380, 1240, 1820]) {
+    ground += `<ellipse cx="${px}" cy="${STREET_TOP + 150}" rx="58" ry="10" fill="#7F4A28"/><ellipse cx="${px}" cy="${STREET_TOP + 149}" rx="52" ry="7" fill="#9FC8E6"/>
+      <ellipse cx="${px - 16}" cy="${STREET_TOP + 147}" rx="18" ry="2.5" fill="#FFFFFF" opacity="0.7"/>`;
   }
   save('farm-street', `<g transform="translate(0 -${STREET_TOP})">${ground}</g>`, TILE, HEIGHT - STREET_TOP);
 }
 
-// ----- Sunset, by the vet's -----
+// ----- Sunset: the English town again, at dusk, by the vet's -----
 
-function duskBuilding(rand, x, w) {
-  const WALLS = [['#7A4C87', '#5E3A6B'], ['#A0526B', '#7D3F55'], ['#C7674F', '#9F4F3B'], ['#5F5A94', '#494576']];
-  const [wall, shade] = WALLS[Math.floor(rand() * WALLS.length)];
-  const h = 240 + Math.floor(rand() * 4) * 50;
-  const top = STREET_TOP - h;
-  let s = `<rect x="${x}" y="${top}" width="${w}" height="${h}" fill="${wall}"/>
-    <rect x="${x + w - 16}" y="${top}" width="16" height="${h}" fill="${shade}"/>
-    <rect x="${x - 6}" y="${top - 14}" width="${w + 12}" height="18" rx="4" fill="${shade}"/>`;
-  const cols = Math.max(2, Math.floor((w - 30) / 68));
-  const gap = (w - 16 - cols * 44) / (cols + 1);
-  for (let wy = top + 24; wy < STREET_TOP - 80; wy += 84) {
-    for (let c = 0; c < cols; c++) {
-      const lit = rand() > 0.3;
-      s += `<rect x="${x + gap + c * (44 + gap)}" y="${wy}" width="44" height="58" rx="3" fill="${lit ? '#FFD76A' : '#33305C'}"/>`;
-    }
-  }
-  return s;
-}
-
+// The vet's clinic: white stucco and a teal sign, with its windows lit.
 function vetClinic(x) {
-  return `<rect x="${x}" y="${STREET_TOP - 300}" width="340" height="300" fill="#F6F1FA"/>
+  const body = `<rect x="${x}" y="${STREET_TOP - 300}" width="340" height="300" fill="#F6F1FA"/>
     <rect x="${x + 310}" y="${STREET_TOP - 300}" width="30" height="300" fill="#CFC6DC"/>
     <rect x="${x - 8}" y="${STREET_TOP - 314}" width="356" height="20" rx="4" fill="#26A69A"/>
-    <rect x="${x + 40}" y="${STREET_TOP - 282}" width="260" height="68" rx="10" fill="#26A69A"/>
+    <rect x="${x - 8}" y="${STREET_TOP - 314}" width="356" height="5" rx="2" fill="#7FE0D6"/>
+    <rect x="${x + 136}" y="${STREET_TOP - 124}" width="68" height="124" rx="5" fill="#26A69A"/>
+    <circle cx="${x + 194}" cy="${STREET_TOP - 54}" r="5" fill="#FFFFFF"/>
+    ${[36, 208].map((wx) => `<rect x="${x + wx - 6}" y="${STREET_TOP - 192}" width="108" height="112" rx="6" fill="#FFFFFF"/>`).join('')}`;
+  // The lights, drawn over the dusk: its sign, its windows and its door.
+  const lights = `<rect x="${x + 40}" y="${STREET_TOP - 282}" width="260" height="68" rx="10" fill="#26A69A"/>
+    <rect x="${x + 34}" y="${STREET_TOP - 288}" width="272" height="80" rx="14" fill="#7FE0D6" opacity="0.25"/>
     <text x="${x + 170}" y="${STREET_TOP - 232}" font-family="Arial, Helvetica, sans-serif" font-size="46" font-weight="700" fill="#FFFFFF" text-anchor="middle">VET</text>
     <path d="M${x + 62} ${STREET_TOP - 248} h14 v-14 h12 v14 h14 v12 h-14 v14 h-12 v-14 h-14 Z" fill="#FFFFFF"/>
     <path d="M${x + 238} ${STREET_TOP - 248} h14 v-14 h12 v14 h14 v12 h-14 v14 h-12 v-14 h-14 Z" fill="#FFFFFF"/>
-    <rect x="${x + 36}" y="${STREET_TOP - 186}" width="96" height="100" rx="5" fill="#FFD76A"/>
-    <rect x="${x + 208}" y="${STREET_TOP - 186}" width="96" height="100" rx="5" fill="#FFD76A"/>
-    <rect x="${x + 136}" y="${STREET_TOP - 124}" width="68" height="124" rx="5" fill="#26A69A"/>
-    <rect x="${x + 146}" y="${STREET_TOP - 114}" width="48" height="50" rx="4" fill="#FFD76A"/>
-    <circle cx="${x + 194}" cy="${STREET_TOP - 54}" r="5" fill="#FFFFFF"/>`;
+    ${[36, 208].map((wx) => `<rect x="${x + wx}" y="${STREET_TOP - 186}" width="96" height="100" rx="5" fill="#FFD27A"/>
+      <rect x="${x + wx}" y="${STREET_TOP - 186}" width="96" height="34" rx="5" fill="#FFF0C2" opacity="0.5"/>
+      <path d="M${x + wx + 48} ${STREET_TOP - 186} v100 M${x + wx} ${STREET_TOP - 136} h96" stroke="#FFFFFF" stroke-width="4"/>`).join('')}
+    <rect x="${x + 146}" y="${STREET_TOP - 114}" width="48" height="50" rx="4" fill="#FFD27A"/>`;
+  return `<g filter="url(#dusk)">${body}</g>${lights}`;
 }
 
 function sunsetArt() {
-  sky('vet-sky', [[0, '#3B2A78'], [0.4, '#A5448E'], [0.72, '#F2765F'], [1, '#FFC163']]);
+  // The sun is low, near the rooftops, and the sky runs from violet to gold.
+  sky('vet-sky', [[0, '#3B2A78'], [0.4, '#A5448E'], [0.72, '#F2765F'], [1, '#FFC163']], { x: 1040, y: 420, r: 70, glow: '#FFD27A', disc: '#FFE7A8', spread: 0.7 });
+  sunbeams('vet-sunbeams', '#FFB070', [[900, 120, 260, 0.45], [1040, 90, 300, 0.4], [1160, 140, 240, 0.42], [1250, 80, 300, 0.3]]);
   const clouds = rng(11);
   let cloudArt = '';
   for (let i = 0; i < 8; i++) {
     const x = 120 + i * 230 + clouds() * 60;
     const y = 90 + clouds() * 150;
     const s = 0.7 + clouds() * 0.8;
-    cloudArt += `<g transform="translate(${x} ${y}) scale(${s})" fill="#FFB3A0" opacity="0.85">
-      <circle cx="0" cy="20" r="34"/><circle cx="44" cy="0" r="46"/><circle cx="96" cy="16" r="38"/><circle cx="138" cy="28" r="26"/>
-      <rect x="-34" y="24" width="198" height="30" rx="15"/></g>`;
+    const puff = (dy) => `<circle cx="0" cy="${20 + dy}" r="34"/><circle cx="44" cy="${dy}" r="46"/><circle cx="96" cy="${16 + dy}" r="38"/><circle cx="138" cy="${28 + dy}" r="26"/>
+      <rect x="-34" y="${24 + dy}" width="198" height="30" rx="15"/>`;
+    // Lit gold from the low sun underneath, pink on top.
+    cloudArt += `<g transform="translate(${x} ${y}) scale(${s})" opacity="0.88"><g fill="#FFC88A">${puff(7)}</g><g fill="#F7A5B4">${puff(0)}</g>
+      <ellipse cx="40" cy="-14" rx="26" ry="12" fill="#FBC3CB"/></g>`;
   }
   save('vet-clouds', cloudArt, TILE, 320);
-
-  const farRand = rng(45);
-  let far = '';
-  let fx = 0;
-  for (const w of widths(farRand, 90, 190)) {
-    const h = 240 + farRand() * 220;
-    far += `<rect x="${fx}" y="${STREET_TOP - h}" width="${w}" height="${h}" fill="${farRand() > 0.5 ? '#7B4A92' : '#8D5499'}"/>`;
-    fx += w;
-  }
-  save('vet-far', far, TILE, STREET_TOP);
-
-  const rand = rng(901);
-  let near = '';
-  let x = 0;
-  const parts = widths(rand, 210, 320);
-  const clinicAt = Math.floor(parts.length / 2);
-  parts.forEach((w, i) => {
-    near += duskBuilding(rand, x, w);
-    x += w;
-    if (i === clinicAt) near += vetClinic(x - w + (w - 340) / 2);
-  });
-  for (let lx = 200; lx < TILE - 60; lx += 500) {
-    near += `<rect x="${lx - 5}" y="${STREET_TOP - 182}" width="10" height="190" rx="4" fill="#2C2650"/>
-      <circle cx="${lx}" cy="${STREET_TOP - 206}" r="42" fill="#FFD76A" opacity="0.25"/>
-      <rect x="${lx - 15}" y="${STREET_TOP - 222}" width="30" height="40" rx="9" fill="#FFE99A"/>
-      <rect x="${lx - 19}" y="${STREET_TOP - 230}" width="38" height="11" rx="5" fill="#2C2650"/>`;
-  }
-  save('vet-near', near, TILE, STREET_TOP + 20);
-
-  let ground = `<rect y="${STREET_TOP}" width="${TILE}" height="70" fill="#B88FA8"/>
-    <rect y="${STREET_TOP}" width="${TILE}" height="8" fill="#E0B6C0"/>`;
-  for (let gx = 0; gx < TILE; gx += 128) ground += `<rect x="${gx}" y="${STREET_TOP + 8}" width="4" height="62" fill="#94708A"/>`;
-  ground += `<rect y="${STREET_TOP + 70}" width="${TILE}" height="14" fill="#F4D8C8"/>
-    <rect y="${STREET_TOP + 84}" width="${TILE}" height="9" fill="#FF8A1E"/>
-    <rect y="${STREET_TOP + 93}" width="${TILE}" height="${HEIGHT - STREET_TOP - 93}" fill="#332A63"/>
-    <rect y="${STREET_TOP + 93}" width="${TILE}" height="14" fill="#271F4E"/>`;
-  for (let dx = 40; dx < TILE; dx += 256) ground += `<rect x="${dx}" y="682" width="136" height="12" rx="6" fill="#FFD76A"/>`;
-  save('vet-street', `<g transform="translate(0 -${STREET_TOP})">${ground}</g>`, TILE, HEIGHT - STREET_TOP);
+  save('vet-far', `<defs>${DUSK_FILTER}</defs><g filter="url(#dusk)">${farTown()}</g>${haze('#F49A7A', 220)}`, TILE, STREET_TOP);
+  save('vet-near', townRow({ dusk: true }) + vetClinic(860), TILE, STREET_TOP + 20);
+  save('vet-street', townStreet({ dusk: true }), TILE, HEIGHT - STREET_TOP);
 }
 
 // ----- Obstacles. Each matches the size and hitbox of the city obstacle it replaces. -----
@@ -378,10 +523,15 @@ function villageObstacles() {
     <path d="M4 44 C12 24 28 30 34 16 C42 28 56 8 62 26 C72 22 86 30 86 44 Z" fill="#E2483D"/>
     <path d="M22 44 C28 32 44 28 52 32 C60 34 66 38 68 44 Z" fill="#FFF3D6"/>
     <circle cx="44" cy="38" r="4" fill="#5F3515"/>`, 90, 44);
+  // A leafy branch, lit on top and shaded underneath.
   save('platform-leafy', `
     <rect y="8" width="64" height="16" rx="6" fill="#8E5A30"/>
+    <rect y="8" width="64" height="4" rx="2" fill="#B07A48"/>
+    <rect y="20" width="64" height="5" rx="2" fill="#6A4020"/>
     <ellipse cx="16" cy="11" rx="20" ry="11" fill="#3CB460"/><ellipse cx="46" cy="10" rx="22" ry="11" fill="#46C46B"/>
-    <rect y="0" width="64" height="6" fill="#2F9E4F"/>`, 64, 34);
+    <ellipse cx="12" cy="6" rx="9" ry="4" fill="#7AD98A"/><ellipse cx="44" cy="5" rx="10" ry="4" fill="#86E294"/>
+    <ellipse cx="30" cy="19" rx="14" ry="5" fill="#2F8A3F" opacity="0.6"/>
+    <rect y="0" width="64" height="6" fill="#2F9E4F"/><rect y="0" width="64" height="2" fill="#6CCB78"/>`, 64, 34);
   save('park-gate', `
     <rect x="0" y="60" width="360" height="280" rx="30" fill="#2F9E4F"/>
     <circle cx="44" cy="74" r="44" fill="#3CB460"/><circle cx="130" cy="58" r="50" fill="#46C46B"/><circle cx="230" cy="58" r="50" fill="#3CB460"/><circle cx="316" cy="74" r="44" fill="#46C46B"/>
@@ -505,7 +655,9 @@ function farmObstacles() {
     <g transform="translate(740 0) scale(0.8)">${TRACTOR}</g>`, 1020, 250);
   save('platform-hay', `
     <rect y="2" width="64" height="30" rx="6" fill="#F2C440"/>
+    <rect y="2" width="64" height="4" rx="2" fill="#FFE38A"/>
     <rect y="22" width="64" height="10" fill="#D6A42A"/>
+    <rect y="29" width="64" height="4" fill="#B8861E"/>
     <path d="M10 6 V20 M28 8 V18 M46 6 V20 M58 10 V18" stroke="#C4921E" stroke-width="4" stroke-linecap="round"/>`, 64, 34);
   save('farm-gate', `
     <path d="M0 340 V70 L180 4 L360 70 V340 Z" fill="#D8402F"/>
@@ -543,7 +695,8 @@ function foregroundArt() {
   // Village: a rounded hedge.
   save('park-fore', `
     <rect y="30" width="${W}" height="18" fill="#2F8A3F"/>
-    ${repeat(64, (x, i) => `<circle cx="${x + 32}" cy="${34 + (i % 3) * 3}" r="${26 - (i % 3) * 3}" fill="${i % 2 ? '#2F8A3F' : '#37994A'}"/>`)}`, W, H);
+    ${repeat(64, (x, i) => `<circle cx="${x + 32}" cy="${34 + (i % 3) * 3}" r="${26 - (i % 3) * 3}" fill="${i % 2 ? '#2F8A3F' : '#37994A'}"/>`)}
+    ${repeat(64, (x, i) => `<circle cx="${x + 24}" cy="${22 + (i % 3) * 3}" r="7" fill="#5FB866"/>${i % 4 === 1 ? `<circle cx="${x + 40}" cy="${26}" r="4" fill="#F58FAB"/>` : ''}`)}`, W, H);
   // Farm: a low wooden fence and grass.
   save('farm-fore', `
     <rect y="20" width="${W}" height="7" fill="#7F4A20"/>
@@ -612,6 +765,8 @@ function journeyArt() {
   // ----- City: rooftops -----
   save('platform-roof', `
     <rect y="0" width="64" height="12" fill="#59648F"/>
+    <rect y="0" width="64" height="3" fill="#8D97BD"/>
+    <rect y="30" width="64" height="4" fill="#2C3657"/>
     <rect y="12" width="64" height="22" fill="#3F4C73"/>
     <path d="M8 0 V12 M24 0 V12 M40 0 V12 M56 0 V12" stroke="#7C86A0" stroke-width="3"/>`, 64, 34);
   save('roof-wall', `
@@ -650,6 +805,8 @@ function journeyArt() {
   // ----- Farm: a barn to climb -----
   save('platform-barn', `
     <rect y="0" width="64" height="12" fill="#7C3B2C"/>
+    <rect y="0" width="64" height="3" fill="#B26A54"/>
+    <rect y="30" width="64" height="4" fill="#3E1C14"/>
     <rect y="12" width="64" height="22" fill="#5C2C20"/>
     <path d="M8 0 V12 M24 0 V12 M40 0 V12 M56 0 V12" stroke="#A85A44" stroke-width="3"/>`, 64, 34);
   save('barn-wall', `

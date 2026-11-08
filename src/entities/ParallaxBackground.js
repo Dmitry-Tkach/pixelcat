@@ -35,6 +35,41 @@ const AMBIENCE = {
       tint: [0x57cf62, 0x3cc46e, 0x9ceb8f],
     },
   },
+  // Blossom from the village's gardens.
+  petals: {
+    texture: 'fx-leaf',
+    config: {
+      x: { min: 0.2, max: 1.1 }, y: { min: -0.05, max: 0 },
+      lifespan: 7000, frequency: 700, quantity: 1,
+      speedX: { min: -110, max: -40 }, speedY: { min: 30, max: 70 },
+      rotate: { min: 0, max: 360 }, scale: { min: 0.35, max: 0.6 },
+      tint: [0xffc2d6, 0xffffff, 0xf58fab],
+    },
+  },
+  // Dandelion seeds floating up over the fields.
+  fluff: {
+    texture: 'fx-dot',
+    config: {
+      x: { min: 0.1, max: 1.1 }, y: { min: 0.55, max: 0.75 },
+      lifespan: 6500, frequency: 600, quantity: 1,
+      speedX: { min: -70, max: -25 }, speedY: { min: -30, max: -8 },
+      scale: { min: 0.18, max: 0.3 },
+      alpha: { onEmit: () => 0, onUpdate: (_particle, _key, t) => Math.sin(t * Math.PI) * 0.95 },
+      tint: 0xffffff,
+    },
+  },
+  // Fireflies glowing as the sun goes down, low over the street.
+  fireflies: {
+    texture: 'fx-dot',
+    config: {
+      x: { min: 0, max: 1 }, y: { min: 0.35, max: 0.72 },
+      lifespan: 4200, frequency: 300, quantity: 1,
+      speedX: { min: -30, max: 10 }, speedY: { min: -14, max: 14 },
+      scale: { min: 0.22, max: 0.38 },
+      alpha: { onEmit: () => 0, onUpdate: (_particle, _key, t) => Math.max(0, Math.sin(t * Math.PI * 3)) * 0.95 },
+      tint: [0xfff27a, 0xd8ff7a], blendMode: 'ADD',
+    },
+  },
 };
 
 // Draws a theme's repeating layers and scrolls each one at its own rate, with the theme's light and

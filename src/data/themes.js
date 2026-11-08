@@ -21,7 +21,8 @@ const BRICK_WALLS = { stoneWall: 'brickWall', tallStoneWall: 'tallBrickWall', ga
 // swap:  replaces obstacle types from the shared level sections with this world's own.
 // ledges: replaces ledge styles the same way.
 // sunbeams: an optional image of light over the buildings, behind the street.
-// ambience: optional things drifting through the air: 'motes' (specks in the sunlight) or 'leaves'.
+// ambience: optional things drifting through the air: 'motes' (specks in the sunlight), 'leaves',
+//           'petals', 'fluff' (dandelion seeds) or 'fireflies'.
 export const THEMES = {
   city: {
     backdrop: 'city-sky',
@@ -34,6 +35,8 @@ export const THEMES = {
   park: {
     backdrop: 'park-sky',
     layers: layers('park', 'city-clouds'),
+    sunbeams: 'park-sunbeams',
+    ambience: ['motes', 'petals'],
     gate: 'park-gate',
     swap: {
       cone: 'rock',
@@ -53,6 +56,8 @@ export const THEMES = {
   farm: {
     backdrop: 'farm-sky',
     layers: layers('farm', 'city-clouds'),
+    sunbeams: 'farm-sunbeams',
+    ambience: ['motes', 'fluff'],
     gate: 'farm-gate',
     swap: {
       cone: 'pumpkin',
@@ -77,15 +82,17 @@ export const THEMES = {
   vet: {
     backdrop: 'vet-sky',
     layers: layers('vet'),
+    sunbeams: 'vet-sunbeams',
+    ambience: ['fireflies'],
     gate: 'vet-gate',
     swap: BRICK_WALLS,
   },
 };
 
 const WORLD_IMAGES = {
-  'park-sky': 'park-sky', 'park-far': 'park-far', 'park-near': 'park-near', 'park-street': 'park-street',
-  'farm-sky': 'farm-sky', 'farm-far': 'farm-far', 'farm-near': 'farm-near', 'farm-street': 'farm-street',
-  'vet-sky': 'vet-sky', 'vet-clouds': 'vet-clouds', 'vet-far': 'vet-far', 'vet-near': 'vet-near', 'vet-street': 'vet-street',
+  'park-sky': 'park-sky', 'park-far': 'park-far', 'park-near': 'park-near', 'park-street': 'park-street', 'park-sunbeams': 'park-sunbeams',
+  'farm-sky': 'farm-sky', 'farm-far': 'farm-far', 'farm-near': 'farm-near', 'farm-street': 'farm-street', 'farm-sunbeams': 'farm-sunbeams',
+  'vet-sky': 'vet-sky', 'vet-clouds': 'vet-clouds', 'vet-far': 'vet-far', 'vet-near': 'vet-near', 'vet-street': 'vet-street', 'vet-sunbeams': 'vet-sunbeams',
   rock: 'rock', stump: 'stump', hedge: 'hedge', 'log-pile': 'log-pile', mud: 'mud', branch: 'branch',
   'ice-cream-van': 'ice-cream-van', mushroom: 'mushroom', 'tire-swing': 'tire-swing', apple: 'apple', 'apple-splat': 'apple-splat',
   'platform-leafy': 'platform-leafy', 'park-gate': 'park-gate',
