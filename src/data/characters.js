@@ -105,6 +105,38 @@ export const CHARACTERS = {
     },
   },
 
+  // A possible new look for the player's cat, tried with ?cat=battle (see data/player.js). Cut by
+  // tools/cut-battle-cat.mjs and enlarged when prepared, so he plays at scale 1. Every frame is the
+  // same size with his feet on the same line, so the hitboxes match the cat's on screen.
+  battleCat: {
+    folder: 'battle-cat',
+    scale: 1,
+    face: { x: 96, y: 16, size: 108 },
+    anims: {
+      idle: { file: 'idle', frames: 6, fps: 8, repeat: -1 },
+      run: { file: 'run', frames: 8, fps: 14, repeat: -1 },
+      // Skips the crouch before take-off and the landing, so the jump shows the moment it starts.
+      jump: { file: 'jump', frames: 7, frameList: [3, 4, 5], fps: 12, repeat: 0 },
+      fall: { file: 'jump', frames: 7, frameList: [6], fps: 1, repeat: 0 },
+      slide: { file: 'slide', frames: 6, fps: 14, repeat: -1 },
+      hurt: { file: 'hit', frames: 4, fps: 10, repeat: 0 },
+      caught: { file: 'defeated', frames: 6, fps: 8, repeat: 0 },
+      // Not used yet: moves he could have, if he becomes the cat.
+      lunge: { file: 'lunge', frames: 7, fps: 15, repeat: 0 },
+      punch: { file: 'punch', frames: 6, fps: 15, repeat: 0 },
+      power: { file: 'power', frames: 9, fps: 12, repeat: 0 },
+      throw: { file: 'throw', frames: 6, fps: 12, repeat: 0 },
+      laugh: { file: 'laugh', frames: 5, fps: 8, repeat: -1 },
+      happy: { file: 'happy', frames: 5, fps: 8, repeat: -1 },
+      victory: { file: 'victory', frames: 7, fps: 10, repeat: 0 },
+    },
+    // The same size on screen as the cat's, so levels play the same.
+    hitboxes: {
+      run: { x: 107, y: 38, w: 72, h: 140 },
+      slide: { x: 98, y: 88, w: 79, h: 90 },
+    },
+  },
+
   owner: {
     folder: 'owner',
     scale: 1.45,

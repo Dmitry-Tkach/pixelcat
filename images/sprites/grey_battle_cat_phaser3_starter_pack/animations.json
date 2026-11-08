@@ -1,0 +1,114 @@
+{
+  "cat-idle": {
+    "sheet": "spritesheets/cat_idle.png",
+    "frameWidth": 256,
+    "frameHeight": 256,
+    "frameCount": 6,
+    "frameRate": 6,
+    "repeat": -1
+  },
+  "cat-run": {
+    "sheet": "spritesheets/cat_run.png",
+    "frameWidth": 256,
+    "frameHeight": 256,
+    "frameCount": 8,
+    "frameRate": 12,
+    "repeat": -1
+  },
+  "cat-jump": {
+    "sheet": "spritesheets/cat_jump.png",
+    "frameWidth": 256,
+    "frameHeight": 256,
+    "frameCount": 7,
+    "frameRate": 12,
+    "repeat": 0
+  },
+  "cat-slide": {
+    "sheet": "spritesheets/cat_slide.png",
+    "frameWidth": 256,
+    "frameHeight": 256,
+    "frameCount": 6,
+    "frameRate": 12,
+    "repeat": 0
+  },
+  "cat-lunge": {
+    "sheet": "spritesheets/cat_lunge.png",
+    "frameWidth": 256,
+    "frameHeight": 256,
+    "frameCount": 7,
+    "frameRate": 15,
+    "repeat": 0
+  },
+  "cat-punch": {
+    "sheet": "spritesheets/cat_punch.png",
+    "frameWidth": 256,
+    "frameHeight": 256,
+    "frameCount": 5,
+    "frameRate": 15,
+    "repeat": 0
+  },
+  "cat-superpower": {
+    "sheet": "spritesheets/cat_superpower.png",
+    "frameWidth": 256,
+    "frameHeight": 256,
+    "frameCount": 3,
+    "frameRate": 12,
+    "repeat": 0
+  },
+  "cat-throw": {
+    "sheet": "spritesheets/cat_throw.png",
+    "frameWidth": 256,
+    "frameHeight": 256,
+    "frameCount": 6,
+    "frameRate": 12,
+    "repeat": 0
+  },
+  "cat-laugh": {
+    "sheet": "spritesheets/cat_laugh.png",
+    "frameWidth": 256,
+    "frameHeight": 256,
+    "frameCount": 5,
+    "frameRate": 8,
+    "repeat": -1
+  },
+  "cat-happy": {
+    "sheet": "spritesheets/cat_happy.png",
+    "frameWidth": 256,
+    "frameHeight": 256,
+    "frameCount": 5,
+    "frameRate": 8,
+    "repeat": -1
+  },
+  "cat-victory": {
+    "sheet": "spritesheets/cat_victory.png",
+    "frameWidth": 256,
+    "frameHeight": 256,
+    "frameCount": 7,
+    "frameRate": 12,
+    "repeat": 0
+  },
+  "cat-hit": {
+    "sheet": "spritesheets/cat_hit.png",
+    "frameWidth": 256,
+    "frameHeight": 256,
+    "frameCount": 4,
+    "frameRate": 12,
+    "repeat": 0
+  },
+  "cat-defeated": {
+    "sheet": "spritesheets/cat_defeated.png",
+    "frameWidth": 256,
+    "frameHeight": 256,
+    "frameCount": 7,
+    "frameRate": 8,
+    "repeat": 0
+  },
+  "cat-effects": {
+    "sheet": "spritesheets/cat_effects.png",
+    "frameWidth": 256,
+    "frameHeight": 256,
+    "frameCount": 4,
+    "frameRate": 10,
+    "repeat": 0
+  }
+}

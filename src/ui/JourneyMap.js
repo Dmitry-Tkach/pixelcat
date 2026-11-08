@@ -1,4 +1,5 @@
 import { CHARACTERS, idleFrameKey } from '../data/characters.js';
+import { PLAYER } from '../data/player.js';
 
 const WALK_MS = 650; // how long the cat takes to walk to the stop the player picks
 const FACE_PX = 40; // the cat's face, and the bosses', on the map
@@ -99,7 +100,7 @@ export function journeyMap({ stops, instant = false }) {
 
   // The cat waits on the level the player is up to.
   const startAt = Math.max(0, stops.findIndex((stop) => stop.current));
-  const cat = face('cat', FACE_PX, 'map-cat');
+  const cat = face(PLAYER, FACE_PX, 'map-cat');
   const placeCat = (i) => {
     cat.style.left = `${positions[i].x}%`;
     cat.style.top = `${positions[i].y}%`;

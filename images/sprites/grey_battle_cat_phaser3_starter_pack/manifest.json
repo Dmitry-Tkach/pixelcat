@@ -1,0 +1,27 @@
+{
+  "source_image_size": [
+    1536,
+    1024
+  ],
+  "cell_size": [
+    256,
+    256
+  ],
+  "extracted_frame_counts": {
+    "idle": 6,
+    "run": 8,
+    "jump": 7,
+    "slide": 6,
+    "lunge": 7,
+    "punch": 5,
+    "superpower": 3,
+    "throw": 6,
+    "laugh": 5,
+    "happy": 5,
+    "victory": 7,
+    "hit": 4,
+    "defeated": 7,
+    "effects": 4
+  },
+  "note": "Automated extraction; inspect frames, especially merged regions."
+}
