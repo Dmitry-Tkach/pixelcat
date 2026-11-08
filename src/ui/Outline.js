@@ -3,8 +3,8 @@
 // WebGL have no effects, and simply go without it.
 const OUTLINE = {
   color: 0x2e3a5e,
-  strength: 3.5, // how dark and solid the edge is
-  distance: 2, // how far it reaches out from the art, in pixels
+  strength: 2, // how dark and solid the edge is
+  distance: 1, // how far it reaches out from the art, in pixels
   quality: 0.2,
   padding: 4, // room around the art for the outline to show
 };
