@@ -12,7 +12,7 @@ const DUCK = { x: 250, y: 316 };
 // `figure` is each one's height in its run frames, without the space around it, and `bottom` where
 // their feet are, so they can all be drawn the same height with their feet on the same line.
 const CHASE = {
-  feet: 712,
+  feetAboveBottom: 26, // above the bottom of the window, whatever its shape
   familyHeight: 150,
   catHeight: 100,
   speed: 340, // stage pixels a second
@@ -44,12 +44,15 @@ export function showHomeScreen(scene) {
   place(scene.add.image(0, 0, 'home-bathroom'), 0, 0);
   place(scene.add.image(0, 0, 'home-bath'), BATH.x, BATH.y, 1);
   place(scene.add.image(0, 0, 'home-duck'), DUCK.x, DUCK.y, 1.1);
-  runChase(scene, { scale, left, top });
+  runChase(scene, { left });
 }
 
 // The cat in front, then the girl, the boy and grandma, all running. They cross the screen, wait off
 // to the right a while, and come round again from the left.
-function runChase(scene, { scale, left, top }) {
+// It's placed by the window itself, not by the stage, because filling a wide window crops the stage's
+// bottom off the screen: sized by the window's height, with feet just above its bottom edge.
+function runChase(scene, { left }) {
+  const scale = VIEW.HEIGHT / STAGE.h;
   let x = 0;
   const runners = RUNNERS.map(({ character, figure, bottom, frameHeight, extraGap = 0 }) => {
     const height = character === 'cat' ? CHASE.catHeight : CHASE.familyHeight;
@@ -65,7 +68,7 @@ function runChase(scene, { scale, left, top }) {
     return { sprite, offset };
   });
   const tail = -x;
-  const y = top + CHASE.feet * scale;
+  const y = VIEW.TOP + VIEW.HEIGHT - CHASE.feetAboveBottom * scale;
   const width = VIEW.WIDTH / scale; // the stage width the window shows
   const startX = -CHASE.gap;
   const endX = width + tail + CHASE.gap;
