@@ -347,6 +347,7 @@ export class GameScene extends Phaser.Scene {
       this.chaser.follow(this.cat.x, this.chase.visibleDistance, this.obstacles.items, simplyChasing, this.lastFrameMs);
     }
     this.syncFollowers();
+    this.treats.update(this.time.now, cam.worldView);
     this.catShadow.x = this.cat.x;
     this.chaserShadow.x = this.chaser.x;
     const airHeight = Math.max(0, GAME.GROUND_Y - this.cat.body.bottom);

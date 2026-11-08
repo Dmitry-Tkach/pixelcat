@@ -2,7 +2,8 @@ import Phaser from 'phaser';
 import { VIEW } from '../config/gameConfig.js';
 import { makeEffectTextures } from '../ui/Effects.js';
 
-const MAX_LAYER_WIDTH = 4000; // wide enough for any window: what's off-screen isn't visible
+const START_WIDTH = 1280; // replaced by the window's width on the first sync
+const EDGE = 2; // a pixel or two past each side, so no gap shows at the edges
 // Skips the art's top row. Otherwise it blends with the bottom row when the textures repeat, which
 // draws a faint line across the sky along the top of each layer.
 const TOP_ROW_SKIP = 1;
@@ -52,7 +53,8 @@ export class ParallaxBackground {
     this.layers = theme.layers.map(({ texture, factor, drift = 0, y, height, depth }, i) => ({
       factor,
       drift,
-      sprite: scene.add.tileSprite(0, y, MAX_LAYER_WIDTH, height, texture)
+      height,
+      sprite: scene.add.tileSprite(0, y, START_WIDTH, height, texture)
         .setOrigin(0)
         .setScrollFactor(0, 1)
         .setDepth(depth ?? 1 + i * 0.1)
@@ -85,9 +87,12 @@ export class ParallaxBackground {
   sync(cameraX, rise = 0) {
     const seconds = this.scene.time.now / 1000;
     this.backdrop.setPosition(VIEW.LEFT_OFFSET, VIEW.TOP - rise).setDisplaySize(VIEW.WIDTH, VIEW.HEIGHT);
-    for (const { sprite, factor, drift } of this.layers) {
-      sprite.x = VIEW.LEFT_OFFSET;
-      sprite.tilePositionX = cameraX * factor + seconds * drift;
+    // Each layer is only as wide as the window, so nothing is drawn off screen.
+    const width = Math.ceil(VIEW.WIDTH) + EDGE * 2;
+    for (const { sprite, factor, drift, height } of this.layers) {
+      if (sprite.width !== width) sprite.setSize(width, height);
+      sprite.x = VIEW.LEFT_OFFSET - EDGE;
+      sprite.tilePositionX = cameraX * factor + seconds * drift - EDGE;
     }
     this.sunbeams?.setPosition(VIEW.LEFT_OFFSET, VIEW.TOP).setDisplaySize(VIEW.WIDTH, VIEW.HEIGHT);
     // The air fills whatever the window shows.

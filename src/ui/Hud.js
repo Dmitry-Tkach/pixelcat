@@ -56,15 +56,23 @@ export class Hud {
     const j = JOURNEY;
     fixed(scene.add.graphics({ x: j.x, y: j.y })).fillStyle(INK, PILL_ALPHA).fillRoundedRect(0, 0, j.w, j.h, 18);
     fixed(scene.add.text(j.x + 18, j.y + 6, level.name, { ...text, fontSize: '22px', strokeThickness: 4 }));
-    this.journey = fixed(scene.add.graphics({ x: j.x + j.trackX, y: j.y + j.trackY }));
+    // The track is drawn once. Only the white fill and the dots change, and only by moving.
+    const trackLeft = j.x + j.trackX;
+    const trackMiddle = j.y + j.trackY + j.trackH / 2;
+    fixed(scene.add.graphics({ x: trackLeft, y: j.y + j.trackY })).fillStyle(TRACK, 0.85).fillRoundedRect(0, 0, j.trackW, j.trackH, j.trackH / 2);
+    this.journeyFill = this.pill(fixed, trackMiddle, j.trackH, 0xffffff);
+    this.journeyLeft = trackLeft;
     this.journeyProgress = -1;
     const trackEnd = j.x + j.trackX + j.trackW;
     fixed(scene.add.text(trackEnd + 16, j.y + j.trackY, '⚑', { ...text, fontSize: '26px', strokeThickness: 4 }).setOrigin(0.5));
     this.markers = this.journeyMarkers(level);
-    for (const { share, kind } of this.markers) {
-      const x = j.x + j.trackX + share * j.trackW;
-      if (kind === 'boss') {
+    for (const marker of this.markers) {
+      const x = trackLeft + marker.share * j.trackW;
+      if (marker.kind === 'boss') {
         fixed(scene.add.text(x, j.y + j.trackY - 2, '♛', { ...text, fontSize: '22px', color: '#FFC531', strokeThickness: 4 }).setOrigin(0.5));
+      } else {
+        marker.dot = fixed(scene.add.circle(x, trackMiddle, 6, WARN).setStrokeStyle(2, INK));
+        marker.passed = false;
       }
     }
     this.catMarker = fixed(this.face('cat', 34, 0xffffff));
@@ -86,7 +94,8 @@ export class Hud {
     const left = WIDTH / 2 - c.w / 2;
     this.chaseLeft = WIDTH / 2 - c.trackW / 2;
     centered(scene.add.graphics({ x: left, y: 16 })).fillStyle(INK, PILL_ALPHA).fillRoundedRect(0, 0, c.w, c.h, c.h / 2);
-    this.chaseBar = centered(scene.add.graphics({ x: this.chaseLeft, y: 16 + c.h / 2 - c.trackH / 2 }));
+    centered(scene.add.graphics({ x: this.chaseLeft, y: 16 + c.h / 2 - c.trackH / 2 })).fillStyle(TRACK, 0.85).fillRoundedRect(0, 0, c.trackW, c.trackH, c.trackH / 2);
+    this.chaseFill = this.pill(centered, 16 + c.h / 2, c.trackH, SAFE);
     this.chaseShare = -1;
     this.chaseColor = SAFE;
     this.catFace = centered(this.face('cat', c.face, 0xffffff));
@@ -125,6 +134,35 @@ export class Hud {
     const markers = (level.checkpoints ?? []).map((x) => ({ share: x / level.length, kind: 'checkpoint' }));
     if (level.boss) markers.push({ share: level.boss.at / level.length, kind: 'boss' });
     return markers;
+  }
+
+  // A bar with round ends, made of a rectangle and two circles, so changing it is only moving them.
+  pill(attach, y, height, color) {
+    const { scene } = this;
+    const radius = height / 2;
+    return {
+      radius,
+      color,
+      body: attach(scene.add.rectangle(0, y, 1, height, color).setOrigin(0, 0.5)),
+      leftEnd: attach(scene.add.circle(0, y, radius, color)),
+      rightEnd: attach(scene.add.circle(0, y, radius, color)),
+    };
+  }
+
+  // Stretches a bar from `from` to `to`, in the HUD's own coordinates.
+  setPill(bar, from, to, color) {
+    const { radius } = bar;
+    const left = from + radius;
+    const right = Math.max(left, to - radius);
+    if (color !== bar.color) {
+      bar.color = color;
+      for (const part of [bar.body, bar.leftEnd, bar.rightEnd]) part.setFillStyle(color);
+    }
+    this.moveTo(bar.leftEnd, left);
+    this.moveTo(bar.rightEnd, right);
+    this.moveTo(bar.body, left);
+    const width = Math.max(1, Math.round(right - left));
+    if (bar.body.width !== width) bar.body.setSize(width, bar.body.height);
   }
 
   // A round portrait of a character, cut from their idle frame. Its middle is at its position.
@@ -197,16 +235,11 @@ export class Hud {
     const j = JOURNEY;
     if (Math.abs(progress - this.journeyProgress) < 0.002) return;
     this.journeyProgress = progress;
-    const g = this.journey;
-    g.clear();
-    g.fillStyle(TRACK, 0.85).fillRoundedRect(0, 0, j.trackW, j.trackH, j.trackH / 2);
-    const filled = Math.max(j.trackH, j.trackW * progress);
-    g.fillStyle(0xffffff, 1).fillRoundedRect(0, 0, filled, j.trackH, j.trackH / 2);
-    for (const { share, kind } of this.markers) {
-      if (kind !== 'checkpoint') continue;
-      const x = share * j.trackW;
-      g.fillStyle(share <= progress ? 0x37c871 : 0xffc531, 1).fillCircle(x, j.trackH / 2, 6);
-      g.lineStyle(2, INK, 1).strokeCircle(x, j.trackH / 2, 6);
+    this.setPill(this.journeyFill, this.journeyLeft, this.journeyLeft + Math.max(j.trackH, j.trackW * progress), 0xffffff);
+    for (const marker of this.markers) {
+      if (!marker.dot || marker.passed || marker.share > progress) continue;
+      marker.passed = true;
+      marker.dot.setFillStyle(SAFE);
     }
     this.moveTo(this.catMarker, this.catMarkerStartX + progress * j.trackW);
   }
@@ -216,12 +249,9 @@ export class Hud {
     if (Math.abs(share - this.chaseShare) < 0.002) return;
     this.chaseShare = share;
     const color = this.bossMode ? DANGER : share > 0.5 ? SAFE : share > 0.25 ? WARN : DANGER;
-    const g = this.chaseBar;
-    g.clear();
-    g.fillStyle(TRACK, 0.85).fillRoundedRect(0, 0, c.trackW, c.trackH, c.trackH / 2);
     if (this.bossMode) {
       // His health, from his face on the left.
-      g.fillStyle(color, 1).fillRoundedRect(0, 0, Math.max(c.trackH, c.trackW * share), c.trackH, c.trackH / 2);
+      this.setPill(this.chaseFill, this.chaseLeft, this.chaseLeft + Math.max(c.trackH, c.trackW * share), color);
       if (this.chaserFace) {
         this.chaserFace.setVisible(true);
         this.moveTo(this.chaserFace, this.chaseLeft - c.face / 2 - 10);
@@ -230,8 +260,8 @@ export class Hud {
       return;
     }
     // The gap between the chaser and the cat, shrinking toward the cat as they close in.
-    const chaserX = (1 - share) * c.trackW;
-    g.fillStyle(color, 1).fillRoundedRect(chaserX, 0, Math.max(c.trackH, c.trackW - chaserX), c.trackH, c.trackH / 2);
+    const chaserX = Math.min(c.trackW - c.trackH, (1 - share) * c.trackW);
+    this.setPill(this.chaseFill, this.chaseLeft + chaserX, this.chaseLeft + c.trackW, color);
     this.catFace.setVisible(true);
     if (this.chaserFace) {
       this.chaserFace.setVisible(true);
