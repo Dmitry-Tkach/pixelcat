@@ -118,6 +118,10 @@ const WORLD_IMAGES = {
 // Every image file the themes and obstacles need: texture key -> path under public/.
 export const IMAGE_ASSETS = {
   ...Object.fromEntries(Object.entries(WORLD_IMAGES).map(([key, file]) => [key, `assets/worlds/${file}.png`])),
+  'home-bathroom': 'assets/home/bathroom.png',
+  'home-bath': 'assets/home/bath.png',
+  'home-duck': 'assets/home/duck.png',
+  'home-bubble': 'assets/home/bubble.png',
   'city-sky': 'assets/city/sky.png',
   'city-clouds': 'assets/city/clouds.png',
   'city-far': 'assets/city/far.png',

@@ -530,3 +530,19 @@ html, body, #game {
 @media (prefers-reduced-motion: reduce) {
   .map-cat { transition: none; animation: none; }
 }
+
+/* ----- The home screen: the menu stands to the right of the bath-day picture ----- */
+
+#overlay.home {
+  justify-items: end;
+  padding-right: max(16px, 4vw);
+  background: linear-gradient(90deg, transparent 55%, rgba(30, 42, 74, 0.35));
+}
+
+#overlay.home .panel {
+  width: min(400px, 40vw);
+}
+
+#overlay.home .panel h1 {
+  font-size: clamp(36px, 8vmin, 64px);
+}

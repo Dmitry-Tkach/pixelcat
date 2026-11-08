@@ -7,6 +7,7 @@ import { THEMES } from '../data/themes.js';
 import { BossFight } from '../entities/BossFight.js';
 import { BOSSES } from '../data/bosses.js';
 import { journeyMap } from '../ui/JourneyMap.js';
+import { showHomeScreen } from '../ui/HomeScreen.js';
 import { Cat } from '../entities/Cat.js';
 import { Chaser } from '../entities/Chaser.js';
 import { HayWagons } from '../entities/HayWagons.js';
@@ -854,7 +855,12 @@ export class GameScene extends Phaser.Scene {
 
   showStartScreen() {
     const { hasStarted, nextIndex } = this.progress;
+    if (!this.homeShown) {
+      this.homeShown = true;
+      showHomeScreen(this);
+    }
     this.overlay.show({
+      layout: 'home',
       title: 'Cat Escape',
       message: "It's bath day, and the whole family wants to catch you. Run to the park!\nLeft and right arrows: run, and clean running builds speed. Space: jump, and again in the air to double jump. Down arrow: slide or dive. Jump when they lunge! Collect a Super Paw box, then press E.",
       actions: [
