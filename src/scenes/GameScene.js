@@ -9,6 +9,8 @@ import { Cat } from '../entities/Cat.js';
 import { Chaser } from '../entities/Chaser.js';
 import { HayWagons } from '../entities/HayWagons.js';
 import { ObstacleField } from '../entities/ObstacleField.js';
+import { CatFlaps } from '../entities/CatFlaps.js';
+import { PawBlocks } from '../entities/PawBlocks.js';
 import { Pickups } from '../entities/Pickups.js';
 import { Platforms } from '../entities/Platforms.js';
 import { ToyMouse } from '../entities/ToyMouse.js';
@@ -45,6 +47,8 @@ const TAKE_OFF_DUST = 3;
 const CRASH_DUST = 14;
 const RUN_DUST_SHARE = 0.6; // running faster than this share of top speed kicks up dust
 const IMPACT_AHEAD = 40;
+const DITCH_SPLASH = 0x8cc6e6;
+const CAT_FLAP_LEAD = 250; // how much further ahead of the chaser a cat flap puts the cat
 const IMPACT_HEIGHT = 70;
 const MODE_HINTS = {
   free: 'Free move: left and right run, and you can stop',
@@ -96,6 +100,9 @@ export class GameScene extends Phaser.Scene {
     this.platforms = new Platforms(this, level, startX);
     this.wagons = new HayWagons(this, level);
     this.treats = new Treats(this, level, startX);
+    this.pawBlocks = new PawBlocks(this, level, startX);
+    this.treats.total += this.pawBlocks.treatTotal;
+    this.catFlaps = new CatFlaps(this, level, startX);
     for (const x of (level.checkpoints ?? []).filter((flagX) => flagX > startX)) {
       this.add.image(x, GAME.GROUND_Y + 4, 'checkpoint-flag').setOrigin(0.15, 1).setDepth(3);
     }
@@ -125,14 +132,26 @@ export class GameScene extends Phaser.Scene {
     this.cat.on('land', () => this.effects.dust(this.cat.x, this.cat.body.bottom, LANDING_DUST));
     this.cat.on('jump', () => this.effects.dust(this.cat.x, this.cat.body.bottom, TAKE_OFF_DUST));
 
-    const ground = this.add.rectangle(level.length / 2, GAME.GROUND_Y + GROUND_HEIGHT / 2, level.length + WORLD_MARGIN * 2, GROUND_HEIGHT);
-    this.physics.add.existing(ground, true);
-    this.physics.add.collider(this.cat, ground);
+    // The road, in pieces around any ditches, with a lower floor at the bottom of each ditch.
+    const pieces = [];
+    let from = -WORLD_MARGIN;
+    for (const [left, right, depth] of ObstacleField.ditchSpans(level)) {
+      pieces.push([from, left, 0], [left, right, depth]);
+      from = right;
+    }
+    pieces.push([from, level.length + WORLD_MARGIN, 0]);
+    for (const [left, right, depth] of pieces) {
+      const ground = this.add.rectangle((left + right) / 2, GAME.GROUND_Y + depth + GROUND_HEIGHT / 2, right - left, GROUND_HEIGHT);
+      this.physics.add.existing(ground, true);
+      this.physics.add.collider(this.cat, ground);
+    }
     this.obstacles.onHit(this.cat, (item) => this.handleHit(item));
     this.obstacles.onWallHit((item) => this.handleWallHit(item));
     this.obstacles.onAlert((sound) => this.audio.playSfx(sound));
     this.obstacles.onAvoided(() => this.handleAvoided());
     this.pickups.onCollect(this.cat, () => this.handlePawPickup());
+    this.pawBlocks.onBump(this.cat, (item) => this.handleBlockBump(item));
+    this.catFlaps.onUse((way) => this.handleFlapIn(way), () => this.handleFlapOut());
     this.platforms.onLand(this.cat);
     this.platforms.onCollapseEvents(() => this.audio.playSfx('creak'), () => this.audio.playSfx('collapse'));
     this.cat.on('bigLand', () => this.handleBigLand());
@@ -140,6 +159,13 @@ export class GameScene extends Phaser.Scene {
     this.wagons.onBoard(() => {
       this.effects.puff(this.cat.x, this.cat.body.bottom, HAY_COLOR);
       this.audio.playSfx('hayRide');
+    });
+    this.obstacles.onFallIn(() => this.handleFallIn());
+    this.obstacles.onSmash((item) => {
+      this.audio.playSfx('smash');
+      this.effects.impact(item.x, GAME.GROUND_Y - IMPACT_HEIGHT, 1.4);
+      this.effects.dust(item.x, GAME.GROUND_Y, CRASH_DUST);
+      this.cameras.main.shake(120, 0.006);
     });
     this.obstacles.onSplash(() => {
       this.effects.puff(this.cat.x, this.cat.body.bottom, MUD_COLOR);
@@ -216,8 +242,9 @@ export class GameScene extends Phaser.Scene {
     const fight = this.bossFight;
     fight?.update(ms, this.cat);
     this.cat.speedControl.setTerrain(this.obstacles.terrainUnder(this.cat));
-    this.cat.tick(ms);
-    if (this.cat.onGround && (this.cat.isSliding || Math.abs(this.cat.moveVelocity) > this.cat.topSpeed * RUN_DUST_SHARE)) {
+    this.catFlaps.update(ms, this.cat);
+    if (!this.catFlaps.isCarrying) this.cat.tick(ms);
+    if (!this.catFlaps.isCarrying && this.cat.onGround && (this.cat.isSliding || Math.abs(this.cat.moveVelocity) > this.cat.topSpeed * RUN_DUST_SHARE)) {
       this.effects.runDust(this.cat, ms);
     }
     this.obstacles.update(ms, this.cat);
@@ -446,6 +473,52 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.shake(180, 0.01);
     this.effects.impact(this.cat.x + IMPACT_AHEAD, this.cat.y - IMPACT_HEIGHT, 1.5);
     this.effects.dust(this.cat.x + IMPACT_AHEAD, this.cat.body.bottom, CRASH_DUST);
+  }
+
+  // A paw-print block, bumped from below: its treats, or a Super Paw.
+  handleBlockBump(item) {
+    this.audio.playSfx('bump');
+    if (item.reward === 'superPaw') {
+      if (!this.cat.hasPaw) this.handlePawPickup();
+      return;
+    }
+    for (let i = 0; i < item.count; i++) this.handleTreat();
+  }
+
+  // Through a cat flap: everything on the road until the other flap is skipped.
+  handleFlapIn(way) {
+    this.audio.playSfx('dive');
+    this.catShadow.setVisible(false);
+    this.effects.stopSprint();
+    for (const item of this.obstacles.items) {
+      if (item.x > way.at && item.x < way.exitAt) item.passed = true;
+    }
+    if (!this.toldAboutFlap) {
+      this.toldAboutFlap = true;
+      this.hud.showHint('Through the cat flap! A shortcut through the gardens');
+    }
+  }
+
+  // Out of the other flap, further ahead of the chaser than when the cat went in.
+  handleFlapOut() {
+    this.catShadow.setVisible(true);
+    this.tracker.adjust(CAT_FLAP_LEAD);
+    this.effects.puff(this.cat.x, GAME.GROUND_Y);
+    this.audio.playSfx('bounce');
+  }
+
+  // Into a ditch: a splash, and the cat has to jump back out while the chaser closes in.
+  handleFallIn() {
+    if (!this.isPlaying) return;
+    this.streak.recordHit();
+    this.hud.setStreak(0);
+    this.effects.stopSprint();
+    this.effects.puff(this.cat.x, this.cat.body.bottom, DITCH_SPLASH);
+    this.audio.playSfx('splat');
+    if (!this.toldAboutDitch) {
+      this.toldAboutDitch = true;
+      this.hud.showHint('In the ditch! Jump out!');
+    }
   }
 
   // A long drop: dust, a thump, and a burst of speed that rewards taking the high road.

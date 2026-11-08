@@ -78,6 +78,8 @@ function buildLevel({ plan, finalDash, ...config }) {
     platforms: [],
     treats: [],
     pickups: [],
+    pawBlocks: [],
+    catFlaps: [],
     wagons: [],
     attacks: [],
     checkpoints: [],
@@ -100,6 +102,8 @@ function buildLevel({ plan, finalDash, ...config }) {
       level.platforms.push({ ...entry, style: ledges[style] ?? style, at: worldAt(t), width: Math.round(seconds * speed) });
     }
     for (const { t, type } of section.pickups ?? []) level.pickups.push({ type, at: worldAt(t) });
+    for (const { t, reward, count } of section.pawBlocks ?? []) level.pawBlocks.push({ at: worldAt(t), reward, count });
+    if (section.catFlap) level.catFlaps.push({ at: worldAt(section.catFlap.t), exitAt: worldAt(section.catFlap.exit) });
     if (section.boss) level.boss = { type: section.boss.type, at: worldAt(section.boss.t) };
     for (const { t } of section.wagons ?? []) level.wagons.push({ at: worldAt(t) });
     if (section.checkpoint) level.checkpoints.push(worldAt(section.checkpoint.t));
@@ -138,6 +142,7 @@ export const LEVELS = [
       'breather',
       { section: 'hops', hint: 'Collect fish coins for stars!' },
       { section: 'benches', hint: 'You can land on top of obstacles!' },
+      { section: 'pawBlocks', hint: 'Paw blocks! Jump into them from below' },
       'breather',
       'duck',
       { section: 'checkpoint', hint: 'A checkpoint: you restart here if caught' },
@@ -173,6 +178,9 @@ export const LEVELS = [
       'breather',
       { section: 'crates', hint: 'Crate low: jump. Crate high: slide. Or wait for your moment' },
       'checkpoint',
+      { section: 'ditches', hint: 'Roadworks! Jump the ditches' },
+      'pawSurprise',
+      'breather',
       { section: 'twoRoutes', hint: 'Ledges: more treats, but watch for the bird. Road: safer', mouse: true },
       { section: 'sprinklers', hint: 'Sprinkler on: jump, or wait. Off: run through' },
       'crossings',
@@ -215,6 +223,8 @@ export const LEVELS = [
       'breather',
       'checkpoint',
       'crates',
+      'breather',
+      { section: 'boxStack', hint: 'Too tall to jump? Slide into the boxes!' },
       'flock',
       'wallIntro',
       'van',
@@ -242,6 +252,8 @@ export const LEVELS = [
       'duck',
       'breather',
       { section: 'checkpoint', hint: 'Checkpoint ahead!' },
+      { section: 'catFlapShortcut', hint: 'A cat flap! Slide into it for a shortcut' },
+      'ditches',
       { section: 'fallingMarket', hint: 'Market day! Watch for shadows' },
       { section: 'twoRoutes', hint: 'High or low? Ledges have more treats', mouse: true },
       'breather',
@@ -274,6 +286,9 @@ export const LEVELS = [
       { section: 'crates', hint: 'Tire swing low: jump. High: slide' },
       'checkpoint',
       'fallingMarket',
+      'breather',
+      'boxStack',
+      'pawBlocks',
       'breather',
       { section: 'bigClimb', hint: 'Climb the market! Awnings collapse, and walls wait below', mouse: true },
       'breather',
@@ -314,6 +329,9 @@ export const LEVELS = [
       'breather',
       'checkpoint',
       'wallIntro',
+      'catFlapShortcut',
+      'ditches',
+      'breather',
       { section: 'liftGate', hint: 'Too tall! Wait for the lift, or bounce and double jump' },
       'muddyRoad',
       'crates',
@@ -348,6 +366,9 @@ export const LEVELS = [
       'breather',
       'hayWagon',
       'breather',
+      'boxStack',
+      'pawSurprise',
+      'ditches',
       'checkpoint',
       'combos',
       'wallIntro',
@@ -386,6 +407,9 @@ export const LEVELS = [
       'bigClimb',
       'breather',
       'liftGate',
+      'catFlapShortcut',
+      'breather',
+      'boxStack',
       { section: 'finale', hint: 'Everything you ran through, all at once!' },
       'combos',
       'breather',

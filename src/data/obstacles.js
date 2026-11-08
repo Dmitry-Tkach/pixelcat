@@ -15,6 +15,9 @@
 // zone:     for terrain: { width, speedMultiplier }, how wide it is and how much it slows the cat
 // solid:    stops the cat dead until it jumps over, while the chaser closes in. Safe to land on.
 //           `penalty` is how the cat picks up speed afterward, and `stuckHint` says what to do.
+// breakable: a solid obstacle that a sliding cat smashes straight through
+// ditch:    { depth }, a gap in the road this deep. A cat that falls in has to jump back out, while
+//           the chaser closes in. Its `zone` width is the gap's width.
 //
 // A type with a `motion` block moves, and in a level its `at` is where it meets the cat.
 //
@@ -367,6 +370,25 @@ Object.assign(OBSTACLES, {
       greenLight: 'farm-flag-green',
     },
   }),
+
+  // A ditch across the road. Jump it, or fall in and climb out.
+  ditch: {
+    texture: 'ditch',
+    avoid: 'terrain',
+    zone: { width: 184, speedMultiplier: 0.5 },
+    ditch: { depth: 46 },
+  },
+
+  // A tall stack of cardboard boxes: slide into it to smash through, or jump it twice.
+  boxStack: {
+    texture: 'box-stack',
+    avoid: 'doubleJump',
+    solid: true,
+    breakable: true,
+    stuckHint: 'Slide into the boxes to smash them!',
+    hitbox: { x: 8, y: 10, w: 92, h: 266 },
+    penalty: WALL_RECOVERY,
+  },
 
   // Wide mud. Crossing it slows the cat, but it doesn't end a streak. Jump across it.
   mudPool: {

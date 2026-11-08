@@ -113,7 +113,8 @@ export class Chaser extends Phaser.GameObjects.Sprite {
     this.applyWaddle(ms);
     for (const obstacle of obstacles) {
       const ahead = obstacle.x - this.x;
-      if (obstacle.avoid === 'jump' && !obstacle.hoppedByOwner && ahead > 0 && ahead < HOP_LOOKAHEAD) {
+      const hops = obstacle.avoid === 'jump' || obstacle.ditch;
+      if (hops && !obstacle.hoppedByOwner && ahead > 0 && ahead < HOP_LOOKAHEAD) {
         obstacle.hoppedByOwner = true;
         this.hop();
       }

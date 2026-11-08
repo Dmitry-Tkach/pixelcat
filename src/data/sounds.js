@@ -96,6 +96,12 @@ export const SOUNDS = {
 
   lungeDash: [{ kind: 'noise', filter: 'bandpass', cutoff: 700, sweepTo: 3000, q: 0.8, duration: 0.3, gain: 0.5, attack: 0.03 }],
 
+  // Bumping a paw-print block from below.
+  bump: [
+    { wave: 'square', from: 520, to: 780, duration: 0.07, gain: 0.18, cutoff: 2400 },
+    { wave: 'triangle', at: 0.06, from: 990, to: 1320, duration: 0.12, gain: 0.22 },
+  ],
+
   // The Gunner boss: one shot, the beam charging up, the beam, and his rage bursting into flames.
   shot: [
     { kind: 'noise', filter: 'bandpass', cutoff: 1600, sweepTo: 500, q: 1.2, duration: 0.07, gain: 0.32 },

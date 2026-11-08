@@ -100,6 +100,25 @@ function validateObstacle(obstacle, i, type, level, errors) {
   }
 }
 
+// A cat flap has to lead somewhere: its far flap is further on, and the cat comes out onto clear road.
+// A paw-print block mustn't hang where something overhead would be in the way.
+const FLAP_MIN_LENGTH = 400;
+const FLAP_CLEAR_EXIT = 260;
+const BLOCK_CLEAR = 140;
+function validateLevelObjects(level, obstacleTypes, errors) {
+  (level.catFlaps ?? []).forEach(({ at, exitAt }, i) => {
+    if (exitAt - at < FLAP_MIN_LENGTH) errors.push(`cat flap ${i} comes out too soon after going in`);
+    if (at < START_CLEARANCE || exitAt > level.length - END_CLEARANCE) errors.push(`cat flap ${i} is too close to the start or the escape point`);
+    const blocked = level.obstacles.find((o) => Math.abs(o.at - exitAt) < FLAP_CLEAR_EXIT + (obstacleTypes[o.type]?.zone?.width ?? 0) / 2);
+    if (blocked) errors.push(`cat flap ${i} lets the cat out on top of a ${blocked.type}`);
+  });
+  (level.pawBlocks ?? []).forEach(({ at, reward }, i) => {
+    if (!['treats', 'superPaw'].includes(reward)) errors.push(`paw block ${i} has an unknown reward "${reward}"`);
+    const overhead = level.obstacles.find((o) => obstacleTypes[o.type]?.avoid === 'slide' && Math.abs(o.at - at) < BLOCK_CLEAR);
+    if (overhead) errors.push(`paw block ${i} hangs in the way of a ${overhead.type}`);
+  });
+}
+
 // A wagon needs room to drive into view, and nothing that interrupts the ride.
 function validateWagons(level, errors) {
   const speed = level.cat.speed;
@@ -219,6 +238,7 @@ export function validateLevel(level, obstacleTypes, themes, musicTracks) {
   validateAttacks(level, errors);
   validateExtras(level, errors);
   validateWagons(level, errors);
+  validateLevelObjects(level, obstacleTypes, errors);
   validateBoss(level, errors);
   return errors;
 }

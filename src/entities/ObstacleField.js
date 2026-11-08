@@ -6,6 +6,10 @@ const PASSED_MARGIN = 90; // how far behind the cat an obstacle must be to count
 const LANDING_TOLERANCE = 8;
 const ROAD_TOLERANCE = 4;
 const ZONE_BELOW_FEET = 12; // zones lie on the road, a little in front of where the cat's feet land
+const DITCH_LIP = 52; // the ditch's art starts this far above where the cat runs: at the kerb, across the road
+const FALLEN_IN = 10; // feet this far below the road mean the cat has fallen into a ditch
+const PIECES = 6;
+const PIECE_MS = 650;
 
 // Places a level's obstacles, moves the ones that move, and reports hits, landings and clean passes.
 export class ObstacleField {
@@ -18,7 +22,10 @@ export class ObstacleField {
     this.alert = () => {};
     this.avoided = () => {};
     this.splash = () => {};
+    this.fellIn = () => {};
+    this.smashed = () => {};
     this.zones = [];
+    this.ditches = [];
     // The cat can stop, so swings, sprinklers and traffic keep time on their own. Their motion
     // follows this steadily moving point, rather than the cat.
     this.clockPoint = { x: 0 };
@@ -31,6 +38,7 @@ export class ObstacleField {
         this.movers.push(mover);
         return mover;
       }
+      if (definition.ditch) return this.placeDitch(definition, entry.at);
       if (definition.zone) return this.placeZone(definition, entry.at);
       return this.placeStatic(definition, entry.at, definition.solid ? this.walls : this.group);
     });
@@ -49,6 +57,8 @@ export class ObstacleField {
     item.bounce = type.bounce;
     item.heavy = Boolean(type.heavy);
     item.solid = Boolean(type.solid);
+    item.breakable = Boolean(type.breakable);
+    item.broken = false;
     item.stuckHint = type.stuckHint;
     item.wasHit = false;
     return item;
@@ -62,6 +72,19 @@ export class ObstacleField {
     item.zone = type.zone;
     item.wasHit = false;
     this.zones.push(item);
+    return item;
+  }
+
+  // A gap in the road. The scene leaves the ground out here (see ditchSpans), so the cat can fall in.
+  placeDitch(type, at) {
+    const item = this.scene.add.image(at, GAME.GROUND_Y - DITCH_LIP, type.texture);
+    item.setOrigin(0.5, 0).setDepth(2);
+    item.displayWidth = type.zone.width + 36;
+    item.avoid = type.avoid;
+    item.zone = type.zone;
+    item.ditch = type.ditch;
+    item.wasHit = false;
+    this.ditches.push(item);
     return item;
   }
 
@@ -111,11 +134,19 @@ export class ObstacleField {
     physics.add.overlap(cat, this.group, handle, isHit);
     if (this.movers.length > 0) physics.add.overlap(cat, this.movers, handle, isHit);
 
-    // Walls are solid: running into one stops the cat, and the top is safe to land on.
+    // Walls are solid: running into one stops the cat, and the top is safe to land on. A sliding cat
+    // smashes through a breakable one instead.
     physics.add.collider(cat, this.walls, (_cat, item) => {
       if (item.wasHit || !cat.body.blocked.right) return;
       item.wasHit = true;
       this.wallHit(item);
+    }, (_cat, item) => {
+      if (item.broken) return false;
+      if (item.breakable && cat.isSliding) {
+        this.smash(item);
+        return false;
+      }
+      return true;
     });
   }
 
@@ -134,6 +165,26 @@ export class ObstacleField {
     this.splash = callback;
   }
 
+  // `callback` runs when the cat falls into a ditch.
+  onFallIn(callback) {
+    this.fellIn = callback;
+  }
+
+  // `callback` runs when a sliding cat smashes through something.
+  onSmash(callback) {
+    this.smashed = callback;
+  }
+
+  // The stretches of road with no ground under them: [left, right, depth] for each ditch.
+  static ditchSpans(level) {
+    return level.obstacles
+      .filter((entry) => OBSTACLES[entry.type].ditch)
+      .map((entry) => {
+        const { zone, ditch } = OBSTACLES[entry.type];
+        return [entry.at - zone.width / 2, entry.at + zone.width / 2, ditch.depth];
+      });
+  }
+
   // `callback` runs once for each obstacle the cat gets past without hitting.
   onAvoided(callback) {
     this.avoided = callback;
@@ -141,6 +192,12 @@ export class ObstacleField {
 
   update(ms, cat) {
     this.clockPoint.x += this.clockSpeed * (ms / 1000);
+    for (const ditch of this.ditches) {
+      if (ditch.wasHit || cat.body.bottom < GAME.GROUND_Y + FALLEN_IN) continue;
+      if (Math.abs(cat.body.center.x - ditch.x) > ditch.zone.width / 2) continue;
+      ditch.wasHit = true;
+      this.fellIn(ditch);
+    }
     for (const mover of this.movers) {
       mover.tick(ms, mover.keepsTime ? this.clockPoint : cat, this.alert, cat);
     }
@@ -155,6 +212,27 @@ export class ObstacleField {
 
   stopMovers() {
     for (const mover of this.movers) mover.stop();
+  }
+
+  // Sends the boxes flying, and leaves nothing in the way.
+  smash(item) {
+    item.broken = true;
+    item.body.enable = false;
+    item.setVisible(false);
+    for (let i = 0; i < PIECES; i++) {
+      const piece = this.scene.add.image(item.x + (Math.random() - 0.5) * 60, item.y - 40 - i * 40, 'box-piece').setDepth(6);
+      this.scene.tweens.add({
+        targets: piece,
+        x: piece.x + 120 + Math.random() * 260,
+        y: GAME.GROUND_Y - 10 - Math.random() * 30,
+        angle: (Math.random() - 0.5) * 720,
+        alpha: 0,
+        duration: PIECE_MS,
+        ease: 'Quad.easeIn',
+        onComplete: () => piece.destroy(),
+      });
+    }
+    this.smashed(item);
   }
 
   knockOver(item) {

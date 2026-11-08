@@ -2,6 +2,7 @@
 // automatically, based on what its data says should avoid it.
 import { LEVELS } from '../../src/data/levels/index.js';
 import { OBSTACLES } from '../../src/data/obstacles.js';
+import { PAW_BLOCK } from '../../src/data/pickups.js';
 
 const AT = 900; // where a test obstacle stands
 const FRAME_RATES = [60, 30, 20]; // uneven or slow frames must not change the outcome
@@ -22,6 +23,7 @@ const WALL_BIG_JUMP = [
   { press: 'jump', afterSeconds: 0.19, after: 0 },
 ];
 const JUMP_TO_LAND = { press: 'jump', lead: 0.75 };
+const blockTreats = (level) => (level.pawBlocks ?? []).filter((b) => b.reward === 'treats').reduce((sum, b) => sum + (b.count ?? PAW_BLOCK.treats), 0);
 const TEST_LEVEL = 4; // a level in the middle of the game, for checking movement and walls
 
 // Obstacles are checked at the slowest, middle and fastest level speeds.
@@ -66,6 +68,8 @@ function checksFor(name, type) {
       return checks;
     }
     case 'terrain':
+      // A ditch isn't run through: falling in stops the cat. It has scenarios of its own, below.
+      if (type.ditch) return [{ label: 'jumping across avoids it', obstacles: place(), actions: [{ press: 'jump', lead: 0.42 }], expect: clean }];
       return [
         { label: 'jumping across avoids it', obstacles: place(), actions: [{ press: 'jump', lead: 0.42 }], expect: clean },
         {
@@ -1019,7 +1023,8 @@ export function buildScenarios() {
     add(`treats: the autopilot collects some on ${level.id}`, {
       levelIndex,
       autopilot: true,
-      expect: (r) => r.treats > 0 && r.treatTotal === level.treats.length && r.state === 'complete',
+      // Paw blocks' treats count toward the total too.
+      expect: (r) => r.treats > 0 && r.treatTotal === level.treats.length + blockTreats(level) && r.state === 'complete',
       detail: (r) => `treats=${r.treats} of ${r.treatTotal} state=${r.state}`,
     });
   });
@@ -1117,6 +1122,111 @@ export function buildScenarios() {
     detail: (r) => `gap=${Math.round(r.gap)}`,
   });
 
+
+  // Phase 3's level objects.
+  const FAR = [{ type: 'cone', at: 15000 }];
+  const DITCH_AT = 1500;
+  for (const fps of FRAME_RATES) {
+    add(`ditch: a jump clears it, ${fps}fps`, {
+      levelIndex: TEST_LEVEL,
+      frameMs: 1000 / fps,
+      obstacles: [{ type: 'ditch', at: DITCH_AT }, ...FAR],
+      actions: [{ press: 'jump', item: 0, lead: 0.42 }],
+      until: DITCH_AT + 500,
+      expect: (r) => !r.hits[0] && r.x >= DITCH_AT + 500 && r.state === 'playing',
+      detail: (r) => `hit=${r.hits[0]} x=${Math.round(r.x)} state=${r.state}`,
+    });
+  }
+  add('ditch: a cat that runs on falls in, and is stuck until it jumps', {
+    levelIndex: TEST_LEVEL,
+    obstacles: [{ type: 'ditch', at: DITCH_AT }, ...FAR],
+    until: DITCH_AT + 500,
+    expect: (r) => r.hits[0] && r.state === 'failed' && r.x < DITCH_AT + 200 && r.sounds.includes('splat'),
+    detail: (r) => `hit=${r.hits[0]} x=${Math.round(r.x)} state=${r.state}`,
+  });
+  add('ditch: a cat that falls in can jump out and run on', {
+    levelIndex: TEST_LEVEL,
+    obstacles: [{ type: 'ditch', at: DITCH_AT }, ...FAR],
+    actions: [{ press: 'jump', stuckFor: 0.2 }],
+    until: DITCH_AT + 500,
+    expect: (r) => r.hits[0] && r.state === 'playing' && r.x >= DITCH_AT + 500,
+    detail: (r) => `hit=${r.hits[0]} x=${Math.round(r.x)} state=${r.state} stuck=${r.stuckSeconds.toFixed(2)}`,
+  });
+
+  const STACK_AT = 1500;
+  add('box stack: running into it stops the cat', {
+    levelIndex: TEST_LEVEL,
+    obstacles: [{ type: 'boxStack', at: STACK_AT }, ...FAR],
+    until: STACK_AT + 300,
+    expect: (r) => r.hits[0] && r.stuckSeconds > 0.3 && r.x < STACK_AT && r.sounds.includes('thud'),
+    detail: (r) => `hit=${r.hits[0]} stuck=${r.stuckSeconds.toFixed(2)} x=${Math.round(r.x)}`,
+  });
+  for (const fps of FRAME_RATES) {
+    add(`box stack: a slide smashes through it without stopping, ${fps}fps`, {
+      levelIndex: TEST_LEVEL,
+      frameMs: 1000 / fps,
+      obstacles: [{ type: 'boxStack', at: STACK_AT }, ...FAR],
+      actions: [{ press: 'slide', item: 0, lead: 0.45, extra: 60 }],
+      until: STACK_AT + 300,
+      expect: (r) => !r.hits[0] && r.x >= STACK_AT + 300 && r.sounds.includes('smash') && r.stuckSeconds === 0,
+      detail: (r) => `hit=${r.hits[0]} x=${Math.round(r.x)} stuck=${r.stuckSeconds.toFixed(2)} sounds=${r.sounds.join(',')}`,
+    });
+  }
+
+  const BLOCK_AT = 1500;
+  add('paw block: running under it does nothing', {
+    levelIndex: TEST_LEVEL,
+    obstacles: FAR,
+    pawBlocks: [{ at: BLOCK_AT, reward: 'treats' }],
+    until: BLOCK_AT + 300,
+    expect: (r) => !r.blocksUsed[0] && r.treats === 0,
+    detail: (r) => `used=${r.blocksUsed} treats=${r.treats}`,
+  });
+  for (const fps of FRAME_RATES) {
+    add(`paw block: jumping into it from below bumps out its treats, ${fps}fps`, {
+      levelIndex: TEST_LEVEL,
+      frameMs: 1000 / fps,
+      obstacles: FAR,
+      pawBlocks: [{ at: BLOCK_AT, reward: 'treats' }],
+      actions: [{ press: 'jump', catX: BLOCK_AT - 110 }],
+      until: BLOCK_AT + 400,
+      expect: (r) => r.blocksUsed[0] && r.treats === 3 && r.treatTotal === 3 && r.sounds.includes('bump'),
+      detail: (r) => `used=${r.blocksUsed} treats=${r.treats}/${r.treatTotal} sounds=${r.sounds.join(',')}`,
+    });
+  }
+  add('paw block: one holding a Super Paw gives it', {
+    levelIndex: TEST_LEVEL,
+    obstacles: FAR,
+    pawBlocks: [{ at: BLOCK_AT, reward: 'superPaw' }],
+    actions: [{ press: 'jump', catX: BLOCK_AT - 110 }],
+    until: BLOCK_AT + 400,
+    expect: (r) => r.blocksUsed[0] && r.hasPaw && r.sounds.includes('pawPickup'),
+    detail: (r) => `used=${r.blocksUsed} paw=${r.hasPaw}`,
+  });
+
+  const FLAP_AT = 1500;
+  const FLAP_EXIT = 2700;
+  const flapRoad = [{ type: 'cone', at: 2100 }, ...FAR];
+  add('cat flap: running past it does nothing, so the cat meets what\'s on the road', {
+    levelIndex: TEST_LEVEL,
+    obstacles: flapRoad,
+    catFlaps: [{ at: FLAP_AT, exitAt: FLAP_EXIT }],
+    until: FLAP_EXIT + 200,
+    expect: (r) => !r.flapsUsed[0] && r.hits[0],
+    detail: (r) => `used=${r.flapsUsed} hit=${r.hits[0]}`,
+  });
+  for (const fps of FRAME_RATES) {
+    add(`cat flap: sliding in carries the cat past the road to the far flap, further ahead, ${fps}fps`, {
+      levelIndex: TEST_LEVEL,
+      frameMs: 1000 / fps,
+      obstacles: flapRoad,
+      catFlaps: [{ at: FLAP_AT, exitAt: FLAP_EXIT }],
+      actions: [{ press: 'slide', catX: FLAP_AT - 100 }],
+      until: FLAP_EXIT + 200,
+      expect: (r) => r.flapsUsed[0] && !r.hits[0] && r.catVisible && r.state === 'playing' && r.x >= FLAP_EXIT + 200 && r.gap > LEVELS[TEST_LEVEL].chase.startGap,
+      detail: (r) => `used=${r.flapsUsed} hit=${r.hits[0]} visible=${r.catVisible} x=${Math.round(r.x)} gap=${Math.round(r.gap)}`,
+    });
+  }
   return scenarios;
 }
 

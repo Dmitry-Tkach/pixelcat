@@ -101,6 +101,8 @@ const WORLD_IMAGES = {
   'tractor-front': 'tractor-front', 'dirt-crossing': 'dirt-crossing', 'farm-flag-red': 'farm-flag-red', 'farm-flag-green': 'farm-flag-green',
   'market-stall': 'market-stall', 'fruit-crate': 'fruit-crate', 'fruit-splat': 'fruit-splat', 'laundry-bundle': 'laundry-bundle', 'laundry-pile': 'laundry-pile',
   'platform-roof': 'platform-roof', 'roof-wall': 'roof-wall', 'toy-mouse': 'toy-mouse',
+  'box-stack': 'box-stack', 'box-piece': 'box-piece', 'paw-block': 'paw-block', 'paw-block-used': 'paw-block-used',
+  ditch: 'ditch', 'cat-flap': 'cat-flap', 'cat-flap-open': 'cat-flap-open',
   'stone-wall': 'stone-wall', 'stone-wall-tall': 'stone-wall-tall', 'stone-wall-gate': 'stone-wall-gate',
   'brick-wall': 'brick-wall', 'brick-wall-tall': 'brick-wall-tall', 'brick-wall-gate': 'brick-wall-gate',
   'wood-wall': 'wood-wall', 'wood-wall-tall': 'wood-wall-tall', 'wood-wall-gate': 'wood-wall-gate',

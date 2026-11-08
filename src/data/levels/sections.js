@@ -10,6 +10,8 @@
 //            lift: { travel, seconds } rises and falls on the clock, collapse: true falls after landing
 // treats:    { arc: t } follows a jump over that moment, or { line: t, count, height }
 // pickups:   { t, type }, checkpoint: { t }
+// pawBlocks: { t, reward, count }, blocks to bump from below. `reward` is 'treats' or 'superPaw'
+// catFlap:   { t, exit }, a cat flap to slide through, coming out of another at `exit`
 // wagons:    { t }, a hay wagon whose rear reaches the cat at this moment
 // boss:      { t, type }, a boss from data/bosses.js. The arena starts here, and the section must be long enough for it
 // mouseSpot: { t, height }, where the level's hidden toy mouse sits, if its plan picks this section
@@ -31,6 +33,37 @@ export const SECTIONS = {
     duration: 2,
     checkpoint: { t: 0.3 },
     treats: [lowLine(0.8, 5)],
+  },
+
+  // ----- Phase 3's level objects -----
+  // Paw-print blocks in a row, each full of treats: jump into them from below.
+  pawBlocks: {
+    duration: 3.2,
+    pawBlocks: [{ t: 0.6, reward: 'treats' }, { t: 1.4, reward: 'treats' }, { t: 2.2, reward: 'treats' }],
+  },
+  // A row with a Super Paw hidden in the middle block.
+  pawSurprise: {
+    duration: 3.2,
+    pawBlocks: [{ t: 0.6, reward: 'treats' }, { t: 1.4, reward: 'superPaw' }, { t: 2.2, reward: 'treats' }],
+  },
+  // Ditches across the road: jump them, or fall in and climb out.
+  ditches: {
+    duration: 3.9,
+    obstacles: [{ type: 'ditch', t: 0.3 }, { type: 'ditch', t: 2 }],
+    treats: arcs(0.3, 2),
+  },
+  // A stack of boxes too tall to jump: slide into it to smash through.
+  boxStack: {
+    duration: 3,
+    obstacles: [{ type: 'boxStack', t: 0.4 }],
+    treats: [lowLine(1.1, 5)],
+  },
+  // A cat flap: slide through it to skip the road, or run on and deal with what's there.
+  catFlapShortcut: {
+    duration: 5.4,
+    catFlap: { t: 0.4, exit: 4.2 },
+    obstacles: [{ type: 'scaffold', t: 1.5 }, { type: 'cone', t: 3.1 }],
+    treats: [lowLine(1.35), arcs(3.1)[0]],
   },
   hops: {
     duration: 4.05,

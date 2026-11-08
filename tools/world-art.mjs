@@ -708,6 +708,64 @@ function foregroundArt() {
     ${repeat(64, (x, i) => `<circle cx="${x + 32}" cy="${38 + (i % 3) * 3}" r="${22 - (i % 3) * 3}" fill="#2A2350"/>`)}`, W, H);
 }
 
+
+// ----- Level objects shared by every world -----
+function levelObjectArt() {
+  // A tall stack of cardboard boxes: too tall to jump, but a slide smashes straight through.
+  const box = (x, y, w, h, tint) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="${tint}" stroke="#8E5E2E" stroke-width="2.5"/>
+    <rect x="${x}" y="${y}" width="${w}" height="${h * 0.16}" rx="2" fill="#000000" opacity="0.08"/>
+    <rect x="${x + w / 2 - 6}" y="${y}" width="12" height="${h}" fill="#E8C890" opacity="0.9"/>
+    <rect x="${x + 4}" y="${y + 3}" width="${w - 8}" height="3" rx="1.5" fill="#FFFFFF" opacity="0.35"/>
+    <path d="M${x + 10} ${y + h - 14} l10 -8 l10 8" stroke="#8E5E2E" stroke-width="2.5" fill="none" opacity="0.6"/>`;
+  save('box-stack', `
+    ${box(6, 196, 98, 84, '#D9A066')}${box(14, 118, 84, 80, '#E3B27A')}${box(4, 48, 92, 72, '#D49A5E')}${box(24, 0, 70, 50, '#E8BC86')}
+    <path d="M30 150 h20 M40 140 v20" stroke="#C0392B" stroke-width="5" stroke-linecap="round" opacity="0.8"/>`, 110, 280);
+  save('box-piece', box(2, 2, 36, 32, '#D9A066'), 40, 36);
+
+  // A paw-print block floating just over the cat's head: bump it from below.
+  const block = (face, rim, paw) => `<rect x="2" y="2" width="68" height="68" rx="12" fill="${rim}"/>
+    <rect x="6" y="5" width="60" height="58" rx="10" fill="${face}"/>
+    <rect x="10" y="8" width="52" height="8" rx="4" fill="#FFFFFF" opacity="0.45"/>
+    <g transform="translate(36 39)" fill="${paw}"><ellipse cx="0" cy="6" rx="11" ry="9"/><circle cx="-12" cy="-6" r="4.5"/><circle cx="-4" cy="-12" r="4.5"/><circle cx="4" cy="-12" r="4.5"/><circle cx="12" cy="-6" r="4.5"/></g>
+    <circle cx="12" cy="60" r="2.5" fill="${rim}"/><circle cx="60" cy="60" r="2.5" fill="${rim}"/><circle cx="12" cy="12" r="2.5" fill="${rim}"/><circle cx="60" cy="12" r="2.5" fill="${rim}"/>`;
+  save('paw-block', block('#FFC531', '#C88A12', '#E8456E'), 72, 72);
+  save('paw-block-used', block('#C9A77A', '#8E6E48', '#9E8262'), 72, 72);
+
+  // A ditch across the road. Its top half is the trench seen across the far side of the road, from
+  // the kerb to where the cat runs; below that is its side, with water at the bottom.
+  save('ditch', `<defs>
+      <linearGradient id="mouth" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5A3E2A"/><stop offset="0.25" stop-color="#2B2019"/><stop offset="1" stop-color="#1E1712"/></linearGradient>
+      <linearGradient id="pit" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2B2019"/><stop offset="1" stop-color="#4A3426"/></linearGradient></defs>
+    <path d="M14 0 H206 L214 52 H6 Z" fill="url(#mouth)"/>
+    <path d="M14 0 H206 L208 10 H12 Z" fill="#7A5434"/>
+    <path d="M12 10 L6 52 M208 10 L214 52" stroke="#8E6440" stroke-width="5"/>
+    <rect x="0" y="52" width="220" height="88" fill="url(#pit)"/>
+    <rect x="0" y="50" width="220" height="6" fill="#8E6440"/>
+    <path d="M0 52 h20 l-6 88 h-14 Z" fill="#6E4A2E"/><path d="M220 52 h-20 l6 88 h14 Z" fill="#6E4A2E"/>
+    ${[66, 86, 108].map((y) => `<circle cx="9" cy="${y}" r="3" fill="#8E6440"/><circle cx="211" cy="${y + 6}" r="3" fill="#8E6440"/>`).join('')}
+    <rect x="12" y="112" width="196" height="28" fill="#4E8DB8"/>
+    <rect x="12" y="112" width="196" height="5" fill="#8CC6E6"/>
+    <path d="M44 124 h30 M124 128 h40" stroke="#BFE3F5" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+    <path d="M22 52 q4 -12 8 -16 M198 52 q-3 -10 -8 -14" stroke="#5FAE55" stroke-width="3" fill="none" stroke-linecap="round"/>`, 220, 140);
+
+  // A garden wall with a cat flap at the bottom. The open one is where the cat comes out.
+  const flapWall = (open) => {
+    let bricks = '';
+    for (let row = 0; row < 7; row++) {
+      for (let x = (row % 2) * -20; x < 180; x += 40) bricks += `<rect x="${Math.max(0, x) + 1}" y="${24 + row * 20}" width="${Math.min(38, 180 - Math.max(0, x)) - 2}" height="18" rx="2" fill="${(row + x / 40) % 3 ? '#B4513A' : '#C26442'}"/>`;
+    }
+    return `<rect x="0" y="22" width="180" height="146" fill="#8E392E"/>${bricks}
+      <rect x="-4" y="8" width="188" height="18" rx="4" fill="#EFE7D6"/><rect x="-4" y="8" width="188" height="5" rx="2" fill="#FFFFFF" opacity="0.6"/>
+      <rect x="56" y="88" width="68" height="80" rx="6" fill="#4A3426"/>
+      <rect x="62" y="94" width="56" height="74" rx="4" fill="${open ? '#2B2019' : '#3E6E8E'}"/>
+      ${open ? '<path d="M62 94 h56 l-8 -22 h-40 Z" fill="#3E6E8E"/><path d="M68 80 h44" stroke="#2C506A" stroke-width="3"/>' : '<rect x="66" y="98" width="48" height="66" rx="3" fill="#2C506A" opacity="0.5"/><g transform="translate(90 128)" fill="#FFC531"><ellipse cx="0" cy="5" rx="9" ry="7"/><circle cx="-10" cy="-5" r="3.5"/><circle cx="-3" cy="-10" r="3.5"/><circle cx="3" cy="-10" r="3.5"/><circle cx="10" cy="-5" r="3.5"/></g>'}
+      <rect x="66" y="40" width="48" height="26" rx="4" fill="#22A67E" stroke="#FFFFFF" stroke-width="3"/>
+      <path d="M78 53 h20 m-7 -7 l7 7 l-7 7" stroke="#FFFFFF" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
+  };
+  save('cat-flap', flapWall(false), 180, 168);
+  save('cat-flap-open', flapWall(true), 180, 168);
+}
+
 // The City, Village and Farm's own hazards, and the hidden toy mouse.
 function journeyArt() {
   // ----- Farm: a tractor seen from the front, and flags instead of traffic lights -----
@@ -832,4 +890,5 @@ farmObstacles();
 vetGate();
 journeyArt();
 foregroundArt();
+levelObjectArt();
 console.log('World art drawn in public/assets/worlds');
