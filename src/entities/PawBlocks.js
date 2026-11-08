@@ -1,5 +1,6 @@
 import { GAME } from '../config/gameConfig.js';
 import { PAW_BLOCK } from '../data/pickups.js';
+import { outline } from '../ui/Outline.js';
 
 const BUMP = { height: 14, ms: 90 };
 const COIN = { rise: 90, spread: 34, ms: 420, scale: 0.6 };
@@ -17,6 +18,7 @@ export class PawBlocks {
     this.items = all.filter(({ at }) => at > startX).map(({ at, reward, count }) => {
       const item = this.group.create(at, GAME.GROUND_Y - PAW_BLOCK.height, 'paw-block');
       item.setOrigin(0.5, 1).setDepth(5);
+      outline(item);
       item.refreshBody();
       item.body.setSize(PAW_BLOCK.size, PAW_BLOCK.size);
       item.reward = reward;

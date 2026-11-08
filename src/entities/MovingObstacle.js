@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME, VIEW } from '../config/gameConfig.js';
 import { animKey, frameKey, CHARACTERS } from '../data/characters.js';
 import { activationCatX, arcHeight, crossingProgress, pulseStrength, shouldStartLeap, startX, swingHeight, wrapToCycle } from '../systems/obstacleMotion.js';
+import { outline } from '../ui/Outline.js';
 
 const FEET_ORIGIN_Y = 0.97;
 const HIDEOUT_BACK = 80; // a hiding place stands this far back from where the cat runs, on the pavement
@@ -28,6 +29,7 @@ class MovingObstacle extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y, texture, type) {
     super(scene, x, y, texture);
     scene.add.existing(this);
+    outline(this);
     scene.physics.add.existing(this);
 
     this.motion = type.motion;

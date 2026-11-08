@@ -487,7 +487,8 @@ export function townRow({ dusk = false } = {}) {
   return `<defs>${brickPatterns()}${DUSK_FILTER}</defs>${dusk ? `<g filter="url(#dusk)">${inner}</g>${lights}` : inner}`;
 }
 
-// Grey stone pavement, a granite kerb, and a dark road with double yellow lines along its edge.
+// Warm buff York stone paving, so a grey cat never stands on its own colour, then a granite kerb and
+// a dark road with double yellow lines along its edge.
 export function townStreet({ dusk = false } = {}) {
   const rand = rng(99);
   const SLAB = 64;
@@ -495,16 +496,16 @@ export function townStreet({ dusk = false } = {}) {
   let inner = `<defs><linearGradient id="road" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#363A47"/><stop offset="0.45" stop-color="#424757"/><stop offset="1" stop-color="#383C49"/>
     </linearGradient></defs>
-    <rect y="${STREET_TOP}" width="${TILE}" height="70" fill="#CFCCC5"/>
-    <rect y="${STREET_TOP}" width="${TILE}" height="8" fill="#B3AFA7"/>`;
+    <rect y="${STREET_TOP}" width="${TILE}" height="70" fill="#E2CFA8"/>
+    <rect y="${STREET_TOP}" width="${TILE}" height="8" fill="#C4AE84"/>`;
   ROWS.forEach((rowY, row) => {
     const offset = row ? SLAB / 2 : 0;
     for (let x = -offset; x < TILE; x += SLAB) {
-      const tint = rand() < 0.3 ? '#C8C4BC' : rand() < 0.5 ? '#D6D3CC' : '#D0CDC6';
+      const tint = rand() < 0.3 ? '#DCC69C' : rand() < 0.5 ? '#E9D8B6' : '#E4D1AC';
       inner += `<rect x="${x + 1.5}" y="${rowY + 1}" width="${SLAB - 3}" height="29" rx="2" fill="${tint}"/>
-        <rect x="${x + 1.5}" y="${rowY + 1}" width="${SLAB - 3}" height="2.5" rx="1" fill="#E4E2DD"/>
-        <rect x="${x + 1.5}" y="${rowY + 27}" width="${SLAB - 3}" height="3" rx="1" fill="#B3AFA7"/>`;
-      if (rand() < 0.08) inner += `<path d="M${x + 14 + rand() * 30} ${rowY + 8} l8 6 l-3 5 l8 6" stroke="#A9A59D" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+        <rect x="${x + 1.5}" y="${rowY + 1}" width="${SLAB - 3}" height="2.5" rx="1" fill="#F4E8CF"/>
+        <rect x="${x + 1.5}" y="${rowY + 27}" width="${SLAB - 3}" height="3" rx="1" fill="#C4AE84"/>`;
+      if (rand() < 0.08) inner += `<path d="M${x + 14 + rand() * 30} ${rowY + 8} l8 6 l-3 5 l8 6" stroke="#B49C70" stroke-width="2" fill="none" stroke-linecap="round"/>`;
       if (rand() < 0.04) inner += `<ellipse cx="${x + 32}" cy="${rowY + 16}" rx="12" ry="4" fill="#9FC3D6" opacity="0.55"/>`;
     }
   });

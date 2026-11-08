@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME } from '../config/gameConfig.js';
 import { CHARACTERS, animKey, frameKey } from '../data/characters.js';
 import { arcHeight } from '../systems/obstacleMotion.js';
+import { outline } from '../ui/Outline.js';
 
 const BELOW_FEET = 12; // how much room the frames leave under his feet. See tools/cut-boss.mjs
 const STANDING = { w: 110, h: 150 }; // lower than his art, so one jump can land on his head
@@ -15,6 +16,7 @@ export class Boss extends Phaser.GameObjects.Sprite {
     const { character } = definition;
     super(scene, x, GAME.GROUND_Y, frameKey(character, CHARACTERS[character].anims.idle.file, 1));
     scene.add.existing(this);
+    outline(this);
     this.character = character;
     this.definition = definition;
     this.director = director;
