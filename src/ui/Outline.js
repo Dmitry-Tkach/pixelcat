@@ -2,11 +2,11 @@
 // classic platformers. It's drawn by the game, so no art needs changing. Browsers drawing without
 // WebGL have no effects, and simply go without it.
 const OUTLINE = {
-  color: 0x1e2a4a,
-  strength: 8, // how dark and solid the edge is
-  distance: 3, // how far it reaches out from the art, in pixels
+  color: 0x2e3a5e,
+  strength: 3.5, // how dark and solid the edge is
+  distance: 2, // how far it reaches out from the art, in pixels
   quality: 0.2,
-  padding: 6, // room around the art for the outline to show
+  padding: 4, // room around the art for the outline to show
 };
 
 export function outline(object) {
