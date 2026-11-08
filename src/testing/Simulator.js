@@ -60,6 +60,56 @@ function dodgeGunner(scene) {
   if (rushing && Math.sign(cat.x - boss.x) === boss.moveDirection && Math.abs(cat.x - boss.x) < RUSH_JUMP_DISTANCE) cat.requestJump();
 }
 
+// Dodges the Bomber Rat the way a player is told to: get clear of where his bombs land, jump his
+// pounce and his shockwave, and get out from under his hop. Otherwise it stands still.
+const BOMB_CLEARANCE = 36;
+const SAFE_STEP = 20;
+const WAVE_JUMP_SECONDS = 0.1;
+const WAVE_HIT_WIDTH = 56; // see BomberBoss.js
+const FREE_MOVE_BACK_SHARE = 0.55; // see FREE_MOVE.BACK_SHARE
+const PUNCH_CLOSE = 320;
+const PUNCH_JUMP_SECONDS = 0.04;
+const POUNCE_WINDUP_JUMP_SECONDS = 0.12; // his pounce is fast, so from close by it jumps a little early
+function dodgeBomber(scene) {
+  const { cat, controls, bossFight: fight } = scene;
+  const { boss, director } = fight;
+  const { state, attack, attackData, stateMs } = director;
+  const edge = { left: fight.left + 70, right: fight.right - 70 };
+  const danger = boss.bombs.map((bomb) => ({ x: bomb.landX, r: bomb.data.blastRadius + BOMB_CLEARANCE }));
+  if (attack === 'hop' && state === 'active') danger.push({ x: boss.targetX, r: 140 });
+  const safe = (x) => danger.every((d) => Math.abs(x - d.x) > d.r);
+  let goal = cat.x;
+  if (!safe(cat.x)) {
+    // The quickest safe spot to reach: running backward is slower than running forward.
+    const seconds = (x) => Math.abs(x - cat.x) / (cat.topSpeed * (x > cat.x ? 1 : FREE_MOVE_BACK_SHARE));
+    let best = null;
+    for (let x = edge.left; x <= edge.right; x += SAFE_STEP) {
+      if (safe(x) && (best === null || seconds(x) < seconds(best))) best = x;
+    }
+    if (best !== null) goal = best;
+  }
+  const run = Math.abs(goal - cat.x) > 8 ? Math.sign(goal - cat.x) : 0;
+  controls.left = run < 0;
+  controls.right = run > 0;
+  if (!cat.onGround) return;
+  // Jumps as the wave's front edge is about to reach it.
+  for (const wave of boss.waves) {
+    const ahead = cat.x - wave.sprite.x;
+    const reach = (WAVE_HIT_WIDTH + cat.body.width) / 2;
+    if (Math.sign(ahead) === wave.direction && (Math.abs(ahead) - reach) / wave.speed < WAVE_JUMP_SECONDS) { cat.requestJump(); return; }
+  }
+  // Close to him, his shockwave comes too fast to react to, so it jumps as his punch lands.
+  if (attack === 'powerHit' && state === 'windup' && Math.abs(cat.x - boss.x) < PUNCH_CLOSE && attackData.windup * 1000 - stateMs < PUNCH_JUMP_SECONDS * 1000) {
+    cat.requestJump();
+    return;
+  }
+  if (attack === 'pounce') {
+    const close = Math.abs(cat.x - boss.x) < RUSH_JUMP_DISTANCE;
+    if (state === 'windup' && close && attackData.windup * 1000 - stateMs < POUNCE_WINDUP_JUMP_SECONDS * 1000) cat.requestJump();
+    if (state === 'active' && Math.sign(cat.x - boss.x) === boss.moveDirection && close) cat.requestJump();
+  }
+}
+
 // A small seeded generator, so a simulated player's mistakes can be repeated exactly.
 function seededRandom(seed) {
   let s = seed >>> 0;
@@ -85,8 +135,24 @@ function mistakeFor(state, key) {
 }
 
 // Plays the correct move for each obstacle, using only what a player can see on screen.
+// Jumps each acorn the crow drops on the road ahead, as it would any obstacle.
+const ACORN_JUMP_LEAD = 0.33;
+function dodgeAcorns(scene, state) {
+  const { cat, crows } = scene;
+  if (!cat.onGround) return;
+  for (const acorn of crows.acorns) {
+    if (acorn.used || state.handled.has(acorn)) continue;
+    const ahead = acorn.sprite.x - cat.x;
+    if (ahead <= 0 || ahead > cat.speed * ACORN_JUMP_LEAD + 40) continue;
+    state.handled.add(acorn);
+    if (!mistakeFor(state, acorn).misses) cat.requestJump();
+    return;
+  }
+}
+
 function autopilot(scene, state) {
   const { cat, obstacles, chase } = scene;
+  dodgeAcorns(scene, state);
   if (chase.secondsToStrike !== null && state.lungeJumped !== chase.warningStart) {
     const mistake = mistakeFor(state, `lunge-${chase.warningStart}`);
     if (chase.secondsToStrike <= LUNGE_JUMP_LEAD + mistake.timing) {
@@ -186,6 +252,7 @@ export class Simulator {
         pickups: spec.pickups ?? [],
         pawBlocks: spec.pawBlocks ?? [],
         catFlaps: spec.catFlaps ?? [],
+        crows: spec.crows ?? [],
         chasers: spec.chasers ?? base.chasers,
         platforms: spec.platforms ?? [],
         wagons: spec.wagons ?? [],
@@ -308,6 +375,8 @@ export class Simulator {
         if (scene.bossFight?.isActive) scene.bossFight.pawHit();
       }
       if (spec.dodgeGunner && scene.bossFight?.isActive) dodgeGunner(scene);
+      if (spec.dodgeBomber && scene.bossFight?.isActive) dodgeBomber(scene);
+      if (spec.dodgeBomber && scene.bossFight?.isOver) scene.controls.right = true;
       // Once he's beaten, it runs on out of the arena.
       if (spec.dodgeGunner && scene.bossFight?.isOver) scene.controls.right = true;
       // Drops the cat on a boss's head whenever it's open to a stomp.
@@ -377,6 +446,8 @@ export class Simulator {
       collected: scene.pickups.items.map((item) => item.collected),
       blocksUsed: scene.pawBlocks.items.map((item) => item.used),
       flapsUsed: scene.catFlaps.items.map((item) => item.used),
+      crowHits: scene.crowHits,
+      catnipLeft: scene.catnipMs,
       koMs: chase.koMs,
       hits: obstacles.items.map((item) => item.wasHit),
       passed: obstacles.items.map((item) => Boolean(item.passed)),

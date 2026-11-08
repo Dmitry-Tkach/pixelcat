@@ -1123,6 +1123,72 @@ export function buildScenarios() {
   });
 
 
+  // The Bomber Rat, at the end of Level 5.
+  const bomberSpec = { levelIndex: 4, obstacles: bossRoad, boss: { type: 'bomberRat', at: BOSS_AT }, length: 4000 };
+  add('bomber: his bombs beat a cat that just stands there', {
+    ...bomberSpec,
+    actions: [{ press: 'release', catX: BOSS_AT + 300 }],
+    expect: (r) => r.state === 'failed' && r.lives === 0 && r.bossesAttacks.includes('bombToss') && r.sounds.includes('boom'),
+    detail: (r) => `state=${r.state} lives=${r.lives} attacks=${r.bossesAttacks}`,
+  });
+  for (const fps of FRAME_RATES) {
+    add(`bomber: a cat that dodges by the rules survives all his attacks and stomps him three times, ${fps}fps`, {
+      ...bomberSpec,
+      frameMs: 1000 / fps,
+      actions: [{ press: 'release', catX: BOSS_AT + 300 }],
+      dodgeBomber: true,
+      stompWhenOpen: true,
+      expect: (r) => r.state === 'complete' && r.bossHealth === 0 && r.lives === 3
+        && ['bombToss', 'bombRain', 'pounce', 'hop', 'powerHit'].every((a) => r.bossesAttacks.includes(a)) && r.sounds.includes('cheer'),
+      detail: (r) => `state=${r.state} health=${r.bossHealth} lives=${r.lives} attacks=${r.bossesAttacks}`,
+    });
+  }
+  add('bomber: the Super Paw hits him at any time', {
+    ...bomberSpec,
+    startCheckpoint: { x: 700, treats: 0, hasPaw: true, rosterIndex: 0 },
+    actions: [{ press: 'paw', catX: BOSS_AT + 300 }],
+    until: BOSS_AT + 500,
+    settleSeconds: 0.5,
+    expect: (r) => r.bossHealth === 2 && !r.hasPaw,
+    detail: (r) => `health=${r.bossHealth} hasPaw=${r.hasPaw}`,
+  });
+
+  // Phase 4: the crow and catnip. (Dogs in bins are covered with the other obstacles, above.)
+  const CROW_AT = 1200;
+  const crowSpec = { levelIndex: TEST_LEVEL, obstacles: [{ type: 'cone', at: 15000 }], crows: [{ at: CROW_AT, until: CROW_AT + 3600 }], until: CROW_AT + 3800 };
+  add('crow: a cat that never jumps is hit by its acorns', {
+    ...crowSpec,
+    expect: (r) => r.crowHits > 0 && r.sounds.includes('caw'),
+    detail: (r) => `crowHits=${r.crowHits}`,
+  });
+  for (const fps of FRAME_RATES) {
+    add(`crow: a cat that jumps each acorn stays clear, ${fps}fps`, {
+      ...crowSpec,
+      frameMs: 1000 / fps,
+      autopilot: true,
+      expect: (r) => r.crowHits === 0 && r.state === 'playing',
+      detail: (r) => `crowHits=${r.crowHits} state=${r.state}`,
+    });
+  }
+  add('catnip: the cat bowls through obstacles and a wall without slowing', {
+    levelIndex: TEST_LEVEL,
+    obstacles: [{ type: 'cone', at: 1700 }, { type: 'bench', at: 2050 }, { type: 'stoneWall', at: 2400 }, { type: 'cone', at: 15000 }],
+    pickups: [{ type: 'catnip', at: 1250 }],
+    actions: [{ press: 'jump', catX: 1100 }],
+    until: 2700,
+    expect: (r) => r.collected[0] && r.stuckSeconds === 0 && r.minSpeed >= LEVELS[TEST_LEVEL].cat.speed * 0.95 && r.sounds.includes('smash'),
+    detail: (r) => `collected=${r.collected} stuck=${r.stuckSeconds.toFixed(2)} minSpeed=${Math.round(r.minSpeed)} sounds=${r.sounds.join(',')}`,
+  });
+  add('catnip: it wears off, and then obstacles slow the cat again', {
+    levelIndex: TEST_LEVEL,
+    obstacles: [{ type: 'cone', at: 1250 + LEVELS[TEST_LEVEL].cat.speed * 7 }, { type: 'cone', at: 15000 }],
+    pickups: [{ type: 'catnip', at: 1250 }],
+    actions: [{ press: 'jump', catX: 1100 }],
+    until: 1250 + LEVELS[TEST_LEVEL].cat.speed * 7 + 300,
+    expect: (r) => r.collected[0] && r.hits[0] && r.catnipLeft === 0 && r.minSpeed < LEVELS[TEST_LEVEL].cat.speed * 0.7,
+    detail: (r) => `hit=${r.hits[0]} left=${r.catnipLeft} minSpeed=${Math.round(r.minSpeed)}`,
+  });
+
   // Phase 3's level objects.
   const FAR = [{ type: 'cone', at: 15000 }];
   const DITCH_AT = 1500;

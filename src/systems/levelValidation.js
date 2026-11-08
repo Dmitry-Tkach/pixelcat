@@ -74,7 +74,8 @@ function validateCharger(type, at, index, catSpeed, errors) {
     errors.push(`moving obstacle ${index} would need to start before the level does`);
   }
   const startDistance = startX(at, speed, leadSeconds) - activationCatX(at, catSpeed, leadSeconds);
-  if (startDistance <= VIEW.AHEAD) {
+  // One hiding in plain sight starts on screen on purpose.
+  if (startDistance <= VIEW.AHEAD && !type.motion.hideIn) {
     errors.push(`moving obstacle ${index} would appear on screen instead of running in`);
   }
 }
@@ -105,12 +106,18 @@ function validateObstacle(obstacle, i, type, level, errors) {
 const FLAP_MIN_LENGTH = 400;
 const FLAP_CLEAR_EXIT = 260;
 const BLOCK_CLEAR = 140;
+const CROW_MIN_FLIGHT = 1200;
 function validateLevelObjects(level, obstacleTypes, errors) {
   (level.catFlaps ?? []).forEach(({ at, exitAt }, i) => {
     if (exitAt - at < FLAP_MIN_LENGTH) errors.push(`cat flap ${i} comes out too soon after going in`);
     if (at < START_CLEARANCE || exitAt > level.length - END_CLEARANCE) errors.push(`cat flap ${i} is too close to the start or the escape point`);
     const blocked = level.obstacles.find((o) => Math.abs(o.at - exitAt) < FLAP_CLEAR_EXIT + (obstacleTypes[o.type]?.zone?.width ?? 0) / 2);
     if (blocked) errors.push(`cat flap ${i} lets the cat out on top of a ${blocked.type}`);
+  });
+  (level.crows ?? []).forEach(({ at, until }, i) => {
+    if (until - at < CROW_MIN_FLIGHT) errors.push(`crow ${i} leaves too soon to drop anything`);
+    if (at < START_CLEARANCE || until > level.length - END_CLEARANCE) errors.push(`crow ${i} is too close to the start or the escape point`);
+    if (level.boss && until > level.boss.at && at < level.boss.at + BOSS.ARENA_WIDTH) errors.push(`crow ${i} flies over the boss's arena`);
   });
   (level.pawBlocks ?? []).forEach(({ at, reward }, i) => {
     if (!['treats', 'superPaw'].includes(reward)) errors.push(`paw block ${i} has an unknown reward "${reward}"`);

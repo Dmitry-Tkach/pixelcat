@@ -11,6 +11,8 @@ import { HayWagons } from '../entities/HayWagons.js';
 import { ObstacleField } from '../entities/ObstacleField.js';
 import { CatFlaps } from '../entities/CatFlaps.js';
 import { PawBlocks } from '../entities/PawBlocks.js';
+import { Crows } from '../entities/Crows.js';
+import { CATNIP, CROW } from '../data/pickups.js';
 import { Pickups } from '../entities/Pickups.js';
 import { Platforms } from '../entities/Platforms.js';
 import { ToyMouse } from '../entities/ToyMouse.js';
@@ -48,7 +50,9 @@ const CRASH_DUST = 14;
 const RUN_DUST_SHARE = 0.6; // running faster than this share of top speed kicks up dust
 const IMPACT_AHEAD = 40;
 const DITCH_SPLASH = 0x8cc6e6;
-const CAT_FLAP_LEAD = 250; // how much further ahead of the chaser a cat flap puts the cat
+const CAT_FLAP_LEAD = 250;
+const CATNIP_HUE_MS = 700; // how fast the cat's catnip shimmer runs through the colours
+const CATNIP_TINT_SATURATION = 0.45; // how much further ahead of the chaser a cat flap puts the cat
 const IMPACT_HEIGHT = 70;
 const MODE_HINTS = {
   free: 'Free move: left and right run, and you can stop',
@@ -103,6 +107,9 @@ export class GameScene extends Phaser.Scene {
     this.pawBlocks = new PawBlocks(this, level, startX);
     this.treats.total += this.pawBlocks.treatTotal;
     this.catFlaps = new CatFlaps(this, level, startX);
+    this.crows = new Crows(this, { crows: (level.crows ?? []).filter(({ until }) => until > startX) }, CROW);
+    this.catnipMs = 0;
+    this.crowHits = 0;
     for (const x of (level.checkpoints ?? []).filter((flagX) => flagX > startX)) {
       this.add.image(x, GAME.GROUND_Y + 4, 'checkpoint-flag').setOrigin(0.15, 1).setDepth(3);
     }
@@ -149,7 +156,9 @@ export class GameScene extends Phaser.Scene {
     this.obstacles.onWallHit((item) => this.handleWallHit(item));
     this.obstacles.onAlert((sound) => this.audio.playSfx(sound));
     this.obstacles.onAvoided(() => this.handleAvoided());
-    this.pickups.onCollect(this.cat, () => this.handlePawPickup());
+    this.pickups.onCollect(this.cat, (type) => (type === 'catnip' ? this.startCatnip() : this.handlePawPickup()));
+    this.crows.onEvents(() => this.audio.playSfx('whistle'), () => this.handleCrowHit());
+    this.obstacles.unstoppable = () => this.catnipMs > 0;
     this.pawBlocks.onBump(this.cat, (item) => this.handleBlockBump(item));
     this.catFlaps.onUse((way) => this.handleFlapIn(way), () => this.handleFlapOut());
     this.platforms.onLand(this.cat);
@@ -243,6 +252,8 @@ export class GameScene extends Phaser.Scene {
     fight?.update(ms, this.cat);
     this.cat.speedControl.setTerrain(this.obstacles.terrainUnder(this.cat));
     this.catFlaps.update(ms, this.cat);
+    this.crows.update(ms, this.cat, this.catnipMs > 0);
+    this.updateCatnip(ms);
     if (!this.catFlaps.isCarrying) this.cat.tick(ms);
     if (!this.catFlaps.isCarrying && this.cat.onGround && (this.cat.isSliding || Math.abs(this.cat.moveVelocity) > this.cat.topSpeed * RUN_DUST_SHARE)) {
       this.effects.runDust(this.cat, ms);
@@ -451,6 +462,12 @@ export class GameScene extends Phaser.Scene {
 
   handleHit(item) {
     if (!this.isPlaying) return;
+    // On catnip, the cat bowls straight through.
+    if (this.catnipMs > 0) {
+      this.audio.playSfx('punch');
+      this.effects.impact(this.cat.x + IMPACT_AHEAD, this.cat.y - IMPACT_HEIGHT, 1.2);
+      return;
+    }
     this.cat.applyPenalty(item.penalty);
     this.streak.recordHit();
     this.hud.setStreak(0);
@@ -473,6 +490,37 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.shake(180, 0.01);
     this.effects.impact(this.cat.x + IMPACT_AHEAD, this.cat.y - IMPACT_HEIGHT, 1.5);
     this.effects.dust(this.cat.x + IMPACT_AHEAD, this.cat.body.bottom, CRASH_DUST);
+  }
+
+  // An acorn from the crow, on the cat's head.
+  handleCrowHit() {
+    if (!this.isPlaying) return;
+    this.crowHits += 1;
+    this.handleHit({ penalty: CROW.penalty });
+    if (!this.toldAboutCrow) {
+      this.toldAboutCrow = true;
+      this.hud.showHint('Watch for the shadow, and jump the acorns!');
+    }
+  }
+
+  // Catnip: for a few seconds the cat runs faster, shimmers, and nothing slows it down.
+  startCatnip() {
+    this.catnipMs = CATNIP.seconds * 1000;
+    this.cat.applyBoost({ multiplier: CATNIP.speedMultiplier, durationMs: this.catnipMs });
+    this.effects.startSprint(this.cat, this.catnipMs);
+    this.audio.playSfx('sprint');
+    this.hud.showHint('Catnip! Nothing can stop you!');
+  }
+
+  updateCatnip(ms) {
+    if (this.catnipMs <= 0) return;
+    this.catnipMs = Math.max(0, this.catnipMs - ms);
+    if (this.catnipMs === 0) {
+      this.cat.clearTint();
+      return;
+    }
+    const hue = (this.time.now / CATNIP_HUE_MS) % 1;
+    this.cat.setTint(Phaser.Display.Color.HSVToRGB(hue, CATNIP_TINT_SATURATION, 1).color);
   }
 
   // A paw-print block, bumped from below: its treats, or a Super Paw.
@@ -732,6 +780,7 @@ export class GameScene extends Phaser.Scene {
     this.audio.stopMusic();
     this.audio.playSfx('escape');
     this.obstacles.stopMovers();
+    this.crows.stop();
     this.progress.record(this.level.id, starsFor(this.starResult), this.cat.treats + this.bonusTreats, this.foundMouse);
     this.followers.forEach((follower) => follower.giveUp());
     this.chaser.giveUp();
@@ -765,6 +814,7 @@ export class GameScene extends Phaser.Scene {
     this.audio.stopMusic();
     this.audio.playSfx('caught');
     this.obstacles.stopMovers();
+    this.crows.stop();
     this.cat.beCaught();
     fight.gloat();
     this.time.delayedCall(END_SCREEN_DELAY_MS, () => this.showCaughtScreen(fight.definition.beatenMessage));
@@ -780,6 +830,7 @@ export class GameScene extends Phaser.Scene {
     this.audio.stopMusic();
     this.audio.playSfx(catchSound ?? 'caught');
     this.obstacles.stopMovers();
+    this.crows.stop();
     this.cat.beCaught();
     this.followers.forEach((follower) => follower.pose('idle'));
     // A chaser who climbed up leaps to the cat's ledge, and comes back down holding it.

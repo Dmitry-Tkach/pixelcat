@@ -764,6 +764,21 @@ function levelObjectArt() {
   };
   save('cat-flap', flapWall(false), 180, 168);
   save('cat-flap-open', flapWall(true), 180, 168);
+
+  // What the crow drops: an acorn, with its cap.
+  save('acorn', `
+    <ellipse cx="16" cy="22" rx="11" ry="12" fill="#B8742F"/><ellipse cx="13" cy="20" rx="4" ry="6" fill="#E0A05A" opacity="0.8"/>
+    <path d="M3 14 Q16 2 29 14 Q16 18 3 14 Z" fill="#6E4A2A"/><path d="M8 11 h16 M10 8 h12" stroke="#8E6440" stroke-width="2"/>
+    <rect x="15" y="0" width="3" height="6" rx="1.5" fill="#5A3A1E"/>`, 32, 36);
+
+  // The catnip power-up: a green box with a leaf on it.
+  save('catnip-box', `
+    <rect x="2" y="2" width="68" height="68" rx="14" fill="#2F8A3F"/>
+    <rect x="6" y="5" width="60" height="58" rx="11" fill="#57CF62"/>
+    <rect x="10" y="8" width="52" height="8" rx="4" fill="#FFFFFF" opacity="0.45"/>
+    <path d="M36 54 C14 46 14 22 36 14 C58 22 58 46 36 54 Z" fill="#2F8A3F"/>
+    <path d="M36 54 V18 M36 40 l-10 -8 M36 32 l10 -8 M36 46 l9 -6" stroke="#B6F5A8" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <circle cx="56" cy="16" r="4" fill="#FFF3A6"/><circle cx="16" cy="56" r="3" fill="#FFF3A6"/>`, 72, 72);
 }
 
 // The City, Village and Farm's own hazards, and the hidden toy mouse.

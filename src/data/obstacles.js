@@ -31,6 +31,8 @@
 //     leap:            optional { height, seconds }, a big arc that carries it over a sliding cat
 //     flyHeight:       optional, flies at this height above the ground instead of running
 //     bob:             optional { height, seconds }, a gentle rise and fall while flying
+//     hideIn:          optional texture, a hiding place on the pavement where it waits in plain
+//                      sight, and springs out of, instead of running in from off-screen
 //   fall drops from above, then becomes a ground obstacle using `texture` and `hitbox`.
 //     leadSeconds, fallSeconds, fallFrom, fallingTexture, fallingHitbox, sound, landSound
 //   swing moves up and down. Levels add `position` for where it is when the cat arrives.
@@ -152,6 +154,24 @@ export const OBSTACLES = {
       warnIcon: 'warn-slide',
       sound: 'bark',
       hop: { height: 34, seconds: 0.42 },
+      leap: { height: 135, seconds: 0.85 },
+    },
+  },
+
+  // A dog hiding in a bin on the pavement, which bursts out and leaps at the cat. Slide under it.
+  binDog: {
+    character: 'dog',
+    avoid: 'slide',
+    hitbox: { x: 30, y: 44, w: 120, h: 76 },
+    penalty: STANDARD_HIT,
+    motion: {
+      kind: 'charge',
+      speed: 230,
+      leadSeconds: 1.3,
+      anim: 'leap',
+      warnIcon: 'warn-slide',
+      sound: 'bark',
+      hideIn: 'bin',
       leap: { height: 135, seconds: 0.85 },
     },
   },
@@ -348,6 +368,9 @@ Object.assign(OBSTACLES, {
     hitbox: { x: 10, y: 8, w: 90, h: 472 },
     penalty: WALL_RECOVERY,
   },
+  // The same dog, hiding in a hedge or a haystack.
+  hedgeDog: reskin('binDog', undefined, { motion: { ...OBSTACLES.binDog.motion, hideIn: 'hedge' } }),
+  hayDog: reskin('binDog', undefined, { motion: { ...OBSTACLES.binDog.motion, hideIn: 'hay-stack' } }),
   // Farm
   pumpkin: reskin('cone', 'pumpkin'),
   milkCan: reskin('hydrant', 'milk-can'),

@@ -168,6 +168,49 @@ describe('BossDirector for the Ginger Gunner', () => {
   });
 });
 
+describe('BossDirector for the Bomber Rat', () => {
+  const definition = BOSSES.bomberRat;
+  const FRAME_MS = 50;
+  const step = (director) => {
+    director.update(FRAME_MS);
+    if (director.state === 'active' && director.attackData.active === undefined) director.finishActive();
+  };
+
+  it('can only be stomped while he cheers after his power punch', () => {
+    for (let health = 1; health <= definition.health; health++) {
+      const director = new BossDirector(definition);
+      director.health = health;
+      director.start();
+      const open = new Set();
+      for (let i = 0; i < 2000; i++) {
+        step(director);
+        if (director.isVulnerable) open.add(director.attack);
+      }
+      expect([...open]).toEqual(['powerHit']);
+    }
+  });
+
+  it('hurts by touch only when he pounces, not while he throws, hops or punches', () => {
+    const director = new BossDirector(definition);
+    const touchHurts = {};
+    for (const attack of Object.keys(definition.attacks)) {
+      director.attack = attack;
+      director.enter('active');
+      touchHurts[attack] = director.isDangerous;
+    }
+    expect(touchHurts).toEqual({ bombToss: false, bombRain: false, pounce: true, hop: false, powerHit: false });
+  });
+
+  it('gives a cat time to get clear of a bomb before it goes off', () => {
+    for (const attack of ['bombToss', 'bombRain']) {
+      const { flight, fuse, blastRadius } = definition.attacks[attack];
+      // From seeing where it will land, a cat running away at a standing start's speed gets clear.
+      const slowestRun = 360 * 0.7;
+      expect((flight + fuse) * slowestRun).toBeGreaterThan(blastRadius * 2);
+    }
+  });
+});
+
 describe('ChaseDirector high ground', () => {
   const FRAME_MS = 100;
   const HIGH = 200;

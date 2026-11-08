@@ -4,6 +4,8 @@ import { animKey, frameKey, CHARACTERS } from '../data/characters.js';
 import { activationCatX, arcHeight, crossingProgress, pulseStrength, shouldStartLeap, startX, swingHeight, wrapToCycle } from '../systems/obstacleMotion.js';
 
 const FEET_ORIGIN_Y = 0.97;
+const HIDEOUT_BACK = 80; // a hiding place stands this far back from where the cat runs, on the pavement
+const HIDEOUT_SCALE = 0.85;
 const ICON_ABOVE = 165;
 const ICON_ABOVE_FLYER = 110;
 const ICON_SCREEN_MARGIN = 65;
@@ -84,6 +86,10 @@ class ChargingObstacle extends MovingObstacle {
     this.setOrigin(0.5, motion.rollRadius ? 0.5 : FEET_ORIGIN_Y).setFlipX(Boolean(character)).setDepth(5).setVisible(false);
     this.body.enable = false;
     this.icon = scene.add.image(0, 0, motion.warnIcon).setDepth(15).setVisible(false);
+    // It waits in plain sight, in its hiding place on the pavement, and springs out onto the road.
+    if (motion.hideIn) {
+      this.hideout = scene.add.image(this.x, GAME.GROUND_Y - HIDEOUT_BACK, motion.hideIn).setOrigin(0.5, 1).setDepth(2.5).setScale(HIDEOUT_SCALE);
+    }
   }
 
   tick(ms, cat, onAlert) {
@@ -96,6 +102,7 @@ class ChargingObstacle extends MovingObstacle {
       this.icon.setVisible(true);
       if (this.character) this.play(animKey(this.character, this.motion.anim));
       onAlert(this.motion.sound);
+      if (this.hideout) this.springOut();
     }
 
     const seconds = ms / 1000;
@@ -126,6 +133,12 @@ class ChargingObstacle extends MovingObstacle {
     if (!hop) return 0;
     this.hopElapsed = (this.hopElapsed + seconds) % hop.seconds;
     return arcHeight(this.hopElapsed, hop.seconds, hop.height);
+  }
+
+  // The hiding place shakes as the dog bursts out of it.
+  springOut() {
+    this.scene.effects.puff(this.hideout.x, GAME.GROUND_Y - HIDEOUT_BACK);
+    this.scene.tweens.add({ targets: this.hideout, angle: 8, duration: 60, yoyo: true, repeat: 2, onComplete: () => this.hideout.setAngle(0) });
   }
 
   // The icon stays on the screen's edge until the dog arrives, then rides above it.
