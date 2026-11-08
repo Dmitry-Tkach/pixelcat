@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { BIG_LAND, FREE_MOVE, GAME, MOVEMENT } from '../config/gameConfig.js';
 import { CHARACTERS, animKey, frameKey } from '../data/characters.js';
 import { SpeedController } from '../systems/SpeedController.js';
+import { outline } from '../ui/Outline.js';
 
 const MANIFEST = CHARACTERS.cat;
 // Momentum 0 is a standing start, and 1 is top speed. A hit drops it to this, which gives HIT_SHARE.
@@ -13,6 +14,7 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, topSpeed) {
     super(scene, x, GAME.GROUND_Y - 120, frameKey('cat', 'idle', 1));
     scene.add.existing(this);
+    outline(this);
     scene.physics.add.existing(this);
 
     this.setScale(MANIFEST.scale).setDepth(6);

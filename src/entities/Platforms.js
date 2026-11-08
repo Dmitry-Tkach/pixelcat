@@ -1,4 +1,5 @@
 import { COLLAPSE, GAME } from '../config/gameConfig.js';
+import { outline } from '../ui/Outline.js';
 
 const THICKNESS = 34;
 const LANDING_TOLERANCE = 10;
@@ -31,6 +32,7 @@ export class Platforms {
     const top = GAME.GROUND_Y - height;
     const item = scene.add.tileSprite(at + width / 2, top + THICKNESS / 2, width, THICKNESS, TEXTURES[style]);
     item.setDepth(4);
+    outline(item);
     // A building's roof needs none, because its wall is right under it.
     if (!BUILDING_WALLS[style]) {
       item.shadow = scene.add.rectangle(item.x, top + THICKNESS + SHADOW.gap, width - 12, SHADOW.height, SHADOW.color, SHADOW.alpha)

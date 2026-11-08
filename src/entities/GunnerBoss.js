@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { BOSS, GAME } from '../config/gameConfig.js';
 import { CHARACTERS, animKey, frameKey } from '../data/characters.js';
 import { arcHeight } from '../systems/obstacleMotion.js';
+import { outline } from '../ui/Outline.js';
 
 // Where his gun's barrel ends, from the middle of his feet, in screen pixels.
 const MUZZLE_AHEAD = 89;
@@ -28,6 +29,7 @@ export class GunnerBoss extends Phaser.GameObjects.Sprite {
     const { character } = definition;
     super(scene, x, GAME.GROUND_Y, frameKey(character, CHARACTERS[character].anims.idle.file, 1));
     scene.add.existing(this);
+    outline(this);
     this.character = character;
     this.belowFeet = CHARACTERS[character].belowFeet;
     this.definition = definition;

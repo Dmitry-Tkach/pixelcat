@@ -21,6 +21,8 @@ const BRICK_WALLS = { stoneWall: 'brickWall', tallStoneWall: 'tallBrickWall', ga
 // swap:  replaces obstacle types from the shared level sections with this world's own.
 // ledges: replaces ledge styles the same way.
 // sunbeams: an optional image of light over the buildings, behind the street.
+// haze:     { color, alpha }, a veil over the scenery behind the street, so it sits back like a
+//           painting and what the cat plays with stands out in front of it
 // ambience: optional things drifting through the air: 'motes' (specks in the sunlight), 'leaves',
 //           'petals', 'fluff' (dandelion seeds) or 'fireflies'.
 export const THEMES = {
@@ -28,6 +30,7 @@ export const THEMES = {
     backdrop: 'city-sky',
     layers: layers('city'),
     sunbeams: 'city-sunbeams',
+    haze: { color: 0xe6f2fa, alpha: 0.3 },
     ambience: ['motes', 'leaves'],
     gate: 'gate',
     swap: BRICK_WALLS,
@@ -36,6 +39,7 @@ export const THEMES = {
     backdrop: 'park-sky',
     layers: layers('park', 'city-clouds'),
     sunbeams: 'park-sunbeams',
+    haze: { color: 0xe8f5ea, alpha: 0.3 },
     ambience: ['motes', 'petals'],
     gate: 'park-gate',
     swap: {
@@ -58,6 +62,7 @@ export const THEMES = {
     backdrop: 'farm-sky',
     layers: layers('farm', 'city-clouds'),
     sunbeams: 'farm-sunbeams',
+    haze: { color: 0xfff3d6, alpha: 0.3 },
     ambience: ['motes', 'fluff'],
     gate: 'farm-gate',
     swap: {
@@ -85,6 +90,7 @@ export const THEMES = {
     backdrop: 'vet-sky',
     layers: layers('vet'),
     sunbeams: 'vet-sunbeams',
+    haze: { color: 0x6a4a86, alpha: 0.22 },
     ambience: ['fireflies'],
     gate: 'vet-gate',
     swap: BRICK_WALLS,

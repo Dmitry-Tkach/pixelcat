@@ -1,6 +1,7 @@
 import { GAME } from '../config/gameConfig.js';
 import { OBSTACLES } from '../data/obstacles.js';
 import { createMovingObstacle } from './MovingObstacle.js';
+import { outline } from '../ui/Outline.js';
 
 const PASSED_MARGIN = 90; // how far behind the cat an obstacle must be to count as avoided
 const LANDING_TOLERANCE = 8;
@@ -9,6 +10,7 @@ const ZONE_BELOW_FEET = 12; // zones lie on the road, a little in front of where
 const DITCH_LIP = 52; // the ditch's art starts this far above where the cat runs: at the kerb, across the road
 const FALLEN_IN = 10; // feet this far below the road mean the cat has fallen into a ditch
 const PIECES = 6;
+const SHADOW = { drop: 6, widthShare: 1.15, height: 16, color: 0x1d1a44, alpha: 0.3 };
 const PIECE_MS = 650;
 const STONE_TINT = 0x9a9fa7;
 
@@ -49,6 +51,9 @@ export class ObstacleField {
   placeStatic(type, at, group) {
     const item = group.create(at, GAME.GROUND_Y + GAME.GROUND_OVERLAP, type.texture);
     item.setOrigin(0.5, 1).setDepth(4);
+    outline(item);
+    // A soft shadow on the road, so it sits on the ground rather than floating over it.
+    item.shadow = this.scene.add.ellipse(at, GAME.GROUND_Y + SHADOW.drop, type.hitbox.w * SHADOW.widthShare, SHADOW.height, SHADOW.color, SHADOW.alpha).setDepth(3.9);
     const { x, y, w, h } = type.hitbox;
     item.refreshBody();
     item.body.setSize(w, h, false);
@@ -219,6 +224,7 @@ export class ObstacleField {
   // Sends the boxes flying, and leaves nothing in the way.
   smash(item) {
     item.broken = true;
+    item.shadow?.destroy();
     item.body.enable = false;
     item.setVisible(false);
     for (let i = 0; i < PIECES; i++) {

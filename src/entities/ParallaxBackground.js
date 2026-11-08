@@ -7,7 +7,10 @@ const EDGE = 2; // a pixel or two past each side, so no gap shows at the edges
 // Skips the art's top row. Otherwise it blends with the bottom row when the textures repeat, which
 // draws a faint line across the sky along the top of each layer.
 const TOP_ROW_SKIP = 1;
+const HAZE_DEPTH = 1.22; // over the sky and the buildings, behind the street and everything on it
 const SUNBEAM_DEPTH = 1.25; // over the near buildings, behind the street
+const STREET_TOP = 520; // where the scenery ends and the street begins, in the layers' art
+const HAZE_ABOVE = 2000; // reaches well above the view, for when the camera rises
 const SUNBEAM_ALPHA = { from: 0.18, to: 0.32, ms: 3200 };
 const AMBIENCE_DEPTH = 1.26;
 // Specks of dust caught in the light, and leaves blown off the trees. They float on the screen,
@@ -96,6 +99,10 @@ export class ParallaxBackground {
         .setTint(light)
         .setTilePosition(0, TOP_ROW_SKIP),
     }));
+    if (theme.haze) {
+      this.haze = scene.add.rectangle(0, 0, 10, 10, theme.haze.color, theme.haze.alpha)
+        .setOrigin(0).setScrollFactor(0, 1).setDepth(HAZE_DEPTH);
+    }
     if (theme.sunbeams) {
       this.sunbeams = scene.add.image(0, 0, theme.sunbeams).setOrigin(0).setScrollFactor(0)
         .setDepth(SUNBEAM_DEPTH).setBlendMode(Phaser.BlendModes.ADD).setAlpha(SUNBEAM_ALPHA.from);
@@ -130,6 +137,8 @@ export class ParallaxBackground {
       sprite.tilePositionX = cameraX * factor + seconds * drift - EDGE;
     }
     this.sunbeams?.setPosition(VIEW.LEFT_OFFSET, VIEW.TOP).setDisplaySize(VIEW.WIDTH, VIEW.HEIGHT);
+    // The haze stops where the street starts, so the road and everything on it keep their colour.
+    this.haze?.setPosition(VIEW.LEFT_OFFSET, VIEW.TOP - rise - HAZE_ABOVE).setSize(VIEW.WIDTH, STREET_TOP - (VIEW.TOP - rise - HAZE_ABOVE));
     // The air fills whatever the window shows.
     for (const emitter of this.ambience) {
       const { x, y } = emitter.ambienceArea;

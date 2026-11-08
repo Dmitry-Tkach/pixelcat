@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME } from '../config/gameConfig.js';
 import { CHARACTERS, animKey, frameKey } from '../data/characters.js';
+import { outline } from '../ui/Outline.js';
 
 const HOP_HEIGHT = 120;
 const HOP_MS = 280;
@@ -20,6 +21,7 @@ export class Chaser extends Phaser.GameObjects.Sprite {
     const { file } = CHARACTERS[character].anims.idle;
     super(scene, x, GAME.GROUND_Y, frameKey(character, file, 1));
     scene.add.existing(this);
+    outline(this);
     this.setDepth(7);
     this.hopping = false;
     this.waddleMs = 0;

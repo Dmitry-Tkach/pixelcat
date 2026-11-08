@@ -1,5 +1,6 @@
 import { GAME } from '../config/gameConfig.js';
 import { PICKUPS } from '../data/pickups.js';
+import { outline } from '../ui/Outline.js';
 
 const PULSE_MS = 420;
 const COLLECT_MS = 220;
@@ -12,6 +13,7 @@ export class Pickups {
       const definition = PICKUPS[type];
       const item = scene.physics.add.staticImage(at, GAME.GROUND_Y - definition.height, definition.texture);
       item.setOrigin(0.5, 1).setDepth(5);
+      outline(item);
       item.refreshBody();
       item.pickupType = type;
       item.collected = false;
