@@ -3,6 +3,7 @@ import './ui/ui.css';
 import { AudioManager } from './audio/AudioManager.js';
 import { setViewAspect } from './config/gameConfig.js';
 import { LEVELS } from './data/levels/index.js';
+import { AdventureScene } from './scenes/AdventureScene.js';
 import { BootScene } from './scenes/BootScene.js';
 import { GameScene } from './scenes/GameScene.js';
 import { Progress } from './systems/Progress.js';
@@ -38,7 +39,7 @@ function start() {
     },
     input: { activePointers: 2 },
     audio: { noAudio: true }, // AudioManager handles all sound
-    scene: [BootScene, GameScene],
+    scene: [BootScene, GameScene, AdventureScene],
   });
   const audio = new AudioManager();
   const overlay = new Overlay();

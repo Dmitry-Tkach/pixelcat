@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { ADVENTURE_ART, adventureKey, adventurePath } from '../data/adventure/index.js';
 import { CHARACTERS, animKey, frameKey } from '../data/characters.js';
 import { ESCAPE_ANIMATION, HOME_ANIMATION } from '../data/screens.js';
 import { LEVELS } from '../data/levels/index.js';
@@ -18,6 +19,9 @@ export class BootScene extends Phaser.Scene {
     new Image().src = HOME_ANIMATION.src;
     for (const [key, path] of Object.entries(IMAGE_ASSETS)) {
       this.load.image(key, path);
+    }
+    for (const [world, names] of Object.entries(ADVENTURE_ART)) {
+      for (const name of names) this.load.image(adventureKey(world, name), adventurePath(world, name));
     }
     for (const [name, character] of Object.entries(CHARACTERS)) {
       for (const { file, frames } of Object.values(character.anims)) {
@@ -51,6 +55,20 @@ export class BootScene extends Phaser.Scene {
           repeat,
         });
       }
+    }
+    // The adventure's spinning coins.
+    for (const world of Object.keys(ADVENTURE_ART)) {
+      this.anims.create({
+        key: adventureKey(world, 'coin-spin'),
+        frames: [1, 2, 3, 4, 5, 6].map((n) => ({ key: adventureKey(world, `coin-${n}`) })),
+        frameRate: 10,
+        repeat: -1,
+      });
+    }
+    // For trying the adventure while developing: open the page with ?adventure.
+    if (import.meta.env.DEV && new URLSearchParams(location.search).has('adventure')) {
+      this.scene.start('Adventure', { levelIndex: 0 });
+      return;
     }
     this.scene.start('Game', this.firstLevel());
   }

@@ -34,13 +34,15 @@ export class InputController {
         keyboard.on(`keydown-${key}`, () => { this.right = true; });
         keyboard.on(`keyup-${key}`, () => { this.right = false; });
       }
-      keyboard.on('keydown-SPACE', () => this.onJump());
-      keyboard.on('keydown-UP', () => this.onJump());
-      keyboard.on('keydown-W', () => this.onJump());
-      keyboard.on('keydown-DOWN', () => this.onSlide());
-      keyboard.on('keydown-S', () => this.onSlide());
-      keyboard.on('keydown-E', () => onPaw());
-      keyboard.on('keydown-M', () => onSwitchMode());
+      // Jumps and slides say which key made them: in the adventure, Up and Down climb ladders, while
+      // Space always jumps.
+      keyboard.on('keydown-SPACE', () => this.onJump('space'));
+      keyboard.on('keydown-UP', () => this.onJump('up'));
+      keyboard.on('keydown-W', () => this.onJump('up'));
+      keyboard.on('keydown-DOWN', () => this.onSlide('down'));
+      keyboard.on('keydown-S', () => this.onSlide('down'));
+      keyboard.on('keydown-E', () => onPaw?.());
+      keyboard.on('keydown-M', () => onSwitchMode?.());
       keyboard.on('keydown-ESC', () => onPause());
       keyboard.on('keydown-P', () => onPause());
     }
