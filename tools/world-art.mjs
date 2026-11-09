@@ -5,7 +5,7 @@ import { Resvg } from '@resvg/resvg-js';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { DUSK_FILTER, farTown, parkGate, townRow, townStreet } from './english-town.mjs';
+import { DUSK_FILTER, OVERHEAD_DROP, farTown, parkGate, townRow, townStreet } from './english-town.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = join(ROOT, 'public', 'assets', 'worlds');
@@ -465,10 +465,12 @@ function villageObstacles() {
   save('branch', `
     <rect x="12" y="10" width="14" height="280" rx="5" fill="#8E5A30"/>
     <rect x="144" y="10" width="14" height="280" rx="5" fill="#8E5A30"/>
+    <g transform="translate(0 ${OVERHEAD_DROP})">
     <rect x="6" y="64" width="158" height="26" rx="12" fill="#8E5A30"/>
     <ellipse cx="46" cy="96" rx="44" ry="42" fill="#2F9E4F"/><ellipse cx="85" cy="82" rx="48" ry="46" fill="#46C46B"/><ellipse cx="126" cy="98" rx="42" ry="42" fill="#3CB460"/>
     <circle cx="60" cy="118" r="9" fill="#E2483D"/><circle cx="112" cy="122" r="9" fill="#E2483D"/>
-    ${slideArrows(176)}`, 170, 290);
+    ${slideArrows(176)}
+    </g>`, 170, 290);
   save('ice-cream-van', `
     <rect x="6" y="28" width="250" height="232" rx="10" fill="#FFD1E0"/>
     <rect x="6" y="28" width="250" height="16" rx="6" fill="#F58FAB"/>
@@ -573,13 +575,15 @@ function farmObstacles() {
   save('farm-sign', `
     <rect x="14" y="10" width="14" height="280" rx="4" fill="#8E5A30"/>
     <rect x="142" y="10" width="14" height="280" rx="4" fill="#8E5A30"/>
+    <g transform="translate(0 ${OVERHEAD_DROP})">
     <rect x="6" y="48" width="158" height="114" rx="8" fill="#E9C27D"/>
     <path d="M6 86 H164 M6 124 H164" stroke="#B5854F" stroke-width="5"/>
     <g transform="translate(85 104)">
       <ellipse rx="34" ry="24" fill="#FFFFFF"/><circle cx="34" cy="-14" r="16" fill="#FFFFFF"/>
       <circle cx="38" cy="-17" r="3" fill="#23264A"/><path d="M-30 -8 C-22 -18 -12 -10 -16 -2 Z" fill="#23264A"/><circle cx="4" cy="6" r="8" fill="#23264A"/>
     </g>
-    ${slideArrows(176)}`, 170, 290);
+    ${slideArrows(176)}
+    </g>`, 170, 290);
   save('tractor', `
     <rect x="12" y="30" width="152" height="92" rx="14" fill="#F2C440"/>
     <rect x="12" y="96" width="152" height="26" fill="#D6A42A"/>

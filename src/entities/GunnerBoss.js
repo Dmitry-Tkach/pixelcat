@@ -8,8 +8,8 @@ import { outline } from '../ui/Outline.js';
 const MUZZLE_AHEAD = 89;
 const MUZZLE_HEIGHT = 45;
 // The heights shots fly at, measured to their middle. Low ones are jumped, and high ones are slid
-// under: a running cat is about 140 tall, and a sliding one about 90.
-const LANE_HEIGHT = { low: MUZZLE_HEIGHT, high: 122 };
+// under: a running cat is about 113 tall, and a sliding one about 73.
+const LANE_HEIGHT = { low: MUZZLE_HEIGHT, high: 98 };
 const SHOT = { w: 30, h: 12, hitW: 22, hitH: 12 };
 const RISE_DISTANCE = 140; // high shots climb from his gun to their lane over this distance
 const AIM_UP_ANGLE = 8;

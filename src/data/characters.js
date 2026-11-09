@@ -89,7 +89,9 @@ export const CHARACTERS = {
 
   cat: {
     folder: 'cat',
-    scale: 0.72,
+    // A fifth smaller than at first (0.72). Everything aimed at its height (overhead boards, birds,
+    // leaping dogs, the swinging crate, the Gunner's high shots) was lowered to match.
+    scale: 0.58,
     face: { x: 50, y: 8, size: 146 },
     anims: {
       idle: { file: 'idle', frames: 10, fps: 12, repeat: -1 },

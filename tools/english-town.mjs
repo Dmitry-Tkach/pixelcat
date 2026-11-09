@@ -6,6 +6,11 @@ export const TILE = 2048;
 export const HEIGHT = 720;
 export const STREET_TOP = 520; // where the buildings meet the pavement
 
+// How much lower overhead boards hang than they were first drawn: the cat was made a fifth smaller,
+// so their low edge moved down from 120 to 97 above the road. data/obstacles.js moves their hitboxes
+// by the same amount.
+export const OVERHEAD_DROP = 23;
+
 // Small seeded generator, so the street looks the same on every run.
 export function rng(seed) {
   let s = seed;
