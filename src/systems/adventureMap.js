@@ -3,6 +3,13 @@
 // Phaser, so tests can check levels.
 
 export const TILE = 64;
+// How deep into a tile the cat can sink in one physics step and still be pushed back out. Phaser's
+// default, 16, is less than a falling cat moves in a step (18px, or 25px diving), so it fell
+// through the ground. It stays well under a tile, so jumping up through an island still works.
+export const TILE_BIAS = 40;
+// The fastest the cat falls, so even a long drop moves less than TILE_BIAS in a physics step.
+export const MAX_FALL_SPEED = 2200;
+export const PHYSICS_STEPS_PER_SECOND = 60;
 
 // Each tile's place in the world's tile strip (tools/adventure-art.mjs builds it in this order).
 export const TILES = {

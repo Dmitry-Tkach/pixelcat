@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { ADVENTURE_ART, ADVENTURE_LEVELS, adventurePath } from '../src/data/adventure/index.js';
 import { CHARACTERS } from '../src/data/characters.js';
 import { MOVEMENT } from '../src/config/gameConfig.js';
-import { TILE, TILES, checkAdventureLevel, readAdventureMap } from '../src/systems/adventureMap.js';
+import { MAX_FALL_SPEED, PHYSICS_STEPS_PER_SECOND, TILE, TILES, TILE_BIAS, checkAdventureLevel, readAdventureMap } from '../src/systems/adventureMap.js';
 
 describe('adventure levels', () => {
   it.each(ADVENTURE_LEVELS.map((level) => [level.id, level]))('%s has no mistakes', (_id, level) => {
@@ -57,6 +57,21 @@ describe('reading an adventure map', () => {
       'the map needs exactly one portal, E',
       "the ladder in column 2 doesn't reach an island",
     ]));
+  });
+});
+
+describe('landing on tiles', () => {
+  // A cat that sinks deeper than TILE_BIAS into a tile in one step falls straight through it.
+  const step = (speed) => speed / PHYSICS_STEPS_PER_SECOND;
+
+  it('pushes the cat out of the ground at its fastest fall, and when diving', () => {
+    expect(step(MAX_FALL_SPEED)).toBeLessThan(TILE_BIAS);
+    expect(step(MOVEMENT.FAST_FALL_VELOCITY)).toBeLessThan(TILE_BIAS);
+    expect(MOVEMENT.FAST_FALL_VELOCITY).toBeLessThanOrEqual(MAX_FALL_SPEED);
+  });
+
+  it('still lets the cat jump up through an island', () => {
+    expect(TILE_BIAS).toBeLessThan(TILE);
   });
 });
 

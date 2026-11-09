@@ -4,7 +4,7 @@ import { ADVENTURE_LEVELS, adventureKey } from '../data/adventure/index.js';
 import { animKey } from '../data/characters.js';
 import { Cat } from '../entities/Cat.js';
 import { InputController } from '../input/InputController.js';
-import { ONE_WAY, TILE, readAdventureMap } from '../systems/adventureMap.js';
+import { MAX_FALL_SPEED, ONE_WAY, TILE, TILE_BIAS, readAdventureMap } from '../systems/adventureMap.js';
 import { Effects } from '../ui/Effects.js';
 
 const HERO = 'battleCat';
@@ -43,6 +43,7 @@ export class AdventureScene extends Phaser.Scene {
     this.worldH = this.layout.rows * TILE;
     this.physics.world.setBounds(0, 0, this.worldW, this.worldH + FALL_OUT_BELOW * 2);
     this.physics.world.setBoundsCollision(true, true, false, false);
+    this.physics.world.TILE_BIAS = TILE_BIAS;
 
     this.buildBackground();
     this.buildTiles();
@@ -55,6 +56,7 @@ export class AdventureScene extends Phaser.Scene {
     this.cat = new Cat(this, this.respawnAt.x, level.cat.speed, { character: HERO, y: this.respawnAt.y - 80 });
     this.cat.moveMode = 'free';
     this.cat.startRunning();
+    this.cat.body.setMaxVelocityY(MAX_FALL_SPEED);
     this.physics.add.collider(this.cat, this.groundLayer, null, (cat, tile) => this.landsOn(tile), this);
     this.physics.add.collider(this.cat, this.solids, (cat, block) => this.bumpInto(block));
     this.physics.add.overlap(this.cat, this.pickups, (cat, item) => this.collect(item));
