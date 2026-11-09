@@ -21,7 +21,7 @@ const SETS = [
   { dir: 'bomber-rat', out: 'bomber-rat', scale: 1, anims: { Idle: 8, Run: 9, Jump: 8, Throw: 7, Bomb: 1, Blast: 1, Lunge: 6, Power: 8, Won: 5, Defeated: 9 } },
   // The test character for new levels and worlds, tried with ?cat=battle. Cut by tools/cut-battle-cat.mjs,
   // and kept at the size it's drawn, which is the game cat's size.
-  { dir: 'battle-cat', out: 'battle-cat', scale: 1, anims: { Idle: 6, Run: 8, Jump: 9, Slide: 6, Cheer: 7, Attack: 7, Hit: 6, Power: 10, Victory: 6, Defeated: 8 } },
+  { dir: 'battle-cat', out: 'battle-cat', scale: 1, anims: { Idle: 4, Run: 6, Shoot: 6, Burst: 4, Hit: 3, Rage: 4, Defeated: 5, Jump: 4, Slide: 4, Dash: 4, Climb: 4, ClimbUp: 4, ClimbDown: 4, Special: 4, SpecialEnd: 3 } },
 ];
 
 // Sets whose source files use their own naming. `every` keeps one frame in N, to save memory.

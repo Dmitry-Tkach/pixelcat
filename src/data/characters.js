@@ -115,27 +115,35 @@ export const CHARACTERS = {
   battleCat: {
     folder: 'battle-cat',
     scale: 1,
-    face: { x: 38, y: 20, size: 88 },
+    face: { x: 68, y: 40, size: 84 },
+    // From his sheet with the minigun (images/sprites/cat-version-2/cat-v-2-sprite.png).
     anims: {
-      idle: { file: 'idle', frames: 6, fps: 8, repeat: -1 },
-      run: { file: 'run', frames: 8, fps: 14, repeat: -1 },
-      // Skips the crouch before take-off and the landing, so the jump shows the moment it starts.
-      jump: { file: 'jump', frames: 9, frameList: [2, 3, 4, 5], fps: 12, repeat: 0 },
-      fall: { file: 'jump', frames: 9, frameList: [6], fps: 1, repeat: 0 },
-      // From the first pack: the second sheet has no slide.
-      slide: { file: 'slide', frames: 6, fps: 14, repeat: -1 },
-      hurt: { file: 'hit', frames: 6, fps: 14, repeat: 0 },
-      caught: { file: 'defeated', frames: 8, fps: 10, repeat: 0 },
-      // Not used yet: moves he could have in the new levels.
-      cheer: { file: 'cheer', frames: 7, fps: 10, repeat: -1 },
-      attack: { file: 'attack', frames: 7, fps: 14, repeat: 0 },
-      power: { file: 'power', frames: 10, fps: 12, repeat: 0 },
-      victory: { file: 'victory', frames: 6, fps: 10, repeat: -1 },
+      idle: { file: 'idle', frames: 4, fps: 8, repeat: -1 },
+      run: { file: 'run', frames: 6, fps: 12, repeat: -1 },
+      // Take-off and rising; the last frame, coming down, is the fall.
+      jump: { file: 'jump', frames: 4, frameList: [1, 2, 3], fps: 12, repeat: 0 },
+      fall: { file: 'jump', frames: 4, frameList: [4], fps: 1, repeat: 0 },
+      slide: { file: 'slide', frames: 4, fps: 12, repeat: -1 },
+      hurt: { file: 'hit', frames: 3, fps: 10, repeat: 0 },
+      caught: { file: 'defeated', frames: 5, fps: 8, repeat: 0 },
+      // His sheet has no victory pose, so he stands proud with his minigun.
+      victory: { file: 'idle', frames: 4, fps: 8, repeat: -1 },
+      // His other moves, for the adventure.
+      shoot: { file: 'shoot', frames: 6, fps: 16, repeat: 0 },
+      burst: { file: 'burst', frames: 4, fps: 16, repeat: -1 },
+      rage: { file: 'rage', frames: 4, fps: 10, repeat: -1 },
+      dash: { file: 'dash', frames: 4, fps: 14, repeat: 0 },
+      climb: { file: 'climb', frames: 4, fps: 8, repeat: -1 },
+      climbUp: { file: 'climbup', frames: 4, fps: 10, repeat: 0 },
+      climbDown: { file: 'climbdown', frames: 4, fps: 8, repeat: -1 },
+      special: { file: 'special', frames: 4, fps: 8, repeat: 0 },
+      specialEnd: { file: 'specialend', frames: 3, fps: 8, repeat: 0 },
     },
-    // The same size on screen as the cat's, so levels play the same.
+    // The same size on screen as the cat's, so levels play the same. His frames are 236x171, with
+    // him in the middle and his feet at 158.
     hitboxes: {
-      run: { x: 46, y: 23, w: 58, h: 113 },
-      slide: { x: 44, y: 63, w: 64, h: 73 },
+      run: { x: 89, y: 46, w: 58, h: 113 },
+      slide: { x: 86, y: 86, w: 64, h: 73 },
     },
   },
 
