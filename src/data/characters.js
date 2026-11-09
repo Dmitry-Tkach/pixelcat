@@ -24,13 +24,12 @@ export const CHARACTERS = {
     },
   },
 
-  // A boss. His frames are enlarged when they're prepared (tools/prepare-assets.mjs), so he plays at
-  // scale 1. `belowFeet` is the room under his feet in those frames.
+  // A boss, shown at the size his sheet is drawn. `belowFeet` is the room under his feet in his frames.
   orangeCat: {
     folder: 'orange-cat',
     scale: 1,
-    face: { x: 82, y: 14, size: 96 },
-    belowFeet: 16,
+    face: { x: 61, y: 10, size: 71 },
+    belowFeet: 12,
     anims: {
       idle: { file: 'idle', frames: 4, fps: 6, repeat: -1 },
       run: { file: 'run', frames: 6, fps: 14, repeat: -1 },

@@ -122,7 +122,7 @@ export const BOSSES = {
       dash: { windup: 0.5, recover: 0.5, stompable: false, speed: 680, sound: 'lungeDash' },
       slideKick: { windup: 0.4, recover: 0.5, stompable: false, speed: 760, sound: 'lungeDash' },
       leap: { windup: 0.5, active: 0.75, recover: 0.5, stompable: false, height: 240, sound: 'lungeDash' },
-      rage: { windup: 0.7, active: 0.7, recover: 0.5, stompable: false, range: 190, reachHeight: 150, warnSound: 'flameBurst', sound: 'flameBurst' },
+      rage: { windup: 0.7, active: 0.7, recover: 0.5, stompable: false, range: 141, reachHeight: 111, warnSound: 'flameBurst', sound: 'flameBurst' },
     },
   },
 };

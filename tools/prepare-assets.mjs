@@ -15,8 +15,8 @@ const SETS = [
   { dir: 'boy-frames', out: 'boy', scale: 1, anims: { Run: 6, Jump: 3, Idle: 4, Lunge: 1, Hurt: 1, Down: 1, Hug: 4 } },
   { dir: 'grandma-frames', out: 'grandma', scale: 1, anims: { Run: 6, Lunge: 4, Hug: 6 } },
   { dir: 'bos-cat', out: 'crown-cat', scale: 1, anims: { Idle: 4, Run: 8, Crouch: 4, Leap: 5, Land: 4, ClawReady: 4, Claw: 7, Hit: 9, Dizzy: 5 } },
-  // Cut from his sprite sheet by tools/cut-orange-cat.mjs. His art is small, so it's enlarged here.
-  { dir: 'orange-cat', out: 'orange-cat', scale: 1.35, anims: { Idle: 4, Run: 6, Shoot: 7, Spray: 4, Hit: 3, Rage: 4, Defeated: 6, Jump: 4, Slide: 4, Dash: 3, Charge: 4, Beam: 1 } },
+  // Cut from his sprite sheet by tools/cut-orange-cat.mjs, and kept at the size it's drawn.
+  { dir: 'orange-cat', out: 'orange-cat', scale: 1, anims: { Idle: 4, Run: 6, Shoot: 7, Spray: 4, Hit: 3, Rage: 4, Defeated: 6, Jump: 4, Slide: 4, Dash: 3, Charge: 4, Beam: 1 } },
   // Cut from his second sprite sheet by tools/cut-boss-rat.mjs, and kept at the size it's drawn.
   { dir: 'bomber-rat', out: 'bomber-rat', scale: 1, anims: { Idle: 8, Run: 9, Jump: 8, Throw: 7, Bomb: 1, Blast: 1, Lunge: 6, Power: 8, Won: 5, Defeated: 9 } },
 ];

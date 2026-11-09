@@ -4,23 +4,24 @@ import { CHARACTERS, animKey, frameKey } from '../data/characters.js';
 import { arcHeight } from '../systems/obstacleMotion.js';
 import { outline } from '../ui/Outline.js';
 
-// Where his gun's barrel ends, from the middle of his feet, in screen pixels.
-const MUZZLE_AHEAD = 89;
-const MUZZLE_HEIGHT = 45;
+// Where his gun's barrel ends, from the middle of his feet, in screen pixels. He's shown at the size
+// his sheet is drawn, so these, his body and his beam are three-quarters of what they first were.
+const MUZZLE_AHEAD = 66;
+const MUZZLE_HEIGHT = 33;
 // The heights shots fly at, measured to their middle. Low ones are jumped, and high ones are slid
 // under: a running cat is about 113 tall, and a sliding one about 73.
 const LANE_HEIGHT = { low: MUZZLE_HEIGHT, high: 98 };
 const SHOT = { w: 30, h: 12, hitW: 22, hitH: 12 };
 const RISE_DISTANCE = 140; // high shots climb from his gun to their lane over this distance
 const AIM_UP_ANGLE = 8;
-const BEAM = { height: 84, hitBottom: 7, hitTop: 83, fadeMs: 180 };
+const BEAM = { height: 62, hitBottom: 5, hitTop: 61, fadeMs: 180 };
 // His body, smaller than his art, so one jump can land on his head.
-const STANDING = { w: 110, h: 130 };
-const DASHING = { w: 150, h: 80 };
-const SLIDING = { w: 130, h: 62 };
-const LEAPING = { w: 120, h: 100 }; // tucked up, so a cat can run under him at the top of his leap
+const STANDING = { w: 81, h: 96 };
+const DASHING = { w: 111, h: 59 };
+const SLIDING = { w: 96, h: 46 };
+const LEAPING = { w: 89, h: 74 }; // tucked up, so a cat can run under him at the top of his leap
 const STEAM_EVERY_MS = 300;
-const STEAM_HEIGHT = 150;
+const STEAM_HEIGHT = 111;
 
 // The Ginger Gunner: he keeps his distance and shoots. It plays what the BossDirector decides, and
 // moves itself, its shots and its beam to carry it out. A separate invisible zone is its body.
@@ -43,7 +44,7 @@ export class GunnerBoss extends Phaser.GameObjects.Sprite {
     this.leapFromX = x;
     this.steamMs = 0;
     makeTextures(scene);
-    this.shadow = scene.add.ellipse(x, GAME.GROUND_Y + 4, 130, 20, 0x1d1a44, 0.35).setDepth(3);
+    this.shadow = scene.add.ellipse(x, GAME.GROUND_Y + 4, 96, 15, 0x1d1a44, 0.35).setDepth(3);
     this.hitZone = scene.add.zone(x, GAME.GROUND_Y, STANDING.w, STANDING.h);
     scene.physics.add.existing(this.hitZone);
     this.hitZone.body.setAllowGravity(false);
