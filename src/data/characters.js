@@ -55,13 +55,12 @@ export const CHARACTERS = {
     },
   },
 
-  // A boss, cut by tools/cut-boss-rat.mjs from his second, fuller sheet and enlarged when prepared,
-  // so he plays at scale 1.
+  // A boss, cut by tools/cut-boss-rat.mjs from his second, fuller sheet, shown at the size it's drawn.
   bomberRat: {
     folder: 'bomber-rat',
     scale: 1,
-    belowFeet: 18,
-    face: { x: 74, y: 12, size: 118 },
+    belowFeet: 12,
+    face: { x: 49, y: 8, size: 79 },
     anims: {
       idle: { file: 'idle', frames: 8, fps: 8, repeat: -1 },
       run: { file: 'run', frames: 9, fps: 15, repeat: -1 },
