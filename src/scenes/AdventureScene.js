@@ -234,7 +234,7 @@ export class AdventureScene extends Phaser.Scene {
     this.gemText = fixed(this.add.text(172, 84, `0/${this.totals.gems}`, HUD_STYLE).setOrigin(0, 0.5));
     this.keyIcon = fixed(this.add.image(272, 84, this.art('key'))).setScale(0.8).setAlpha(0.3);
     this.hint = fixed(this.add.text(GAME.WIDTH / 2, 150, '', { ...HUD_STYLE, fontSize: '30px', align: 'center' }).setOrigin(0.5));
-    this.showHint(`${this.level.title}\nRun, jump and climb up to the portal`, 3200);
+    this.showHint(`${this.level.title}\nRun, jump and climb up to the portal.\nDown + Space drops through an island`, 3600);
   }
 
   showHint(text, ms = 2200) {
@@ -302,9 +302,14 @@ export class AdventureScene extends Phaser.Scene {
       }
       return;
     }
-    // Up in front of a ladder climbs it. Space always jumps.
+    // Up in front of a ladder climbs it.
     if (key === 'up' && this.ladderNear()) {
       this.startClimbing();
+      return;
+    }
+    // Holding Down and pressing Space on an island drops through it.
+    if (key === 'space' && this.downHeld && this.cat.onGround && this.cat.onPlatform) {
+      this.cat.requestSlide();
       return;
     }
     this.cat.requestJump();
@@ -317,7 +322,10 @@ export class AdventureScene extends Phaser.Scene {
       this.startClimbing();
       return;
     }
-    this.cat.requestSlide();
+    // On the ground or an island, Down slides. In the main game it drops through ledges, but here
+    // the cat stands on islands most of the time, so dropping takes Down and Space together.
+    if (this.cat.onGround) this.cat.beginSlide();
+    else this.cat.requestSlide(); // in the air: a dive
   }
 
   startClimbing() {
