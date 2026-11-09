@@ -109,35 +109,33 @@ export const CHARACTERS = {
     },
   },
 
-  // A possible new look for the player's cat, tried with ?cat=battle (see data/player.js). Cut by
-  // tools/cut-battle-cat.mjs and enlarged when prepared, so he plays at scale 1. Every frame is the
-  // same size with his feet on the same line, so the hitboxes match the cat's on screen.
+  // The test character for new levels and worlds, tried with ?cat=battle (see data/player.js). Cut by
+  // tools/cut-battle-cat.mjs from the user's second sheet, shown at the size it's drawn. The frames he
+  // plays as the cat are all one size with his feet on one line, so the hitboxes match the cat's.
   battleCat: {
     folder: 'battle-cat',
     scale: 1,
-    face: { x: 96, y: 16, size: 108 },
+    face: { x: 38, y: 30, size: 88 },
     anims: {
       idle: { file: 'idle', frames: 6, fps: 8, repeat: -1 },
       run: { file: 'run', frames: 8, fps: 14, repeat: -1 },
       // Skips the crouch before take-off and the landing, so the jump shows the moment it starts.
-      jump: { file: 'jump', frames: 7, frameList: [3, 4, 5], fps: 12, repeat: 0 },
-      fall: { file: 'jump', frames: 7, frameList: [6], fps: 1, repeat: 0 },
+      jump: { file: 'jump', frames: 9, frameList: [2, 3, 4, 5], fps: 12, repeat: 0 },
+      fall: { file: 'jump', frames: 9, frameList: [6], fps: 1, repeat: 0 },
+      // From the first pack: the second sheet has no slide.
       slide: { file: 'slide', frames: 6, fps: 14, repeat: -1 },
-      hurt: { file: 'hit', frames: 4, fps: 10, repeat: 0 },
-      caught: { file: 'defeated', frames: 6, fps: 8, repeat: 0 },
-      // Not used yet: moves he could have, if he becomes the cat.
-      lunge: { file: 'lunge', frames: 7, fps: 15, repeat: 0 },
-      punch: { file: 'punch', frames: 6, fps: 15, repeat: 0 },
-      power: { file: 'power', frames: 9, fps: 12, repeat: 0 },
-      throw: { file: 'throw', frames: 6, fps: 12, repeat: 0 },
-      laugh: { file: 'laugh', frames: 5, fps: 8, repeat: -1 },
-      happy: { file: 'happy', frames: 5, fps: 8, repeat: -1 },
-      victory: { file: 'victory', frames: 7, fps: 10, repeat: 0 },
+      hurt: { file: 'hit', frames: 6, fps: 14, repeat: 0 },
+      caught: { file: 'defeated', frames: 8, fps: 10, repeat: 0 },
+      // Not used yet: moves he could have in the new levels.
+      cheer: { file: 'cheer', frames: 7, fps: 10, repeat: -1 },
+      attack: { file: 'attack', frames: 7, fps: 14, repeat: 0 },
+      power: { file: 'power', frames: 10, fps: 12, repeat: 0 },
+      victory: { file: 'victory', frames: 6, fps: 10, repeat: -1 },
     },
     // The same size on screen as the cat's, so levels play the same.
     hitboxes: {
-      run: { x: 107, y: 38, w: 72, h: 140 },
-      slide: { x: 98, y: 88, w: 79, h: 90 },
+      run: { x: 46, y: 33, w: 58, h: 113 },
+      slide: { x: 44, y: 73, w: 64, h: 73 },
     },
   },
 

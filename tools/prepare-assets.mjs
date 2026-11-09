@@ -19,8 +19,9 @@ const SETS = [
   { dir: 'orange-cat', out: 'orange-cat', scale: 1, anims: { Idle: 4, Run: 6, Shoot: 7, Spray: 4, Hit: 3, Rage: 4, Defeated: 6, Jump: 4, Slide: 4, Dash: 3, Charge: 4, Beam: 1 } },
   // Cut from his second sprite sheet by tools/cut-boss-rat.mjs, and kept at the size it's drawn.
   { dir: 'bomber-rat', out: 'bomber-rat', scale: 1, anims: { Idle: 8, Run: 9, Jump: 8, Throw: 7, Bomb: 1, Blast: 1, Lunge: 6, Power: 8, Won: 5, Defeated: 9 } },
-  // A possible new look for the player's cat, tried with ?cat=battle. Cut by tools/cut-battle-cat.mjs.
-  { dir: 'battle-cat', out: 'battle-cat', scale: 1.3, anims: { Idle: 6, Run: 8, Jump: 7, Slide: 6, Lunge: 7, Punch: 6, Power: 9, Throw: 6, Laugh: 5, Happy: 5, Victory: 7, Hit: 4, Defeated: 6 } },
+  // The test character for new levels and worlds, tried with ?cat=battle. Cut by tools/cut-battle-cat.mjs,
+  // and kept at the size it's drawn, which is the game cat's size.
+  { dir: 'battle-cat', out: 'battle-cat', scale: 1, anims: { Idle: 6, Run: 8, Jump: 9, Slide: 6, Cheer: 7, Attack: 7, Hit: 6, Power: 10, Victory: 6, Defeated: 8 } },
 ];
 
 // Sets whose source files use their own naming. `every` keeps one frame in N, to save memory.
