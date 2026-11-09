@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME } from '../config/gameConfig.js';
 import { ADVENTURE_LEVELS, adventureKey } from '../data/adventure/index.js';
 import { animKey } from '../data/characters.js';
+import { AdventureEnemy } from '../entities/AdventureEnemy.js';
 import { Cat } from '../entities/Cat.js';
 import { InputController } from '../input/InputController.js';
 import { MAX_FALL_SPEED, ONE_WAY, TILE, TILE_BIAS, readAdventureMap } from '../systems/adventureMap.js';
@@ -19,6 +20,9 @@ const BACKGROUND_DRIFT = { far: 0.12, near: 0.3 };
 const SPIKE_HIT = { w: 52, h: 20 };
 const BONUS_COINS = 3;
 const CHEST_COINS = 5;
+// Landing on an enemy: the cat counts as coming from above if its feet were no lower than this
+// below the enemy's top a step earlier, and it bounces off this fast.
+const STOMP = { margin: 14, bounce: -760 };
 const END_SCREEN_MS = 1100;
 const HUD_STYLE = { fontFamily: 'Fredoka, sans-serif', fontSize: '26px', fontStyle: '600', color: '#ffffff', stroke: '#1e2a4a', strokeThickness: 6 };
 
@@ -66,12 +70,16 @@ export class AdventureScene extends Phaser.Scene {
     this.physics.add.overlap(this.cat, this.lanterns, (cat, lantern) => this.reachCheckpoint(lantern));
     this.physics.add.overlap(this.cat, this.portalZone, () => this.complete());
     this.physics.add.overlap(this.cat, this.chests, (cat, chest) => this.openChest(chest));
+    this.physics.add.collider(this.enemies, this.groundLayer);
+    this.physics.add.collider(this.enemies, this.solids);
+    this.physics.add.overlap(this.cat, this.enemies, (cat, enemy) => this.meetEnemy(enemy));
 
     this.hearts = level.hearts;
     this.coins = 0;
     this.gems = 0;
     this.hasKey = false;
     this.chestsOpened = 0;
+    this.knockedOut = 0;
     this.climbing = false;
     this.hurtMs = 0;
     this.playing = true;
@@ -162,7 +170,10 @@ export class AdventureScene extends Phaser.Scene {
     this.spikes = [];
     this.lanterns = [];
     this.chests = [];
-    this.totals = { coins: 0, gems: 0 };
+    // A group, so an enemy that's knocked out and gone leaves the colliders by itself.
+    this.enemies = this.add.group();
+    this.totals = { coins: 0, gems: 0, enemies: 0 };
+    const spikeCells = new Set(this.layout.objects.filter((o) => o.type === 'spike').map(({ col, row }) => `${col},${row}`));
     for (const object of this.layout.objects) {
       const { x, y } = this.cellFeet(object);
       const middle = y - TILE / 2;
@@ -214,6 +225,15 @@ export class AdventureScene extends Phaser.Scene {
           this.chests.push(chest);
           break;
         }
+        case 'enemy': {
+          const enemy = new AdventureEnemy(this, x, y, object.kind, { groundLayer: this.groundLayer, isSpike: (px, py) => spikeCells.has(`${Math.floor(px / TILE)},${Math.floor(py / TILE)}`) });
+          enemy.on('swipe', () => {
+            if (enemy.swipeLands(this.cat)) this.hurt(enemy.x);
+          });
+          this.enemies.add(enemy);
+          this.totals.enemies += 1;
+          break;
+        }
         case 'portal': {
           const portal = this.add.image(x, y + 6, this.art('portal')).setOrigin(0.5, 1).setDepth(3);
           this.tweens.add({ targets: portal, alpha: 0.8, duration: 900, yoyo: true, repeat: -1 });
@@ -236,7 +256,7 @@ export class AdventureScene extends Phaser.Scene {
     this.gemText = fixed(this.add.text(172, 84, `0/${this.totals.gems}`, HUD_STYLE).setOrigin(0, 0.5));
     this.keyIcon = fixed(this.add.image(272, 84, this.art('key'))).setScale(0.8).setAlpha(0.3);
     this.hint = fixed(this.add.text(GAME.WIDTH / 2, 150, '', { ...HUD_STYLE, fontSize: '30px', align: 'center' }).setOrigin(0.5));
-    this.showHint(`${this.level.title}\nRun, jump and climb up to the portal`, 3200);
+    this.showHint(`${this.level.title}\nRun, jump and climb up to the portal\nJump on enemies, or slide into them`, 3600);
   }
 
   showHint(text, ms = 2200) {
@@ -416,6 +436,31 @@ export class AdventureScene extends Phaser.Scene {
     this.updateHud();
   }
 
+  // Landing on an enemy knocks it out and bounces the cat up, unless it's spiky. Sliding into one
+  // knocks it out too. Any other touch hurts the cat.
+  meetEnemy(enemy) {
+    if (enemy.dead || !this.playing) return;
+    const { body } = this.cat;
+    const feetBefore = body.prev.y + body.height;
+    const fromAbove = body.velocity.y > 0 && feetBefore <= enemy.body.top + STOMP.margin;
+    if (fromAbove && enemy.info.stompable) {
+      this.knockOut(enemy);
+      this.cat.bounce(STOMP.bounce);
+      this.audio.playSfx('bounce');
+    } else if (this.cat.isSliding && !fromAbove) {
+      this.knockOut(enemy);
+      this.audio.playSfx('smash');
+    } else {
+      this.hurt(enemy.x);
+    }
+  }
+
+  knockOut(enemy) {
+    enemy.knockOut();
+    this.knockedOut += 1;
+    this.effects.impact(enemy.x, enemy.body.center.y);
+  }
+
   reachCheckpoint(lantern) {
     if (lantern.lit) return;
     lantern.lit = true;
@@ -477,13 +522,14 @@ export class AdventureScene extends Phaser.Scene {
     this.cat.body.setAllowGravity(true);
     this.cat.setVelocityX(0);
     this.cat.moveVelocity = 0;
+    for (const enemy of this.enemies.getChildren()) enemy.halt();
   }
 
   showEnd(title) {
     const chest = this.chests.length ? `, treasure ${this.chestsOpened}/${this.chests.length}` : '';
     this.overlay.show({
       title,
-      message: `Coins ${this.coins}, crystals ${this.gems}/${this.totals.gems}${chest}`,
+      message: `Coins ${this.coins}, crystals ${this.gems}/${this.totals.gems}${chest}, enemies ${this.knockedOut}/${this.totals.enemies}`,
       actions: [
         { label: 'Play again', primary: true, onClick: () => this.scene.restart({ levelIndex: this.levelIndex }) },
         { label: 'Back to Cat Escape', onClick: () => this.scene.start('Game', {}) },
@@ -534,6 +580,7 @@ export class AdventureScene extends Phaser.Scene {
       // Holding Up as the cat reaches a ladder grabs it.
       if (this.upHeld && this.ladderNear()) this.startClimbing();
     }
+    for (const enemy of this.enemies.getChildren()) enemy.update(this.cat, ms);
     if (this.cat.body.top > this.worldH + FALL_OUT_BELOW) this.fellOut();
   }
 }

@@ -1,0 +1,114 @@
+import Phaser from 'phaser';
+import { ENEMIES, enemyAnimKey, enemyKey, enemyLayout } from '../data/adventure/enemies.js';
+import { TILE } from '../systems/adventureMap.js';
+
+// patrolTiles: how far it walks each way from where it starts. sees: how close the cat must be,
+// in front of it, for it to swipe; reach: how close for the swipe to land. Both in px from its
+// middle. levelWithin: how far the cat's feet can be above or below its own and still count.
+const PATROL_TILES = 3;
+const SWIPE = { sees: 120, reach: 95, levelWithin: 60, cooldownMs: 1100 };
+const LOOK_DOWN = 4; // how far below its feet it checks for ground ahead, so it turns at edges
+const FADE_MS = 500;
+
+// One of the adventure's enemies: it walks to and fro on its island or stretch of ground, turning at
+// edges, walls and the end of its beat, and swipes at the cat when it's close in front. The scene
+// decides what touching it does (see AdventureScene.meetEnemy).
+export class AdventureEnemy extends Phaser.Physics.Arcade.Sprite {
+  // groundLayer: the level's tiles, to find edges. isSpike(x, y): whether there are spikes at a point,
+  // which it won't walk onto.
+  constructor(scene, x, feetY, kind, { groundLayer, isSpike }) {
+    super(scene, x, feetY, enemyKey(kind), 'idle-0');
+    this.kind = kind;
+    this.info = ENEMIES[kind];
+    this.layout = enemyLayout(kind);
+    this.groundLayer = groundLayer;
+    this.isSpike = isSpike;
+    scene.add.existing(this);
+    scene.physics.add.existing(this);
+    this.setOrigin(0.5, this.layout.feet / this.layout.frameH).setDepth(5);
+    this.body.setSize(this.layout.body.w, this.layout.body.h);
+    this.homeX = x;
+    this.dead = false;
+    this.attacking = false;
+    this.cooldownMs = 0;
+    this.face(-1);
+    this.play(enemyAnimKey(kind, 'walk'));
+
+    const swipeFrame = `attack-${this.info.anims.attack.hitFrame}`;
+    this.on(Phaser.Animations.Events.ANIMATION_UPDATE, (anim, frame) => {
+      if (this.attacking && frame.textureFrame === swipeFrame) this.emit('swipe', this);
+    });
+    this.on(Phaser.Animations.Events.ANIMATION_COMPLETE, (anim) => {
+      if (anim.key !== enemyAnimKey(kind, 'attack')) return;
+      this.attacking = false;
+      this.cooldownMs = SWIPE.cooldownMs;
+      if (!this.dead) this.play(enemyAnimKey(kind, 'walk'));
+    });
+  }
+
+  // -1 is left, as the art is drawn; 1 is right. The body is mirrored with the picture.
+  face(direction) {
+    this.direction = direction;
+    this.setFlipX(direction > 0);
+    const { frameW, body } = this.layout;
+    this.body.setOffset(direction > 0 ? frameW - body.x - body.w : body.x, body.y);
+  }
+
+  // Whether the cat is in front of it, at about its level, and within this distance.
+  catInFront(cat, distance) {
+    const dx = cat.body.center.x - this.body.center.x;
+    const level = Math.abs(cat.body.bottom - this.body.bottom) < SWIPE.levelWithin;
+    return level && Math.abs(dx) < distance && (Math.sign(dx) === this.direction || Math.abs(dx) < this.body.width / 2);
+  }
+
+  swipeLands(cat) {
+    return !this.dead && this.catInFront(cat, SWIPE.reach);
+  }
+
+  update(cat, ms) {
+    if (this.dead) return;
+    this.cooldownMs = Math.max(0, this.cooldownMs - ms);
+    if (this.attacking) {
+      this.setVelocityX(0);
+      return;
+    }
+    // The cat close by, at its level: it turns to it and swipes.
+    if (this.cooldownMs === 0 && this.body.blocked.down && this.catInFront(cat, SWIPE.sees)) {
+      this.face(Math.sign(cat.body.center.x - this.body.center.x) || this.direction);
+      this.attacking = true;
+      this.setVelocityX(0);
+      this.play(enemyAnimKey(this.kind, 'attack'));
+      return;
+    }
+    if (this.body.blocked.down && this.shouldTurn()) this.face(-this.direction);
+    this.setVelocityX(this.direction * this.info.speed);
+  }
+
+  shouldTurn() {
+    const { body, direction } = this;
+    if ((direction < 0 && body.blocked.left) || (direction > 0 && body.blocked.right)) return true;
+    const beat = PATROL_TILES * TILE;
+    if ((direction < 0 && this.x < this.homeX - beat) || (direction > 0 && this.x > this.homeX + beat)) return true;
+    // Spikes, or no ground, just ahead of its front foot.
+    const frontX = direction < 0 ? body.left - LOOK_DOWN : body.right + LOOK_DOWN;
+    return this.isSpike(frontX, body.bottom - LOOK_DOWN) || !this.groundLayer.getTileAtWorldXY(frontX, body.bottom + LOOK_DOWN);
+  }
+
+  // Stands still, for when the level ends.
+  halt() {
+    if (this.dead) return;
+    this.attacking = false;
+    this.setVelocityX(0);
+    this.play(enemyAnimKey(this.kind, 'idle'), true);
+  }
+
+  knockOut() {
+    this.dead = true;
+    this.attacking = false;
+    this.body.enable = false;
+    this.play(enemyAnimKey(this.kind, 'dead'));
+    this.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+      this.scene.tweens.add({ targets: this, alpha: 0, duration: FADE_MS, onComplete: () => this.destroy() });
+    });
+  }
+}

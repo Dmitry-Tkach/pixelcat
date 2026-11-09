@@ -3,9 +3,10 @@
 // Tiles are drawn at 128px and used at 64px, so the battle cat is about two tiles tall.
 // Run: npm run assets (or node tools/adventure-art.mjs)
 import sharp from 'sharp';
-import { mkdirSync, rmSync } from 'node:fs';
+import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ENEMIES, PACK_FRAMES, enemyLayout } from '../src/data/adventure/enemies.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const WORLDS = join(ROOT, 'images', 'assets', 'worlds');
@@ -82,4 +83,36 @@ await sharp({ create: { width: TILE * TILESET.length, height: TILE, channels: 4,
 for (const [name, layer] of [['back-far', '00'], ['back-near', '01']]) {
   await sharp(wood('Background', `Layer ${layer}`)).resize({ height: 720 }).png({ compressionLevel: 9 }).toFile(join(out, `${name}.png`));
 }
-console.log(`Adventure art prepared in public/assets/adventure (${Object.keys(WOOD).length + 2} images)`);
+// The enemies, from the gangsta cats pack: each one's animations as a Phaser atlas (a grid of
+// frames and a JSON list of where each frame is), keeping every step-th frame of the pack's.
+const ENEMY_PACK = join(ROOT, 'images', 'assets', 'worlds', 'characters', 'gangsta-cats', 'Png', 'Enemies');
+const ATLAS_COLUMNS = 10;
+const enemiesOut = join(OUT, 'enemies');
+mkdirSync(enemiesOut, { recursive: true });
+for (const [kind, enemy] of Object.entries(ENEMIES)) {
+  const { frameW, frameH } = enemyLayout(kind);
+  const frames = [];
+  for (const [anim, { folder, step }] of Object.entries(enemy.anims)) {
+    const dir = join(ENEMY_PACK, enemy.source, folder);
+    const files = readdirSync(dir).filter((f) => f.endsWith('.png')).sort();
+    if (files.length !== PACK_FRAMES[folder]) throw new Error(`${enemy.source} ${folder}: expected ${PACK_FRAMES[folder]} frames, found ${files.length}`);
+    files.filter((_, i) => i % step === 0).forEach((file, i) => frames.push({ name: `${anim}-${i}`, file: join(dir, file) }));
+  }
+  const rows = Math.ceil(frames.length / ATLAS_COLUMNS);
+  const atlas = { frames: {}, meta: { image: `${kind}.png`, size: { w: frameW * ATLAS_COLUMNS, h: frameH * rows }, scale: '1' } };
+  const pieces = await Promise.all(frames.map(async ({ name, file }, i) => {
+    const x = (i % ATLAS_COLUMNS) * frameW;
+    const y = Math.floor(i / ATLAS_COLUMNS) * frameH;
+    atlas.frames[name] = {
+      frame: { x, y, w: frameW, h: frameH }, rotated: false, trimmed: false,
+      spriteSourceSize: { x: 0, y: 0, w: frameW, h: frameH }, sourceSize: { w: frameW, h: frameH },
+    };
+    const { crop } = enemy;
+    const input = await sharp(file).extract({ left: crop.x, top: crop.y, width: crop.w, height: crop.h }).resize(frameW, frameH).toBuffer();
+    return { input, left: x, top: y };
+  }));
+  await sharp({ create: { width: atlas.meta.size.w, height: atlas.meta.size.h, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+    .composite(pieces).png({ compressionLevel: 9 }).toFile(join(enemiesOut, `${kind}.png`));
+  writeFileSync(join(enemiesOut, `${kind}.json`), JSON.stringify(atlas));
+}
+console.log(`Adventure art prepared in public/assets/adventure (${Object.keys(WOOD).length + 2} images, ${Object.keys(ENEMIES).length} enemies)`);

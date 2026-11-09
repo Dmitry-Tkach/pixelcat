@@ -1,9 +1,10 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { ENEMIES, enemyFrameCount, enemyLayout, enemyPath } from '../src/data/adventure/enemies.js';
 import { ADVENTURE_ART, ADVENTURE_LEVELS, adventurePath } from '../src/data/adventure/index.js';
 import { CHARACTERS } from '../src/data/characters.js';
 import { MOVEMENT } from '../src/config/gameConfig.js';
-import { MAX_FALL_SPEED, PHYSICS_STEPS_PER_SECOND, TILE, TILES, TILE_BIAS, checkAdventureLevel, readAdventureMap } from '../src/systems/adventureMap.js';
+import { ENEMY_LETTERS, MAX_FALL_SPEED, PHYSICS_STEPS_PER_SECOND, TILE, TILES, TILE_BIAS, checkAdventureLevel, readAdventureMap } from '../src/systems/adventureMap.js';
 
 describe('adventure levels', () => {
   it.each(ADVENTURE_LEVELS.map((level) => [level.id, level]))('%s has no mistakes', (_id, level) => {
@@ -72,6 +73,38 @@ describe('landing on tiles', () => {
 
   it('still lets the cat jump up through an island', () => {
     expect(TILE_BIAS).toBeLessThan(TILE);
+  });
+});
+
+describe('adventure enemies', () => {
+  it.each(Object.keys(ENEMIES))('the %s has an atlas with every frame its animations use', (kind) => {
+    const file = `public/${enemyPath(kind)}`;
+    expect(existsSync(`${file}.png`)).toBe(true);
+    const { frames } = JSON.parse(readFileSync(`${file}.json`, 'utf8'));
+    for (const [anim, info] of Object.entries(ENEMIES[kind].anims)) {
+      for (let i = 0; i < enemyFrameCount(info); i++) expect(frames[`${anim}-${i}`], `${anim}-${i}`).toBeDefined();
+    }
+    expect(enemyFrameCount(ENEMIES[kind].anims.attack)).toBeGreaterThan(ENEMIES[kind].anims.attack.hitFrame);
+  });
+
+  it.each(Object.keys(ENEMIES))('the %s has its body inside its frame, standing on its feet', (kind) => {
+    const { frameW, frameH, body, feet } = enemyLayout(kind);
+    expect(body.x).toBeGreaterThanOrEqual(0);
+    expect(body.x + body.w).toBeLessThanOrEqual(frameW);
+    expect(body.y + body.h).toBeLessThanOrEqual(frameH);
+    expect(Math.abs(body.y + body.h - feet)).toBeLessThanOrEqual(1);
+  });
+
+  it.each(Object.keys(ENEMIES))('the %s is shorter than the battle cat, so it can be jumped on', (kind) => {
+    const { hitboxes, scale } = CHARACTERS.battleCat;
+    expect(enemyLayout(kind).body.h).toBeLessThan(hitboxes.run.h * scale);
+  });
+
+  it('has a map letter for each kind, and finds enemies standing on nothing', () => {
+    expect(Object.values(ENEMY_LETTERS).sort()).toEqual(Object.keys(ENEMIES).sort());
+    const { objects } = readAdventureMap(['.g.', '###']);
+    expect(objects).toEqual([{ type: 'enemy', kind: 'goon', col: 1, row: 0 }]);
+    expect(checkAdventureLevel({ map: ['.v.@E', '.....', '#####'] })).toContain("the spiky in column 1 isn't standing on anything");
   });
 });
 

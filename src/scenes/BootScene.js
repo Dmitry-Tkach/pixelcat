@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { ENEMIES, enemyAnimKey, enemyFrameCount, enemyKey, enemyPath } from '../data/adventure/enemies.js';
 import { ADVENTURE_ART, adventureKey, adventurePath } from '../data/adventure/index.js';
 import { CHARACTERS, animKey, frameKey } from '../data/characters.js';
 import { ESCAPE_ANIMATION, HOME_ANIMATION } from '../data/screens.js';
@@ -22,6 +23,9 @@ export class BootScene extends Phaser.Scene {
     }
     for (const [world, names] of Object.entries(ADVENTURE_ART)) {
       for (const name of names) this.load.image(adventureKey(world, name), adventurePath(world, name));
+    }
+    for (const kind of Object.keys(ENEMIES)) {
+      this.load.atlas(enemyKey(kind), `${enemyPath(kind)}.png`, `${enemyPath(kind)}.json`);
     }
     for (const [name, character] of Object.entries(CHARACTERS)) {
       for (const { file, frames } of Object.values(character.anims)) {
@@ -64,6 +68,17 @@ export class BootScene extends Phaser.Scene {
         frameRate: 10,
         repeat: -1,
       });
+    }
+    // The adventure's enemies.
+    for (const [kind, { anims }] of Object.entries(ENEMIES)) {
+      for (const [anim, info] of Object.entries(anims)) {
+        this.anims.create({
+          key: enemyAnimKey(kind, anim),
+          frames: Array.from({ length: enemyFrameCount(info) }, (_, i) => ({ key: enemyKey(kind), frame: `${anim}-${i}` })),
+          frameRate: info.fps,
+          repeat: info.repeat,
+        });
+      }
     }
     // For trying the adventure while developing: open the page with ?adventure.
     if (import.meta.env.DEV && new URLSearchParams(location.search).has('adventure')) {
