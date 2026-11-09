@@ -10,7 +10,6 @@ const HAND_HEIGHT = 110;
 const BOMB_ARC = 230; // how much higher than a straight line a bomb flies, at the top of its arc
 const BOMB_SPIN = 540; // degrees a second, in flight
 const BLAST_MS = 260; // how long an explosion can hurt, and shows
-const BLAST_SCALE = 2.4;
 const FUSE_FLASH_MS = 110;
 const WAVE = { w: 120, h: 96, hitW: 56 };
 const WAVE_DUST_EVERY_MS = 60;
@@ -226,8 +225,10 @@ export class BomberBoss extends Phaser.GameObjects.Sprite {
           bomb.state = 'blast';
           bomb.ms = 0;
           sprite.setVisible(false);
+          // As wide as the ground it hurts, so the player can see how far to keep away.
           bomb.blast = this.scene.add.image(sprite.x, GAME.GROUND_Y + 6, frameKey(this.character, 'blast', 1))
-            .setOrigin(0.5, 1).setScale(BLAST_SCALE).setDepth(8);
+            .setOrigin(0.5, 1).setDepth(8);
+          bomb.blast.setScale((data.blastRadius * 2) / bomb.blast.width);
           this.scene.audio.playSfx('boom');
           this.scene.cameras.main.shake(160, 0.008);
           this.scene.effects.dust(sprite.x, GAME.GROUND_Y, 10);

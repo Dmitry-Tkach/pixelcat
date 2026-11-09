@@ -70,7 +70,9 @@ function tidy(px, w, h, airborne, isFur) {
 //                around each figure. Glows need it left at 0
 //   clearGreyHaze: optional, also clears grey pixels that aren't fully solid, for pixel art
 //   reviewDir:   optional, a folder for a sheet of every frame on a grey card
-export async function cutSheet({ sheet, out, rows, labels, anims, isFur, clearBelow = 0, clearGreyHaze = false, reviewDir, reviewName = 'cut' }) {
+//   keepFrames:  optional, leaves frames already in `out`, for a sheet cut in several passes
+// `sheet` is a file, or a PNG in memory.
+export async function cutSheet({ sheet, out, rows, labels, anims, isFur, clearBelow = 0, clearGreyHaze = false, reviewDir, reviewName = 'cut', keepFrames = false }) {
   const { data, info } = await sharp(sheet).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   for (let i = 3; i < data.length; i += 4) {
     if (data[i] < clearBelow) data[i] = 0;
@@ -84,7 +86,7 @@ export async function cutSheet({ sheet, out, rows, labels, anims, isFur, clearBe
   }
 
   mkdirSync(out, { recursive: true });
-  for (const old of readdirSync(out)) if (old.endsWith('.png')) rmSync(join(out, old));
+  if (!keepFrames) for (const old of readdirSync(out)) if (old.endsWith('.png')) rmSync(join(out, old));
 
   const tiles = [];
   for (const { name, row, cuts, airborne = [] } of anims) {
