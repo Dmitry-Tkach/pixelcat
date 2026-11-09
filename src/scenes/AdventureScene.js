@@ -8,7 +8,9 @@ import { MAX_FALL_SPEED, ONE_WAY, TILE, TILE_BIAS, readAdventureMap } from '../s
 import { Effects } from '../ui/Effects.js';
 
 const HERO = 'battleCat';
-const CLIMB = { speed: 250, sideSpeed: 110, snap: 0.25, reach: 26 }; // reach: how far from a ladder's middle it can be grabbed
+// reach: how far from a ladder's middle it can be grabbed. standStill: slower than this, the cat counts
+// as standing at a ladder, so Down climbs down it rather than sliding past.
+const CLIMB = { speed: 250, sideSpeed: 110, snap: 0.25, reach: 26, standStill: 60 };
 const HURT = { invulnerableMs: 1300, knockX: 330, knockY: -640, blinkMs: 90 };
 const PENALTY = { speedMultiplier: 0.6, durationMs: 600 };
 const FALL_OUT_BELOW = 160; // below the bottom of the map, the cat has fallen out
@@ -317,8 +319,10 @@ export class AdventureScene extends Phaser.Scene {
 
   slide(key) {
     if (!this.playing || this.climbing) return;
-    // Down at the top of a ladder climbs down it.
-    if (key === 'down' && this.cat.onGround && this.ladderNear(true)) {
+    // Down while standing at the top of a ladder climbs down it. Running past one, Down slides, so a
+    // ladder through the middle of an island doesn't catch the cat.
+    const standing = Math.abs(this.cat.moveVelocity) < CLIMB.standStill;
+    if (key === 'down' && standing && this.cat.onGround && this.ladderNear(true)) {
       this.startClimbing();
       return;
     }
