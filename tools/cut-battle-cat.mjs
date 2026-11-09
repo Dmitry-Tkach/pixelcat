@@ -71,6 +71,34 @@ await cutSheet({
   reviewName: 'battle-cat-slide',
 });
 
+// The sheet draws him bigger when he runs and jumps than when he stands, so he'd swell as he set off.
+// Those animations are shrunk to his standing size, measured by how much of the frame he fills. One
+// factor per animation, so his movement within it is kept. Other animations differ in area because of
+// their pose (lying down, crouching), so they're left alone.
+const MATCH_IDLE = ['Run', 'Jump'];
+const solidArea = async (file) => {
+  const { data } = await sharp(join(OUT, file)).raw().toBuffer({ resolveWithObject: true });
+  let area = 0;
+  for (let i = 3; i < data.length; i += 4) if (data[i] > 200) area += 1;
+  return area;
+};
+const framesOf = (name) => readdirSync(OUT).filter((f) => f.startsWith(`${name} (`));
+const meanArea = async (name) => {
+  const areas = await Promise.all(framesOf(name).map(solidArea));
+  return areas.reduce((a, b) => a + b, 0) / areas.length;
+};
+const idleArea = await meanArea('Idle');
+for (const name of MATCH_IDLE) {
+  const factor = Math.sqrt(idleArea / await meanArea(name));
+  for (const file of framesOf(name)) {
+    const path = join(OUT, file);
+    const { width } = await sharp(path).metadata();
+    const png = await sharp(path).resize({ width: Math.round(width * factor), kernel: 'lanczos3' }).png({ compressionLevel: 9 }).toBuffer();
+    await sharp(png).toFile(path);
+  }
+  console.log(`${name} shrunk by ${factor.toFixed(3)} to his standing size`);
+}
+
 // The player's cat is placed by one hitbox for every animation, so every frame of the animations he
 // plays as the cat gets the same size, with him in the middle and his feet on the same line. His
 // superpower, with its long energy ball, keeps its own size.

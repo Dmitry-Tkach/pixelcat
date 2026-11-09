@@ -115,7 +115,7 @@ export const CHARACTERS = {
   battleCat: {
     folder: 'battle-cat',
     scale: 1,
-    face: { x: 38, y: 30, size: 88 },
+    face: { x: 38, y: 20, size: 88 },
     anims: {
       idle: { file: 'idle', frames: 6, fps: 8, repeat: -1 },
       run: { file: 'run', frames: 8, fps: 14, repeat: -1 },
@@ -134,8 +134,8 @@ export const CHARACTERS = {
     },
     // The same size on screen as the cat's, so levels play the same.
     hitboxes: {
-      run: { x: 46, y: 33, w: 58, h: 113 },
-      slide: { x: 44, y: 73, w: 64, h: 73 },
+      run: { x: 46, y: 23, w: 58, h: 113 },
+      slide: { x: 44, y: 63, w: 64, h: 73 },
     },
   },
 
