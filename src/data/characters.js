@@ -24,13 +24,12 @@ export const CHARACTERS = {
     },
   },
 
-  // A boss. His frames are enlarged when they're prepared (tools/prepare-assets.mjs), so he plays at
-  // scale 1. `belowFeet` is the room under his feet in those frames.
+  // A boss, shown at the size his sheet is drawn. `belowFeet` is the room under his feet in his frames.
   orangeCat: {
     folder: 'orange-cat',
     scale: 1,
-    face: { x: 82, y: 14, size: 96 },
-    belowFeet: 16,
+    face: { x: 61, y: 10, size: 71 },
+    belowFeet: 12,
     anims: {
       idle: { file: 'idle', frames: 4, fps: 6, repeat: -1 },
       run: { file: 'run', frames: 6, fps: 14, repeat: -1 },
@@ -55,29 +54,32 @@ export const CHARACTERS = {
     },
   },
 
-  // A boss, cut by tools/cut-boss-rat.mjs and enlarged when prepared, so he plays at scale 1.
+  // A boss, cut by tools/cut-boss-rat.mjs from his second, fuller sheet, shown at the size it's drawn.
   bomberRat: {
     folder: 'bomber-rat',
     scale: 1,
-    belowFeet: 16,
-    face: { x: 72, y: 48, size: 60 },
+    belowFeet: 12,
+    face: { x: 49, y: 8, size: 79 },
     anims: {
-      idle: { file: 'idle', frames: 4, fps: 6, repeat: -1 },
-      run: { file: 'run', frames: 6, fps: 14, repeat: -1 },
-      crouch: { file: 'jump', frames: 4, frameList: [1], fps: 1, repeat: 0 },
-      hop: { file: 'jump', frames: 4, frameList: [2, 3], fps: 6, repeat: 0 },
-      land: { file: 'jump', frames: 4, frameList: [4], fps: 1, repeat: 0 },
-      windUp: { file: 'throw', frames: 3, frameList: [1, 2], fps: 6, repeat: 0 },
-      throw: { file: 'throw', frames: 3, frameList: [3], fps: 1, repeat: 0 },
-      pounceReady: { file: 'lunge', frames: 4, frameList: [1], fps: 1, repeat: 0 },
-      pounce: { file: 'lunge', frames: 4, frameList: [2, 3], fps: 10, repeat: -1 },
-      pounceEnd: { file: 'lunge', frames: 4, frameList: [4], fps: 1, repeat: 0 },
-      powerUp: { file: 'power', frames: 4, frameList: [1, 2, 3], fps: 7, repeat: 0 },
-      powerHit: { file: 'power', frames: 4, frameList: [3], fps: 1, repeat: 0 },
+      idle: { file: 'idle', frames: 8, fps: 8, repeat: -1 },
+      run: { file: 'run', frames: 9, fps: 15, repeat: -1 },
+      crouch: { file: 'jump', frames: 8, frameList: [1], fps: 1, repeat: 0 },
+      hop: { file: 'jump', frames: 8, frameList: [2, 3, 4, 5, 6], fps: 10, repeat: 0 },
+      land: { file: 'jump', frames: 8, frameList: [7, 8], fps: 10, repeat: 0 },
+      // He picks up a bomb and lifts it, then throws.
+      windUp: { file: 'throw', frames: 7, frameList: [1, 2, 3], fps: 6, repeat: 0 },
+      throw: { file: 'throw', frames: 7, frameList: [6, 7], fps: 10, repeat: 0 },
+      pounceReady: { file: 'lunge', frames: 6, frameList: [1], fps: 1, repeat: 0 },
+      // A low dash, with claw slashes.
+      pounce: { file: 'lunge', frames: 6, frameList: [2, 3, 4, 5], fps: 12, repeat: -1 },
+      pounceEnd: { file: 'lunge', frames: 6, frameList: [6], fps: 1, repeat: 0 },
+      // Blue power builds around him, then he hits the ground with it.
+      powerUp: { file: 'power', frames: 8, frameList: [1, 2, 3, 4], fps: 8, repeat: 0 },
+      powerHit: { file: 'power', frames: 8, frameList: [6, 7, 8], fps: 10, repeat: 0 },
       // He stops to cheer, sure he's won: his weak moment.
-      cheer: { file: 'won', frames: 4, fps: 7, repeat: -1 },
-      hit: { file: 'defeated', frames: 5, frameList: [1], fps: 1, repeat: 0 },
-      defeated: { file: 'defeated', frames: 5, frameList: [2, 3, 4, 5], fps: 6, repeat: 0 },
+      cheer: { file: 'won', frames: 5, fps: 7, repeat: -1 },
+      hit: { file: 'defeated', frames: 9, frameList: [1], fps: 1, repeat: 0 },
+      defeated: { file: 'defeated', frames: 9, frameList: [2, 3, 4, 5, 6, 7, 8, 9], fps: 8, repeat: 0 },
       // Not him: his bomb, and its explosion.
       bomb: { file: 'bomb', frames: 1, fps: 1, repeat: 0 },
       blast: { file: 'blast', frames: 1, fps: 1, repeat: 0 },
@@ -86,7 +88,9 @@ export const CHARACTERS = {
 
   cat: {
     folder: 'cat',
-    scale: 0.72,
+    // A fifth smaller than at first (0.72). Everything aimed at its height (overhead boards, birds,
+    // leaping dogs, the swinging crate, the Gunner's high shots) was lowered to match.
+    scale: 0.58,
     face: { x: 50, y: 8, size: 146 },
     anims: {
       idle: { file: 'idle', frames: 10, fps: 12, repeat: -1 },

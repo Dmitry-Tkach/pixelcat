@@ -131,7 +131,7 @@ export class GameScene extends Phaser.Scene {
     this.bossFight = level.boss ? new BossFight(this, level.boss) : null;
     this.finalDashDone = false;
     this.chaser = new Chaser(this, startX - this.tracker.gap, this.chase.chaser.character);
-    this.catShadow = this.add.ellipse(0, GAME.GROUND_Y + 4, 120, 18, 0x1d1a44, 0.35).setDepth(3);
+    this.catShadow = this.add.ellipse(0, GAME.GROUND_Y + 4, 96, 15, 0x1d1a44, 0.35).setDepth(3);
     this.chaserShadow = this.add.ellipse(0, GAME.GROUND_Y + 4, 140, 20, 0x1d1a44, 0.35).setDepth(3);
     this.followers = this.chase.followers.map((id) => new Chaser(this, startX - this.tracker.gap, CHASERS[id].character));
     for (const sound of ['jump', 'slide', 'land', 'doubleJump', 'dive', 'bounce']) {

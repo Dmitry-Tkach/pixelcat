@@ -4,7 +4,7 @@ import { Resvg } from '@resvg/resvg-js';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { farTown, parkGate, townRow, townStreet } from './english-town.mjs';
+import { OVERHEAD_DROP, farTown, parkGate, townRow, townStreet } from './english-town.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = join(ROOT, 'public', 'assets', 'city');
@@ -95,7 +95,8 @@ function obstacles() {
     <rect x="92" y="60" width="50" height="62" rx="3" fill="#C98F54"/>
     <rect x="92" y="60" width="50" height="12" fill="#AE7A42"/>`, 146, 124);
 
-  // A low scaffold board: its bottom edge sits 128px above the ground, so the cat slides under.
+  // A low scaffold board: its bottom edge sits 97px above the road, so the cat slides under. The board
+  // and its arrows hang OVERHEAD_DROP lower than they were first drawn, for the smaller cat.
   let stripes = '';
   for (let x = -50; x < 170; x += 44) {
     stripes += `<path d="M${x} 162 L${x + 56} 48 L${x + 78} 48 L${x + 22} 162 Z" fill="#23264A"/>`;
@@ -104,11 +105,13 @@ function obstacles() {
     <defs><clipPath id="board"><rect x="6" y="48" width="158" height="114" rx="8"/></clipPath></defs>
     <rect x="14" y="10" width="14" height="280" rx="4" fill="#59648F"/>
     <rect x="142" y="10" width="14" height="280" rx="4" fill="#59648F"/>
+    <g transform="translate(0 ${OVERHEAD_DROP})">
     <rect x="6" y="48" width="158" height="114" rx="8" fill="#FFC531"/>
     <g clip-path="url(#board)">${stripes}</g>
     <rect x="6" y="48" width="158" height="114" rx="8" fill="none" stroke="#23264A" stroke-width="6"/>
     <path d="M68 176 L85 196 L102 176 M68 198 L85 218 L102 198" fill="none" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M68 176 L85 196 L102 176 M68 198 L85 218 L102 198" fill="none" stroke="#E8456E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`, 170, 290);
+    <path d="M68 176 L85 196 L102 176 M68 198 L85 218 L102 198" fill="none" stroke="#E8456E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>`, 170, 290);
 
   // A round red pillar box, in the same space the other worlds' hydrant-sized obstacles use.
   save('hydrant', `
@@ -144,7 +147,7 @@ function obstacles() {
     <rect x="4" y="8" width="122" height="36" rx="6" fill="#FFFFFF"/>
     <g clip-path="url(#rail)">${barrierStripes}</g>`, 130, 96);
 
-  // A shop banner between two poles. Like the scaffold, its lower edge is 128px above the ground.
+  // A shop banner between two poles, with the same low edge as the scaffold.
   let bunting = '';
   for (let x = 16; x < 150; x += 28) {
     bunting += `<path d="M${x} 112 L${x + 28} 112 L${x + 14} 162 Z" fill="${(x - 16) / 28 % 2 ? '#FFC531' : '#2F9EDF'}"/>`;
@@ -152,6 +155,7 @@ function obstacles() {
   save('banner', `
     <rect x="10" y="10" width="12" height="280" rx="4" fill="#59648F"/>
     <rect x="148" y="10" width="12" height="280" rx="4" fill="#59648F"/>
+    <g transform="translate(0 ${OVERHEAD_DROP})">
     <rect x="14" y="44" width="142" height="70" rx="5" fill="#E8456E"/>
     <rect x="14" y="44" width="142" height="12" fill="#C72F58"/>
     ${bunting}
@@ -161,7 +165,8 @@ function obstacles() {
       <circle cx="5" cy="-13" r="5"/><circle cx="13" cy="-6" r="5"/>
     </g>
     <path d="M68 180 L85 200 L102 180 M68 202 L85 222 L102 202" fill="none" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M68 180 L85 200 L102 180 M68 202 L85 222 L102 202" fill="none" stroke="#E8456E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`, 170, 290);
+    <path d="M68 180 L85 200 L102 180 M68 202 L85 222 L102 202" fill="none" stroke="#E8456E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>`, 170, 290);
 
   // Warning icons for moving obstacles: they show the move that avoids the obstacle.
   const warning = (chevrons) => `
@@ -307,10 +312,12 @@ function obstacles() {
   save('washing-line', `
     <rect x="10" y="10" width="12" height="280" rx="4" fill="#8E6A42"/>
     <rect x="148" y="10" width="12" height="280" rx="4" fill="#8E6A42"/>
+    <g transform="translate(0 ${OVERHEAD_DROP})">
     <path d="M16 56 Q85 104 154 56" fill="none" stroke="#FFFFFF" stroke-width="5"/>
     ${clothes}
     <path d="M68 172 L85 192 L102 172 M68 194 L85 214 L102 194" fill="none" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M68 172 L85 192 L102 172 M68 194 L85 214 L102 194" fill="none" stroke="#E8456E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`, 170, 290);
+    <path d="M68 172 L85 192 L102 172 M68 194 L85 214 L102 194" fill="none" stroke="#E8456E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>`, 170, 290);
 
   // Repeating tiles for floating ledges.
   // Each has a lit top edge to land on, and a shaded underside.
