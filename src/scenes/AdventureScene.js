@@ -768,9 +768,8 @@ export class AdventureScene extends Phaser.Scene {
     });
   }
 
-  // Back to the home screen, where the runner and the adventure are chosen, or with `screen`
-  // 'adventure', to the adventure's road map.
-  goHome(screen = 'menu') {
+  // Back to the adventure's home screen, or with `screen` 'adventure', to its road map.
+  goHome(screen = 'adventure-home') {
     const leave = () => {
       this.anims.resumeAll();
       this.audio.stopMusic();

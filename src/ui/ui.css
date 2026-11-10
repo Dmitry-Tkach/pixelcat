@@ -513,28 +513,81 @@ html, body, #game {
   font-size: clamp(36px, 8vmin, 64px);
 }
 
-/* ----- The home screen's choice of game: the runner and the adventure, side by side ----- */
+/* ----- The first screen: the two games, side by side, filling the window ----- */
+
+#overlay.choose {
+  padding: 0;
+  background: #0e1222;
+}
 
 #overlay.choose .panel.wide {
-  width: min(1180px, 100%);
-  padding: clamp(12px, 2.4vmin, 24px);
-  background: rgba(20, 26, 46, 0.92);
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  padding: clamp(8px, 1.6vmin, 16px) clamp(10px, 2vmin, 20px);
+  border: none;
+  border-radius: 0;
+  background: #0e1222;
+  animation: none;
 }
 
 #overlay.choose .panel h1 {
-  margin-bottom: 4px;
-  font-size: clamp(30px, 6vmin, 52px);
+  margin: 0 0 4px;
+  font-size: clamp(26px, 5vmin, 44px);
+}
+
+#overlay.choose .panel p:empty {
+  display: none;
+}
+
+#overlay.choose [data-content] {
+  display: flex;
+  flex: 1;
+  min-height: 0;
 }
 
 .game-choice {
   display: grid;
+  flex: 1;
   grid-template-columns: 1fr 1fr;
-  gap: 6px;
-  margin: 10px 0 4px;
-  border: 4px solid var(--paper);
-  border-radius: 20px;
+  gap: 4px;
+  margin: 6px 0;
+  border-radius: 14px;
   overflow: hidden;
-  background: var(--paper);
+  background: #2a3352; /* the thin line between the two */
+}
+
+#overlay.choose .game-panel {
+  min-height: 0;
+}
+
+/* ----- The adventure's home screen: its menu to one side, in front of its characters ----- */
+
+.overlay-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.overlay-backdrop[hidden] {
+  display: none;
+}
+
+#overlay .panel {
+  position: relative; /* in front of the backdrop */
+}
+
+#overlay.adventure-home {
+  background: linear-gradient(90deg, transparent 45%, rgba(14, 18, 34, 0.55));
+}
+
+#overlay.adventure-home .panel {
+  background: rgba(30, 42, 74, 0.88);
 }
 
 .game-panel {

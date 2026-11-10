@@ -13,6 +13,12 @@ export class Overlay {
     this.content.dataset.content = '';
     this.actions.before(this.content);
     this.onAction = () => {}; // runs on every button press, before the button's own action
+    // A picture filling the screen behind the menu, for screens that have one.
+    this.backdrop = document.createElement('img');
+    this.backdrop.className = 'overlay-backdrop';
+    this.backdrop.alt = '';
+    this.backdrop.hidden = true;
+    root.prepend(this.backdrop);
   }
 
   button(label, onClick) {
@@ -38,9 +44,18 @@ export class Overlay {
   // `tiles` is an optional grid: { label, detail, world, locked, current, onClick }.
   // `content` is an optional element of the screen's own, such as the journey map.
   // `layout: 'home'` puts the menu to one side, so the home screen's picture shows; `layout: 'choose'`
-  // is the home screen's choice of game, wide across the middle.
-  show({ title, message = '', image, actions, tiles = [], content = null, layout = null }) {
-    this.root.classList.toggle('home', layout === 'home');
+  // is the first screen's choice of game, filling the window; `layout: 'adventure'` is the adventure's
+  // home screen, laid out like the runner's, in front of its characters' picture.
+  // `backdrop` is an optional picture filling the screen behind the menu.
+  show({ title, message = '', image, actions, tiles = [], content = null, layout = null, backdrop = null }) {
+    this.backdrop.hidden = !backdrop;
+    if (backdrop) {
+      if (!this.backdrop.src.endsWith(backdrop)) this.backdrop.src = backdrop;
+    } else {
+      this.backdrop.removeAttribute('src');
+    }
+    this.root.classList.toggle('home', layout === 'home' || layout === 'adventure');
+    this.root.classList.toggle('adventure-home', layout === 'adventure');
     this.root.classList.toggle('choose', layout === 'choose');
     this.title.textContent = title;
     this.message.textContent = message;

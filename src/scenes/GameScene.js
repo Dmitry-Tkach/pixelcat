@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { BIG_LAND, BOSS, CLIMB_CAMERA, FREE_MOVE, GAME, SPRINT, VIEW } from '../config/gameConfig.js';
 import { LEVELS, worldName } from '../data/levels/index.js';
 import { CHASERS } from '../data/chasers.js';
-import { ESCAPE_ANIMATION } from '../data/screens.js';
+import { ESCAPE_ANIMATION, HOME_ANIMATION } from '../data/screens.js';
 import { THEMES } from '../data/themes.js';
 import { BossFight } from '../entities/BossFight.js';
 import { BOSSES } from '../data/bosses.js';
@@ -75,7 +75,7 @@ export class GameScene extends Phaser.Scene {
 
   // `checkpoint`, when restarting from one, holds where the cat was and what it had collected.
   // `screen` is the menu to open first when the level doesn't start straight away.
-  init({ levelIndex = 0, autoStart = false, checkpoint = null, screen = 'menu' }) {
+  init({ levelIndex = 0, autoStart = false, checkpoint = null, screen = 'choose' }) {
     this.levelIndex = levelIndex;
     this.level = LEVELS[levelIndex];
     this.autoStart = autoStart;
@@ -232,7 +232,9 @@ export class GameScene extends Phaser.Scene {
     else if (this.firstScreen === 'intro') this.showIntroScreen();
     else if (this.firstScreen === 'levels') this.showLevelsScreen();
     else if (this.firstScreen === 'adventure') this.showAdventureMap();
-    else this.showStartScreen();
+    else if (this.firstScreen === 'adventure-home') this.showAdventureHome();
+    else if (this.firstScreen === 'menu') this.showStartScreen();
+    else this.showChoiceScreen();
   }
 
   createEscapeGate() {
@@ -860,15 +862,18 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  showStartScreen() {
-    const { hasStarted, nextIndex } = this.progress;
-    if (!this.homeShown) {
-      this.homeShown = true;
-      showHomeScreen(this);
-    }
+  // The bathroom picture, with the family chasing the cat across it now and then, behind the menus.
+  showHomePicture() {
+    if (this.homeShown) return;
+    this.homeShown = true;
+    showHomeScreen(this);
+  }
+
+  // The first screen: the two games, side by side, filling the window. Each card opens its game's
+  // own home screen.
+  showChoiceScreen() {
+    this.showHomePicture();
     this.playHomeMusic();
-    // Two games, side by side: the runner and the battle cat's adventure.
-    const adventureStarted = this.registry.get('adventureProgress')?.hasStarted;
     this.overlay.show({
       layout: 'choose',
       title: 'Cat Escape',
@@ -882,10 +887,7 @@ export class GameScene extends Phaser.Scene {
           still: 'assets/ui/home-runner-still.webp',
           moving: 'assets/ui/home-runner.webp',
           alt: 'The girl reads in a beanbag while the cat dozes on the rug.',
-          actions: [
-            { label: hasStarted ? 'Continue' : 'Play', primary: true, onClick: () => this.openScreen(nextIndex, 'intro') },
-            { label: 'Levels', onClick: () => this.showLevelsScreen() },
-          ],
+          actions: [{ label: 'Play', primary: true, onClick: () => this.showStartScreen() }],
         },
         {
           id: 'adventure',
@@ -896,14 +898,59 @@ export class GameScene extends Phaser.Scene {
           still: 'assets/ui/home-adventure-still.webp',
           moving: 'assets/ui/home-adventure.webp',
           alt: 'A party: the battle cat with the gun cats, a wizard, warriors and an orc.',
-          actions: [
-            { label: adventureStarted ? 'Continue adventure' : 'Open the map', primary: true, onClick: () => this.showAdventureMap() },
-          ],
+          actions: [{ label: 'Play', primary: true, onClick: () => this.showAdventureHome() }],
         },
       ]),
-      actions: this.soundToggles(() => this.showStartScreen()),
+      actions: this.soundToggles(() => this.showChoiceScreen()),
     });
   }
+
+  // The runner's home screen: the bathroom, the family after the cat, and the runner's menu.
+  showStartScreen() {
+    const { hasStarted, nextIndex } = this.progress;
+    this.showHomePicture();
+    this.playHomeMusic();
+    this.overlay.show({
+      layout: 'home',
+      title: 'Cat Escape',
+      image: HOME_ANIMATION,
+      message: "It's bath day, and the whole family wants to catch you. Run to the park!\nArrows: run. Space: jump, and again in the air. Down: slide. E: use a Super Paw.",
+      actions: [
+        { label: hasStarted ? 'Continue' : 'Play', primary: true, onClick: () => this.openScreen(nextIndex, 'intro') },
+        { label: 'Levels', onClick: () => this.showLevelsScreen() },
+        { label: 'Back', onClick: () => this.showChoiceScreen() },
+        ...this.soundToggles(() => this.showStartScreen()),
+      ],
+    });
+  }
+
+  // The adventure's home screen: the party of its characters behind, and its menu.
+  showAdventureHome() {
+    const progress = this.registry.get('adventureProgress');
+    const next = this.nextAdventureLevel();
+    this.playHomeMusic();
+    this.overlay.show({
+      layout: 'adventure',
+      backdrop: 'assets/ui/home-adventure.webp',
+      title: 'The Battle Cat',
+      message: 'Climb the World Tree: find the minigun, take on zombies and gunners, and reach the portal.\nArrows: run. Space: jump. Up and Down: climb. X: shoot. Shift: dash. C: magic bolt.',
+      actions: [
+        { label: progress.hasStarted ? 'Continue' : 'Play', primary: true, onClick: () => this.openAdventure(next) },
+        { label: 'Map', onClick: () => this.showAdventureMap() },
+        { label: 'Back', onClick: () => this.showChoiceScreen() },
+        ...this.soundToggles(() => this.showAdventureHome()),
+      ],
+    });
+  }
+
+  // The adventure level the player is up to: the first built one not yet finished, or the first.
+  nextAdventureLevel() {
+    const progress = this.registry.get('adventureProgress');
+    const built = ADVENTURE_ROADMAP.filter((stop) => ADVENTURE_LEVELS.some((level) => level.id === stop.level));
+    const stop = built.find((s) => !progress.resultFor(s.id)) ?? built[0];
+    return ADVENTURE_LEVELS.findIndex((level) => level.id === stop.level);
+  }
+
 
   // The home screen's tune. Browsers only allow sound after a click or a key press, so before the
   // first one it waits, and starts then if the home screen is still showing.
@@ -1038,7 +1085,7 @@ export class GameScene extends Phaser.Scene {
       title: 'Adventure',
       message: `${progress.totalStars} of ${built * 3} crystals. More of the battle cat's road opens as it's built.`,
       content: journeyMap({ stops, instant: this.screenFx.instant, character: ADVENTURE_HERO.character, look: { worlds: ADVENTURE_MAP_WORLDS, ...ADVENTURE_MAP_LOOK } }),
-      actions: [{ label: 'Back', primary: true, onClick: () => this.showStartScreen() }],
+      actions: [{ label: 'Back', primary: true, onClick: () => this.showAdventureHome() }],
     });
   }
 
