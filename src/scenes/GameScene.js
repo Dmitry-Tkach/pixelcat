@@ -862,14 +862,20 @@ export class GameScene extends Phaser.Scene {
       showHomeScreen(this);
     }
     this.playHomeMusic();
+    // Two games: the runner, Play and Levels, and the battle cat's adventure.
     this.overlay.show({
       layout: 'home',
       title: 'Cat Escape',
       image: HOME_ANIMATION,
-      message: "It's bath day, and the whole family wants to catch you. Run to the park!\nArrows: run. Space: jump, and again in the air. Down: slide. E: use a Super Paw.",
+      message: [
+        "Runner: it's bath day, and the whole family wants to catch you. Run to the park!",
+        'Arrows: run. Space: jump, and again in the air. Down: slide. E: use a Super Paw.',
+        'Adventure: the battle cat climbs the World Tree, fighting his way to the portal.',
+      ].join('\n'),
       actions: [
         { label: hasStarted ? 'Continue' : 'Play', primary: true, onClick: () => this.openScreen(nextIndex, 'intro') },
         { label: 'Levels', onClick: () => this.showLevelsScreen() },
+        { label: 'Adventure', onClick: () => this.openAdventure() },
         ...this.soundToggles(() => this.showStartScreen()),
       ],
     });
@@ -982,6 +988,17 @@ export class GameScene extends Phaser.Scene {
       this.anims.resumeAll();
       this.overlay.hide();
       this.scene.restart({ levelIndex, autoStart: false, screen });
+    });
+  }
+
+  // Leaves the runner for the battle cat's adventure.
+  openAdventure() {
+    this.screenFx.cover(() => {
+      this.time.paused = false;
+      this.audio.stopMusic();
+      this.anims.resumeAll();
+      this.overlay.hide();
+      this.scene.start('Adventure', { levelIndex: 0 });
     });
   }
 

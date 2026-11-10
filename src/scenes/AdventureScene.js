@@ -62,6 +62,8 @@ export class AdventureScene extends Phaser.Scene {
     const { level } = this;
     this.overlay = this.registry.get('overlay');
     this.audio = this.registry.get('audio');
+    this.screenFx = this.registry.get('screenFx');
+    this.screenFx?.reveal(); // the home screen covered over to come here
     this.effects = new Effects(this);
     this.art = (name) => adventureKey(level.world, name);
     this.layout = readAdventureMap(level.map);
@@ -755,9 +757,21 @@ export class AdventureScene extends Phaser.Scene {
       message: `Coins ${this.coins}, crystals ${this.gems}/${this.totals.gems}${chest}, enemies ${this.knockedOut}/${this.totals.enemies}`,
       actions: [
         { label: 'Play again', primary: true, onClick: () => this.scene.restart({ levelIndex: this.levelIndex }) },
-        { label: 'Back to Cat Escape', onClick: () => this.scene.start('Game', {}) },
+        { label: 'Home', onClick: () => this.goHome() },
       ],
     });
+  }
+
+  // Back to the home screen, where the runner and the adventure are chosen.
+  goHome() {
+    const leave = () => {
+      this.anims.resumeAll();
+      this.audio.stopMusic();
+      this.overlay.hide();
+      this.scene.start('Game', { screen: 'menu' });
+    };
+    if (this.screenFx) this.screenFx.cover(leave);
+    else leave();
   }
 
   togglePause() {
@@ -774,7 +788,7 @@ export class AdventureScene extends Phaser.Scene {
         actions: [
           { label: 'Resume', primary: true, onClick: () => this.togglePause() },
           { label: 'Restart', onClick: () => this.scene.restart({ levelIndex: this.levelIndex }) },
-          { label: 'Back to Cat Escape', onClick: () => this.scene.start('Game', {}) },
+          { label: 'Home', onClick: () => this.goHome() },
         ],
       });
     } else {
