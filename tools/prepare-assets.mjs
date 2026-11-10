@@ -86,6 +86,12 @@ for (let frame = 1; frame <= FLOCK.frames; frame++) {
 const UI_DEST = join(ROOT, 'public', 'assets', 'ui');
 mkdirSync(UI_DEST, { recursive: true });
 copyFileSync(join(SRC, 'cat-eating', 'cat-eating-2.gif'), join(UI_DEST, 'escape-success.gif'));
-copyFileSync(join(SRC, 'gif', 'cat-refusing-bath.gif'), join(UI_DEST, 'bath-refused.gif'));
+// The home screen's two games, each with a moving picture that plays when it's pointed at, and its
+// first frame, still, the rest of the time. Animated WebP is a fraction of the GIF's size.
+for (const [gif, name] of [['cat_and_owner_chill', 'home-runner'], ['caharacters-party', 'home-adventure']]) {
+  const file = join(SRC, 'gif', `${gif}.gif`);
+  await sharp(file, { animated: true }).webp({ quality: 78, effort: 6 }).toFile(join(UI_DEST, `${name}.webp`));
+  await sharp(file, { page: 0 }).webp({ quality: 82 }).toFile(join(UI_DEST, `${name}-still.webp`));
+}
 
 console.log('Sprites prepared in public/assets/sprites');

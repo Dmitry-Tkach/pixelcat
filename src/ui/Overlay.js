@@ -37,9 +37,11 @@ export class Overlay {
   // `image` is an optional picture: { src, alt }.
   // `tiles` is an optional grid: { label, detail, world, locked, current, onClick }.
   // `content` is an optional element of the screen's own, such as the journey map.
-  // `layout: 'home'` puts the menu to one side, so the home screen's picture shows.
+  // `layout: 'home'` puts the menu to one side, so the home screen's picture shows; `layout: 'choose'`
+  // is the home screen's choice of game, wide across the middle.
   show({ title, message = '', image, actions, tiles = [], content = null, layout = null }) {
     this.root.classList.toggle('home', layout === 'home');
+    this.root.classList.toggle('choose', layout === 'choose');
     this.title.textContent = title;
     this.message.textContent = message;
     this.setImage(image);

@@ -512,3 +512,180 @@ html, body, #game {
 #overlay.home .panel h1 {
   font-size: clamp(36px, 8vmin, 64px);
 }
+
+/* ----- The home screen's choice of game: the runner and the adventure, side by side ----- */
+
+#overlay.choose .panel.wide {
+  width: min(1180px, 100%);
+  padding: clamp(12px, 2.4vmin, 24px);
+  background: rgba(20, 26, 46, 0.92);
+}
+
+#overlay.choose .panel h1 {
+  margin-bottom: 4px;
+  font-size: clamp(30px, 6vmin, 52px);
+}
+
+.game-choice {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin: 10px 0 4px;
+  border: 4px solid var(--paper);
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--paper);
+}
+
+.game-panel {
+  position: relative;
+  min-height: clamp(260px, 52vh, 460px);
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--ink);
+  contain: paint;
+}
+
+.game-panel-picture {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+
+/* A dark fade at the bottom, under the words, deepening when the panel isn't pointed at. Only its
+   opacity changes, which the graphics card does alone. */
+.game-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(14, 18, 34, 0.1) 30%, rgba(14, 18, 34, 0.92) 78%);
+  pointer-events: none;
+}
+
+.game-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: rgba(14, 18, 34, 0.35);
+  transition: opacity 220ms ease;
+  pointer-events: none;
+}
+
+.game-panel:hover::before,
+.game-panel:focus-within::before {
+  opacity: 0;
+}
+
+/* The words sit towards the middle of the screen: the runner's to its right, the adventure's to its
+   left, as in a pair of book pages. */
+.game-panel-words {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: clamp(14px, 3vmin, 28px);
+  color: var(--paper);
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+.game-panel-runner .game-panel-words {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.game-panel-adventure .game-panel-words {
+  align-items: flex-start;
+  text-align: left;
+}
+
+.game-panel-kicker {
+  color: var(--sun);
+  font: 700 clamp(13px, 2vmin, 17px) var(--font);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.game-panel h2 {
+  margin: 0;
+  font: 700 clamp(26px, 4.6vmin, 44px) / 1.05 var(--font);
+}
+
+.game-panel p {
+  max-width: 34ch;
+  margin: 2px 0 0;
+  font: 500 clamp(14px, 2.1vmin, 18px) / 1.35 var(--font);
+  color: #e6ebf7;
+}
+
+.game-panel small {
+  font: 500 clamp(12px, 1.7vmin, 14px) var(--font);
+  color: #b9c3dc;
+}
+
+.game-panel-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.game-panel-runner .game-panel-buttons {
+  justify-content: flex-end;
+}
+
+.game-panel-buttons button {
+  min-height: 46px;
+  padding: 0 22px;
+  border: 4px solid var(--paper);
+  border-radius: 23px;
+  background: rgba(14, 18, 34, 0.4);
+  color: var(--paper);
+  font: 600 18px var(--font);
+  cursor: pointer;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+  transition: transform 120ms ease;
+}
+
+.game-panel-buttons button.primary {
+  border-color: var(--sun);
+  background: var(--sun);
+  color: var(--ink);
+}
+
+.game-panel-buttons button:hover {
+  transform: translateY(-2px);
+}
+
+.game-panel-buttons button:focus-visible {
+  outline: 4px solid var(--sun);
+  outline-offset: 2px;
+}
+
+/* On a narrow screen, one above the other. */
+@media (max-width: 720px) {
+  .game-choice {
+    grid-template-columns: 1fr;
+  }
+
+  .game-panel {
+    min-height: 240px;
+  }
+
+  .game-panel-runner .game-panel-words,
+  .game-panel-adventure .game-panel-words {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .game-panel-runner .game-panel-buttons {
+    justify-content: flex-start;
+  }
+}

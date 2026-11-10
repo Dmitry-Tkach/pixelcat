@@ -2,11 +2,12 @@ import Phaser from 'phaser';
 import { BIG_LAND, BOSS, CLIMB_CAMERA, FREE_MOVE, GAME, SPRINT, VIEW } from '../config/gameConfig.js';
 import { LEVELS, worldName } from '../data/levels/index.js';
 import { CHASERS } from '../data/chasers.js';
-import { ESCAPE_ANIMATION, HOME_ANIMATION } from '../data/screens.js';
+import { ESCAPE_ANIMATION } from '../data/screens.js';
 import { THEMES } from '../data/themes.js';
 import { BossFight } from '../entities/BossFight.js';
 import { BOSSES } from '../data/bosses.js';
 import { journeyMap } from '../ui/JourneyMap.js';
+import { gameChoice } from '../ui/GameChoice.js';
 import { ADVENTURE_MAP_WORLDS } from '../ui/mapArt.js';
 import { ADVENTURE_HERO, ADVENTURE_LEVELS } from '../data/adventure/index.js';
 import { ADVENTURE_MAP_LOOK, ADVENTURE_ROADMAP } from '../data/adventure/roadmap.js';
@@ -866,22 +867,41 @@ export class GameScene extends Phaser.Scene {
       showHomeScreen(this);
     }
     this.playHomeMusic();
-    // Two games: the runner, Play and Levels, and the battle cat's adventure.
+    // Two games, side by side: the runner and the battle cat's adventure.
+    const adventureStarted = this.registry.get('adventureProgress')?.hasStarted;
     this.overlay.show({
-      layout: 'home',
+      layout: 'choose',
       title: 'Cat Escape',
-      image: HOME_ANIMATION,
-      message: [
-        "Runner: it's bath day, and the whole family wants to catch you. Run to the park!",
-        'Arrows: run. Space: jump, and again in the air. Down: slide. E: use a Super Paw.',
-        'Adventure: the battle cat climbs the World Tree, fighting his way to the portal.',
-      ].join('\n'),
-      actions: [
-        { label: hasStarted ? 'Continue' : 'Play', primary: true, onClick: () => this.openScreen(nextIndex, 'intro') },
-        { label: 'Levels', onClick: () => this.showLevelsScreen() },
-        { label: 'Adventure', onClick: () => this.showAdventureMap() },
-        ...this.soundToggles(() => this.showStartScreen()),
-      ],
+      content: gameChoice([
+        {
+          id: 'runner',
+          kicker: 'Runner',
+          title: 'Bath Day Escape',
+          text: "It's bath day, and the whole family wants to catch you. Run, jump and slide all the way to the park!",
+          keys: 'Arrows: run · Space: jump, twice in the air · Down: slide · E: Super Paw',
+          still: 'assets/ui/home-runner-still.webp',
+          moving: 'assets/ui/home-runner.webp',
+          alt: 'The girl reads in a beanbag while the cat dozes on the rug.',
+          actions: [
+            { label: hasStarted ? 'Continue' : 'Play', primary: true, onClick: () => this.openScreen(nextIndex, 'intro') },
+            { label: 'Levels', onClick: () => this.showLevelsScreen() },
+          ],
+        },
+        {
+          id: 'adventure',
+          kicker: 'Adventure',
+          title: 'The Battle Cat',
+          text: 'Climb the World Tree with the battle cat: find the minigun, take on zombies and gunners, and reach the portal.',
+          keys: 'X: shoot · Shift: dash · C: magic bolt · Up and Down: climb',
+          still: 'assets/ui/home-adventure-still.webp',
+          moving: 'assets/ui/home-adventure.webp',
+          alt: 'A party: the battle cat with the gun cats, a wizard, warriors and an orc.',
+          actions: [
+            { label: adventureStarted ? 'Continue adventure' : 'Open the map', primary: true, onClick: () => this.showAdventureMap() },
+          ],
+        },
+      ]),
+      actions: this.soundToggles(() => this.showStartScreen()),
     });
   }
 
