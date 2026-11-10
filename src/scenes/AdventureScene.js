@@ -2,7 +2,9 @@ import Phaser from 'phaser';
 import { GAME, MOVEMENT } from '../config/gameConfig.js';
 import { ADVENTURE_HERO, ADVENTURE_LEVELS, adventureKey } from '../data/adventure/index.js';
 import { CHARACTERS, animKey } from '../data/characters.js';
+import { FLASH, FLASH_KEY } from '../data/adventure/gunners.js';
 import { AdventureEnemy } from '../entities/AdventureEnemy.js';
+import { AdventureGunner } from '../entities/AdventureGunner.js';
 import { Cat } from '../entities/Cat.js';
 import { InputController } from '../input/InputController.js';
 import { AdventureMoves } from '../systems/AdventureMoves.js';
@@ -28,6 +30,8 @@ const CHEST_COINS = 5;
 // Landing on an enemy: the cat counts as coming from above if its feet were no lower than this
 // below the enemy's top a step earlier, and it bounces off this fast.
 const STOMP = { margin: 14, bounce: -760 };
+// The gunners' bullets: how far they fly before fading, their hitbox, and how big their flash is.
+const ENEMY_BULLET = { range: 14 * TILE, size: 14, depth: 5 };
 const END_SCREEN_MS = 1100;
 const BEAM_PIPS = { x: 98, y: 128, gap: 26, r: 8 };
 const HUD_STYLE = { fontFamily: 'Fredoka, sans-serif', fontSize: '26px', fontStyle: '600', color: '#ffffff', stroke: '#1e2a4a', strokeThickness: 6 };
@@ -80,6 +84,11 @@ export class AdventureScene extends Phaser.Scene {
     this.physics.add.collider(this.enemies, this.groundLayer);
     this.physics.add.collider(this.enemies, this.solids);
     this.physics.add.overlap(this.cat, this.enemies, (cat, enemy) => this.meetEnemy(enemy));
+    // The gunners' bullets fly through islands, but not the ground, and hurt the cat.
+    this.enemyBullets = this.physics.add.group({ allowGravity: false });
+    this.physics.add.collider(this.enemyBullets, this.groundLayer, (bullet) => bullet.destroy(), (bullet, tile) => !ONE_WAY.has(tile.index));
+    this.physics.add.collider(this.enemyBullets, this.solids, (bullet) => bullet.destroy());
+    this.physics.add.overlap(this.cat, this.enemyBullets, (cat, bullet) => this.shotByGunner(bullet));
     this.moves = new AdventureMoves(this, this.cat, {
       art: this.art,
       groundLayer: this.groundLayer,
@@ -250,6 +259,15 @@ export class AdventureScene extends Phaser.Scene {
             if (enemy.swipeLands(this.cat) && !this.moves.isRaging) this.hurt(enemy.x);
           });
           this.enemies.add(enemy);
+          this.totals.enemies += 1;
+          break;
+        }
+        case 'gunner': {
+          const gunner = new AdventureGunner(this, x, y, object.kind, {
+            groundLayer: this.groundLayer,
+            fire: (from, bx, by, angle) => this.fireAtCat(from, bx, by, angle),
+          });
+          this.enemies.add(gunner);
           this.totals.enemies += 1;
           break;
         }
@@ -528,6 +546,34 @@ export class AdventureScene extends Phaser.Scene {
     }
   }
 
+  // A gunner's shot, from its gun's end toward where the cat was, with a flash.
+  fireAtCat(gunner, x, y, angle) {
+    if (!this.playing) return;
+    const bullet = this.enemyBullets.create(x, y, this.art('enemy-bullet')).setRotation(angle).setDepth(ENEMY_BULLET.depth);
+    bullet.body.setSize(ENEMY_BULLET.size, ENEMY_BULLET.size);
+    this.physics.velocityFromRotation(angle, gunner.info.bulletSpeed, bullet.body.velocity);
+    bullet.startX = x;
+    bullet.startY = y;
+    const flash = this.add.sprite(x, y, FLASH_KEY, 'flash-0').setRotation(angle).setDepth(ENEMY_BULLET.depth + 1)
+      .setOrigin(FLASH.origin.x / FLASH.size.w, FLASH.origin.y / FLASH.size.h);
+    flash.play(FLASH_KEY).once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => flash.destroy());
+    this.audio.playSfx('shot');
+  }
+
+  // In a rage, or firing his beam, the shots don't hurt him.
+  shotByGunner(bullet) {
+    if (!bullet.active || !this.playing) return;
+    this.effects.impact(bullet.x, bullet.y, 0.5);
+    bullet.destroy();
+    if (!this.moves.isRaging) this.hurt(bullet.x);
+  }
+
+  updateEnemyBullets() {
+    for (const bullet of this.enemyBullets.getChildren().slice()) {
+      if (Phaser.Math.Distance.Between(bullet.startX, bullet.startY, bullet.x, bullet.y) > ENEMY_BULLET.range) bullet.destroy();
+    }
+  }
+
   knockOut(enemy) {
     if (enemy.dead) return;
     this.effects.impact(enemy.x, enemy.body.center.y);
@@ -605,6 +651,7 @@ export class AdventureScene extends Phaser.Scene {
     this.cat.setVelocityX(0);
     this.cat.moveVelocity = 0;
     for (const enemy of this.enemies.getChildren()) enemy.halt();
+    this.enemyBullets.clear(true, true);
   }
 
   showEnd(title) {
@@ -664,6 +711,7 @@ export class AdventureScene extends Phaser.Scene {
     }
     this.moves.update(ms, { canAct: !this.climbing && !this.pullingUp });
     for (const enemy of this.enemies.getChildren()) enemy.update(this.cat, ms);
+    this.updateEnemyBullets();
     if (this.cat.body.top > this.worldH + FALL_OUT_BELOW) this.fellOut();
   }
 }

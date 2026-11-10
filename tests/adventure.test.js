@@ -1,10 +1,11 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { ENEMIES, enemyFrameCount, enemyLayout, enemyPath } from '../src/data/adventure/enemies.js';
+import { FLASH_PATH, GUNNERS, flashFrameCount, gunnerFrameCount, gunnerLayout, gunnerPath } from '../src/data/adventure/gunners.js';
 import { ADVENTURE_ART, ADVENTURE_HERO, ADVENTURE_LEVELS, adventurePath } from '../src/data/adventure/index.js';
 import { CHARACTERS } from '../src/data/characters.js';
 import { MOVEMENT } from '../src/config/gameConfig.js';
-import { ENEMY_LETTERS, MAX_FALL_SPEED, PHYSICS_STEPS_PER_SECOND, TILE, TILES, TILE_BIAS, checkAdventureLevel, readAdventureMap } from '../src/systems/adventureMap.js';
+import { ENEMY_LETTERS, GUNNER_LETTERS, MAX_FALL_SPEED, PHYSICS_STEPS_PER_SECOND, TILE, TILES, TILE_BIAS, checkAdventureLevel, readAdventureMap } from '../src/systems/adventureMap.js';
 
 describe('adventure levels', () => {
   it.each(ADVENTURE_LEVELS.map((level) => [level.id, level]))('%s has no mistakes', (_id, level) => {
@@ -105,6 +106,39 @@ describe('adventure enemies', () => {
     const { objects } = readAdventureMap(['.g.', '###']);
     expect(objects).toEqual([{ type: 'enemy', kind: 'goon', col: 1, row: 0 }]);
     expect(checkAdventureLevel({ map: ['.v.@E', '.....', '#####'] })).toContain("the spiky in column 1 isn't standing on anything");
+  });
+});
+
+describe('adventure gunners', () => {
+  it.each(Object.keys(GUNNERS))('the %s has an atlas with every frame its animations use', (kind) => {
+    const { frames } = JSON.parse(readFileSync(`public/${gunnerPath(kind)}.json`, 'utf8'));
+    for (const [anim, info] of Object.entries(GUNNERS[kind].anims)) {
+      for (let i = 0; i < gunnerFrameCount(info); i++) expect(frames[`${anim}-${i}`], `${anim}-${i}`).toBeDefined();
+    }
+  });
+
+  it('has a muzzle flash with every frame', () => {
+    const { frames } = JSON.parse(readFileSync(`public/${FLASH_PATH}.json`, 'utf8'));
+    for (let i = 0; i < flashFrameCount(); i++) expect(frames[`flash-${i}`]).toBeDefined();
+  });
+
+  it.each(Object.keys(GUNNERS))('the %s stands on its paws, with the end of its gun inside its frame', (kind) => {
+    const { frameW, frameH, body, feet, muzzle } = gunnerLayout(kind);
+    expect(Math.abs(body.y + body.h - feet)).toBeLessThanOrEqual(1);
+    expect(feet).toBeLessThan(frameH);
+    expect(muzzle.x).toBeGreaterThan(body.x + body.w / 2); // in front of it: the art faces right
+    expect(muzzle.x).toBeLessThanOrEqual(frameW);
+    expect(muzzle.y).toBeLessThan(feet);
+  });
+
+  it('has a map letter for each kind', () => {
+    expect(Object.values(GUNNER_LETTERS).sort()).toEqual(Object.keys(GUNNERS).sort());
+    expect(readAdventureMap(['.2.', '###']).objects).toEqual([{ type: 'gunner', kind: 'raygun', col: 1, row: 0 }]);
+    expect(checkAdventureLevel({ map: ['.3.@E', '.....', '#####'] })).toContain("the rifle in column 1 isn't standing on anything");
+  });
+
+  it('shoots slowly enough to dodge', () => {
+    for (const { bulletSpeed } of Object.values(GUNNERS)) expect(bulletSpeed).toBeLessThan(900);
   });
 });
 

@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { ENEMIES, enemyAnimKey, enemyFrameCount, enemyKey, enemyPath } from '../data/adventure/enemies.js';
+import { FLASH, FLASH_KEY, FLASH_PATH, GUNNERS, flashFrameCount, gunnerAnimKey, gunnerFrameCount, gunnerKey, gunnerPath } from '../data/adventure/gunners.js';
 import { ADVENTURE_ART, adventureKey, adventurePath } from '../data/adventure/index.js';
 import { CHARACTERS, animKey, frameKey } from '../data/characters.js';
 import { ESCAPE_ANIMATION, HOME_ANIMATION } from '../data/screens.js';
@@ -27,6 +28,10 @@ export class BootScene extends Phaser.Scene {
     for (const kind of Object.keys(ENEMIES)) {
       this.load.atlas(enemyKey(kind), `${enemyPath(kind)}.png`, `${enemyPath(kind)}.json`);
     }
+    for (const kind of Object.keys(GUNNERS)) {
+      this.load.atlas(gunnerKey(kind), `${gunnerPath(kind)}.png`, `${gunnerPath(kind)}.json`);
+    }
+    this.load.atlas(FLASH_KEY, `${FLASH_PATH}.png`, `${FLASH_PATH}.json`);
     for (const [name, character] of Object.entries(CHARACTERS)) {
       for (const { file, frames } of Object.values(character.anims)) {
         for (let i = 1; i <= frames; i++) {
@@ -80,6 +85,23 @@ export class BootScene extends Phaser.Scene {
         });
       }
     }
+    // The adventure's gunners, and their muzzle flash.
+    for (const [kind, { anims }] of Object.entries(GUNNERS)) {
+      for (const [anim, info] of Object.entries(anims)) {
+        this.anims.create({
+          key: gunnerAnimKey(kind, anim),
+          frames: Array.from({ length: gunnerFrameCount(info) }, (_, i) => ({ key: gunnerKey(kind), frame: `${anim}-${i}` })),
+          frameRate: info.fps,
+          repeat: info.repeat,
+        });
+      }
+    }
+    this.anims.create({
+      key: FLASH_KEY,
+      frames: Array.from({ length: flashFrameCount() }, (_, i) => ({ key: FLASH_KEY, frame: `flash-${i}` })),
+      frameRate: FLASH.fps,
+      repeat: 0,
+    });
     // For trying the adventure while developing: open the page with ?adventure.
     if (import.meta.env.DEV && new URLSearchParams(location.search).has('adventure')) {
       this.scene.start('Adventure', { levelIndex: 0 });

@@ -70,17 +70,20 @@ export const ENEMIES = {
 export const PACK_FRAMES = { Idle: 20, Walk: 35, Attack: 25, Dead: 60 };
 export const enemyFrameCount = (anim) => Math.ceil(PACK_FRAMES[anim.folder] / anim.step);
 
-// An enemy's size in the game, and its body and feet in the atlas frame (facing left).
-export function enemyLayout(kind) {
-  const { crop, body, feet } = ENEMIES[kind];
-  const s = ENEMY_SCALE;
+// A character's size in the game, and its body, feet and (for gunners) muzzle in the atlas frame,
+// from its measurements in the pack's frame pixels.
+export function layoutOf({ crop, body, feet, muzzle }, s) {
   return {
     frameW: Math.round(crop.w * s),
     frameH: Math.round(crop.h * s),
     body: { x: Math.round((body.x - crop.x) * s), y: Math.round((body.y - crop.y) * s), w: Math.round(body.w * s), h: Math.round(body.h * s) },
     feet: Math.round((feet - crop.y) * s),
+    muzzle: muzzle && { x: Math.round((muzzle.x - crop.x) * s), y: Math.round((muzzle.y - crop.y) * s) },
   };
 }
+
+// An enemy's layout, facing left.
+export const enemyLayout = (kind) => layoutOf(ENEMIES[kind], ENEMY_SCALE);
 
 export const enemyKey = (kind) => `adventure-enemy-${kind}`;
 export const enemyAnimKey = (kind, anim) => `adventure-enemy-${kind}-${anim}`;

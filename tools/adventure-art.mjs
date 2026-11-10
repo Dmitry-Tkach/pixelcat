@@ -7,6 +7,7 @@ import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ENEMIES, PACK_FRAMES, enemyLayout } from '../src/data/adventure/enemies.js';
+import { FLASH, GUNNERS, gunnerLayout } from '../src/data/adventure/gunners.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const WORLDS = join(ROOT, 'images', 'assets', 'worlds');
@@ -59,6 +60,8 @@ const WOOD = {
   lantern: [wood('Environment', 'Fireplace'), HALF],
   // The battle cat's bullet, from the gangsta cats pack.
   bullet: [join(WORLDS, 'characters', 'gangsta-cats', 'Png', 'Bullets', 'Artboard 1.png'), 0.4],
+  // The gunners' bullet: the red one.
+  'enemy-bullet': [join(WORLDS, 'characters', 'gangsta-cats', 'Png', 'Bullets', 'Artboard 1 copy 2.png'), 0.4],
 };
 
 rmSync(OUT, { recursive: true, force: true });
@@ -85,36 +88,56 @@ await sharp({ create: { width: TILE * TILESET.length, height: TILE, channels: 4,
 for (const [name, layer] of [['back-far', '00'], ['back-near', '01']]) {
   await sharp(wood('Background', `Layer ${layer}`)).resize({ height: 720 }).png({ compressionLevel: 9 }).toFile(join(out, `${name}.png`));
 }
-// The enemies, from the gangsta cats pack: each one's animations as a Phaser atlas (a grid of
-// frames and a JSON list of where each frame is), keeping every step-th frame of the pack's.
-const ENEMY_PACK = join(ROOT, 'images', 'assets', 'worlds', 'characters', 'gangsta-cats', 'Png', 'Enemies');
+// The enemies and gunners, from the gangsta cats pack: each one's animations as a Phaser atlas (a
+// grid of frames and a JSON list of where each frame is), keeping every step-th frame of the pack's.
+const GANGSTA = join(ROOT, 'images', 'assets', 'worlds', 'characters', 'gangsta-cats', 'Png');
 const ATLAS_COLUMNS = 10;
+
+// frames: [{ name, file }]. crop: the part of each pack frame kept, which is resized to w x h.
+async function writeAtlas(outDir, name, frames, crop, w, h) {
+  const rows = Math.ceil(frames.length / ATLAS_COLUMNS);
+  const atlas = { frames: {}, meta: { image: `${name}.png`, size: { w: w * Math.min(ATLAS_COLUMNS, frames.length), h: h * rows }, scale: '1' } };
+  const pieces = await Promise.all(frames.map(async (frame, i) => {
+    const x = (i % ATLAS_COLUMNS) * w;
+    const y = Math.floor(i / ATLAS_COLUMNS) * h;
+    atlas.frames[frame.name] = {
+      frame: { x, y, w, h }, rotated: false, trimmed: false,
+      spriteSourceSize: { x: 0, y: 0, w, h }, sourceSize: { w, h },
+    };
+    const input = await sharp(frame.file).extract({ left: crop.x, top: crop.y, width: crop.w, height: crop.h }).resize(w, h).toBuffer();
+    return { input, left: x, top: y };
+  }));
+  await sharp({ create: { width: atlas.meta.size.w, height: atlas.meta.size.h, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+    .composite(pieces).png({ compressionLevel: 9 }).toFile(join(outDir, `${name}.png`));
+  writeFileSync(join(outDir, `${name}.json`), JSON.stringify(atlas));
+}
+
+// Every step-th file of a pack folder, checking it has as many as expected.
+function packFrames(dir, expected, step, prefix) {
+  const files = readdirSync(dir).filter((f) => f.endsWith('.png')).sort();
+  if (files.length < expected) throw new Error(`${dir}: expected ${expected} frames, found ${files.length}`);
+  return files.slice(0, expected).filter((_, i) => i % step === 0).map((file, i) => ({ name: `${prefix}-${i}`, file: join(dir, file) }));
+}
+
 const enemiesOut = join(OUT, 'enemies');
 mkdirSync(enemiesOut, { recursive: true });
 for (const [kind, enemy] of Object.entries(ENEMIES)) {
   const { frameW, frameH } = enemyLayout(kind);
-  const frames = [];
-  for (const [anim, { folder, step }] of Object.entries(enemy.anims)) {
-    const dir = join(ENEMY_PACK, enemy.source, folder);
-    const files = readdirSync(dir).filter((f) => f.endsWith('.png')).sort();
-    if (files.length !== PACK_FRAMES[folder]) throw new Error(`${enemy.source} ${folder}: expected ${PACK_FRAMES[folder]} frames, found ${files.length}`);
-    files.filter((_, i) => i % step === 0).forEach((file, i) => frames.push({ name: `${anim}-${i}`, file: join(dir, file) }));
-  }
-  const rows = Math.ceil(frames.length / ATLAS_COLUMNS);
-  const atlas = { frames: {}, meta: { image: `${kind}.png`, size: { w: frameW * ATLAS_COLUMNS, h: frameH * rows }, scale: '1' } };
-  const pieces = await Promise.all(frames.map(async ({ name, file }, i) => {
-    const x = (i % ATLAS_COLUMNS) * frameW;
-    const y = Math.floor(i / ATLAS_COLUMNS) * frameH;
-    atlas.frames[name] = {
-      frame: { x, y, w: frameW, h: frameH }, rotated: false, trimmed: false,
-      spriteSourceSize: { x: 0, y: 0, w: frameW, h: frameH }, sourceSize: { w: frameW, h: frameH },
-    };
-    const { crop } = enemy;
-    const input = await sharp(file).extract({ left: crop.x, top: crop.y, width: crop.w, height: crop.h }).resize(frameW, frameH).toBuffer();
-    return { input, left: x, top: y };
-  }));
-  await sharp({ create: { width: atlas.meta.size.w, height: atlas.meta.size.h, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
-    .composite(pieces).png({ compressionLevel: 9 }).toFile(join(enemiesOut, `${kind}.png`));
-  writeFileSync(join(enemiesOut, `${kind}.json`), JSON.stringify(atlas));
+  const frames = Object.entries(enemy.anims).flatMap(([anim, { folder, step }]) =>
+    packFrames(join(GANGSTA, 'Enemies', enemy.source, folder), PACK_FRAMES[folder], step, anim));
+  await writeAtlas(enemiesOut, kind, frames, enemy.crop, frameW, frameH);
 }
-console.log(`Adventure art prepared in public/assets/adventure (${Object.keys(WOOD).length + 2} images, ${Object.keys(ENEMIES).length} enemies)`);
+
+const gunnersOut = join(OUT, 'gunners');
+mkdirSync(gunnersOut, { recursive: true });
+for (const [kind, gunner] of Object.entries(GUNNERS)) {
+  const { frameW, frameH } = gunnerLayout(kind);
+  const frames = Object.entries(gunner.anims).flatMap(([anim, { folder, frames: count, step }]) =>
+    packFrames(join(GANGSTA, 'Characters', gunner.source, folder), count, step, anim));
+  await writeAtlas(gunnersOut, kind, frames, gunner.crop, frameW, frameH);
+}
+// The muzzle flash, whole frames, scaled down.
+await writeAtlas(gunnersOut, 'flash', packFrames(join(GANGSTA, FLASH.folder), FLASH.frames, FLASH.step, 'flash'),
+  { x: 0, y: 0, ...FLASH.size }, Math.round(FLASH.size.w * FLASH.scale), Math.round(FLASH.size.h * FLASH.scale));
+
+console.log(`Adventure art prepared in public/assets/adventure (${Object.keys(WOOD).length + 2} images, ${Object.keys(ENEMIES).length} enemies, ${Object.keys(GUNNERS).length} gunners)`);

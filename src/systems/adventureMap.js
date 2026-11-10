@@ -49,6 +49,12 @@ export const ENEMY_LETTERS = {
   c: 'cone',
   v: 'spiky',
 };
+// Gunners, by kind (see data/adventure/gunners.js). Each stands where it is and shoots at the cat.
+export const GUNNER_LETTERS = {
+  1: 'blaster',
+  2: 'raygun',
+  3: 'rifle',
+};
 // Scenery, which the cat passes in front of.
 export const SCENERY = {
   R: 'roots',
@@ -95,6 +101,7 @@ export function readAdventureMap(map) {
       if (ch === 'H') ladders.push({ col: c, row: r });
       if (OBJECTS[ch]) objects.push({ type: OBJECTS[ch], col: c, row: r });
       if (ENEMY_LETTERS[ch]) objects.push({ type: 'enemy', kind: ENEMY_LETTERS[ch], col: c, row: r });
+      if (GUNNER_LETTERS[ch]) objects.push({ type: 'gunner', kind: GUNNER_LETTERS[ch], col: c, row: r });
       if (SCENERY[ch]) scenery.push({ texture: SCENERY[ch], col: c, row: r });
       row.push(tile);
     }
@@ -113,7 +120,7 @@ export function checkAdventureLevel(level) {
   if (count('start') !== 1) errors.push('the map needs exactly one start, @');
   if (count('portal') !== 1) errors.push('the map needs exactly one portal, E');
   if (count('chest') > 0 && count('key') < count('chest')) errors.push('each chest needs a key');
-  for (const { kind, col, row } of objects.filter((o) => o.type === 'enemy')) {
+  for (const { kind, col, row } of objects.filter((o) => o.type === 'enemy' || o.type === 'gunner')) {
     if ((tiles[row + 1]?.[col] ?? -1) < 0) errors.push(`the ${kind} in column ${col} isn't standing on anything`);
   }
   // A ladder's top must be on an island or the ground, so the cat has somewhere to step off.
