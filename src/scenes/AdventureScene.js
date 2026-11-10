@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME } from '../config/gameConfig.js';
+import { GAME, MOVEMENT } from '../config/gameConfig.js';
 import { ADVENTURE_LEVELS, adventureKey } from '../data/adventure/index.js';
 import { CHARACTERS, animKey } from '../data/characters.js';
 import { AdventureEnemy } from '../entities/AdventureEnemy.js';
@@ -183,8 +183,10 @@ export class AdventureScene extends Phaser.Scene {
     this.spikes = [];
     this.lanterns = [];
     this.chests = [];
-    // A group, so an enemy that's knocked out and gone leaves the colliders by itself.
-    this.enemies = this.add.group();
+    // A physics group: only those take part in collisions, and one that's knocked out and gone leaves
+    // the colliders by itself. The world has no gravity (the cat brings his own), so the group gives
+    // each enemy his, to stand on the ground and find its edges.
+    this.enemies = this.physics.add.group({ gravityY: MOVEMENT.GRAVITY, maxVelocityY: MAX_FALL_SPEED });
     this.totals = { coins: 0, gems: 0, enemies: 0 };
     const spikeCells = new Set(this.layout.objects.filter((o) => o.type === 'spike').map(({ col, row }) => `${col},${row}`));
     for (const object of this.layout.objects) {
