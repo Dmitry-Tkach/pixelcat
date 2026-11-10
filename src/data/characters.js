@@ -136,9 +136,9 @@ export const CHARACTERS = {
       climb: { file: 'climb', frames: 4, fps: 8, repeat: -1 },
       climbUp: { file: 'climbup', frames: 4, fps: 10, repeat: 0 },
       climbDown: { file: 'climbdown', frames: 4, fps: 8, repeat: -1 },
-      // The beam, the last frame, is held a little longer. beamFrame: the first frame of the beam, in
-      // the frame list counting from 1, where it hits.
-      special: { file: 'special', frames: 4, frameList: [1, 2, 3, 4, 4, 4], fps: 8, repeat: 0, beamFrame: 4 },
+      // He charges up, then holds the last frame while the beam the game draws fires (see
+      // data/adventure/beams.js). beamFrame: where in the frame list, counting from 1, it fires.
+      special: { file: 'special', frames: 4, frameList: [1, 2, 3, 4, 4, 4, 4, 4], fps: 8, repeat: 0, beamFrame: 4 },
       specialEnd: { file: 'specialend', frames: 3, fps: 8, repeat: 0 },
     },
     // The same size on screen as the cat's, so levels play the same. His frames are 236x171, with
@@ -170,7 +170,7 @@ export const CHARACTERS = {
       climb: { file: 'climb', frames: 4, fps: 8, repeat: -1 },
       climbUp: { file: 'climbup', frames: 3, fps: 8, repeat: 0 },
       climbDown: { file: 'climbdown', frames: 4, fps: 8, repeat: -1 },
-      special: { file: 'special', frames: 3, frameList: [1, 2, 3, 3, 3, 3], fps: 8, repeat: 0, beamFrame: 3 },
+      special: { file: 'special', frames: 3, frameList: [1, 2, 3, 3, 3, 3, 3, 3], fps: 8, repeat: 0, beamFrame: 3 },
       specialEnd: { file: 'specialend', frames: 3, fps: 8, repeat: 0 },
     },
     hitboxes: {
