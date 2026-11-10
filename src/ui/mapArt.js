@@ -276,8 +276,8 @@ export function mapArt(stops, { worlds = MAP_WORLDS, start = 'house', end = 'tro
 
   for (const { world, left, right } of regions) parts.push(sign((left + right) / 2, 36, world));
   const last = points[points.length - 1];
-  const endLift = end === 'castle' ? 70 : 0; // the castle is tall: it stands above the last stop
-  parts.push(ENDS[start](homeAt.x, homeAt.y), ENDS[end](last.x - 40, last.y + 10 - endLift));
+  const endLift = end === 'castle' ? 22 : 0; // the castle is tall: a little above the last stop, below the sign
+  parts.push(ENDS[start](homeAt.x, homeAt.y), ENDS[end](last.x - 40 + endLift, last.y + 10 - endLift));
   stops.forEach((stop, i) => parts.push(stopArt(positions[i], stop)));
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${MAP_SIZE.w} ${MAP_SIZE.h}"><defs>${defs.join('')}</defs>${parts.join('\n')}</svg>`;
