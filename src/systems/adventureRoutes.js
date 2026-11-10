@@ -18,6 +18,10 @@ export const JUMP_UP = 5;
 export const JUMP_REACH = { 5: 2, 4: 3, 3: 4, 2: 5, 1: 5, 0: 6, '-1': 7, '-2': 7, '-3': 7 };
 const reachAcross = (up) => JUMP_REACH[up] ?? (up < 0 ? 8 : 0);
 
+// What the camera shows of the way ahead, in cells, when he stands at an edge and it peeks over (see
+// LOOK in scenes/AdventureScene.js): this far ahead, this far below him, and this far above.
+export const VIEW = { ahead: 11, below: 9, up: 4 };
+
 const SOLID_OBJECTS = new Set(['box', 'stone', 'bonus']);
 const PICKUPS = new Set(['coin', 'gem', 'heart', 'rage', 'weapon', 'ammo-standard', 'ammo-explosive', 'ammo-laser', 'key', 'chest', 'checkpoint']);
 
@@ -101,5 +105,26 @@ export function adventureRoutes(level) {
   const portal = objects.find((o) => o.type === 'portal');
   const unreachable = objects.filter((o) => PICKUPS.has(o.type) && !nearReached(o.col, o.row))
     .concat(objects.filter((o) => o.type === 'bonus' && !nearReached(o.col, o.row + 1, 3)));
-  return { reached, portal: portal ? nearReached(portal.col, portal.row, 1) : false, unreachable };
+  // Blind edges: the edge of somewhere he can stand where, looking the way he'd step off, there's
+  // nowhere to land that the camera shows (see VIEW). A level shouldn't have any: a jump down
+  // should never be a leap of faith.
+  const blindEdges = [];
+  // Only the edges of ground and islands count: he gets onto a block's top on purpose.
+  for (const cell of reached) {
+    const [c, r] = cell.split(',').map(Number);
+    if (!standable(c, r) || blocks.has(key(c, r + 1))) continue;
+    for (const dir of [-1, 1]) {
+      const next = c + dir;
+      if (next < 0 || next >= cols || standable(next, r) || solid(next, r) || solid(next, r - 1)) continue;
+      let seen = false;
+      for (let across = 1; across <= VIEW.ahead && !seen; across++) {
+        for (let down = -VIEW.up; down <= VIEW.below && !seen; down++) {
+          const target = key(c + dir * across, r + down);
+          if (target !== cell && reached.has(target) && standable(c + dir * across, r + down)) seen = true;
+        }
+      }
+      if (!seen) blindEdges.push({ col: c, row: r, dir });
+    }
+  }
+  return { reached, portal: portal ? nearReached(portal.col, portal.row, 1) : false, unreachable, blindEdges };
 }

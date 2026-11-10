@@ -22,7 +22,14 @@ const CLIMB_UP = { below: 50 };
 const HURT = { invulnerableMs: 1300, knockX: 330, knockY: -640, blinkMs: 90 };
 const PENALTY = { speedMultiplier: 0.6, durationMs: 600 };
 const FALL_OUT_BELOW = 160; // below the bottom of the map, the cat has fallen out
-const CAMERA = { lerp: 0.12, deadzoneW: 180, deadzoneH: 130, aheadY: 40 };
+const CAMERA = { lerp: 0.12, deadzoneW: 120, deadzoneH: 70 };
+// Where the camera looks, from the cat, so the player sees where he's going and where he'd land:
+//   below: normally a little below him, as what's beneath is what's dangerous
+//   above: while he climbs a ladder up, above him instead
+//   peek: standing still by an island's edge, well below him, to show where he'd land
+//   ahead: this far in front of him, the way he runs or faces
+//   stillMs: how long he stands by an edge before the camera peeks over. easeMs: how quickly it turns.
+const LOOK = { below: 110, above: 120, peek: 250, ahead: 160, runningFrom: 120, stillMs: 350, easeMs: 300, edgeCells: 2 };
 const BACKGROUND_DRIFT = { far: 0.12, near: 0.3 };
 const SPIKE_HIT = { w: 52, h: 20 };
 const BONUS_COINS = 3;
@@ -121,7 +128,8 @@ export class AdventureScene extends Phaser.Scene {
     const cam = this.cameras.main;
     cam.setBounds(0, 0, this.worldW, this.worldH);
     cam.setRoundPixels(true);
-    cam.startFollow(this.cat, true, CAMERA.lerp, CAMERA.lerp, 0, CAMERA.aheadY);
+    cam.startFollow(this.cat, true, CAMERA.lerp, CAMERA.lerp, 0, -LOOK.below);
+    this.look = { x: 0, y: -LOOK.below, edgeMs: 0 };
     cam.setDeadzone(CAMERA.deadzoneW, CAMERA.deadzoneH);
     cam.setBackgroundColor(level.sky ?? '#8fd18f');
 
@@ -375,6 +383,37 @@ export class AdventureScene extends Phaser.Scene {
     this.backFar.setSize(GAME.WIDTH, GAME.HEIGHT);
     this.backNear.setSize(GAME.WIDTH, GAME.HEIGHT);
     this.hint.setX(GAME.WIDTH / 2);
+  }
+
+  // ----- The camera -----
+
+  // Whether there's no floor just ahead of where he stands, in the way he faces: an island's edge.
+  atEdge() {
+    const { body } = this.cat;
+    const dir = this.cat.flipX ? -1 : 1;
+    for (let cell = 1; cell <= LOOK.edgeCells; cell++) {
+      const x = body.center.x + dir * cell * TILE * 0.6;
+      if (this.groundLayer.getTileAtWorldXY(x, body.bottom + 8)) return false;
+    }
+    return true;
+  }
+
+  // Turns the camera, smoothly, to where the player needs to see: ahead as he runs, above as he
+  // climbs, and over the edge when he stands at one, so a jump down is never blind.
+  updateLook(ms) {
+    const { cat, look } = this;
+    const running = Math.abs(cat.moveVelocity) > LOOK.runningFrom;
+    const standing = cat.onGround && !running && !this.climbing && !this.pullingUp;
+    look.edgeMs = standing && this.atEdge() ? look.edgeMs + ms : 0;
+    let y = -LOOK.below;
+    if (this.climbing && this.upHeld) y = LOOK.above;
+    else if (look.edgeMs > LOOK.stillMs) y = -LOOK.peek;
+    // Ahead of him: the way he's running, or standing, the way he faces.
+    const x = -(running ? Math.sign(cat.moveVelocity) : (cat.flipX ? -1 : 1)) * LOOK.ahead;
+    const ease = 1 - Math.exp(-ms / LOOK.easeMs);
+    look.x += (x - look.x) * ease;
+    look.y += (y - look.y) * ease;
+    this.cameras.main.setFollowOffset(look.x, look.y);
   }
 
   // ----- Moving -----
@@ -767,6 +806,7 @@ export class AdventureScene extends Phaser.Scene {
     this.moves.update(ms, { canAct: !this.climbing && !this.pullingUp });
     for (const enemy of this.enemies.getChildren()) enemy.update(this.cat, ms);
     this.updateEnemyBullets();
+    this.updateLook(ms);
     if (this.cat.body.top > this.worldH + FALL_OUT_BELOW) this.fellOut();
   }
 }

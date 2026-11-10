@@ -6,8 +6,9 @@
 // stakes rising: (1) running, jumping and the first enemy; (2) ladders and islands, and the minigun;
 // (3) the first gunner; (4) a bottomless hollow, with an optional higher route; (5) a climb up a
 // tower of islands under fire; (6) the canopy's long jumps; (7) the guarded portal. A checkpoint
-// starts each of the hardest parts, and every coin, crystal and pickup can be reached: tests check
-// the routes (systems/adventureRoutes.js). To see the level as a picture, run
+// starts each of the hardest parts, every coin, crystal and pickup can be reached, and no edge is
+// a blind drop: from every edge, somewhere to land is in view, and coins mark the way down from the
+// high places. Tests check the routes (systems/adventureRoutes.js). To see the level as a picture, run
 // node tools/adventure-preview.mjs <out.png> 0 --routes
 //
 // Letters (see systems/adventureMap.js): # ground, = island, - bridge, H ladder, ^ spikes, o coin,
@@ -55,7 +56,9 @@ level.gap(70, 97)
   .island(84, 87, 24).put(86, 23, 'v')
   .island(91, 94, 27).put(93, 26, 'c').coins(95, 96, 26)
   .island(88, 89, 21) // the step up
-  .island(78, 84, 18).put(82, 17, '2').put(80, 17, 'm').put(78, 17, '*').coins(79, 79, 17);
+  .island(78, 84, 18).put(82, 17, '2').put(80, 17, 'm').put(78, 17, '*').coins(79, 79, 17)
+  // The way back down from up there, marked in coins: onto the step, then the last island.
+  .put(86, 18, 'o').put(87, 19, 'o').put(90, 22, 'o').put(90, 24, 'o');
 
 // ----- 5. The Great Root: a checkpoint and a heart, then a tower of islands zigzagging up, a goon
 // and a cone head on the way, under a rifle gunner. Its top ledge, off the route, has the key and a
@@ -65,7 +68,9 @@ level.put(100, 29, 'C').put(102, 29, '+').put(99, 29, 'b')
   .island(111, 116, 22).put(114, 21, 'g').arc(109, 110, 22, 2)
   .island(104, 109, 18).put(105, 17, 'e').coins(107, 109, 17)
   .island(110, 115, 14).put(113, 13, 'c')
-  .island(103, 108, 10).put(104, 9, '3').put(106, 9, 'k').put(108, 9, '*')
+  .island(103, 108, 10).put(104, 9, '3').put(106, 9, 'k').put(108, 9, '*').put(102, 9, 'X')
+  // The way down from the top ledge, and on up to the canopy, marked in coins.
+  .put(109, 11, 'o').put(110, 12, 'o').put(116, 12, 'o').put(116, 11, 'o')
   .put(118, 29, 'p').put(110, 29, 'g');
 
 // ----- 6. The Canopy: high islands with the level's longest jumps. A laser crate to start, a cone
@@ -73,12 +78,12 @@ level.put(100, 29, 'C').put(102, 29, '+').put(99, 29, 'b')
 // for whoever falls.
 level.island(117, 122, 10).put(118, 9, 'C').put(120, 9, 'z')
   .island(127, 131, 8).put(129, 7, 'c').put(129, 4, '*').arc(123, 126, 9, 2)
-  .island(133, 140, 11).ladder(134, 11, 29).put(137, 10, '1').put(139, 10, 'T').arc(132, 132, 9, 0)
+  .island(133, 140, 11).ladder(134, 11, 29).put(137, 10, '1').put(139, 10, 'T').arc(132, 132, 9, 0).put(133, 10, 'o')
   .island(143, 147, 7).put(145, 6, 'v').coins(141, 142, 8)
   .put(130, 29, 'g').put(142, 29, 'c').put(126, 29, '+').coins(136, 140, 28);
 
 // ----- 7. The Portal Tree: one last jump to the portal, past a goon.
-level.island(151, 157, 6).put(152, 5, 's').put(154, 5, 'g').put(156, 5, 'E').arc(148, 150, 6, 1)
+level.island(151, 157, 6).put(152, 5, 's').put(154, 5, 'g').put(156, 5, 'E').put(158, 5, 'X').arc(148, 150, 6, 1)
   .put(158, 29, 'b');
 
 export const WOOD_LEVEL = {

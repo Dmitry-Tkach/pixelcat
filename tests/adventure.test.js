@@ -25,6 +25,11 @@ describe('adventure levels', () => {
     expect(unreachable.map((o) => `${o.type} at column ${o.col}, row ${o.row}`)).toEqual([]);
   });
 
+  it.each(ADVENTURE_LEVELS.map((level) => [level.id, level]))('%s has no blind drops: from every edge, somewhere to land is in view', (_id, level) => {
+    const { blindEdges } = adventureRoutes(level);
+    expect(blindEdges.map(({ col, row, dir }) => `column ${col}, row ${row}, stepping ${dir > 0 ? 'right' : 'left'}`)).toEqual([]);
+  });
+
   it('only uses worlds that have art', () => {
     for (const level of ADVENTURE_LEVELS) expect(ADVENTURE_ART[level.world]).toBeDefined();
   });
@@ -44,6 +49,13 @@ describe('the route checker', () => {
     expect(adventureRoutes(level(near)).portal).toBe(true);
     const far = ['...............', '@.............E', '###.........###'];
     expect(adventureRoutes(level(far)).portal).toBe(false);
+  });
+
+  it('finds a blind drop: an edge with nowhere to land in view', () => {
+    // Up a ladder to a high island, whose right edge hangs 14 rows over the floor.
+    const high = ['.....................', '.....................', '.==H.................', ...Array(12).fill('...H.................'), '@..H.................', '#####.........######E'];
+    const blind = adventureRoutes(level(high)).blindEdges;
+    expect(blind).toContainEqual({ col: 3, row: 1, dir: 1 });
   });
 
   it('climbs ladders, and finds a coin out of reach', () => {
