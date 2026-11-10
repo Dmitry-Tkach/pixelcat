@@ -66,6 +66,18 @@ export const SCENERY = {
   '/': 'sign-up',
 };
 
+// Earth pillars (R) only hold up low islands: at most this many tiles above what's below them.
+export const PILLAR_MAX_TILES = 4;
+
+// The row a pillar under an island stands on: the first ground or island below its cell, if it's
+// within PILLAR_MAX_TILES. Otherwise null, and there's no pillar.
+export function pillarFoot(tiles, col, row) {
+  for (let below = row; below < tiles.length && below - row <= PILLAR_MAX_TILES; below++) {
+    if (tiles[below][col] >= 0) return below;
+  }
+  return null;
+}
+
 const isGround = (ch) => ch === '#';
 const isIsland = (ch) => ch === '=';
 
@@ -122,6 +134,9 @@ export function checkAdventureLevel(level) {
   if (count('chest') > 0 && count('key') < count('chest')) errors.push('each chest needs a key');
   for (const { kind, col, row } of objects.filter((o) => o.type === 'enemy' || o.type === 'gunner')) {
     if ((tiles[row + 1]?.[col] ?? -1) < 0) errors.push(`the ${kind} in column ${col} isn't standing on anything`);
+  }
+  for (const { col, row } of readAdventureMap(map).scenery.filter((s) => s.texture === 'roots')) {
+    if (pillarFoot(tiles, col, row) === null) errors.push(`the pillar in column ${col}, row ${row} is too high above the ground to stand on it`);
   }
   // A ladder's top must be on an island or the ground, so the cat has somewhere to step off.
   const byCol = new Map();

@@ -5,7 +5,7 @@ import { FLASH_PATH, GUNNERS, flashFrameCount, gunnerFrameCount, gunnerLayout, g
 import { ADVENTURE_ART, ADVENTURE_HERO, ADVENTURE_LEVELS, adventurePath } from '../src/data/adventure/index.js';
 import { CHARACTERS } from '../src/data/characters.js';
 import { MOVEMENT } from '../src/config/gameConfig.js';
-import { ENEMY_LETTERS, GUNNER_LETTERS, MAX_FALL_SPEED, PHYSICS_STEPS_PER_SECOND, TILE, TILES, TILE_BIAS, checkAdventureLevel, readAdventureMap } from '../src/systems/adventureMap.js';
+import { ENEMY_LETTERS, GUNNER_LETTERS, PILLAR_MAX_TILES, pillarFoot, MAX_FALL_SPEED, PHYSICS_STEPS_PER_SECOND, TILE, TILES, TILE_BIAS, checkAdventureLevel, readAdventureMap } from '../src/systems/adventureMap.js';
 
 describe('adventure levels', () => {
   it.each(ADVENTURE_LEVELS.map((level) => [level.id, level]))('%s has no mistakes', (_id, level) => {
@@ -51,6 +51,14 @@ describe('reading an adventure map', () => {
     const { tiles: withLadder, ladders } = readAdventureMap(['.=H=.', '..H..', '#####']);
     expect(withLadder[0][2]).toBe(TILES.ledge);
     expect(ladders).toEqual([{ col: 2, row: 0 }, { col: 2, row: 1 }]);
+  });
+
+  it('stands earth pillars only under low islands', () => {
+    const low = ['====', '.R..', '....', '####'];
+    expect(pillarFoot(readAdventureMap(low).tiles, 1, 1)).toBe(3);
+    const high = ['====', '.R..', ...Array(PILLAR_MAX_TILES).fill('....'), '####'];
+    expect(pillarFoot(readAdventureMap(high).tiles, 1, 1)).toBeNull();
+    expect(checkAdventureLevel({ map: ['@..E', ...high] })).toContain('the pillar in column 1, row 2 is too high above the ground to stand on it');
   });
 
   it('finds the mistakes it checks for', () => {

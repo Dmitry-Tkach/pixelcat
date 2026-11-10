@@ -8,7 +8,7 @@ import { AdventureGunner } from '../entities/AdventureGunner.js';
 import { Cat } from '../entities/Cat.js';
 import { InputController } from '../input/InputController.js';
 import { AdventureMoves } from '../systems/AdventureMoves.js';
-import { MAX_FALL_SPEED, ONE_WAY, TILE, TILE_BIAS, readAdventureMap } from '../systems/adventureMap.js';
+import { MAX_FALL_SPEED, ONE_WAY, TILE, TILE_BIAS, pillarFoot, readAdventureMap } from '../systems/adventureMap.js';
 import { Effects } from '../ui/Effects.js';
 
 const HERO = ADVENTURE_HERO.character;
@@ -184,19 +184,15 @@ export class AdventureScene extends Phaser.Scene {
     }
   }
 
-  // An earth pillar holding up the island above this cell, down to the ground or island below it:
+  // An earth pillar holding up a low island above this cell, down to the ground or island below it:
   // its cap, as many copies of its middle as fit (every other one upside down, so they join, and an
   // odd number, so the last meets the base), squeezed or stretched a little to fill the height, and
-  // its base. With nothing below, the roots just hang from the island.
+  // its base. Under a high island, or over a pit, there's none: a long one looks wrong.
   buildPillar(col, row) {
     const x = col * TILE + TILE / 2;
     const top = row * TILE - PILLAR_FIT.underIsland;
-    let below = row;
-    while (below < this.layout.rows && this.layout.tiles[below][col] < 0) below += 1;
-    if (below >= this.layout.rows) {
-      this.add.image(x, top, this.art('roots')).setOrigin(0.5, 0).setDepth(PILLAR_FIT.depth);
-      return;
-    }
+    const below = pillarFoot(this.layout.tiles, col, row);
+    if (below === null) return;
     const bottom = below * TILE + PILLAR_FIT.intoGround;
     const capH = PILLAR.middleFrom - PILLAR.capFrom;
     const segmentH = PILLAR.baseFrom - PILLAR.middleFrom;
