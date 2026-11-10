@@ -5,7 +5,8 @@
 // Each enemy's art faces left. Measurements are in the pack's frame pixels:
 //   crop  the part of the pack's frames the atlas keeps, enough for every animation
 //   body  what touches the cat, while it faces left
-//   feet  how far down its feet are
+//   feet  how far down its feet are: the bottom of its paws, not of the shadow drawn under them,
+//         which falls on the ground in front of the tile's edge
 // step: the atlas keeps every step-th frame of the pack's, so there are fewer to load.
 // hitFrame: the attack frame where the swipe lands.
 // stompable: whether the cat can knock it out by landing on it. The spiky one hurts, so it
@@ -17,8 +18,8 @@ export const ENEMIES = {
   goon: {
     source: 'Enemy Reg 5',
     crop: { x: 64, y: 58, w: 190, h: 150 },
-    body: { x: 95, y: 105, w: 95, h: 98 },
-    feet: 203,
+    body: { x: 95, y: 105, w: 95, h: 90 },
+    feet: 195,
     speed: 70,
     stompable: true,
     hp: 1,
@@ -32,8 +33,8 @@ export const ENEMIES = {
   cone: {
     source: 'Enemy Reg 7',
     crop: { x: 53, y: 52, w: 213, h: 155 },
-    body: { x: 85, y: 100, w: 95, h: 102 },
-    feet: 202,
+    body: { x: 85, y: 100, w: 95, h: 94 },
+    feet: 194,
     speed: 110,
     stompable: true,
     hp: 1,
@@ -47,8 +48,8 @@ export const ENEMIES = {
   spiky: {
     source: 'Enemy Reg 6',
     crop: { x: 53, y: 46, w: 235, h: 167 },
-    body: { x: 80, y: 100, w: 115, h: 108 },
-    feet: 208,
+    body: { x: 80, y: 100, w: 115, h: 102 },
+    feet: 202,
     speed: 55,
     stompable: false,
     hp: 2,
