@@ -1,21 +1,10 @@
-import { CHARACTERS, idleFrameKey } from '../data/characters.js';
+import { CHARACTERS } from '../data/characters.js';
 import { PLAYER } from '../data/player.js';
+import { MAP_SIZE, mapArt, stopPositions } from './mapArt.js';
 
 const WALK_MS = 650; // how long the cat takes to walk to the stop the player picks
 const FACE_PX = 40; // the cat's face, and the bosses', on the map
 const BOSS_FACE_PX = 30;
-// Each world's band of the map: its scenery, in front of a sky in its own colours.
-const WORLDS = {
-  City: { image: 'assets/city/near.png', sky: 'linear-gradient(#4FA3DE, #BFE2F5)' },
-  Village: { image: 'assets/worlds/park-near.png', sky: 'linear-gradient(#3C9CE0, #CFEBD8)' },
-  Farm: { image: 'assets/worlds/farm-near.png', sky: 'linear-gradient(#3E9EDF, #FFE9B8)' },
-  Sunset: { image: 'assets/worlds/vet-near.png', sky: 'linear-gradient(#3B2A78, #F2765F 70%, #FFC163)' },
-};
-
-// Where a stop sits on the map, as percentages: along the road, and rising and falling with it.
-function stopPosition(index, count) {
-  return { x: 9 + (index * 78) / Math.max(1, count - 1), y: 57 + Math.sin(index * 1.25) * 11 };
-}
 
 // A round portrait cut from a character's idle frame, as a CSS background.
 function faceStyle(character, size) {
@@ -38,72 +27,27 @@ function face(character, size, className) {
   return el;
 }
 
-// The level menu as a road from home, past a park at the end of every level, to the last park. `stops` are the levels, in order:
-// { number, title, detail, world, locked, current, boss, onPick }, where `boss` is a character id.
-// `instant` skips the cat's walk, for the fast in-game tests.
-export function journeyMap({ stops, instant = false }) {
+// The level menu: a meadow seen from above, with a winding path from the cat's home past a round
+// button for every level to a trophy (the picture is mapArt.js). `stops` are the levels, in order:
+// { number, title, world, locked, current, stars, mouse, boss, onPick }, where `boss` is a character
+// id. The picture's buttons are drawn; real, see-through buttons sit on them, for clicks, keys and
+// screen readers. `instant` skips the cat's walk, for the fast in-game tests. `character` is who
+// walks the map, and `look` is passed on to mapArt: the worlds' looks, and what's at each end.
+export function journeyMap({ stops, instant = false, character = PLAYER, look = {} }) {
   const map = document.createElement('div');
   map.className = 'map';
-  const count = stops.length;
-  const positions = stops.map((_, i) => stopPosition(i, count));
-
-  // One band of scenery for each world, between the stops either side of it.
-  const edges = positions.map((p, i) => (i === 0 ? 0 : (positions[i - 1].x + p.x) / 2));
-  stops.forEach((stop, i) => {
-    if (i > 0 && stops[i - 1].world === stop.world) return;
-    const last = stops.findLastIndex((other) => other.world === stop.world);
-    const band = document.createElement('div');
-    band.className = 'map-world';
-    const right = last === count - 1 ? 100 : (positions[last].x + positions[last + 1].x) / 2;
-    band.style.left = `${edges[i]}%`;
-    band.style.width = `${right - edges[i]}%`;
-    const { image, sky } = WORLDS[stop.world] ?? WORLDS.City;
-    band.style.backgroundImage = `url(${image}), ${sky}`;
-    const name = document.createElement('span');
-    name.className = 'map-world-name';
-    name.textContent = stop.world;
-    band.append(name);
-    map.append(band);
-  });
-
-  // The road, through every stop, from home to the last park.
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', '0 0 100 100');
-  svg.setAttribute('preserveAspectRatio', 'none');
-  svg.classList.add('map-road');
-  const points = [{ x: 0, y: positions[0].y + 6 }, ...positions, { x: 100, y: positions[count - 1].y - 4 }];
-  let d = `M${points[0].x} ${points[0].y}`;
-  for (let i = 1; i < points.length; i++) {
-    const a = points[i - 1];
-    const b = points[i];
-    const mid = (a.x + b.x) / 2;
-    d += ` C${mid} ${a.y} ${mid} ${b.y} ${b.x} ${b.y}`;
-  }
-  for (const [className, width] of [['map-road-edge', 9], ['map-road-top', 6], ['map-road-dash', 1]]) {
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    path.setAttribute('d', d);
-    path.setAttribute('class', className);
-    path.setAttribute('stroke-width', width);
-    path.setAttribute('vector-effect', 'non-scaling-stroke');
-    path.setAttribute('fill', 'none');
-    svg.append(path);
-  }
-  map.append(svg);
-
-  const home = document.createElement('span');
-  home.className = 'map-end map-home';
-  home.textContent = '🏠';
-  const park = document.createElement('span');
-  park.className = 'map-end map-park';
-  park.textContent = '🌳';
-  map.append(home, park);
+  const art = document.createElement('div');
+  art.className = 'map-art';
+  art.innerHTML = mapArt(stops, look);
+  map.append(art);
+  const at = stopPositions(stops.length).map(({ x, y }) => ({ x: (x / MAP_SIZE.w) * 100, y: (y / MAP_SIZE.h) * 100 }));
 
   // The cat waits on the level the player is up to.
   const startAt = Math.max(0, stops.findIndex((stop) => stop.current));
   const cat = face(PLAYER, FACE_PX, 'map-cat');
   const placeCat = (i) => {
-    cat.style.left = `${positions[i].x}%`;
-    cat.style.top = `${positions[i].y}%`;
+    cat.style.left = `${at[i].x}%`;
+    cat.style.top = `${at[i].y}%`;
   };
   placeCat(startAt);
 
@@ -115,17 +59,21 @@ export function journeyMap({ stops, instant = false }) {
     button.dataset.world = stop.world;
     button.disabled = stop.locked;
     if (stop.current) button.classList.add('current');
-    button.style.left = `${positions[i].x}%`;
-    button.style.top = `${positions[i].y}%`;
-    button.setAttribute('aria-label', `${stop.number}. ${stop.title}${stop.locked ? ', locked' : ''}`);
-    const number = document.createElement('span');
-    number.className = 'map-stop-number';
-    number.textContent = stop.locked ? '🔒' : String(stop.number);
+    button.style.left = `${at[i].x}%`;
+    button.style.top = `${at[i].y}%`;
+    const stars = stop.locked ? 'locked' : `${stop.stars ?? 0} of 3 stars`;
+    button.setAttribute('aria-label', `${stop.number}. ${stop.title}, ${stars}${stop.mouse ? ', toy mouse found' : ''}`);
+    // Its name, on a tag shown when it's pointed at or chosen with the keys.
     const label = document.createElement('strong');
+    label.className = 'map-stop-name';
     label.textContent = stop.title;
-    const detail = document.createElement('small');
-    detail.textContent = stop.detail;
-    button.append(number, label, detail);
+    button.append(label);
+    if (stop.mouse) {
+      const mouse = document.createElement('span');
+      mouse.className = 'map-mouse';
+      mouse.textContent = '🐭';
+      button.append(mouse);
+    }
     if (stop.boss) button.append(face(stop.boss, BOSS_FACE_PX, 'map-boss'));
     button.addEventListener('click', () => {
       if (walking) return;

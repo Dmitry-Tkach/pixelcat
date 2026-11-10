@@ -908,8 +908,9 @@ export class GameScene extends Phaser.Scene {
       return {
         number: index + 1,
         title: level.title,
-        detail: locked ? 'Locked' : `${starText(result?.stars ?? 0)}${result?.mouse ? ' 🐭' : ''}`,
         world: worldName(level),
+        stars: result?.stars ?? 0,
+        mouse: Boolean(result?.mouse),
         locked,
         current: index === this.progress.nextIndex,
         boss: level.boss ? BOSSES[level.boss.type].character : null,
