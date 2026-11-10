@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { EXPLOSION, EXPLOSION_KEY, EXPLOSION_PATH, explosionFrameCount } from '../data/adventure/ammo.js';
 import { ENEMIES, enemyAnimKey, enemyFrameCount, enemyKey, enemyPath } from '../data/adventure/enemies.js';
 import { FLASH, FLASH_KEY, FLASH_PATH, GUNNERS, flashFrameCount, gunnerAnimKey, gunnerFrameCount, gunnerKey, gunnerPath } from '../data/adventure/gunners.js';
 import { ADVENTURE_ART, adventureKey, adventurePath } from '../data/adventure/index.js';
@@ -32,6 +33,7 @@ export class BootScene extends Phaser.Scene {
       this.load.atlas(gunnerKey(kind), `${gunnerPath(kind)}.png`, `${gunnerPath(kind)}.json`);
     }
     this.load.atlas(FLASH_KEY, `${FLASH_PATH}.png`, `${FLASH_PATH}.json`);
+    this.load.atlas(EXPLOSION_KEY, `${EXPLOSION_PATH}.png`, `${EXPLOSION_PATH}.json`);
     for (const [name, character] of Object.entries(CHARACTERS)) {
       for (const { file, frames } of Object.values(character.anims)) {
         for (let i = 1; i <= frames; i++) {
@@ -100,6 +102,12 @@ export class BootScene extends Phaser.Scene {
       key: FLASH_KEY,
       frames: Array.from({ length: flashFrameCount() }, (_, i) => ({ key: FLASH_KEY, frame: `flash-${i}` })),
       frameRate: FLASH.fps,
+      repeat: 0,
+    });
+    this.anims.create({
+      key: EXPLOSION_KEY,
+      frames: Array.from({ length: explosionFrameCount() }, (_, i) => ({ key: EXPLOSION_KEY, frame: `explosion-${i}` })),
+      frameRate: EXPLOSION.fps,
       repeat: 0,
     });
     // For trying the adventure while developing: open the page with ?adventure.

@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { ENEMIES, PACK_FRAMES, enemyLayout } from '../src/data/adventure/enemies.js';
 import { FLASH, GUNNERS, gunnerLayout } from '../src/data/adventure/gunners.js';
 import { PILLAR } from '../src/data/adventure/index.js';
+import { EXPLOSION } from '../src/data/adventure/ammo.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const WORLDS = join(ROOT, 'images', 'assets', 'worlds');
@@ -126,6 +127,21 @@ for (const [name, [file, scale]] of Object.entries(WOOD)) {
   await sharp(data, { raw: info }).trim().png({ compressionLevel: 9 }).toFile(join(out, 'minigun.png'));
 }
 
+// The minigun's other ammunition (see data/adventure/ammo.js): an orange explosive round, recoloured
+// from the pack's red one, which the gunners fire; a long green laser bolt; and a crate of each, a
+// small wooden box with its round on it, and one for standard rounds.
+const BULLETS = join(WORLDS, 'characters', 'gangsta-cats', 'Png', 'Bullets');
+await sharp(join(BULLETS, 'Artboard 1 copy 2.png')).modulate({ hue: 32, brightness: 1.15 }).resize({ width: 54 }).png({ compressionLevel: 9 }).toFile(join(out, 'bullet-explosive.png'));
+await sharp(join(BULLETS, 'Artboard 1 copy.png')).resize(72, 34, { fit: 'fill' }).png({ compressionLevel: 9 }).toFile(join(out, 'bullet-laser.png'));
+for (const [kind, bullet] of [['standard', 'bullet'], ['explosive', 'bullet-explosive'], ['laser', 'bullet-laser']]) {
+  const box = await sharp(join(out, 'box.png')).resize(48, 48).toBuffer();
+  const round = await sharp(join(out, `${bullet}.png`)).resize({ width: 44 }).toBuffer();
+  const { height } = await sharp(round).metadata();
+  await sharp({ create: { width: 52, height: 52, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+    .composite([{ input: box, left: 2, top: 4 }, { input: round, left: 4, top: Math.round(28 - height / 2) }])
+    .png({ compressionLevel: 9 }).toFile(join(out, `ammo-${kind}.png`));
+}
+
 // The earth pillar that holds an island up, in three parts, so the scene can build one of any height
 // from the island down to what's below it: the cap under the island, the middle, which repeats
 // (every other copy upside down, so they always join), and the base standing on the ground.
@@ -200,6 +216,14 @@ for (const [kind, gunner] of Object.entries(GUNNERS)) {
   const frames = Object.entries(gunner.anims).flatMap(([anim, { folder, frames: count, step }]) =>
     packFrames(join(GANGSTA, 'Characters', gunner.source, folder), count, step, anim));
   await writeAtlas(gunnersOut, kind, frames, gunner.crop, frameW, frameH);
+}
+// The explosion of an explosive round: only the middle of the pack's big frames, where it is.
+const fxOut = join(OUT, 'fx');
+mkdirSync(fxOut, { recursive: true });
+{
+  const { crop, size } = EXPLOSION;
+  await writeAtlas(fxOut, 'explosion', packFrames(join(GANGSTA, EXPLOSION.folder), EXPLOSION.frames, EXPLOSION.step, 'explosion'),
+    crop, size, Math.round(crop.h * (size / crop.w)));
 }
 // The muzzle flash, whole frames, scaled down.
 await writeAtlas(gunnersOut, 'flash', packFrames(join(GANGSTA, FLASH.folder), FLASH.frames, FLASH.step, 'flash'),

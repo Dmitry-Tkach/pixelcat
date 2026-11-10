@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME, MOVEMENT } from '../config/gameConfig.js';
 import { ADVENTURE_HERO, ADVENTURE_LEVELS, PILLAR, adventureKey } from '../data/adventure/index.js';
 import { CHARACTERS, animKey } from '../data/characters.js';
+import { AMMO } from '../data/adventure/ammo.js';
 import { FLASH, FLASH_KEY } from '../data/adventure/gunners.js';
 import { AdventureEnemy } from '../entities/AdventureEnemy.js';
 import { AdventureGunner } from '../entities/AdventureGunner.js';
@@ -33,6 +34,7 @@ const STOMP = { margin: 14, bounce: -760 };
 const ENEMY_BULLET = { range: 14 * TILE, size: 14, depth: 5 };
 const END_SCREEN_MS = 1100;
 const BEAM_PIPS = { x: 98, y: 128, gap: 26, r: 8 };
+const AMMO_HUD = { x: 44, y: 166, textGap: 34 };
 // An earth pillar starts this far up inside the island it holds, and stands this far into the ground.
 const PILLAR_FIT = { underIsland: 6, intoGround: 6, depth: 1 };
 const HUD_STYLE = { fontFamily: 'Fredoka, sans-serif', fontSize: '26px', fontStyle: '600', color: '#ffffff', stroke: '#1e2a4a', strokeThickness: 6 };
@@ -97,6 +99,10 @@ export class AdventureScene extends Phaser.Scene {
       enemies: this.enemies,
       onKnockOut: (enemy) => this.knockOut(enemy),
       onNoWeapon: () => this.showHint('No weapon yet: find the minigun!'),
+      onAmmo: (message) => {
+        if (message) this.showHint(message, 1400);
+        this.updateHud();
+      },
     });
 
     this.hearts = level.hearts;
@@ -242,7 +248,10 @@ export class AdventureScene extends Phaser.Scene {
         case 'heart':
         case 'key':
         case 'rage':
-        case 'weapon': {
+        case 'weapon':
+        case 'ammo-standard':
+        case 'ammo-explosive':
+        case 'ammo-laser': {
           const texture = { rage: 'mushroom', weapon: 'minigun' }[object.type] ?? object.type;
           const item = this.physics.add.staticImage(x, middle, this.art(texture)).setDepth(4);
           item.kind = object.type;
@@ -323,6 +332,9 @@ export class AdventureScene extends Phaser.Scene {
     fixed(this.add.text(24, 128, 'BEAM', { ...HUD_STYLE, fontSize: '20px' }).setOrigin(0, 0.5));
     this.beamPips = fixed(this.add.graphics());
     this.drawBeamPips();
+    // The minigun's rounds, once he has it: the kind he's firing and how many are left.
+    this.ammoIcon = fixed(this.add.image(AMMO_HUD.x, AMMO_HUD.y, this.art('bullet'))).setVisible(false);
+    this.ammoText = fixed(this.add.text(AMMO_HUD.x + AMMO_HUD.textGap, AMMO_HUD.y, '', { ...HUD_STYLE, fontSize: '22px' }).setOrigin(0, 0.5)).setVisible(false);
     this.hint = fixed(this.add.text(GAME.WIDTH / 2, 150, '', { ...HUD_STYLE, fontSize: '30px', align: 'center' }).setOrigin(0.5));
     this.showHint(`${this.level.title}\nRun, jump and climb up to the portal\nShift dash · C beam · find the minigun to shoot`, 4200);
   }
@@ -339,6 +351,12 @@ export class AdventureScene extends Phaser.Scene {
     this.gemText.setText(`${this.gems}/${this.totals.gems}`);
     this.keyIcon.setAlpha(this.hasKey ? 1 : 0.3);
     this.drawBeamPips();
+    const { armed, ammo, rounds } = this.moves;
+    const ammoDef = AMMO[ammo];
+    const others = Object.keys(AMMO).filter((kind) => kind !== ammo && rounds[kind] > 0).length;
+    this.ammoIcon.setVisible(armed).setTexture(this.art(ammoDef.bullet));
+    this.ammoText.setVisible(armed).setColor(rounds[ammo] > 0 ? ammoDef.colour : '#ff6b6b')
+      .setText(`${rounds[ammo]}${others ? '  Q: swap' : ''}`);
   }
 
   drawBeamPips() {
@@ -504,8 +522,12 @@ export class AdventureScene extends Phaser.Scene {
     } else if (item.kind === 'heart') {
       this.hearts = Math.min(this.level.hearts, this.hearts + 1);
       this.audio.playSfx('pawPickup');
+    } else if (item.kind.startsWith('ammo-')) {
+      this.moves.addAmmo(item.kind.slice('ammo-'.length));
+      this.audio.playSfx('pawPickup');
     } else if (item.kind === 'weapon') {
       this.cat.changeCharacter(ADVENTURE_HERO.armed);
+      this.moves.arm();
       this.audio.playSfx('cheer');
       this.effects.sparkle(x, y);
       this.showHint('The minigun! X to shoot, hold for a burst');

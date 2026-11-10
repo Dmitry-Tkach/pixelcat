@@ -13,6 +13,7 @@ export const ADVENTURE_ART = {
     'coin-1', 'coin-2', 'coin-3', 'coin-4', 'coin-5', 'coin-6', 'gem', 'key', 'chest-locked', 'chest-open',
     'heart', 'portal', 'bush-1', 'plant-1', 'statue', 'sign-right', 'sign-up', 'lantern', 'mushroom', 'bullet', 'enemy-bullet',
     'pillar-cap', 'pillar-middle', 'pillar-base', 'minigun',
+    'bullet-explosive', 'bullet-laser', 'ammo-standard', 'ammo-explosive', 'ammo-laser',
   ],
 };
 

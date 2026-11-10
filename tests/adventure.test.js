@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { ENEMIES, enemyFrameCount, enemyLayout, enemyPath } from '../src/data/adventure/enemies.js';
+import { AMMO, EXPLOSION_PATH, LOADED, explosionFrameCount } from '../src/data/adventure/ammo.js';
 import { FLASH_PATH, GUNNERS, flashFrameCount, gunnerFrameCount, gunnerLayout, gunnerPath } from '../src/data/adventure/gunners.js';
 import { ADVENTURE_ART, ADVENTURE_HERO, ADVENTURE_LEVELS, adventurePath } from '../src/data/adventure/index.js';
 import { CHARACTERS } from '../src/data/characters.js';
@@ -147,6 +148,29 @@ describe('adventure gunners', () => {
 
   it('shoots slowly enough to dodge', () => {
     for (const { bulletSpeed } of Object.values(GUNNERS)) expect(bulletSpeed).toBeLessThan(900);
+  });
+});
+
+describe('the minigun\'s ammunition', () => {
+  it.each(Object.keys(AMMO))('has art for %s rounds and their crate', (kind) => {
+    const { bullet, crate, rounds } = AMMO[kind];
+    expect(ADVENTURE_ART.wood).toContain(bullet);
+    expect(ADVENTURE_ART.wood).toContain(crate);
+    expect(rounds).toBeGreaterThan(0); // all of it is limited
+  });
+
+  it('comes loaded with rounds it has art for', () => {
+    for (const kind of Object.keys(LOADED)) expect(AMMO[kind]).toBeDefined();
+  });
+
+  it('has every explosion frame', () => {
+    const { frames } = JSON.parse(readFileSync(`public/${EXPLOSION_PATH}.json`, 'utf8'));
+    for (let i = 0; i < explosionFrameCount(); i++) expect(frames[`explosion-${i}`]).toBeDefined();
+  });
+
+  it('places a crate of each kind with its letter', () => {
+    expect(readAdventureMap(['aez', '###']).objects.map((o) => o.type)).toEqual(['ammo-standard', 'ammo-explosive', 'ammo-laser']);
+    for (const kind of Object.keys(AMMO)) expect(AMMO[kind].crate).toBe(`ammo-${kind}`);
   });
 });
 
