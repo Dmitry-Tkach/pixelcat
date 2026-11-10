@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { ENEMIES, enemyFrameCount, enemyLayout, enemyPath } from '../src/data/adventure/enemies.js';
-import { ADVENTURE_ART, ADVENTURE_LEVELS, adventurePath } from '../src/data/adventure/index.js';
+import { ADVENTURE_ART, ADVENTURE_HERO, ADVENTURE_LEVELS, adventurePath } from '../src/data/adventure/index.js';
 import { CHARACTERS } from '../src/data/characters.js';
 import { MOVEMENT } from '../src/config/gameConfig.js';
 import { ENEMY_LETTERS, MAX_FALL_SPEED, PHYSICS_STEPS_PER_SECOND, TILE, TILES, TILE_BIAS, checkAdventureLevel, readAdventureMap } from '../src/systems/adventureMap.js';
@@ -97,7 +97,7 @@ describe('adventure enemies', () => {
 
   it.each(Object.keys(ENEMIES))('the %s is shorter than the battle cat, so it can be jumped on', (kind) => {
     const { hitboxes, scale } = CHARACTERS.battleCat;
-    expect(enemyLayout(kind).body.h).toBeLessThan(hitboxes.run.h * scale);
+    expect(enemyLayout(kind).body.h).toBeLessThan(hitboxes.run.h * scale * ADVENTURE_HERO.scale);
   });
 
   it('has a map letter for each kind, and finds enemies standing on nothing', () => {
@@ -124,9 +124,10 @@ describe('the battle cat in the adventure', () => {
     expect(ENEMIES.spiky.hp).toBeGreaterThan(ENEMIES.goon.hp);
   });
 
-  it('is about two tiles tall', () => {
+  it('is between one and two tiles tall, so islands two tiles apart leave him room', () => {
     const { hitboxes, scale } = CHARACTERS.battleCat;
-    expect(hitboxes.run.h * scale / TILE).toBeGreaterThan(1.5);
-    expect(hitboxes.run.h * scale / TILE).toBeLessThan(2.2);
+    const tiles = (hitboxes.run.h * scale * ADVENTURE_HERO.scale) / TILE;
+    expect(tiles).toBeGreaterThan(1.2);
+    expect(tiles).toBeLessThan(2);
   });
 });

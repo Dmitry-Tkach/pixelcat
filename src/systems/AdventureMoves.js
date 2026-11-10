@@ -123,7 +123,7 @@ export class AdventureMoves {
     this.fireCooldownMs = cooldownMs;
     const dir = this.facing;
     const { body } = this.cat;
-    const bullet = this.bullets.create(this.cat.x + dir * GUN.muzzleX * this.cat.scaleX, body.bottom - GUN.muzzleY, this.art('bullet'));
+    const bullet = this.bullets.create(this.cat.x + dir * GUN.muzzleX * this.cat.scaleX, body.bottom - GUN.muzzleY * this.cat.scaleY, this.art('bullet'));
     bullet.setFlipX(dir < 0).setDepth(BULLET.depth);
     bullet.body.setSize(BULLET.w, BULLET.h);
     bullet.setVelocityX(dir * BULLET.speed);

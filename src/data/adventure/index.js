@@ -15,5 +15,9 @@ export const ADVENTURE_ART = {
   ],
 };
 
+// Who the hero is, and how big he's shown in the adventure, against the size he's drawn: smaller
+// than in the main game, so the tiles and enemies feel bigger around him.
+export const ADVENTURE_HERO = { character: 'battleCat', scale: 0.8 };
+
 export const adventureKey = (world, name) => `adventure-${world}-${name}`;
 export const adventurePath = (world, name) => `assets/adventure/${world}/${name}.png`;

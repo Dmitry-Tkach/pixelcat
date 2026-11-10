@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { GAME, MOVEMENT } from '../config/gameConfig.js';
-import { ADVENTURE_LEVELS, adventureKey } from '../data/adventure/index.js';
+import { ADVENTURE_HERO, ADVENTURE_LEVELS, adventureKey } from '../data/adventure/index.js';
 import { CHARACTERS, animKey } from '../data/characters.js';
 import { AdventureEnemy } from '../entities/AdventureEnemy.js';
 import { Cat } from '../entities/Cat.js';
@@ -9,12 +9,13 @@ import { AdventureMoves } from '../systems/AdventureMoves.js';
 import { MAX_FALL_SPEED, ONE_WAY, TILE, TILE_BIAS, readAdventureMap } from '../systems/adventureMap.js';
 import { Effects } from '../ui/Effects.js';
 
-const HERO = 'battleCat';
+const HERO = ADVENTURE_HERO.character;
 // reach: how far from a ladder's middle it can be grabbed. standStill: slower than this, the cat counts
 // as standing at a ladder, so Down climbs down it rather than sliding past.
 const CLIMB = { speed: 250, sideSpeed: 110, snap: 0.25, reach: 26, standStill: 60 };
 // Pulling himself up onto the island at a ladder's top: his climb-up frames are cut at the island's
-// edge, this far above his feet, so it starts with his feet this far below the island's top.
+// edge, this far above his feet in the frame, so it starts with his feet this far below the
+// island's top, scaled to his size.
 const CLIMB_UP = { below: 50 };
 const HURT = { invulnerableMs: 1300, knockX: 330, knockY: -640, blinkMs: 90 };
 const PENALTY = { speedMultiplier: 0.6, durationMs: 600 };
@@ -65,6 +66,7 @@ export class AdventureScene extends Phaser.Scene {
     const start = this.layout.objects.find((o) => o.type === 'start');
     this.respawnAt = this.cellFeet(start);
     this.cat = new Cat(this, this.respawnAt.x, level.cat.speed, { character: HERO, y: this.respawnAt.y - 80 });
+    this.cat.setScale(this.cat.scaleX * ADVENTURE_HERO.scale);
     this.cat.moveMode = 'free';
     this.cat.startRunning();
     this.cat.body.setMaxVelocityY(MAX_FALL_SPEED);
@@ -413,7 +415,7 @@ export class AdventureScene extends Phaser.Scene {
     // Near the top: he pulls himself up onto the island. Off the bottom: he stands on the ground.
     const top = this.ladderTop(ladder.col, ladder.row);
     const ontoIsland = ONE_WAY.has(this.groundLayer.getTileAt(ladder.col, top / TILE)?.index);
-    if (direction < 0 && ontoIsland && this.cat.body.bottom <= top + CLIMB_UP.below) this.startPullUp(top);
+    if (direction < 0 && ontoIsland && this.cat.body.bottom <= top + CLIMB_UP.below * this.cat.scaleY) this.startPullUp(top);
     else if (direction < 0 && this.cat.body.bottom < top - 2) this.stopClimbing();
     else if (direction > 0 && this.cat.body.blocked.down) this.stopClimbing();
   }
@@ -423,7 +425,7 @@ export class AdventureScene extends Phaser.Scene {
     this.climbing = false;
     this.pullingUp = true;
     this.cat.setVelocity(0, 0);
-    this.cat.y += top + CLIMB_UP.below - this.cat.body.bottom;
+    this.cat.y += top + CLIMB_UP.below * this.cat.scaleY - this.cat.body.bottom;
     this.cat.anims.resume();
     this.cat.play(animKey(HERO, 'climbUp'));
     const { frames, fps } = CHARACTERS[HERO].anims.climbUp;
