@@ -43,7 +43,7 @@ export const GUNNERS = {
     body: { x: 45, y: 45, w: 85, h: 88 },
     feet: 133,
     muzzle: { x: 181, y: 75 },
-    sees: { across: 8, up: 6 },
+    sees: { across: 8, up: 10 }, // it fires down from high ledges
     everyMs: 1150,
     bulletSpeed: 470,
     hp: 2,
@@ -57,7 +57,7 @@ export const GUNNERS = {
     body: { x: 45, y: 45, w: 70, h: 93 },
     feet: 138,
     muzzle: { x: 138, y: 110 },
-    sees: { across: 11, up: 6 },
+    sees: { across: 11, up: 12 }, // a sniper, high up
     everyMs: 2200,
     bulletSpeed: 700,
     hp: 2,

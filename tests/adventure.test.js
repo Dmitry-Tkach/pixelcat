@@ -6,6 +6,8 @@ import { FLASH_PATH, GUNNERS, flashFrameCount, gunnerFrameCount, gunnerLayout, g
 import { ADVENTURE_ART, ADVENTURE_HERO, ADVENTURE_LEVELS, adventurePath } from '../src/data/adventure/index.js';
 import { CHARACTERS } from '../src/data/characters.js';
 import { MOVEMENT } from '../src/config/gameConfig.js';
+import { mapBuilder } from '../src/data/adventure/mapBuilder.js';
+import { adventureRoutes } from '../src/systems/adventureRoutes.js';
 import { ENEMY_LETTERS, GUNNER_LETTERS, PILLAR_MAX_TILES, pillarFoot, MAX_FALL_SPEED, PHYSICS_STEPS_PER_SECOND, TILE, TILES, TILE_BIAS, checkAdventureLevel, readAdventureMap } from '../src/systems/adventureMap.js';
 
 describe('adventure levels', () => {
@@ -17,6 +19,12 @@ describe('adventure levels', () => {
     for (const name of names) expect(existsSync(`public/${adventurePath(world, name)}`), name).toBe(true);
   });
 
+  it.each(ADVENTURE_LEVELS.map((level) => [level.id, level]))('%s can be finished, with every coin, crystal and pickup in reach', (_id, level) => {
+    const { portal, unreachable } = adventureRoutes(level);
+    expect(portal).toBe(true);
+    expect(unreachable.map((o) => `${o.type} at column ${o.col}, row ${o.row}`)).toEqual([]);
+  });
+
   it('only uses worlds that have art', () => {
     for (const level of ADVENTURE_LEVELS) expect(ADVENTURE_ART[level.world]).toBeDefined();
   });
@@ -26,6 +34,35 @@ describe('adventure levels', () => {
     const jump = MOVEMENT.JUMP_VELOCITY ** 2 / (2 * MOVEMENT.GRAVITY);
     const airJump = MOVEMENT.AIR_JUMP_VELOCITY ** 2 / (2 * MOVEMENT.GRAVITY);
     expect(jump + airJump).toBeGreaterThan(4 * TILE); // islands rise at most 4 tiles at a time
+  });
+});
+
+describe('the route checker', () => {
+  const level = (map) => ({ map });
+  it('finds the portal across a gap he can jump, but not one too wide', () => {
+    const near = ['........', '@.....E.', '###..###'];
+    expect(adventureRoutes(level(near)).portal).toBe(true);
+    const far = ['...............', '@.............E', '###.........###'];
+    expect(adventureRoutes(level(far)).portal).toBe(false);
+  });
+
+  it('climbs ladders, and finds a coin out of reach', () => {
+    const map = ['o........', '.........', '.........', '.........', '.........', '.....=H=E', '......H..', '@.....H..', '#########'];
+    const { portal, unreachable } = adventureRoutes(level(map));
+    expect(portal).toBe(true);
+    expect(unreachable.map((o) => o.type)).toEqual(['coin']);
+  });
+});
+
+describe('building an adventure map', () => {
+  it('builds ground, islands and ladders into rows of letters', () => {
+    const rows = mapBuilder(6, 4).ground(0, 5, 3).island(2, 4, 1).ladder(3, 1, 2).put(0, 2, '@').rows();
+    expect(rows).toEqual(['......', '..=H=.', '@..H..', '######']);
+  });
+
+  it("won't put two things in one cell", () => {
+    expect(() => mapBuilder(4, 2).put(1, 0, 'o').put(1, 0, 'g')).toThrow('already has o');
+    expect(() => mapBuilder(4, 2).put(9, 0, 'o')).toThrow('outside the map');
   });
 });
 
