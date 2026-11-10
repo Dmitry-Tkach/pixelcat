@@ -18,6 +18,14 @@ export const MAP_WORLDS = {
   Sunset: { ground: '#d9b45f', edge: '#b88f43', props: ['tree', 'vet', 'bush', 'rock', 'tree', 'stump'] },
 };
 
+// The adventure's worlds, for its own road map.
+export const ADVENTURE_MAP_WORLDS = {
+  Wood: { ground: '#6cbf52', edge: '#4f9a3c', props: ['darkTree', 'tree', 'mushroom', 'darkTree', 'bush', 'stump'] },
+  'Crystal Caves': { ground: '#7d8bb3', edge: '#65739b', props: ['crystal', 'rock', 'crystal', 'mushroom', 'crystal', 'rock'] },
+  Ancient: { ground: '#dcc287', edge: '#c3a768', props: ['bone', 'ruin', 'rock', 'bone', 'ruin', 'bone'] },
+  Medieval: { ground: '#93c26c', edge: '#76a454', props: ['tower', 'banner', 'tree', 'fence', 'house', 'banner'] },
+};
+
 // Where each stop sits, in map units: left to right, zigzagging down and up as it climbs.
 const ZIGZAG = { low: 350, climb: 110, swing: 62 };
 export function stopPositions(count) {
@@ -98,6 +106,35 @@ const PROPS = {
     <rect x="${x - 30 * s}" y="${y - 26 * s}" width="${60 * s}" height="${50 * s}" rx="3" fill="#a9b6c9"/>
     <rect x="${x - 16 * s}" y="${y - 16 * s}" width="${14 * s}" height="${10 * s}" rx="2" fill="#7d8aa0"/>
     <rect x="${x + 6 * s}" y="${y + 2 * s}" width="${14 * s}" height="${10 * s}" rx="2" fill="#7d8aa0"/>`,
+  darkTree: (x, y, s) => `${shadow(x + 6 * s, y + 32 * s, 38 * s)}
+    <rect x="${x - 7 * s}" y="${y}" width="${14 * s}" height="${32 * s}" rx="${4 * s}" fill="#5c3a1e" ${outlined}/>
+    <circle cx="${x - 18 * s}" cy="${y - 6 * s}" r="${24 * s}" fill="#1f7a32" ${outlined}/>
+    <circle cx="${x + 18 * s}" cy="${y - 4 * s}" r="${24 * s}" fill="#1f7a32" ${outlined}/>
+    <circle cx="${x}" cy="${y - 26 * s}" r="${28 * s}" fill="#27913d" ${outlined}/>
+    <circle cx="${x - 9 * s}" cy="${y - 34 * s}" r="${8 * s}" fill="#4fc35a"/>`,
+  mushroom: (x, y, s) => `${shadow(x, y + 14 * s, 22 * s)}
+    <rect x="${x - 6 * s}" y="${y - 4 * s}" width="${12 * s}" height="${18 * s}" rx="${4 * s}" fill="#f4ead2" ${outlined}/>
+    <path d="M${x - 22 * s} ${y - 2 * s} Q${x} ${y - 34 * s} ${x + 22 * s} ${y - 2 * s} Z" fill="#e2483d" ${outlined}/>
+    <circle cx="${x - 8 * s}" cy="${y - 12 * s}" r="${4 * s}" fill="#fff"/><circle cx="${x + 7 * s}" cy="${y - 16 * s}" r="${3 * s}" fill="#fff"/>`,
+  crystal: (x, y, s) => `${shadow(x, y + 14 * s, 28 * s)}
+    <path d="M${x - 20 * s} ${y + 10 * s} L${x - 14 * s} ${y - 18 * s} L${x - 6 * s} ${y + 10 * s} Z" fill="#9b6bff" ${outlined}/>
+    <path d="M${x - 8 * s} ${y + 12 * s} L${x} ${y - 34 * s} L${x + 9 * s} ${y + 12 * s} Z" fill="#c59bff" ${outlined}/>
+    <path d="M${x + 6 * s} ${y + 10 * s} L${x + 15 * s} ${y - 14 * s} L${x + 22 * s} ${y + 10 * s} Z" fill="#6fd6ff" ${outlined}/>
+    <path d="M${x - 2 * s} ${y - 20 * s} L${x} ${y - 30 * s}" stroke="#fff" stroke-width="${3 * s}" stroke-linecap="round"/>`,
+  bone: (x, y, s) => `${shadow(x, y + 8 * s, 26 * s, 6 * s)}
+    <g transform="rotate(-18 ${x} ${y})">
+    <rect x="${x - 20 * s}" y="${y - 4 * s}" width="${40 * s}" height="${8 * s}" rx="${4 * s}" fill="#f4ead2" ${outlined}/>
+    ${[-1, 1].map((k) => `<circle cx="${x + k * 21 * s}" cy="${y - 5 * s}" r="${6 * s}" fill="#f4ead2" ${outlined}/><circle cx="${x + k * 21 * s}" cy="${y + 5 * s}" r="${6 * s}" fill="#f4ead2" ${outlined}/>`).join('')}</g>`,
+  ruin: (x, y, s) => `${shadow(x + 6 * s, y + 24 * s, 30 * s)}
+    <rect x="${x - 14 * s}" y="${y - 30 * s}" width="${28 * s}" height="${54 * s}" rx="3" fill="#cfc2a4" ${outlined}/>
+    <path d="M${x - 14 * s} ${y - 30 * s} L${x - 4 * s} ${y - 40 * s} L${x + 4 * s} ${y - 32 * s} L${x + 14 * s} ${y - 38 * s} V${y - 30 * s} Z" fill="#cfc2a4" ${outlined}/>
+    <path d="M${x - 5 * s} ${y - 22 * s} V${y + 18 * s} M${x + 5 * s} ${y - 22 * s} V${y + 18 * s}" stroke="#a8997a" stroke-width="3"/>`,
+  tower: (x, y, s) => `${shadow(x + 8 * s, y + 30 * s, 38 * s)}
+    <rect x="${x - 26 * s}" y="${y - 20 * s}" width="${52 * s}" height="${48 * s}" rx="4" fill="#aab0bd" ${outlined}/>
+    ${[-20, -6, 8].map((dx) => `<rect x="${x + dx * s}" y="${y - 30 * s}" width="${12 * s}" height="${12 * s}" fill="#aab0bd" ${outlined}/>`).join('')}
+    <path d="M${x - 8 * s} ${y + 28 * s} V${y + 10 * s} A${8 * s} ${8 * s} 0 0 1 ${x + 8 * s} ${y + 10 * s} V${y + 28 * s} Z" fill="#5d4532"/>`,
+  banner: (x, y, s) => `<rect x="${x - 2 * s}" y="${y - 40 * s}" width="${4 * s}" height="${52 * s}" fill="#7a4a26"/>
+    <path d="M${x + 2 * s} ${y - 38 * s} H${x + 30 * s} L${x + 22 * s} ${y - 28 * s} L${x + 30 * s} ${y - 18 * s} H${x + 2 * s} Z" fill="#3d6bd8" ${outlined}/>`,
   vet: (x, y, s) => `${shadow(x + 8 * s, y + 30 * s, 50 * s)}
     <rect x="${x - 42 * s}" y="${y - 22 * s}" width="${84 * s}" height="${50 * s}" rx="5" fill="#f4f1ea" ${outlined}/>
     <rect x="${x - 6 * s}" y="${y - 14 * s}" width="${12 * s}" height="${32 * s}" fill="#e2533f"/>
@@ -105,9 +142,9 @@ const PROPS = {
 };
 
 // A wooden sign with a world's name.
-const sign = (x, y, text) => `<g>
+const sign = (x, y, text, half = Math.max(58, text.length * 5.6 + 16)) => `<g>
   <rect x="${x - 3}" y="${y}" width="6" height="26" fill="#7a4a26"/>
-  <rect x="${x - 58}" y="${y - 22}" width="116" height="30" rx="7" fill="#d3954f" ${outlined}/>
+  <rect x="${x - half}" y="${y - 22}" width="${half * 2}" height="30" rx="7" fill="#d3954f" ${outlined}/>
   <text x="${x}" y="${y}" text-anchor="middle" font-family="Fredoka, Arial, sans-serif" font-weight="700" font-size="18" fill="#fff" stroke="${INK}" stroke-width="4" paint-order="stroke">${text}</text></g>`;
 
 const STAR = 'M0 -11 L3.2 -3.6 L11 -3.4 L4.9 1.6 L7 9.3 L0 4.9 L-7 9.3 L-4.9 1.6 L-11 -3.4 L-3.2 -3.6 Z';
@@ -144,6 +181,17 @@ function stopArt({ x, y }, stop) {
 }
 
 const home = (x, y) => PROPS.house(x, y, 0.8);
+// A swirling portal, where the adventure's road starts, and a castle, where it ends.
+const portal = (x, y) => `${shadow(x, y + 30, 40)}
+  <ellipse cx="${x}" cy="${y}" rx="34" ry="40" fill="#5b3fa8" ${outlined}/>
+  <ellipse cx="${x}" cy="${y}" rx="24" ry="30" fill="#7fd0ff"/>
+  <ellipse cx="${x}" cy="${y}" rx="13" ry="17" fill="#ffffff" opacity="0.9"/>`;
+const castle = (x, y) => `${shadow(x, y + 42, 60)}
+  ${PROPS.tower(x - 34, y + 4, 0.8)}${PROPS.tower(x + 34, y + 4, 0.8)}
+  <rect x="${x - 24}" y="${y - 30}" width="48" height="66" rx="4" fill="#bcc2ce" ${outlined}/>
+  <path d="M${x - 30} ${y - 28} L${x} ${y - 64} L${x + 30} ${y - 28} Z" fill="#d8443a" ${outlined}/>
+  <path d="M${x - 10} ${y + 36} V${y + 10} A10 10 0 0 1 ${x + 10} ${y + 10} V${y + 36} Z" fill="#5d4532"/>`;
+const ENDS = { house: home, portal, trophy: (x, y) => trophy(x, y), castle };
 const SIGN_ROOM = 92; // scenery stays below the world signs
 const BLEND = 70; // how wide the ground fades from one world to the next
 const trophy = (x, y) => `${shadow(x, y + 40, 36)}
@@ -157,7 +205,10 @@ const trophy = (x, y) => `${shadow(x, y + 40, 36)}
   <path d="M${x - 18} ${y - 40} C${x - 18} ${y - 20} ${x - 10} ${y - 10} ${x - 4} ${y - 8}" stroke="#ffe08a" stroke-width="5" fill="none" stroke-linecap="round"/>`;
 
 // The whole picture, as an SVG string. `stops`: { number, world, locked, current, stars }, in order.
-export function mapArt(stops) {
+// `look`: { worlds, start, end }: each world's ground and scenery (MAP_WORLDS by default), and what
+// stands at each end of the path ('house' and 'trophy' by default; also 'portal' and 'castle').
+export function mapArt(stops, { worlds = MAP_WORLDS, start = 'house', end = 'trophy' } = {}) {
+  const worldLook = (world) => worlds[world] ?? Object.values(worlds)[0];
   const positions = stopPositions(stops.length);
   const points = pathPoints(positions);
   const random = seeded(7);
@@ -173,7 +224,7 @@ export function mapArt(stops) {
     regions.push({ world: stop.world, left, right });
   });
   const defs = [];
-  const groundOf = (world) => (MAP_WORLDS[world] ?? MAP_WORLDS.Village).ground;
+  const groundOf = (world) => worldLook(world).ground;
   for (const { world, left, right } of regions) {
     parts.push(`<rect x="${left}" y="0" width="${right - left + 1}" height="${MAP_SIZE.h}" fill="${groundOf(world)}"/>`);
   }
@@ -182,13 +233,13 @@ export function mapArt(stops) {
     const ground = groundOf(world);
     const next = regions[i + 1];
     if (next) {
-      const to = (MAP_WORLDS[next.world] ?? MAP_WORLDS.Village).ground;
+      const to = worldLook(next.world).ground;
       defs.push(`<linearGradient id="blend${i}"><stop offset="0" stop-color="${ground}"/><stop offset="1" stop-color="${to}"/></linearGradient>`);
       parts.push(`<rect x="${right - BLEND}" y="0" width="${BLEND * 2}" height="${MAP_SIZE.h}" fill="url(#blend${i})"/>`);
     }
   });
   for (const { world, left, right } of regions) {
-    const { edge } = MAP_WORLDS[world] ?? MAP_WORLDS.Village;
+    const { edge } = worldLook(world);
     // Darker patches of grass, for texture.
     for (let k = 0; k < 5; k++) {
       const x = left + random() * (right - left), y = random() * MAP_SIZE.h;
@@ -209,7 +260,7 @@ export function mapArt(stops) {
   const placed = [];
   const homeAt = { x: 62, y: positions[0].y - 105 };
   for (const { world, left, right } of regions) {
-    const kinds = (MAP_WORLDS[world] ?? MAP_WORLDS.Village).props;
+    const kinds = worldLook(world).props;
     let tries = 0;
     for (let n = 0; n < kinds.length * 2 && tries < 400; tries++) {
       const x = left + 30 + random() * (right - left - 60), y = SIGN_ROOM + random() * (MAP_SIZE.h - SIGN_ROOM - 40);
@@ -224,7 +275,9 @@ export function mapArt(stops) {
   placed.sort((a, b) => a.y - b.y).forEach(({ x, y, kind, s }) => parts.push(PROPS[kind](x, y, s)));
 
   for (const { world, left, right } of regions) parts.push(sign((left + right) / 2, 36, world));
-  parts.push(home(homeAt.x, homeAt.y), trophy(points[points.length - 1].x - 40, points[points.length - 1].y + 10));
+  const last = points[points.length - 1];
+  const endLift = end === 'castle' ? 70 : 0; // the castle is tall: it stands above the last stop
+  parts.push(ENDS[start](homeAt.x, homeAt.y), ENDS[end](last.x - 40, last.y + 10 - endLift));
   stops.forEach((stop, i) => parts.push(stopArt(positions[i], stop)));
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${MAP_SIZE.w} ${MAP_SIZE.h}"><defs>${defs.join('')}</defs>${parts.join('\n')}</svg>`;

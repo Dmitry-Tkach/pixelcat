@@ -7,6 +7,9 @@ import { THEMES } from '../data/themes.js';
 import { BossFight } from '../entities/BossFight.js';
 import { BOSSES } from '../data/bosses.js';
 import { journeyMap } from '../ui/JourneyMap.js';
+import { ADVENTURE_MAP_WORLDS } from '../ui/mapArt.js';
+import { ADVENTURE_HERO, ADVENTURE_LEVELS } from '../data/adventure/index.js';
+import { ADVENTURE_MAP_LOOK, ADVENTURE_ROADMAP } from '../data/adventure/roadmap.js';
 import { showHomeScreen } from '../ui/HomeScreen.js';
 import { Cat } from '../entities/Cat.js';
 import { Chaser } from '../entities/Chaser.js';
@@ -227,6 +230,7 @@ export class GameScene extends Phaser.Scene {
     if (this.autoStart) this.state.to(STATE.PLAYING);
     else if (this.firstScreen === 'intro') this.showIntroScreen();
     else if (this.firstScreen === 'levels') this.showLevelsScreen();
+    else if (this.firstScreen === 'adventure') this.showAdventureMap();
     else this.showStartScreen();
   }
 
@@ -875,7 +879,7 @@ export class GameScene extends Phaser.Scene {
       actions: [
         { label: hasStarted ? 'Continue' : 'Play', primary: true, onClick: () => this.openScreen(nextIndex, 'intro') },
         { label: 'Levels', onClick: () => this.showLevelsScreen() },
-        { label: 'Adventure', onClick: () => this.openAdventure() },
+        { label: 'Adventure', onClick: () => this.showAdventureMap() },
         ...this.soundToggles(() => this.showStartScreen()),
       ],
     });
@@ -992,14 +996,40 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  // Leaves the runner for the battle cat's adventure.
-  openAdventure() {
+  // The adventure's own road map: every level planned, world by world, the built ones open as each
+  // is reached, their stars the crystals found in them.
+  showAdventureMap() {
+    const progress = this.registry.get('adventureProgress');
+    const playable = (stop) => ADVENTURE_LEVELS.some((level) => level.id === stop.level);
+    const stops = ADVENTURE_ROADMAP.map((stop, index) => {
+      const result = progress.resultFor(stop.id);
+      return {
+        number: index + 1,
+        title: playable(stop) ? stop.title : `${stop.title} (coming soon)`,
+        world: stop.world,
+        locked: !playable(stop) || !progress.isUnlocked(index),
+        current: index === progress.nextIndex,
+        stars: result?.stars ?? 0,
+        onPick: () => this.openAdventure(ADVENTURE_LEVELS.findIndex((level) => level.id === stop.level)),
+      };
+    });
+    const built = ADVENTURE_ROADMAP.filter(playable).length;
+    this.overlay.show({
+      title: 'Adventure',
+      message: `${progress.totalStars} of ${built * 3} crystals. More of the battle cat's road opens as it's built.`,
+      content: journeyMap({ stops, instant: this.screenFx.instant, character: ADVENTURE_HERO.character, look: { worlds: ADVENTURE_MAP_WORLDS, ...ADVENTURE_MAP_LOOK } }),
+      actions: [{ label: 'Back', primary: true, onClick: () => this.showStartScreen() }],
+    });
+  }
+
+  // Leaves the runner for one of the battle cat's adventure levels.
+  openAdventure(levelIndex) {
     this.screenFx.cover(() => {
       this.time.paused = false;
       this.audio.stopMusic();
       this.anims.resumeAll();
       this.overlay.hide();
-      this.scene.start('Adventure', { levelIndex: 0 });
+      this.scene.start('Adventure', { levelIndex });
     });
   }
 

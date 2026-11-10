@@ -40,6 +40,7 @@ const STOMP = { margin: 14, bounce: -760 };
 // The gunners' bullets: how far they fly before fading, their hitbox, and how big their flash is.
 const ENEMY_BULLET = { range: 14 * TILE, size: 14, depth: 5 };
 const END_SCREEN_MS = 1100;
+const STARS = 3; // a level's stars are its crystals, up to this many
 const BEAM_PIPS = { x: 98, y: 128, gap: 26, r: 8 };
 const AMMO_HUD = { x: 44, y: 166, textGap: 34 };
 // An earth pillar starts this far up inside the island it holds, and stands this far into the ground.
@@ -728,7 +729,9 @@ export class AdventureScene extends Phaser.Scene {
     this.audio.playSfx('escape');
     this.effects.confetti(this.cat.x, this.cat.y - 60);
     this.cat.play(animKey(this.cat.character, 'victory'), true);
-    this.time.delayedCall(END_SCREEN_MS, () => this.showEnd('Level complete!'));
+    // Its stars are the crystals he found, kept with the adventure's progress.
+    this.registry.get('adventureProgress')?.record(this.level.id, Math.min(STARS, this.gems), this.coins);
+    this.time.delayedCall(END_SCREEN_MS, () => this.showEnd('Level complete!', true));
   }
 
   gameOver() {
@@ -750,25 +753,29 @@ export class AdventureScene extends Phaser.Scene {
     this.enemyBullets.clear(true, true);
   }
 
-  showEnd(title) {
+  showEnd(title, won = false) {
     const chest = this.chests.length ? `, treasure ${this.chestsOpened}/${this.chests.length}` : '';
+    const next = ADVENTURE_LEVELS[this.levelIndex + 1];
     this.overlay.show({
       title,
       message: `Coins ${this.coins}, crystals ${this.gems}/${this.totals.gems}${chest}, enemies ${this.knockedOut}/${this.totals.enemies}`,
       actions: [
-        { label: 'Play again', primary: true, onClick: () => this.scene.restart({ levelIndex: this.levelIndex }) },
+        ...(won && next ? [{ label: 'Next level', primary: true, onClick: () => this.scene.restart({ levelIndex: this.levelIndex + 1 }) }] : []),
+        { label: won ? 'Play again' : 'Try again', primary: !(won && next), onClick: () => this.scene.restart({ levelIndex: this.levelIndex }) },
+        { label: 'Map', onClick: () => this.goHome('adventure') },
         { label: 'Home', onClick: () => this.goHome() },
       ],
     });
   }
 
-  // Back to the home screen, where the runner and the adventure are chosen.
-  goHome() {
+  // Back to the home screen, where the runner and the adventure are chosen, or with `screen`
+  // 'adventure', to the adventure's road map.
+  goHome(screen = 'menu') {
     const leave = () => {
       this.anims.resumeAll();
       this.audio.stopMusic();
       this.overlay.hide();
-      this.scene.start('Game', { screen: 'menu' });
+      this.scene.start('Game', { screen });
     };
     if (this.screenFx) this.screenFx.cover(leave);
     else leave();
@@ -788,6 +795,7 @@ export class AdventureScene extends Phaser.Scene {
         actions: [
           { label: 'Resume', primary: true, onClick: () => this.togglePause() },
           { label: 'Restart', onClick: () => this.scene.restart({ levelIndex: this.levelIndex }) },
+          { label: 'Map', onClick: () => this.goHome('adventure') },
           { label: 'Home', onClick: () => this.goHome() },
         ],
       });

@@ -7,6 +7,7 @@ import { AdventureScene } from './scenes/AdventureScene.js';
 import { BootScene } from './scenes/BootScene.js';
 import { GameScene } from './scenes/GameScene.js';
 import { Progress } from './systems/Progress.js';
+import { ADVENTURE_ROADMAP } from './data/adventure/roadmap.js';
 import { setUpFpsCounter } from './ui/FpsCounter.js';
 import { Overlay } from './ui/Overlay.js';
 import { ScreenFx } from './ui/ScreenFx.js';
@@ -58,6 +59,12 @@ function start() {
   game.registry.set('overlay', overlay);
   game.registry.set('audio', audio);
   game.registry.set('screenFx', new ScreenFx({ instant: simulate }));
+  // The adventure's progress, kept apart from the runner's.
+  game.registry.set('adventureProgress', new Progress({
+    levelIds: ADVENTURE_ROADMAP.map((stop) => stop.id),
+    key: 'cat-escape-adventure',
+    unlockAll: import.meta.env.DEV && new URLSearchParams(location.search).has('unlockAll'),
+  }));
   game.registry.set('progress', new Progress({
     levelIds: LEVELS.map((level) => level.id),
     // For checking any level while developing: open the page with ?unlockAll.
