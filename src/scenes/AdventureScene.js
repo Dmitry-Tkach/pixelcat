@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { GAME, MOVEMENT } from '../config/gameConfig.js';
-import { ADVENTURE_HERO, ADVENTURE_LEVELS, adventureKey } from '../data/adventure/index.js';
+import { ADVENTURE_HERO, ADVENTURE_LEVELS, PILLAR, adventureKey } from '../data/adventure/index.js';
 import { CHARACTERS, animKey } from '../data/characters.js';
 import { FLASH, FLASH_KEY } from '../data/adventure/gunners.js';
 import { AdventureEnemy } from '../entities/AdventureEnemy.js';
@@ -34,6 +34,8 @@ const STOMP = { margin: 14, bounce: -760 };
 const ENEMY_BULLET = { range: 14 * TILE, size: 14, depth: 5 };
 const END_SCREEN_MS = 1100;
 const BEAM_PIPS = { x: 98, y: 128, gap: 26, r: 8 };
+// An earth pillar starts this far up inside the island it holds, and stands this far into the ground.
+const PILLAR_FIT = { underIsland: 6, intoGround: 6, depth: 1 };
 const HUD_STYLE = { fontFamily: 'Fredoka, sans-serif', fontSize: '26px', fontStyle: '600', color: '#ffffff', stroke: '#1e2a4a', strokeThickness: 6 };
 
 // An adventure level: the battle cat runs, jumps and climbs through a tile map, forward and upward,
@@ -175,12 +177,40 @@ export class AdventureScene extends Phaser.Scene {
     for (const { texture, col, row } of this.layout.scenery) {
       const x = col * TILE + TILE / 2;
       if (texture === 'roots') {
-        // Roots hang from the bottom of the island above.
-        this.add.image(x, row * TILE - 6, this.art('roots')).setOrigin(0.5, 0).setDepth(1);
+        this.buildPillar(col, row);
       } else {
         this.add.image(x, (row + 1) * TILE + 4, this.art(texture)).setOrigin(0.5, 1).setDepth(1.5);
       }
     }
+  }
+
+  // An earth pillar holding up the island above this cell, down to the ground or island below it:
+  // its cap, as many copies of its middle as fit (every other one upside down, so they join, and an
+  // odd number, so the last meets the base), squeezed or stretched a little to fill the height, and
+  // its base. With nothing below, the roots just hang from the island.
+  buildPillar(col, row) {
+    const x = col * TILE + TILE / 2;
+    const top = row * TILE - PILLAR_FIT.underIsland;
+    let below = row;
+    while (below < this.layout.rows && this.layout.tiles[below][col] < 0) below += 1;
+    if (below >= this.layout.rows) {
+      this.add.image(x, top, this.art('roots')).setOrigin(0.5, 0).setDepth(PILLAR_FIT.depth);
+      return;
+    }
+    const bottom = below * TILE + PILLAR_FIT.intoGround;
+    const capH = PILLAR.middleFrom - PILLAR.capFrom;
+    const segmentH = PILLAR.baseFrom - PILLAR.middleFrom;
+    const baseH = PILLAR.height - PILLAR.baseFrom;
+    const middle = Math.max(segmentH / 2, bottom - top - capH - baseH);
+    let count = Math.max(1, Math.round(middle / segmentH));
+    if (count % 2 === 0) count += 1;
+    const each = middle / count;
+    for (let i = 0; i < count; i++) {
+      const segment = this.add.image(x, top + capH + i * each, this.art('pillar-middle')).setOrigin(0.5, 0).setFlipY(i % 2 === 1).setDepth(PILLAR_FIT.depth);
+      segment.setDisplaySize(segment.width, each + 1); // a pixel over, so no seam shows
+    }
+    this.add.image(x, top, this.art('pillar-cap')).setOrigin(0.5, 0).setDepth(PILLAR_FIT.depth);
+    this.add.image(x, bottom, this.art('pillar-base')).setOrigin(0.5, 1).setDepth(PILLAR_FIT.depth);
   }
 
   // The middle of a cell's floor, where things stand.

@@ -8,6 +8,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ENEMIES, PACK_FRAMES, enemyLayout } from '../src/data/adventure/enemies.js';
 import { FLASH, GUNNERS, gunnerLayout } from '../src/data/adventure/gunners.js';
+import { PILLAR } from '../src/data/adventure/index.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const WORLDS = join(ROOT, 'images', 'assets', 'worlds');
@@ -88,6 +89,16 @@ for (const [name, [file, scale]] of Object.entries(WOOD)) {
   }
   await sharp(png).png({ compressionLevel: 9 }).toFile(join(out, `${name}.png`));
 }
+// The earth pillar that holds an island up, in three parts, so the scene can build one of any height
+// from the island down to what's below it: the cap under the island, the middle, which repeats
+// (every other copy upside down, so they always join), and the base standing on the ground.
+// PILLAR in data/adventure/index.js has the heights of the cuts.
+const roots = join(out, 'roots.png');
+for (const [name, top, bottom] of [['pillar-cap', PILLAR.capFrom, PILLAR.middleFrom], ['pillar-middle', PILLAR.middleFrom, PILLAR.baseFrom], ['pillar-base', PILLAR.baseFrom, PILLAR.height]]) {
+  const { width } = await sharp(roots).metadata();
+  await sharp(roots).extract({ left: 0, top, width, height: bottom - top }).png({ compressionLevel: 9 }).toFile(join(out, `${name}.png`));
+}
+
 // The ground, islands and bridge as one strip of 64px tiles, for the game's tilemap, in this order.
 // data/adventure/tiles.js names each tile's place in the strip.
 const TILESET = ['ground-top-left', 'ground-top', 'ground-top-right', 'soil-left', 'soil', 'soil-right',
