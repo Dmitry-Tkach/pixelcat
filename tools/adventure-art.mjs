@@ -67,9 +67,26 @@ const WOOD = {
 rmSync(OUT, { recursive: true, force: true });
 const out = join(OUT, 'wood');
 mkdirSync(out, { recursive: true });
+// Things that stand on the ground. Some pack images leave empty rows under the drawing, which would
+// float it above the grass, so those rows are cut off: the picture's bottom is where it stands.
+const STANDS = new Set(['chest-locked', 'chest-open', 'portal', 'statue', 'bush-1', 'bush-2', 'plant-1', 'plant-2',
+  'fence', 'sign-right', 'sign-up', 'rock', 'lantern', 'spike']);
+const emptyRowsBelow = async (png) => {
+  const { data, info } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  for (let y = info.height - 1; y >= 0; y--) {
+    for (let x = 0; x < info.width; x++) if (data[(y * info.width + x) * 4 + 3] > 20) return info.height - 1 - y;
+  }
+  return 0;
+};
 for (const [name, [file, scale]] of Object.entries(WOOD)) {
   const { width } = await sharp(file).metadata();
-  await sharp(file).resize({ width: Math.round(width * scale) }).png({ compressionLevel: 9 }).toFile(join(out, `${name}.png`));
+  let png = await sharp(file).resize({ width: Math.round(width * scale) }).png().toBuffer();
+  const empty = STANDS.has(name) ? await emptyRowsBelow(png) : 0;
+  if (empty > 0) {
+    const { width: w, height: h } = await sharp(png).metadata();
+    png = await sharp(png).extract({ left: 0, top: 0, width: w, height: h - empty }).png().toBuffer();
+  }
+  await sharp(png).png({ compressionLevel: 9 }).toFile(join(out, `${name}.png`));
 }
 // The ground, islands and bridge as one strip of 64px tiles, for the game's tilemap, in this order.
 // data/adventure/tiles.js names each tile's place in the strip.
