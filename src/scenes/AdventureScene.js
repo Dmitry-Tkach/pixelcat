@@ -11,7 +11,6 @@ import { AdventureMoves } from '../systems/AdventureMoves.js';
 import { MAX_FALL_SPEED, ONE_WAY, TILE, TILE_BIAS, pillarFoot, readAdventureMap } from '../systems/adventureMap.js';
 import { Effects } from '../ui/Effects.js';
 
-const HERO = ADVENTURE_HERO.character;
 // reach: how far from a ladder's middle it can be grabbed. standStill: slower than this, the cat counts
 // as standing at a ladder, so Down climbs down it rather than sliding past.
 const CLIMB = { speed: 250, sideSpeed: 110, snap: 0.25, reach: 26, standStill: 60 };
@@ -71,7 +70,7 @@ export class AdventureScene extends Phaser.Scene {
 
     const start = this.layout.objects.find((o) => o.type === 'start');
     this.respawnAt = this.cellFeet(start);
-    this.cat = new Cat(this, this.respawnAt.x, level.cat.speed, { character: HERO, y: this.respawnAt.y - 80 });
+    this.cat = new Cat(this, this.respawnAt.x, level.cat.speed, { character: ADVENTURE_HERO.character, y: this.respawnAt.y - 80 });
     this.cat.setScale(this.cat.scaleX * ADVENTURE_HERO.scale);
     this.cat.moveMode = 'free';
     this.cat.startRunning();
@@ -97,6 +96,7 @@ export class AdventureScene extends Phaser.Scene {
       solids: this.solids,
       enemies: this.enemies,
       onKnockOut: (enemy) => this.knockOut(enemy),
+      onNoWeapon: () => this.showHint('No weapon yet: find the minigun!'),
     });
 
     this.hearts = level.hearts;
@@ -241,8 +241,9 @@ export class AdventureScene extends Phaser.Scene {
         case 'gem':
         case 'heart':
         case 'key':
-        case 'rage': {
-          const texture = object.type === 'rage' ? 'mushroom' : object.type;
+        case 'rage':
+        case 'weapon': {
+          const texture = { rage: 'mushroom', weapon: 'minigun' }[object.type] ?? object.type;
           const item = this.physics.add.staticImage(x, middle, this.art(texture)).setDepth(4);
           item.kind = object.type;
           this.tweens.add({ targets: item, scale: 1.12, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
@@ -323,7 +324,7 @@ export class AdventureScene extends Phaser.Scene {
     this.beamPips = fixed(this.add.graphics());
     this.drawBeamPips();
     this.hint = fixed(this.add.text(GAME.WIDTH / 2, 150, '', { ...HUD_STYLE, fontSize: '30px', align: 'center' }).setOrigin(0.5));
-    this.showHint(`${this.level.title}\nRun, jump and climb up to the portal\nX shoot (hold for a burst) · Shift dash · C beam`, 4200);
+    this.showHint(`${this.level.title}\nRun, jump and climb up to the portal\nShift dash · C beam · find the minigun to shoot`, 4200);
   }
 
   showHint(text, ms = 2200) {
@@ -433,7 +434,7 @@ export class AdventureScene extends Phaser.Scene {
     this.cat.body.setAllowGravity(false);
     this.cat.setVelocity(0, 0);
     this.cat.moveVelocity = 0;
-    this.cat.play(animKey(HERO, 'climb'), true);
+    this.cat.play(animKey(this.cat.character, 'climb'), true);
   }
 
   stopClimbing() {
@@ -455,7 +456,7 @@ export class AdventureScene extends Phaser.Scene {
     else this.cat.setFlipX(steer < 0);
     // Climbing up or down has its own animation; holding still on the ladder, he holds his pose.
     if (direction === 0 && steer === 0) this.cat.anims.pause();
-    else this.cat.play(animKey(HERO, direction > 0 ? 'climbDown' : 'climb'), true).anims.resume();
+    else this.cat.play(animKey(this.cat.character, direction > 0 ? 'climbDown' : 'climb'), true).anims.resume();
     // Near the top: he pulls himself up onto the island. Off the bottom: he stands on the ground.
     const top = this.ladderTop(ladder.col, ladder.row);
     const ontoIsland = ONE_WAY.has(this.groundLayer.getTileAt(ladder.col, top / TILE)?.index);
@@ -471,8 +472,8 @@ export class AdventureScene extends Phaser.Scene {
     this.cat.setVelocity(0, 0);
     this.cat.y += top + CLIMB_UP.below * this.cat.scaleY - this.cat.body.bottom;
     this.cat.anims.resume();
-    this.cat.play(animKey(HERO, 'climbUp'));
-    const { frames, fps } = CHARACTERS[HERO].anims.climbUp;
+    this.cat.play(animKey(this.cat.character, 'climbUp'));
+    const { frames, fps } = CHARACTERS[this.cat.character].anims.climbUp;
     this.pullUpTimer = this.time.delayedCall((frames / fps) * 1000, () => {
       this.cat.body.reset(this.cat.x, this.cat.y + top - this.cat.body.bottom);
       this.endPullUp();
@@ -503,6 +504,11 @@ export class AdventureScene extends Phaser.Scene {
     } else if (item.kind === 'heart') {
       this.hearts = Math.min(this.level.hearts, this.hearts + 1);
       this.audio.playSfx('pawPickup');
+    } else if (item.kind === 'weapon') {
+      this.cat.changeCharacter(ADVENTURE_HERO.armed);
+      this.audio.playSfx('cheer');
+      this.effects.sparkle(x, y);
+      this.showHint('The minigun! X to shoot, hold for a burst');
     } else if (item.kind === 'rage') {
       this.moves.startRage();
       this.showHint('RAGE!');
@@ -657,14 +663,14 @@ export class AdventureScene extends Phaser.Scene {
     this.audio.stopMusic();
     this.audio.playSfx('escape');
     this.effects.confetti(this.cat.x, this.cat.y - 60);
-    this.cat.play(animKey(HERO, 'victory'), true);
+    this.cat.play(animKey(this.cat.character, 'victory'), true);
     this.time.delayedCall(END_SCREEN_MS, () => this.showEnd('Level complete!'));
   }
 
   gameOver() {
     this.endPlay();
     this.audio.stopMusic();
-    this.cat.play(animKey(HERO, 'caught'), true);
+    this.cat.play(animKey(this.cat.character, 'caught'), true);
     this.time.delayedCall(END_SCREEN_MS, () => this.showEnd('Out of hearts'));
   }
 

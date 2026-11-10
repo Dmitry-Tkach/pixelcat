@@ -22,6 +22,8 @@ const SETS = [
   // The test character for new levels and worlds, tried with ?cat=battle. Cut by tools/cut-battle-cat.mjs,
   // and kept at the size it's drawn, which is the game cat's size.
   { dir: 'battle-cat', out: 'battle-cat', scale: 1, anims: { Idle: 4, Run: 6, Shoot: 6, Burst: 4, Hit: 3, Rage: 4, Defeated: 5, Jump: 4, Slide: 4, Dash: 4, Climb: 4, ClimbUp: 4, ClimbDown: 4, Special: 4, SpecialEnd: 3 } },
+  // The same cat with bare paws, as he starts each adventure level. Cut by tools/cut-battle-cat.mjs.
+  { dir: 'battle-cat-paws', out: 'battle-cat-paws', scale: 1, anims: { Idle: 4, Run: 6, Jump: 5, Slide: 4, Hit: 3, Rage: 4, Defeated: 3, Dash: 4, Climb: 4, ClimbUp: 3, ClimbDown: 4, Special: 3, SpecialEnd: 3 } },
 ];
 
 // Sets whose source files use their own naming. `every` keeps one frame in N, to save memory.

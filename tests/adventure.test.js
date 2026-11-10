@@ -157,6 +157,30 @@ describe('the battle cat in the adventure', () => {
     for (const role of roles) expect(CHARACTERS.battleCat.anims[role], role).toBeDefined();
   });
 
+  it('starts with bare paws, and only shoots once he has found the minigun', () => {
+    expect(CHARACTERS[ADVENTURE_HERO.character].anims.shoot).toBeUndefined();
+    expect(CHARACTERS[ADVENTURE_HERO.armed].anims.shoot).toBeDefined();
+    expect(readAdventureMap(['w', '#']).objects).toEqual([{ type: 'weapon', col: 0, row: 0 }]);
+  });
+
+  it('has the same hitboxes with and without the minigun, and every move he uses bare-pawed', () => {
+    const paws = CHARACTERS[ADVENTURE_HERO.character], armed = CHARACTERS[ADVENTURE_HERO.armed];
+    expect(paws.hitboxes).toEqual(armed.hitboxes);
+    expect(paws.scale).toBe(armed.scale);
+    // Picking up the minigun keeps whatever he's doing, so every bare-pawed move has an armed one.
+    for (const role of Object.keys(paws.anims)) expect(armed.anims[role], role).toBeDefined();
+    for (const character of [paws, armed]) {
+      const { frameList, frames, beamFrame } = character.anims.special;
+      expect((frameList ?? [])[beamFrame - 1]).toBe(frames); // the beam is his special's last frame
+    }
+  });
+
+  it('swaps frames of the same size when he picks up the minigun', async () => {
+    const sharp = (await import('sharp')).default;
+    const size = async (folder) => { const { width, height } = await sharp(`public/assets/sprites/${folder}/idle-1.png`).metadata(); return [width, height]; };
+    expect(await size(CHARACTERS[ADVENTURE_HERO.character].folder)).toEqual(await size(CHARACTERS[ADVENTURE_HERO.armed].folder));
+  });
+
   it('places a rage mushroom with m', () => {
     expect(readAdventureMap(['m', '#']).objects).toEqual([{ type: 'rage', col: 0, row: 0 }]);
   });

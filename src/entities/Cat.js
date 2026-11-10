@@ -43,6 +43,19 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     this.play(animKey(this.character, 'idle'));
   }
 
+  // Becomes another character with the same frame size and hitboxes, keeping what it's doing: the
+  // battle cat picking up his minigun.
+  changeCharacter(character) {
+    this.character = character;
+    this.manifest = CHARACTERS[character];
+    const hitbox = this.hitbox;
+    this.hitbox = null;
+    this.useHitbox(hitbox);
+    const playing = this.anims.currentAnim?.key;
+    const role = playing && Object.keys(this.manifest.anims).find((r) => playing.endsWith(`-${r}`));
+    this.play(animKey(character, role ?? 'idle'));
+  }
+
   useHitbox(name) {
     if (this.hitbox === name) return;
     this.hitbox = name;

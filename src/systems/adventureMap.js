@@ -36,6 +36,7 @@ export const OBJECTS = {
   '*': 'gem',
   '+': 'heart',
   m: 'rage',
+  w: 'weapon',
   k: 'key',
   T: 'chest',
   '?': 'bonus',

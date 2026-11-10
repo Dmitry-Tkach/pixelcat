@@ -251,3 +251,64 @@ export async function findCuts(sheet, [top, bottom], isFur, { minGap = 10, pad =
   cuts.push(Math.min(W, runs[runs.length - 1][1] + pad));
   return cuts;
 }
+
+
+// Some sheets come with no transparency: a checkerboard of light greys painted where it should be,
+// the way image editors show "transparent". This makes it transparent: everything checkered reached
+// from the sheet's edges without crossing a figure's dark outline, then the checkered pockets
+// enclosed by a figure (between legs, or inside a glow), then the pale fringe left on the outline.
+// A smooth white patch, like a cat's chest or a beam's core, is kept. Returns a PNG in memory.
+const PAINTED = { light: 205, grey: 14, dark: 238, checkered: 0.3, smooth: 0.12, bigPocket: 120, glowShare: 0.5, fringe: 190 };
+export async function clearPaintedBackground(sheet) {
+  const { data, info } = await sharp(sheet).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  const W = info.width, H = info.height, N = W * H;
+  const rgb = (p) => [data[p * 3], data[p * 3 + 1], data[p * 3 + 2]];
+  const pale = (p) => { const [r, g, b] = rgb(p); return Math.min(r, g, b) > PAINTED.light && Math.max(r, g, b) - Math.min(r, g, b) < PAINTED.grey; };
+  const around = (p) => { const x = p % W; return [x > 0 ? p - 1 : -1, x < W - 1 ? p + 1 : -1, p - W, p + W].filter((q) => q >= 0 && q < N); };
+  const clear = new Uint8Array(N);
+  const stack = [];
+  for (let x = 0; x < W; x++) stack.push(x, (H - 1) * W + x);
+  for (let y = 0; y < H; y++) stack.push(y * W, y * W + W - 1);
+  while (stack.length) {
+    const p = stack.pop();
+    if (clear[p] || !pale(p)) continue;
+    clear[p] = 1;
+    stack.push(...around(p));
+  }
+  const seen = new Uint8Array(N);
+  for (let start = 0; start < N; start++) {
+    if (clear[start] || seen[start] || !pale(start)) continue;
+    const piece = [start];
+    seen[start] = 1;
+    let glow = 0, edge = 0;
+    for (let k = 0; k < piece.length; k++) {
+      for (const q of around(piece[k])) {
+        if (seen[q] || clear[q]) continue;
+        if (pale(q)) { seen[q] = 1; piece.push(q); continue; }
+        const [r, g, b] = rgb(q);
+        edge += 1;
+        if (Math.max(r, g, b) - Math.min(r, g, b) > 40) glow += 1;
+      }
+    }
+    const darker = piece.filter((p) => data[p * 3] < PAINTED.dark).length / piece.length;
+    if (darker < PAINTED.smooth) continue;
+    const inGlow = edge > 0 && glow / edge > PAINTED.glowShare;
+    if (inGlow || (darker > PAINTED.checkered && piece.length > PAINTED.bigPocket)) piece.forEach((p) => { clear[p] = 1; });
+  }
+  for (let pass = 0; pass < 2; pass++) {
+    const fringe = [];
+    for (let p = 0; p < N; p++) {
+      if (clear[p]) continue;
+      const [r, g, b] = rgb(p);
+      if (Math.min(r, g, b) < PAINTED.fringe || Math.max(r, g, b) - Math.min(r, g, b) > 20) continue;
+      if (around(p).some((q) => clear[q])) fringe.push(p);
+    }
+    fringe.forEach((p) => { clear[p] = 1; });
+  }
+  const out = Buffer.alloc(N * 4);
+  for (let p = 0; p < N; p++) {
+    out[p * 4] = data[p * 3]; out[p * 4 + 1] = data[p * 3 + 1]; out[p * 4 + 2] = data[p * 3 + 2]; out[p * 4 + 3] = clear[p] ? 0 : 255;
+  }
+  return sharp(out, { raw: { width: W, height: H, channels: 4 } }).png().toBuffer();
+}
+

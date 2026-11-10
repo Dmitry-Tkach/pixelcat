@@ -12,13 +12,14 @@ export const ADVENTURE_ART = {
     'tiles', 'back-far', 'back-near', 'ladder', 'spike', 'bonus', 'bonus-used', 'box', 'stone', 'roots',
     'coin-1', 'coin-2', 'coin-3', 'coin-4', 'coin-5', 'coin-6', 'gem', 'key', 'chest-locked', 'chest-open',
     'heart', 'portal', 'bush-1', 'plant-1', 'statue', 'sign-right', 'sign-up', 'lantern', 'mushroom', 'bullet', 'enemy-bullet',
-    'pillar-cap', 'pillar-middle', 'pillar-base',
+    'pillar-cap', 'pillar-middle', 'pillar-base', 'minigun',
   ],
 };
 
 // Who the hero is, and how big he's shown in the adventure, against the size he's drawn: smaller
-// than in the main game, so the tiles and enemies feel bigger around him.
-export const ADVENTURE_HERO = { character: 'battleCat', scale: 0.8 };
+// than in the main game, so the tiles and enemies feel bigger around him. He starts each level with
+// bare paws (character), and becomes `armed` when he finds the minigun.
+export const ADVENTURE_HERO = { character: 'battleCatPaws', armed: 'battleCat', scale: 0.8 };
 
 // Where tools/adventure-art.mjs cuts the earth pillar (roots.png, 160px tall) into its cap, middle
 // and base: the rows each starts at. The middle is the narrow twisting trunk.

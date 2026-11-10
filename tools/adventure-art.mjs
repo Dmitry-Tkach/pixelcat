@@ -89,6 +89,43 @@ for (const [name, [file, scale]] of Object.entries(WOOD)) {
   }
   await sharp(png).png({ compressionLevel: 9 }).toFile(join(out, `${name}.png`));
 }
+// The minigun the battle cat can find, cut from the frame of him standing with it: the barrel and the
+// gold housing, without his paws and chin, which are grey, white or red.
+{
+  const box = { left: 118, top: 115, width: 64, height: 35 };
+  const allGunFrom = 146; // right of here, everything is gun
+  const { data, info } = await sharp(join(ROOT, 'images', 'sprites', 'battle-cat', 'Idle (1).png')).extract(box).raw().toBuffer({ resolveWithObject: true });
+  const w = info.width, n = w * info.height, keep = new Uint8Array(n);
+  for (let p = 0; p < n; p++) {
+    const [r, g, b, a] = [data[p * 4], data[p * 4 + 1], data[p * 4 + 2], data[p * 4 + 3]];
+    if (a < 100) continue;
+    if (p % w + box.left >= allGunFrom) { keep[p] = 1; continue; }
+    const most = Math.max(r, g, b), least = Math.min(r, g, b);
+    const metal = most < 85 || (r - b > 35 && r > 90);
+    keep[p] = metal && least <= 200 && !(most - least < 22 && most >= 85) ? 1 : 0;
+  }
+  // Only its biggest piece: specks of his outline go.
+  const piece = new Int32Array(n).fill(-1);
+  let biggest = -1, biggestSize = 0;
+  for (let start = 0, id = 0; start < n; start++, id++) {
+    if (!keep[start] || piece[start] >= 0) continue;
+    const stack = [start];
+    piece[start] = id;
+    let size = 0;
+    while (stack.length) {
+      const p = stack.pop();
+      size += 1;
+      const x = p % w;
+      for (const q of [x > 0 ? p - 1 : -1, x < w - 1 ? p + 1 : -1, p - w, p + w]) {
+        if (q >= 0 && q < n && keep[q] && piece[q] < 0) { piece[q] = id; stack.push(q); }
+      }
+    }
+    if (size > biggestSize) { biggest = id; biggestSize = size; }
+  }
+  for (let p = 0; p < n; p++) if (piece[p] !== biggest) data[p * 4 + 3] = 0;
+  await sharp(data, { raw: info }).trim().png({ compressionLevel: 9 }).toFile(join(out, 'minigun.png'));
+}
+
 // The earth pillar that holds an island up, in three parts, so the scene can build one of any height
 // from the island down to what's below it: the cap under the island, the middle, which repeats
 // (every other copy upside down, so they always join), and the base standing on the ground.

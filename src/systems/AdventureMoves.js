@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { animKey, frameKey } from '../data/characters.js';
+import { CHARACTERS, animKey, frameKey } from '../data/characters.js';
 
 // The battle cat's fighting moves in the adventure, from his sheet with the minigun:
 //   X      shoot: a tap fires one shot, holding it fires a burst
@@ -16,18 +16,22 @@ const SHOOT = { tapMs: 375, holdMs: 300, cooldownMs: 260, burstEveryMs: 120, rag
 const DASH = { speed: 950, ms: 220, cooldownMs: 650 };
 const RAGE = { ms: 8000, poseMs: 650, tint: 0xff9a9a, flashMs: 160 };
 // charge: knockouts to fill the beam. reach and height: what the beam hits, ahead of him and up
-// from his feet. hitFrame: the frame of his special where the beam fires.
+// from his feet. The beam fires on his special's `beamFrame` (see data/characters.js).
 // belowFeet: the room tools/cut-sheet.mjs leaves under his feet in each frame.
-const SPECIAL = { charge: 3, reach: 380, height: 110, hitFrame: 4, endMs: 375, belowFeet: 13 };
+const SPECIAL = { charge: 3, reach: 380, height: 110, endMs: 375, belowFeet: 13 };
+const NO_WEAPON_HINT_MS = 2500; // how often pressing fire without the minigun says so
 
 export class AdventureMoves {
   // art(name): an adventure image's texture key. onKnockOut(enemy): called for each enemy he knocks
   // out, so the scene can count it.
-  constructor(scene, cat, { art, groundLayer, solids, enemies, onKnockOut }) {
+  // onNoWeapon(): he pressed fire before finding the minigun.
+  constructor(scene, cat, { art, groundLayer, solids, enemies, onKnockOut, onNoWeapon }) {
     this.scene = scene;
     this.cat = cat;
     this.art = art;
     this.onKnockOut = onKnockOut;
+    this.onNoWeapon = onNoWeapon;
+    this.noWeaponHintMs = 0;
     this.keys = scene.input.keyboard.addKeys({ fire: 'X', dash: 'SHIFT', special: 'C' });
     this.bullets = scene.physics.add.group({ allowGravity: false });
     scene.physics.add.collider(this.bullets, groundLayer, (bullet) => bullet.destroy());
@@ -60,6 +64,11 @@ export class AdventureMoves {
 
   get isFiringSpecial() {
     return this.special !== null;
+  }
+
+  // Whether he has the minigun: only that character can shoot.
+  get armed() {
+    return Boolean(CHARACTERS[this.cat.character].anims.shoot);
   }
 
   get chargeNeeded() {
@@ -101,6 +110,14 @@ export class AdventureMoves {
   // ----- Shooting -----
 
   updateShooting(ms, fire) {
+    this.noWeaponHintMs = Math.max(0, this.noWeaponHintMs - ms);
+    if (!this.armed) {
+      if (Phaser.Input.Keyboard.JustDown(fire) && this.noWeaponHintMs === 0) {
+        this.noWeaponHintMs = NO_WEAPON_HINT_MS;
+        this.onNoWeapon?.();
+      }
+      return;
+    }
     if (!fire.isDown || this.cat.isSliding) {
       this.fireHeldMs = 0;
       return;
@@ -225,7 +242,7 @@ export class AdventureMoves {
     this.special.play(animKey(cat.character, 'special'));
     this.scene.audio.playSfx('beamCharge');
     this.special.on(Phaser.Animations.Events.ANIMATION_UPDATE, (anim, animFrame) => {
-      if (animFrame.index === SPECIAL.hitFrame) this.beamHits(dir);
+      if (animFrame.index === CHARACTERS[cat.character].anims.special.beamFrame) this.beamHits(dir);
     });
     this.special.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => this.endSpecial());
   }

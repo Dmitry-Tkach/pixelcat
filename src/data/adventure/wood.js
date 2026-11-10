@@ -9,6 +9,7 @@
 //   B  a crate to stand on                      X  a stone block to stand on
 //   o  a coin    *  a crystal    +  a heart     k  the key, which opens the chest  T
 //   C  a checkpoint lantern                     E  the portal: the end of the level
+//   w  the minigun: the cat starts with bare paws, and can shoot once he has it
 //   m  a rage mushroom: the cat turns red for a while, shoots faster and knocks out what he touches
 //   @  where the cat starts
 //   Enemies, which walk to and fro: g a goon in a cap, c a cone head (faster), v a spiky helmet
@@ -41,7 +42,7 @@ export const WOOD_LEVEL = {
     '.....................o.H======...========H=====.........................',
     '.....................o.H.................H..............................',
     '................+....o.H.................H..............................',
-    '........k.....B.X..c.o.H.................H..............................',
+    '........k.....BwX..c.o.H.................H..............................',
     '........?.....====H======................H..............................',
     '..................H......................H..............................',
     '..................H......................H..............................',

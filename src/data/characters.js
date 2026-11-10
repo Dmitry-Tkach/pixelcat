@@ -136,12 +136,43 @@ export const CHARACTERS = {
       climb: { file: 'climb', frames: 4, fps: 8, repeat: -1 },
       climbUp: { file: 'climbup', frames: 4, fps: 10, repeat: 0 },
       climbDown: { file: 'climbdown', frames: 4, fps: 8, repeat: -1 },
-      // The beam, the last frame, is held a little longer.
-      special: { file: 'special', frames: 4, frameList: [1, 2, 3, 4, 4, 4], fps: 8, repeat: 0 },
+      // The beam, the last frame, is held a little longer. beamFrame: the first frame of the beam, in
+      // the frame list counting from 1, where it hits.
+      special: { file: 'special', frames: 4, frameList: [1, 2, 3, 4, 4, 4], fps: 8, repeat: 0, beamFrame: 4 },
       specialEnd: { file: 'specialend', frames: 3, fps: 8, repeat: 0 },
     },
     // The same size on screen as the cat's, so levels play the same. His frames are 236x171, with
     // him in the middle and his feet at 158.
+    hitboxes: {
+      run: { x: 89, y: 46, w: 58, h: 113 },
+      slide: { x: 86, y: 86, w: 64, h: 73 },
+    },
+  },
+
+  // The battle cat with bare paws, as he starts an adventure level, from
+  // images/sprites/cat-version-2/cat-v-2-no-weapon.png. His frames are the same size as his frames
+  // with the minigun, with him in the same place, so finding it swaps one for the other mid-run.
+  battleCatPaws: {
+    folder: 'battle-cat-paws',
+    scale: 1,
+    face: { x: 68, y: 40, size: 84 },
+    anims: {
+      idle: { file: 'idle', frames: 4, fps: 8, repeat: -1 },
+      run: { file: 'run', frames: 6, fps: 12, repeat: -1 },
+      jump: { file: 'jump', frames: 5, frameList: [1, 2, 3, 4], fps: 12, repeat: 0 },
+      fall: { file: 'jump', frames: 5, frameList: [5], fps: 1, repeat: 0 },
+      slide: { file: 'slide', frames: 4, fps: 12, repeat: -1 },
+      hurt: { file: 'hit', frames: 3, fps: 10, repeat: 0 },
+      caught: { file: 'defeated', frames: 3, fps: 6, repeat: 0 },
+      victory: { file: 'idle', frames: 4, fps: 8, repeat: -1 },
+      rage: { file: 'rage', frames: 4, fps: 10, repeat: -1 },
+      dash: { file: 'dash', frames: 4, fps: 14, repeat: 0 },
+      climb: { file: 'climb', frames: 4, fps: 8, repeat: -1 },
+      climbUp: { file: 'climbup', frames: 3, fps: 8, repeat: 0 },
+      climbDown: { file: 'climbdown', frames: 4, fps: 8, repeat: -1 },
+      special: { file: 'special', frames: 3, frameList: [1, 2, 3, 3, 3, 3], fps: 8, repeat: 0, beamFrame: 3 },
+      specialEnd: { file: 'specialend', frames: 3, fps: 8, repeat: 0 },
+    },
     hitboxes: {
       run: { x: 89, y: 46, w: 58, h: 113 },
       slide: { x: 86, y: 86, w: 64, h: 73 },
