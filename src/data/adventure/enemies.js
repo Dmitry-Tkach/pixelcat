@@ -9,7 +9,8 @@
 // step: the atlas keeps every step-th frame of the pack's, so there are fewer to load.
 // hitFrame: the attack frame where the swipe lands.
 // stompable: whether the cat can knock it out by landing on it. The spiky one hurts, so it
-// has to be slid into or jumped over.
+// has to be slid into, dashed into, shot or jumped over.
+// hp: how many of the cat's bullets knock it out.
 export const ENEMY_SCALE = 0.62;
 
 export const ENEMIES = {
@@ -20,6 +21,7 @@ export const ENEMIES = {
     feet: 203,
     speed: 70,
     stompable: true,
+    hp: 1,
     anims: {
       idle: { folder: 'Idle', step: 2, fps: 14, repeat: -1 },
       walk: { folder: 'Walk', step: 2, fps: 15, repeat: -1 },
@@ -34,6 +36,7 @@ export const ENEMIES = {
     feet: 202,
     speed: 110,
     stompable: true,
+    hp: 1,
     anims: {
       idle: { folder: 'Idle', step: 2, fps: 14, repeat: -1 },
       walk: { folder: 'Walk', step: 2, fps: 18, repeat: -1 },
@@ -48,6 +51,7 @@ export const ENEMIES = {
     feet: 208,
     speed: 55,
     stompable: false,
+    hp: 2,
     anims: {
       idle: { folder: 'Idle', step: 2, fps: 14, repeat: -1 },
       walk: { folder: 'Walk', step: 2, fps: 14, repeat: -1 },

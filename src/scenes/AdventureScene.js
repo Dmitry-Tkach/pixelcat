@@ -1,10 +1,11 @@
 import Phaser from 'phaser';
 import { GAME } from '../config/gameConfig.js';
 import { ADVENTURE_LEVELS, adventureKey } from '../data/adventure/index.js';
-import { animKey } from '../data/characters.js';
+import { CHARACTERS, animKey } from '../data/characters.js';
 import { AdventureEnemy } from '../entities/AdventureEnemy.js';
 import { Cat } from '../entities/Cat.js';
 import { InputController } from '../input/InputController.js';
+import { AdventureMoves } from '../systems/AdventureMoves.js';
 import { MAX_FALL_SPEED, ONE_WAY, TILE, TILE_BIAS, readAdventureMap } from '../systems/adventureMap.js';
 import { Effects } from '../ui/Effects.js';
 
@@ -12,6 +13,9 @@ const HERO = 'battleCat';
 // reach: how far from a ladder's middle it can be grabbed. standStill: slower than this, the cat counts
 // as standing at a ladder, so Down climbs down it rather than sliding past.
 const CLIMB = { speed: 250, sideSpeed: 110, snap: 0.25, reach: 26, standStill: 60 };
+// Pulling himself up onto the island at a ladder's top: his climb-up frames are cut at the island's
+// edge, this far above his feet, so it starts with his feet this far below the island's top.
+const CLIMB_UP = { below: 50 };
 const HURT = { invulnerableMs: 1300, knockX: 330, knockY: -640, blinkMs: 90 };
 const PENALTY = { speedMultiplier: 0.6, durationMs: 600 };
 const FALL_OUT_BELOW = 160; // below the bottom of the map, the cat has fallen out
@@ -24,6 +28,7 @@ const CHEST_COINS = 5;
 // below the enemy's top a step earlier, and it bounces off this fast.
 const STOMP = { margin: 14, bounce: -760 };
 const END_SCREEN_MS = 1100;
+const BEAM_PIPS = { x: 98, y: 128, gap: 26, r: 8 };
 const HUD_STYLE = { fontFamily: 'Fredoka, sans-serif', fontSize: '26px', fontStyle: '600', color: '#ffffff', stroke: '#1e2a4a', strokeThickness: 6 };
 
 // An adventure level: the battle cat runs, jumps and climbs through a tile map, forward and upward,
@@ -73,6 +78,13 @@ export class AdventureScene extends Phaser.Scene {
     this.physics.add.collider(this.enemies, this.groundLayer);
     this.physics.add.collider(this.enemies, this.solids);
     this.physics.add.overlap(this.cat, this.enemies, (cat, enemy) => this.meetEnemy(enemy));
+    this.moves = new AdventureMoves(this, this.cat, {
+      art: this.art,
+      groundLayer: this.groundLayer,
+      solids: this.solids,
+      enemies: this.enemies,
+      onKnockOut: (enemy) => this.knockOut(enemy),
+    });
 
     this.hearts = level.hearts;
     this.coins = 0;
@@ -81,6 +93,7 @@ export class AdventureScene extends Phaser.Scene {
     this.chestsOpened = 0;
     this.knockedOut = 0;
     this.climbing = false;
+    this.pullingUp = false;
     this.hurtMs = 0;
     this.playing = true;
     this.buildHud();
@@ -188,8 +201,10 @@ export class AdventureScene extends Phaser.Scene {
         }
         case 'gem':
         case 'heart':
-        case 'key': {
-          const item = this.physics.add.staticImage(x, middle, this.art(object.type)).setDepth(4);
+        case 'key':
+        case 'rage': {
+          const texture = object.type === 'rage' ? 'mushroom' : object.type;
+          const item = this.physics.add.staticImage(x, middle, this.art(texture)).setDepth(4);
           item.kind = object.type;
           this.tweens.add({ targets: item, scale: 1.12, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
           this.pickups.push(item);
@@ -228,7 +243,7 @@ export class AdventureScene extends Phaser.Scene {
         case 'enemy': {
           const enemy = new AdventureEnemy(this, x, y, object.kind, { groundLayer: this.groundLayer, isSpike: (px, py) => spikeCells.has(`${Math.floor(px / TILE)},${Math.floor(py / TILE)}`) });
           enemy.on('swipe', () => {
-            if (enemy.swipeLands(this.cat)) this.hurt(enemy.x);
+            if (enemy.swipeLands(this.cat) && !this.moves.isRaging) this.hurt(enemy.x);
           });
           this.enemies.add(enemy);
           this.totals.enemies += 1;
@@ -255,8 +270,12 @@ export class AdventureScene extends Phaser.Scene {
     fixed(this.add.image(150, 84, this.art('gem'))).setScale(0.75);
     this.gemText = fixed(this.add.text(172, 84, `0/${this.totals.gems}`, HUD_STYLE).setOrigin(0, 0.5));
     this.keyIcon = fixed(this.add.image(272, 84, this.art('key'))).setScale(0.8).setAlpha(0.3);
+    // The beam's charge: a pip for each enemy knocked out, up to a full beam.
+    fixed(this.add.text(24, 128, 'BEAM', { ...HUD_STYLE, fontSize: '20px' }).setOrigin(0, 0.5));
+    this.beamPips = fixed(this.add.graphics());
+    this.drawBeamPips();
     this.hint = fixed(this.add.text(GAME.WIDTH / 2, 150, '', { ...HUD_STYLE, fontSize: '30px', align: 'center' }).setOrigin(0.5));
-    this.showHint(`${this.level.title}\nRun, jump and climb up to the portal\nJump on enemies, or slide into them`, 3600);
+    this.showHint(`${this.level.title}\nRun, jump and climb up to the portal\nX shoot (hold for a burst) · Shift dash · C beam`, 4200);
   }
 
   showHint(text, ms = 2200) {
@@ -270,6 +289,18 @@ export class AdventureScene extends Phaser.Scene {
     this.coinText.setText(String(this.coins));
     this.gemText.setText(`${this.gems}/${this.totals.gems}`);
     this.keyIcon.setAlpha(this.hasKey ? 1 : 0.3);
+    this.drawBeamPips();
+  }
+
+  drawBeamPips() {
+    const { charge } = this.moves;
+    const full = this.moves.specialReady;
+    this.beamPips.clear();
+    for (let i = 0; i < this.moves.chargeNeeded; i++) {
+      const x = BEAM_PIPS.x + i * BEAM_PIPS.gap;
+      this.beamPips.fillStyle(0x1e2a4a, 1).fillCircle(x, BEAM_PIPS.y, BEAM_PIPS.r + 3);
+      this.beamPips.fillStyle(i < charge ? (full ? 0x7fd8ff : 0x3f8cff) : 0x55627a, 1).fillCircle(x, BEAM_PIPS.y, BEAM_PIPS.r);
+    }
   }
 
   fitToScreen() {
@@ -283,7 +314,7 @@ export class AdventureScene extends Phaser.Scene {
   // Islands hold the cat only when it's coming down onto them, not while it climbs or drops through.
   landsOn(tile) {
     if (!ONE_WAY.has(tile.index)) return true;
-    if (this.climbing || this.cat.isDropping) return false;
+    if (this.climbing || this.pullingUp || this.cat.isDropping) return false;
     if (this.cat.body.bottom <= tile.pixelY + 12) this.cat.onPlatform = true;
     return true;
   }
@@ -316,7 +347,7 @@ export class AdventureScene extends Phaser.Scene {
   }
 
   jump(key) {
-    if (!this.playing) return;
+    if (!this.playing || this.pullingUp || this.moves.isFiringSpecial) return;
     if (this.climbing) {
       if (key === 'space') {
         this.stopClimbing();
@@ -329,11 +360,12 @@ export class AdventureScene extends Phaser.Scene {
       this.startClimbing();
       return;
     }
+    this.moves.endDash();
     this.cat.requestJump();
   }
 
   slide(key) {
-    if (!this.playing || this.climbing) return;
+    if (!this.playing || this.climbing || this.pullingUp || this.moves.isFiringSpecial) return;
     // Down while standing at the top of a ladder climbs down it. Running past one, Down slides, so a
     // ladder through the middle of an island doesn't catch the cat.
     const standing = Math.abs(this.cat.moveVelocity) < CLIMB.standStill;
@@ -353,12 +385,13 @@ export class AdventureScene extends Phaser.Scene {
     this.cat.body.setAllowGravity(false);
     this.cat.setVelocity(0, 0);
     this.cat.moveVelocity = 0;
-    this.cat.play(animKey(HERO, 'fall'), true);
+    this.cat.play(animKey(HERO, 'climb'), true);
   }
 
   stopClimbing() {
     this.climbing = false;
     this.cat.body.setAllowGravity(true);
+    this.cat.anims.resume();
   }
 
   updateClimbing() {
@@ -372,9 +405,38 @@ export class AdventureScene extends Phaser.Scene {
     this.cat.setVelocity(steer * CLIMB.sideSpeed, direction * CLIMB.speed);
     if (steer === 0) this.cat.x += (ladder.x - this.cat.body.center.x) * CLIMB.snap;
     else this.cat.setFlipX(steer < 0);
-    // Off the top: it steps onto the island there. Off the bottom: it stands on the ground.
-    if (direction < 0 && this.cat.body.bottom < this.ladderTop(ladder.col, ladder.row) - 2) this.stopClimbing();
+    // Climbing up or down has its own animation; holding still on the ladder, he holds his pose.
+    if (direction === 0 && steer === 0) this.cat.anims.pause();
+    else this.cat.play(animKey(HERO, direction > 0 ? 'climbDown' : 'climb'), true).anims.resume();
+    // Near the top: he pulls himself up onto the island. Off the bottom: he stands on the ground.
+    const top = this.ladderTop(ladder.col, ladder.row);
+    const ontoIsland = ONE_WAY.has(this.groundLayer.getTileAt(ladder.col, top / TILE)?.index);
+    if (direction < 0 && ontoIsland && this.cat.body.bottom <= top + CLIMB_UP.below) this.startPullUp(top);
+    else if (direction < 0 && this.cat.body.bottom < top - 2) this.stopClimbing();
     else if (direction > 0 && this.cat.body.blocked.down) this.stopClimbing();
+  }
+
+  // He hangs on the island's edge while his climb-up plays, then stands on top.
+  startPullUp(top) {
+    this.climbing = false;
+    this.pullingUp = true;
+    this.cat.setVelocity(0, 0);
+    this.cat.y += top + CLIMB_UP.below - this.cat.body.bottom;
+    this.cat.anims.resume();
+    this.cat.play(animKey(HERO, 'climbUp'));
+    const { frames, fps } = CHARACTERS[HERO].anims.climbUp;
+    this.pullUpTimer = this.time.delayedCall((frames / fps) * 1000, () => {
+      this.cat.body.reset(this.cat.x, this.cat.y + top - this.cat.body.bottom);
+      this.endPullUp();
+    });
+  }
+
+  endPullUp() {
+    if (!this.pullingUp) return;
+    this.pullUpTimer?.remove();
+    this.pullingUp = false;
+    this.cat.body.setAllowGravity(true);
+    this.cat.anims.resume();
   }
 
   // ----- Things happening -----
@@ -393,6 +455,9 @@ export class AdventureScene extends Phaser.Scene {
     } else if (item.kind === 'heart') {
       this.hearts = Math.min(this.level.hearts, this.hearts + 1);
       this.audio.playSfx('pawPickup');
+    } else if (item.kind === 'rage') {
+      this.moves.startRage();
+      this.showHint('RAGE!');
     } else if (item.kind === 'key') {
       this.hasKey = true;
       this.audio.playSfx('pawPickup');
@@ -436,14 +501,18 @@ export class AdventureScene extends Phaser.Scene {
     this.updateHud();
   }
 
-  // Landing on an enemy knocks it out and bounces the cat up, unless it's spiky. Sliding into one
-  // knocks it out too. Any other touch hurts the cat.
+  // Landing on an enemy knocks it out and bounces the cat up, unless it's spiky. Sliding or dashing
+  // into one knocks it out too, and in a rage anything he touches is knocked out. Any other touch
+  // hurts him.
   meetEnemy(enemy) {
-    if (enemy.dead || !this.playing) return;
+    if (enemy.dead || !this.playing || this.moves.isFiringSpecial) return;
     const { body } = this.cat;
     const feetBefore = body.prev.y + body.height;
     const fromAbove = body.velocity.y > 0 && feetBefore <= enemy.body.top + STOMP.margin;
-    if (fromAbove && enemy.info.stompable) {
+    if (this.moves.isRaging || this.moves.isDashing) {
+      this.knockOut(enemy);
+      this.audio.playSfx('smash');
+    } else if (fromAbove && enemy.info.stompable) {
       this.knockOut(enemy);
       this.cat.bounce(STOMP.bounce);
       this.audio.playSfx('bounce');
@@ -456,9 +525,12 @@ export class AdventureScene extends Phaser.Scene {
   }
 
   knockOut(enemy) {
+    if (enemy.dead) return;
+    this.effects.impact(enemy.x, enemy.body.center.y);
     enemy.knockOut();
     this.knockedOut += 1;
-    this.effects.impact(enemy.x, enemy.body.center.y);
+    if (this.moves.addCharge()) this.showHint('Beam ready! Press C');
+    this.updateHud();
   }
 
   reachCheckpoint(lantern) {
@@ -471,7 +543,9 @@ export class AdventureScene extends Phaser.Scene {
   }
 
   hurt(fromX) {
-    if (this.hurtMs > 0 || !this.playing) return;
+    if (this.hurtMs > 0 || !this.playing || this.moves.isFiringSpecial) return;
+    this.moves.endDash();
+    this.endPullUp();
     this.loseHeart();
     if (!this.playing) return;
     const away = this.cat.x < fromX ? -1 : 1;
@@ -484,6 +558,8 @@ export class AdventureScene extends Phaser.Scene {
   fellOut() {
     this.loseHeart();
     if (!this.playing) return;
+    this.moves.endDash();
+    this.endPullUp();
     if (this.climbing) this.stopClimbing();
     this.cat.body.reset(this.respawnAt.x, this.respawnAt.y - 80);
     this.cat.moveVelocity = 0;
@@ -518,6 +594,8 @@ export class AdventureScene extends Phaser.Scene {
 
   endPlay() {
     this.playing = false;
+    this.moves.stop();
+    this.endPullUp();
     this.climbing = false;
     this.cat.body.setAllowGravity(true);
     this.cat.setVelocityX(0);
@@ -574,12 +652,13 @@ export class AdventureScene extends Phaser.Scene {
     this.cat.setAlpha(this.hurtMs > 0 && Math.floor(this.hurtMs / HURT.blinkMs) % 2 ? 0.35 : 1);
     if (this.climbing) {
       this.updateClimbing();
-    } else {
-      this.cat.move(this.controls.steer);
+    } else if (!this.pullingUp) {
+      this.cat.move(this.moves.isFiringSpecial ? 0 : this.controls.steer);
       this.cat.tick(ms);
       // Holding Up as the cat reaches a ladder grabs it.
-      if (this.upHeld && this.ladderNear()) this.startClimbing();
+      if (this.upHeld && this.ladderNear() && !this.moves.isFiringSpecial) this.startClimbing();
     }
+    this.moves.update(ms, { canAct: !this.climbing && !this.pullingUp });
     for (const enemy of this.enemies.getChildren()) enemy.update(this.cat, ms);
     if (this.cat.body.top > this.worldH + FALL_OUT_BELOW) this.fellOut();
   }

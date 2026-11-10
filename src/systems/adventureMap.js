@@ -35,6 +35,7 @@ export const OBJECTS = {
   o: 'coin',
   '*': 'gem',
   '+': 'heart',
+  m: 'rage',
   k: 'key',
   T: 'chest',
   '?': 'bonus',

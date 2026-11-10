@@ -57,6 +57,8 @@ const WOOD = {
   rock: [wood('Environment', 'Rock 01'), HALF],
   statue: [wood('Environment', 'Statue'), HALF],
   lantern: [wood('Environment', 'Fireplace'), HALF],
+  // The battle cat's bullet, from the gangsta cats pack.
+  bullet: [join(WORLDS, 'characters', 'gangsta-cats', 'Png', 'Bullets', 'Artboard 1.png'), 0.4],
 };
 
 rmSync(OUT, { recursive: true, force: true });

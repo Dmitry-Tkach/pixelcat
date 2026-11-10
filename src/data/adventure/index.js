@@ -11,7 +11,7 @@ export const ADVENTURE_ART = {
   wood: [
     'tiles', 'back-far', 'back-near', 'ladder', 'spike', 'bonus', 'bonus-used', 'box', 'stone', 'roots',
     'coin-1', 'coin-2', 'coin-3', 'coin-4', 'coin-5', 'coin-6', 'gem', 'key', 'chest-locked', 'chest-open',
-    'heart', 'portal', 'bush-1', 'plant-1', 'statue', 'sign-right', 'sign-up', 'lantern',
+    'heart', 'portal', 'bush-1', 'plant-1', 'statue', 'sign-right', 'sign-up', 'lantern', 'mushroom', 'bullet',
   ],
 };
 

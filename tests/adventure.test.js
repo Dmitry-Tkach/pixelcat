@@ -109,6 +109,21 @@ describe('adventure enemies', () => {
 });
 
 describe('the battle cat in the adventure', () => {
+  it('has every move the adventure plays', () => {
+    const roles = ['idle', 'run', 'jump', 'fall', 'slide', 'hurt', 'caught', 'victory', 'shoot', 'burst', 'rage', 'dash',
+      'climb', 'climbUp', 'climbDown', 'special', 'specialEnd'];
+    for (const role of roles) expect(CHARACTERS.battleCat.anims[role], role).toBeDefined();
+  });
+
+  it('places a rage mushroom with m', () => {
+    expect(readAdventureMap(['m', '#']).objects).toEqual([{ type: 'rage', col: 0, row: 0 }]);
+  });
+
+  it('takes more shots to knock out the spiky enemy, which can\'t be landed on', () => {
+    for (const enemy of Object.values(ENEMIES)) expect(enemy.hp).toBeGreaterThanOrEqual(1);
+    expect(ENEMIES.spiky.hp).toBeGreaterThan(ENEMIES.goon.hp);
+  });
+
   it('is about two tiles tall', () => {
     const { hitboxes, scale } = CHARACTERS.battleCat;
     expect(hitboxes.run.h * scale / TILE).toBeGreaterThan(1.5);

@@ -215,6 +215,7 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     this.hurtMs = Math.max(0, this.hurtMs - ms);
     this.jumpBufferMs = Math.max(0, this.jumpBufferMs - ms);
     this.dropMs = Math.max(0, this.dropMs - ms);
+    this.poseMs = Math.max(0, (this.poseMs ?? 0) - ms);
     if (!this.onGround) this.onPlatform = false;
 
     this.updateMovement(ms);
@@ -246,8 +247,19 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     this.updateAnimation();
   }
 
+  // Shows one of the character's other moves, like shooting, for a while, instead of running.
+  pose(role, ms) {
+    this.poseRole = role;
+    this.poseMs = ms;
+    if (this.hurtMs <= 0) this.play(animKey(this.character, role), true);
+  }
+
   updateAnimation() {
     if (this.hurtMs > 0) return;
+    if (this.poseMs > 0) {
+      this.play(animKey(this.character, this.poseRole), true);
+      return;
+    }
     let role = 'run';
     if (this.isSliding) role = 'slide';
     else if (!this.onGround) role = this.body.velocity.y < 0 ? 'jump' : 'fall';

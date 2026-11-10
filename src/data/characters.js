@@ -136,7 +136,8 @@ export const CHARACTERS = {
       climb: { file: 'climb', frames: 4, fps: 8, repeat: -1 },
       climbUp: { file: 'climbup', frames: 4, fps: 10, repeat: 0 },
       climbDown: { file: 'climbdown', frames: 4, fps: 8, repeat: -1 },
-      special: { file: 'special', frames: 4, fps: 8, repeat: 0 },
+      // The beam, the last frame, is held a little longer.
+      special: { file: 'special', frames: 4, frameList: [1, 2, 3, 4, 4, 4], fps: 8, repeat: 0 },
       specialEnd: { file: 'specialend', frames: 3, fps: 8, repeat: 0 },
     },
     // The same size on screen as the cat's, so levels play the same. His frames are 236x171, with

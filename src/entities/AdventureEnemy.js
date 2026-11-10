@@ -9,6 +9,7 @@ const PATROL_TILES = 3;
 const SWIPE = { sees: 120, reach: 95, levelWithin: 60, cooldownMs: 1100 };
 const LOOK_DOWN = 4; // how far below its feet it checks for ground ahead, so it turns at edges
 const FADE_MS = 500;
+const SHOT_FLASH_MS = 70;
 
 // One of the adventure's enemies: it walks to and fro on its island or stretch of ground, turning at
 // edges, walls and the end of its beat, and swipes at the cat when it's close in front. The scene
@@ -28,6 +29,7 @@ export class AdventureEnemy extends Phaser.Physics.Arcade.Sprite {
     this.setOrigin(0.5, this.layout.feet / this.layout.frameH).setDepth(5);
     this.body.setSize(this.layout.body.w, this.layout.body.h);
     this.homeX = x;
+    this.hp = this.info.hp;
     this.dead = false;
     this.attacking = false;
     this.cooldownMs = 0;
@@ -100,6 +102,14 @@ export class AdventureEnemy extends Phaser.Physics.Arcade.Sprite {
     this.attacking = false;
     this.setVelocityX(0);
     this.play(enemyAnimKey(this.kind, 'idle'), true);
+  }
+
+  // A bullet hit: it flashes. Returns whether that was its last.
+  takeShot() {
+    this.hp -= 1;
+    this.setTintFill(0xffffff);
+    this.scene.time.delayedCall(SHOT_FLASH_MS, () => this.clearTint());
+    return this.hp <= 0;
   }
 
   knockOut() {
