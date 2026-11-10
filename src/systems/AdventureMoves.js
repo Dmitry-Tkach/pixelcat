@@ -21,10 +21,11 @@ const SHOOT = { tapMs: 375, holdMs: 300, cooldownMs: 260, rageShare: 0.6, emptyH
 const BLAST_SHAKE = { ms: 180, strength: 0.006 };
 const DASH = { speed: 950, ms: 220, cooldownMs: 650 };
 const RAGE = { ms: 8000, poseMs: 650, tint: 0xff9a9a, flashMs: 160 };
-// charge: knockouts to fill the beam. reach and height: what the beam hits, ahead of him and up
-// from his feet. The beam fires on his special's `beamFrame` (see data/characters.js).
+// charge: knockouts to fill the beam. height: how far up from his feet the beam hits; ahead, it hits
+// as far as it's drawn, the half of his special's frame in front of him. The beam fires on his
+// special's `beamFrame` (see data/characters.js).
 // belowFeet: the room tools/cut-sheet.mjs leaves under his feet in each frame.
-const SPECIAL = { charge: 3, reach: 380, height: 110, endMs: 375, belowFeet: 13 };
+const SPECIAL = { charge: 3, height: 110, endMs: 375, belowFeet: 13 };
 const NO_WEAPON_HINT_MS = 2500; // how often pressing fire without the minigun says so
 
 export class AdventureMoves {
@@ -347,12 +348,17 @@ export class AdventureMoves {
     this.special.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => this.endSpecial());
   }
 
+  // How far ahead the drawn beam reaches: his special's frame is centred on him, so half its width.
+  get beamReach() {
+    return this.special ? this.special.displayWidth / 2 : 0;
+  }
+
   beamHits(dir) {
     const { body } = this.cat;
     this.scene.audio.playSfx('beam');
     this.scene.cameras.main.shake(220, 0.006);
     const from = body.center.x;
-    const to = from + dir * SPECIAL.reach;
+    const to = from + dir * this.beamReach;
     const [left, right] = dir > 0 ? [from, to] : [to, from];
     for (const enemy of this.enemies.getChildren().slice()) {
       if (enemy.dead) continue;
