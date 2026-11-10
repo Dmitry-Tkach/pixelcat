@@ -47,7 +47,9 @@ export class AdventureMoves {
     this.keys = scene.input.keyboard.addKeys({ fire: 'X', dash: 'SHIFT', special: 'C', swap: 'Q' });
     this.bullets = scene.physics.add.group({ allowGravity: false });
     scene.physics.add.collider(this.bullets, groundLayer, (bullet) => this.bulletStops(bullet));
-    scene.physics.add.collider(this.bullets, solids, (bullet) => this.bulletStops(bullet));
+    // Against a list of blocks, Phaser passes the block first and the bullet second, so the bullet is
+    // whichever of the two is in the group.
+    scene.physics.add.collider(this.bullets, solids, (a, b) => this.bulletStops(this.bullets.contains(a) ? a : b));
     scene.physics.add.overlap(this.bullets, enemies, (bullet, enemy) => this.shotHits(bullet, enemy));
     this.enemies = enemies;
 

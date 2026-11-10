@@ -90,7 +90,8 @@ export class AdventureScene extends Phaser.Scene {
     // The gunners' bullets fly through islands, but not the ground, and hurt the cat.
     this.enemyBullets = this.physics.add.group({ allowGravity: false });
     this.physics.add.collider(this.enemyBullets, this.groundLayer, (bullet) => bullet.destroy(), (bullet, tile) => !ONE_WAY.has(tile.index));
-    this.physics.add.collider(this.enemyBullets, this.solids, (bullet) => bullet.destroy());
+    // Against a list of blocks, Phaser passes the block first, so the bullet is the one in the group.
+    this.physics.add.collider(this.enemyBullets, this.solids, (a, b) => (this.enemyBullets.contains(a) ? a : b).destroy());
     this.physics.add.overlap(this.cat, this.enemyBullets, (cat, bullet) => this.shotByGunner(bullet));
     this.moves = new AdventureMoves(this, this.cat, {
       art: this.art,
