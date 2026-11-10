@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { AMMO, EXPLOSION_KEY, LOADED } from '../data/adventure/ammo.js';
-import { BEAM, BEAMS, BEAM_HIT, BEAM_LAYERS } from '../data/adventure/beams.js';
+import { BEAMS, BEAM_HIT, BOLT, BOLT_KEY, BOLT_LAYERS } from '../data/adventure/beams.js';
 import { CHARACTERS, animKey, frameKey } from '../data/characters.js';
 import { ONE_WAY, TILE } from './adventureMap.js';
 
@@ -28,7 +28,6 @@ const RAGE = { ms: 8000, poseMs: 650, tint: 0xff9a9a, flashMs: 160 };
 // special's `beamFrame` (see data/characters.js).
 // belowFeet: the room tools/cut-sheet.mjs leaves under his feet in each frame.
 const SPECIAL = { charge: 3, endMs: 375, belowFeet: 13 };
-const BEAM_WALL_STEP = 8; // how finely the beam's path is checked for ground in its way
 const NO_WEAPON_HINT_MS = 2500; // how often pressing fire without the minigun says so
 
 export class AdventureMoves {
@@ -39,7 +38,8 @@ export class AdventureMoves {
   constructor(scene, cat, { art, groundLayer, solids, enemies, onKnockOut, onNoWeapon, onAmmo }) {
     this.scene = scene;
     this.groundLayer = groundLayer;
-    this.beam = null; // the beam the game draws, while it's out
+    this.beam = null; // the magic bolt, while it flies
+    this.makeBoltTexture();
     this.cat = cat;
     this.art = art;
     this.onKnockOut = onKnockOut;
@@ -357,122 +357,86 @@ export class AdventureMoves {
     this.special.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => this.endSpecial());
   }
 
+  // Releases the magic bolt from his gun or paws, with his frame cut off where its own ray starts.
   startBeam(dir) {
     const { special } = this;
     const { start, middle } = BEAMS[this.cat.character];
     const { width, height } = special.frame;
     const scale = special.scaleX;
-    // His frame, cut off where its own beam starts.
     special.setCrop(0, 0, start, height);
     const x = special.x + dir * (start - width / 2) * scale;
     const y = special.y - special.originY * height * scale + middle * scale;
-    // As far as it reaches, or to the first ground in its way.
-    const reach = BEAM.reachTiles * TILE;
-    let length = reach;
-    let blocked = false;
-    for (let d = 0; d < reach; d += BEAM_WALL_STEP) {
-      const tile = this.groundLayer.getTileAtWorldXY(x + dir * d, y);
-      if (tile && !ONE_WAY.has(tile.index)) { length = d; blocked = true; break; }
-    }
-    const random = Phaser.Math.RND;
-    this.beam = {
-      x, y, dir, scale, length, blocked, shown: 0, ageMs: 0, fade: 1, fading: false,
-      graphics: this.scene.add.graphics().setDepth(this.special.depth + 1),
-      sparks: Array.from({ length: BEAM.sparks }, () => ({
-        along: random.frac(), across: random.realInRange(-34, 34), r: random.realInRange(1.5, 4), white: random.frac() > 0.5,
-      })),
-    };
+    const sprite = this.scene.add.image(x, y, BOLT_KEY).setDepth(special.depth + 1).setFlipX(dir < 0)
+      .setScale(scale).setBlendMode(Phaser.BlendModes.ADD);
+    const trail = this.scene.add.particles(0, 0, 'fx-spark', {
+      follow: sprite, frequency: BOLT.trail.everyMs, lifespan: BOLT.trail.lifespan,
+      speedX: { min: -dir * 40, max: -dir * 160 }, speedY: { min: -BOLT.trail.spread, max: BOLT.trail.spread },
+      scale: { start: 0.7 * scale, end: 0 }, alpha: { start: 1, end: 0 },
+      tint: [0xffffff, 0xa6e0ff, 0x3d9bff], blendMode: 'ADD',
+    }).setDepth(special.depth);
+    this.beam = { sprite, trail, x0: x, y0: y, dir, scale, flown: 0, ageMs: 0, hit: new Set() };
     this.scene.audio.playSfx('beam');
-    this.scene.cameras.main.shake(BEAM.growMs + 260, 0.006);
+    this.scene.cameras.main.shake(140, 0.004);
   }
 
-  // Grows it out, runs its flames and sparks along it, knocks out what it touches, and fades it.
+  // Flies it on, weaving and pulsing, knocks out every enemy it passes, and bursts where it stops.
   updateBeam(ms) {
-    const beam = this.beam;
-    beam.ageMs += ms;
-    beam.shown = Math.min(beam.length, beam.length * (beam.ageMs / BEAM.growMs));
-    if (beam.fading) {
-      beam.fade -= ms / BEAM.fadeMs;
-      if (beam.fade <= 0) {
-        beam.graphics.destroy();
-        this.beam = null;
-        return;
-      }
-    } else {
-      this.beamHits(beam);
-    }
-    this.drawBeam(beam);
-  }
-
-  drawBeam({ graphics, x, y, dir, scale, length, blocked, shown, ageMs, fade, sparks }) {
-    graphics.clear();
-    const len = shown / scale; // in his frame's pixels, like the layers
-    if (len < 1) return;
-    const flowed = (ageMs / 1000) * BEAM.flow;
-    const toWorld = (along, across) => ({ x: x + dir * along * scale, y: y + across * scale });
-    // Thin at the muzzle, full along it, rounded off at the tip.
-    const shape = (at) => {
-      const swell = Math.min(1, 0.35 + (0.65 * at) / BEAM.swell);
-      const fromTip = Math.max(0, at - (len - BEAM.taper)) / BEAM.taper;
-      return swell * Math.sqrt(Math.max(0, 1 - fromTip * fromTip));
-    };
-    BEAM_LAYERS.forEach(({ half, waves, colour, alpha }, layer) => {
-      const pulse = 1 + BEAM.flicker * Math.sin(ageMs / 45 + layer * 1.7);
-      const edge = (at, side) => (half + waves.reduce((sum, [h, k, phase]) =>
-        sum + h * Math.sin((2 * Math.PI * k * (at - flowed)) / BEAM.wavelength + phase + side * 1.3), 0)) * shape(at) * pulse;
-      const top = [], bottom = [];
-      for (let at = 0; at <= len; at += BEAM.step) {
-        top.push(toWorld(at, -edge(at, 0)));
-        bottom.unshift(toWorld(at, edge(at, 1)));
-      }
-      top.push(toWorld(len, 0));
-      graphics.fillStyle(colour, alpha * fade).fillPoints([...top, ...bottom], true);
-    });
-    // A flash at the muzzle, a glow at the tip, and sparks running along it.
-    const muzzle = toWorld(0, 0), tip = toWorld(Math.max(0, len - BEAM.taper * 0.6), 0);
-    graphics.fillStyle(0xa6e0ff, 0.8 * fade).fillCircle(muzzle.x, muzzle.y, 30 * scale).fillCircle(tip.x, tip.y, 30 * scale);
-    graphics.fillStyle(0xffffff, fade).fillCircle(muzzle.x, muzzle.y, 18 * scale).fillCircle(tip.x, tip.y, 14 * scale);
-    // Where the ground stops it, it flares against it.
-    if (blocked && shown >= length) {
-      const end = toWorld(len, 0);
-      const pulse = 0.75 + 0.25 * Math.sin(ageMs / BEAM_HIT.wallPulseMs);
-      graphics.fillStyle(0x3d9bff, 0.35 * fade).fillCircle(end.x, end.y, BEAM_HIT.wallGlow * 1.5 * pulse * scale);
-      graphics.fillStyle(0xcdf0ff, 0.7 * fade).fillCircle(end.x, end.y, BEAM_HIT.wallGlow * pulse * scale);
-      graphics.fillStyle(0xffffff, 0.9 * fade).fillCircle(end.x, end.y, BEAM_HIT.wallGlow * 0.45 * scale);
-    }
-    const sparkFlowed = (ageMs / 1000) * BEAM.sparkFlow;
-    for (const { along, across, r, white } of sparks) {
-      const at = (along * len + sparkFlowed) % len;
-      const p = toWorld(at, across * shape(at));
-      graphics.fillStyle(white ? 0xffffff : 0xcdf0ff, fade).fillCircle(p.x, p.y, r * scale);
-    }
-  }
-
-  // Everything it touches is knocked out: whatever's within its thickness, as far as it's grown.
-  beamHits({ x, y, dir, scale, shown }) {
-    const half = BEAM_LAYERS[0].half * scale;
-    const [left, right] = dir > 0 ? [x, x + shown] : [x - shown, x];
+    const bolt = this.beam;
+    bolt.ageMs += ms;
+    bolt.flown += (BOLT.speed * ms) / 1000;
+    const x = bolt.x0 + bolt.dir * bolt.flown;
+    const y = bolt.y0 + Math.sin(bolt.ageMs * BOLT.wobble.rate) * BOLT.wobble.px;
+    const pulse = 1 + BOLT.pulse * Math.sin(bolt.ageMs / 40);
+    bolt.sprite.setPosition(x, y).setScale(bolt.scale * pulse, bolt.scale / pulse);
+    const reach = BOLT.reachTiles * TILE;
+    const tile = this.groundLayer.getTileAtWorldXY(x + bolt.dir * 20 * bolt.scale, y);
+    const radius = BOLT.hitRadius * bolt.scale;
     for (const enemy of this.enemies.getChildren().slice()) {
-      if (enemy.dead) continue;
+      if (enemy.dead || bolt.hit.has(enemy)) continue;
       const e = enemy.body;
-      if (e.right > left && e.left < right && e.bottom > y - half && e.top < y + half) {
-        this.beamBoom(e.center.x, e.center.y);
+      const nearX = Phaser.Math.Clamp(x, e.left, e.right), nearY = Phaser.Math.Clamp(y, e.top, e.bottom);
+      if (Phaser.Math.Distance.Between(x, y, nearX, nearY) <= radius) {
+        bolt.hit.add(enemy);
+        this.beamBoom(e.center.x, e.center.y, BEAM_HIT.scale, BEAM_HIT.ring);
         this.onKnockOut(enemy);
       }
     }
+    if (bolt.flown >= reach || (tile && !ONE_WAY.has(tile.index))) this.endBolt(true);
   }
 
-  // An enemy the beam hits goes up in a blue burst.
-  beamBoom(x, y) {
+  // It's gone: with a burst where it stopped, or quietly when the level ends.
+  endBolt(burst) {
+    const bolt = this.beam;
+    if (!bolt) return;
+    this.beam = null;
+    if (burst) this.beamBoom(bolt.sprite.x, bolt.sprite.y, BEAM_HIT.endScale, BEAM_HIT.endRing);
+    bolt.sprite.destroy();
+    bolt.trail.stop();
+    this.scene.time.delayedCall(BOLT.trail.lifespan, () => bolt.trail.destroy());
+  }
+
+  // A blue burst, with a ring and a boom.
+  beamBoom(x, y, scale, ring) {
     const blast = this.scene.add.sprite(x, y, EXPLOSION_KEY, 'explosion-0').setDepth(BULLET.depth + 2)
-      .setTint(BEAM_HIT.tint).setScale(BEAM_HIT.scale).setBlendMode(Phaser.BlendModes.ADD);
+      .setTint(BEAM_HIT.tint).setScale(scale).setBlendMode(Phaser.BlendModes.ADD);
     blast.play(EXPLOSION_KEY).once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => blast.destroy());
-    this.scene.effects.impact(x, y, BEAM_HIT.ring);
+    this.scene.effects.impact(x, y, ring);
     this.scene.audio.playSfx('boom');
   }
 
+  // The bolt, drawn once: glowing ovals, outside in, a little behind its nose.
+  makeBoltTexture() {
+    if (this.scene.textures.exists(BOLT_KEY)) return;
+    const [w, h] = BOLT_LAYERS[0];
+    const g = this.scene.make.graphics({ add: false });
+    for (const [length, height, colour, alpha] of BOLT_LAYERS) {
+      g.fillStyle(colour, alpha).fillEllipse(w - length / 2 - (w - length) * 0.15, h / 2, length, height);
+    }
+    g.generateTexture(BOLT_KEY, w, h);
+    g.destroy();
+  }
+
   endSpecial() {
-    if (this.beam) this.beam.fading = true;
     this.special?.destroy();
     this.special = null;
     this.cat.setVisible(true);
@@ -491,7 +455,6 @@ export class AdventureMoves {
     this.cat.clearTint();
     this.rageMs = 0;
     this.bullets.clear(true, true);
-    this.beam?.graphics.destroy();
-    this.beam = null;
+    this.endBolt(false);
   }
 }
