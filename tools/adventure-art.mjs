@@ -90,8 +90,9 @@ for (const [name, [file, scale]] of Object.entries(WOOD)) {
   }
   await sharp(png).png({ compressionLevel: 9 }).toFile(join(out, `${name}.png`));
 }
-// The minigun the battle cat can find, cut from the frame of him standing with it: the barrel and the
-// gold housing, without his paws and chin, which are grey, white or red.
+// The minigun the battle cat can find, in a power-up box: the gun is cut from the frame of him
+// standing with it, the barrel and the gold housing, without his paws and chin, which are grey,
+// white or red.
 {
   const box = { left: 118, top: 115, width: 64, height: 35 };
   const allGunFrom = 146; // right of here, everything is gun
@@ -124,7 +125,24 @@ for (const [name, [file, scale]] of Object.entries(WOOD)) {
     if (size > biggestSize) { biggest = id; biggestSize = size; }
   }
   for (let p = 0; p < n; p++) if (piece[p] !== biggest) data[p * 4 + 3] = 0;
-  await sharp(data, { raw: info }).trim().png({ compressionLevel: 9 }).toFile(join(out, 'minigun.png'));
+  const gun = await sharp(data, { raw: info }).trim().png().toBuffer();
+  // It's found in a power-up box: a rounded square with a gold frame and a sky-blue face, lit from
+  // the top, with the minigun inside on a soft glow, so the dark gun stands out.
+  const BOX = 60;
+  const powerUp = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${BOX}" height="${BOX}">
+    <defs><linearGradient id="face" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8ec5ff"/><stop offset="1" stop-color="#3d6be0"/></linearGradient>
+      <radialGradient id="glow"><stop offset="0" stop-color="#ffffff" stop-opacity="0.85"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient></defs>
+    <rect x="2" y="4" width="56" height="54" rx="12" fill="#2a1d14"/>
+    <rect x="2" y="2" width="56" height="54" rx="12" fill="#f5b52e" stroke="#2a1d14" stroke-width="3"/>
+    <rect x="8" y="8" width="44" height="42" rx="8" fill="url(#face)"/>
+    <ellipse cx="30" cy="30" rx="24" ry="17" fill="url(#glow)"/>
+    <rect x="12" y="11" width="36" height="7" rx="3.5" fill="#ffffff" opacity="0.35"/>
+    <circle cx="9" cy="9" r="2.2" fill="#fff3c4"/><circle cx="51" cy="9" r="2.2" fill="#fff3c4"/>
+    <circle cx="9" cy="49" r="2.2" fill="#a8741a"/><circle cx="51" cy="49" r="2.2" fill="#a8741a"/></svg>`);
+  const inside = await sharp(gun).resize({ width: 42 }).toBuffer();
+  const { height: gunH } = await sharp(inside).metadata();
+  await sharp(powerUp).composite([{ input: inside, left: 9, top: Math.round(29 - gunH / 2) }])
+    .png({ compressionLevel: 9 }).toFile(join(out, 'minigun.png'));
 }
 
 // The minigun's other ammunition (see data/adventure/ammo.js): an orange explosive round, recoloured
