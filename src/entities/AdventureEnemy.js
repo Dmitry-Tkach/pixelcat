@@ -6,13 +6,17 @@ import { TILE } from '../systems/adventureMap.js';
 // in front of it, for it to swipe; reach: how close for the swipe to land. Both in px from its
 // middle. levelWithin: how far the cat's feet can be above or below its own and still count.
 const PATROL_TILES = 3;
-const SWIPE = { sees: 120, reach: 95, levelWithin: 60, cooldownMs: 1100 };
+const SWIPE = { sees: 120, reach: 95, levelWithin: 60, cooldownMs: 550 };
+// It spots the cat this close, on either side, with his feet about at its level, hops in alarm and
+// chases him. It forgets him once he's been out of sight this long, and goes back to its beat.
+const CHASE = { sees: 5 * TILE, levelWithin: 90, hop: -280, forgetMs: 1500 };
 const LOOK_DOWN = 4; // how far below its feet it checks for ground ahead, so it turns at edges
 const FADE_MS = 500;
 const SHOT_FLASH_MS = 70;
 
 // One of the adventure's enemies: it walks to and fro on its island or stretch of ground, turning at
-// edges, walls and the end of its beat, and swipes at the cat when it's close in front. The scene
+// edges, walls and the end of its beat. When it spots the cat it hops, chases him as far as its
+// ground goes, and swipes at him when he's close in front. The scene
 // decides what touching it does (see AdventureScene.meetEnemy).
 export class AdventureEnemy extends Phaser.Physics.Arcade.Sprite {
   // groundLayer: the level's tiles, to find edges. isSpike(x, y): whether there are spikes at a point,
@@ -33,6 +37,8 @@ export class AdventureEnemy extends Phaser.Physics.Arcade.Sprite {
     this.dead = false;
     this.attacking = false;
     this.cooldownMs = 0;
+    this.alerted = false;
+    this.unseenMs = 0;
     this.face(-1);
     this.play(enemyAnimKey(kind, 'walk'));
 
@@ -67,6 +73,12 @@ export class AdventureEnemy extends Phaser.Physics.Arcade.Sprite {
     return !this.dead && this.catInFront(cat, SWIPE.reach);
   }
 
+  // Whether it can see the cat: close by, on either side, at about its level.
+  seesCat(cat) {
+    return Math.abs(cat.body.center.x - this.body.center.x) < CHASE.sees
+      && Math.abs(cat.body.bottom - this.body.bottom) < CHASE.levelWithin;
+  }
+
   update(cat, ms) {
     if (this.dead) return;
     this.cooldownMs = Math.max(0, this.cooldownMs - ms);
@@ -74,26 +86,62 @@ export class AdventureEnemy extends Phaser.Physics.Arcade.Sprite {
       this.setVelocityX(0);
       return;
     }
-    // The cat close by, at its level: it turns to it and swipes.
-    if (this.cooldownMs === 0 && this.body.blocked.down && this.catInFront(cat, SWIPE.sees)) {
-      this.face(Math.sign(cat.body.center.x - this.body.center.x) || this.direction);
+    const onGround = this.body.blocked.down;
+    const sees = this.seesCat(cat);
+    this.unseenMs = sees ? 0 : this.unseenMs + ms;
+    if (this.alerted && this.unseenMs > CHASE.forgetMs) this.alerted = false;
+    // The cat close by, in front, at its level: it swipes.
+    if (this.cooldownMs === 0 && onGround && this.catInFront(cat, SWIPE.sees)) {
       this.attacking = true;
       this.setVelocityX(0);
+      this.anims.timeScale = 1;
       this.play(enemyAnimKey(this.kind, 'attack'));
       return;
     }
-    if (this.body.blocked.down && this.shouldTurn()) this.face(-this.direction);
-    this.setVelocityX(this.direction * this.info.speed);
+    if (!onGround) return; // mid-hop, it keeps going as it was
+    if (sees) {
+      this.face(Math.sign(cat.body.center.x - this.body.center.x) || this.direction);
+      if (!this.alerted) {
+        this.alerted = true;
+        this.setVelocityY(CHASE.hop);
+      }
+      this.chase();
+      return;
+    }
+    if (this.wayBlocked() || this.pastBeat()) this.face(-this.direction);
+    this.walk(this.info.speed);
   }
 
-  shouldTurn() {
+  // Runs at the cat, as far as the edge of its island or a wall, where it waits facing him.
+  chase() {
+    if (this.wayBlocked()) {
+      this.setVelocityX(0);
+      this.anims.timeScale = 1;
+      this.play(enemyAnimKey(this.kind, 'idle'), true);
+      return;
+    }
+    this.walk(this.info.chaseSpeed);
+  }
+
+  // Its walk plays faster the faster it goes.
+  walk(speed) {
+    this.setVelocityX(this.direction * speed);
+    this.play(enemyAnimKey(this.kind, 'walk'), true);
+    this.anims.timeScale = speed / this.info.speed;
+  }
+
+  // A wall, spikes or no ground just ahead of its front foot.
+  wayBlocked() {
     const { body, direction } = this;
     if ((direction < 0 && body.blocked.left) || (direction > 0 && body.blocked.right)) return true;
-    const beat = PATROL_TILES * TILE;
-    if ((direction < 0 && this.x < this.homeX - beat) || (direction > 0 && this.x > this.homeX + beat)) return true;
-    // Spikes, or no ground, just ahead of its front foot.
     const frontX = direction < 0 ? body.left - LOOK_DOWN : body.right + LOOK_DOWN;
     return this.isSpike(frontX, body.bottom - LOOK_DOWN) || !this.groundLayer.getTileAtWorldXY(frontX, body.bottom + LOOK_DOWN);
+  }
+
+  // Past the end of its beat, still going away from home.
+  pastBeat() {
+    const beat = PATROL_TILES * TILE;
+    return (this.direction < 0 && this.x < this.homeX - beat) || (this.direction > 0 && this.x > this.homeX + beat);
   }
 
   // Stands still, for when the level ends.
@@ -101,6 +149,7 @@ export class AdventureEnemy extends Phaser.Physics.Arcade.Sprite {
     if (this.dead) return;
     this.attacking = false;
     this.setVelocityX(0);
+    this.anims.timeScale = 1;
     this.play(enemyAnimKey(this.kind, 'idle'), true);
   }
 
@@ -116,6 +165,7 @@ export class AdventureEnemy extends Phaser.Physics.Arcade.Sprite {
     this.dead = true;
     this.attacking = false;
     this.body.enable = false;
+    this.anims.timeScale = 1;
     this.play(enemyAnimKey(this.kind, 'dead'));
     this.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
       this.scene.tweens.add({ targets: this, alpha: 0, duration: FADE_MS, onComplete: () => this.destroy() });

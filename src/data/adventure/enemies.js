@@ -12,6 +12,7 @@
 // stompable: whether the cat can knock it out by landing on it. The spiky one hurts, so it
 // has to be slid into, dashed into, shot or jumped over.
 // hp: how many of the cat's bullets knock it out.
+// speed: its patrol walk. chaseSpeed: how fast it runs at the cat once it's seen him.
 export const ENEMY_SCALE = 0.62;
 
 export const ENEMIES = {
@@ -21,6 +22,7 @@ export const ENEMIES = {
     body: { x: 95, y: 105, w: 95, h: 90 },
     feet: 195,
     speed: 70,
+    chaseSpeed: 165,
     stompable: true,
     hp: 1,
     anims: {
@@ -36,6 +38,7 @@ export const ENEMIES = {
     body: { x: 85, y: 100, w: 95, h: 94 },
     feet: 194,
     speed: 110,
+    chaseSpeed: 240,
     stompable: true,
     hp: 1,
     anims: {
@@ -51,6 +54,7 @@ export const ENEMIES = {
     body: { x: 80, y: 100, w: 115, h: 102 },
     feet: 202,
     speed: 55,
+    chaseSpeed: 125,
     stompable: false,
     hp: 2,
     anims: {
