@@ -259,7 +259,7 @@ describe('the minigun\'s ammunition', () => {
 describe('the battle cat in the adventure', () => {
   it('has every move the adventure plays', () => {
     const roles = ['idle', 'run', 'jump', 'fall', 'slide', 'hurt', 'caught', 'victory', 'shoot', 'burst', 'rage', 'dash',
-      'climb', 'climbUp', 'climbDown', 'special', 'specialEnd'];
+      'climb', 'climbUp', 'climbDown', 'hang', 'special', 'specialEnd'];
     for (const role of roles) expect(CHARACTERS.battleCat.anims[role], role).toBeDefined();
   });
 
@@ -285,6 +285,23 @@ describe('the battle cat in the adventure', () => {
     const sharp = (await import('sharp')).default;
     const size = async (folder) => { const { width, height } = await sharp(`public/assets/sprites/${folder}/idle-1.png`).metadata(); return [width, height]; };
     expect(await size(CHARACTERS[ADVENTURE_HERO.character].folder)).toEqual(await size(CHARACTERS[ADVENTURE_HERO.armed].folder));
+  });
+
+  it('has every frame of every move on disk, the same size but his special', async () => {
+    const sharp = (await import('sharp')).default;
+    for (const name of [ADVENTURE_HERO.character, ADVENTURE_HERO.armed]) {
+      const { folder, anims } = CHARACTERS[name];
+      const idle = await sharp(`public/assets/sprites/${folder}/idle-1.png`).metadata();
+      for (const [role, { file, frames }] of Object.entries(anims)) {
+        for (let n = 1; n <= frames; n++) {
+          const path = `public/assets/sprites/${folder}/${file}-${n}.png`;
+          expect(existsSync(path), path).toBe(true);
+          if (role === 'special') continue;
+          const { width, height } = await sharp(path).metadata();
+          expect([width, height], path).toEqual([idle.width, idle.height]);
+        }
+      }
+    }
   });
 
   it('places a rage mushroom with m', () => {

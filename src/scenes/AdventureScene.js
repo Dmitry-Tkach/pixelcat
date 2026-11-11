@@ -16,10 +16,10 @@ import { Effects } from '../ui/Effects.js';
 // reach: how far from a ladder's middle it can be grabbed. standStill: slower than this, the cat counts
 // as standing at a ladder, so Down climbs down it rather than sliding past.
 const CLIMB = { speed: 250, sideSpeed: 110, snap: 0.25, reach: 26, standStill: 60 };
-// Pulling himself up onto the island at a ladder's top: his climb-up frames are cut at the island's
-// edge, this far above his feet in the frame, so it starts with his feet this far below the
-// island's top, scaled to his size.
-const CLIMB_UP = { below: 50 };
+// Pulling himself up onto the island at a ladder's top. It starts with his feet this far below the
+// island's top, scaled to his size. He's drawn behind the island (depth: under the ground's 2) while
+// he hoists himself up over the first riseFrames frames; the rest show him on top.
+const CLIMB_UP = { below: 50, depth: 1.9, riseFrames: 2 };
 const HURT = { invulnerableMs: 1300, knockX: 330, knockY: -640, blinkMs: 90 };
 const PENALTY = { speedMultiplier: 0.6, durationMs: 600 };
 const FALL_OUT_BELOW = 160; // below the bottom of the map, the cat has fallen out
@@ -519,7 +519,6 @@ export class AdventureScene extends Phaser.Scene {
   stopClimbing() {
     this.climbing = false;
     this.cat.body.setAllowGravity(true);
-    this.cat.anims.resume();
   }
 
   updateClimbing() {
@@ -533,9 +532,9 @@ export class AdventureScene extends Phaser.Scene {
     this.cat.setVelocity(steer * CLIMB.sideSpeed, direction * CLIMB.speed);
     if (steer === 0) this.cat.x += (ladder.x - this.cat.body.center.x) * CLIMB.snap;
     else this.cat.setFlipX(steer < 0);
-    // Climbing up or down has its own animation; holding still on the ladder, he holds his pose.
-    if (direction === 0 && steer === 0) this.cat.anims.pause();
-    else this.cat.play(animKey(this.cat.character, direction > 0 ? 'climbDown' : 'climb'), true).anims.resume();
+    // Climbing up or down has its own animation; holding still on the ladder, he hangs.
+    const anim = direction === 0 && steer === 0 ? 'hang' : direction > 0 ? 'climbDown' : 'climb';
+    this.cat.play(animKey(this.cat.character, anim), true);
     // Near the top: he pulls himself up onto the island. Off the bottom: he stands on the ground.
     const top = this.ladderTop(ladder.col, ladder.row);
     const ontoIsland = ONE_WAY.has(this.groundLayer.getTileAt(ladder.col, top / TILE)?.index);
@@ -544,15 +543,20 @@ export class AdventureScene extends Phaser.Scene {
     else if (direction > 0 && this.cat.body.blocked.down) this.stopClimbing();
   }
 
-  // He hangs on the island's edge while his climb-up plays, then stands on top.
+  // He hoists himself up from behind the island's edge while his climb-up plays, then stands on top.
   startPullUp(top) {
     this.climbing = false;
     this.pullingUp = true;
     this.cat.setVelocity(0, 0);
     this.cat.y += top + CLIMB_UP.below * this.cat.scaleY - this.cat.body.bottom;
-    this.cat.anims.resume();
+    this.catDepth = this.cat.depth;
+    this.cat.setDepth(CLIMB_UP.depth);
     this.cat.play(animKey(this.cat.character, 'climbUp'));
     const { frames, fps } = CHARACTERS[this.cat.character].anims.climbUp;
+    this.pullUpTween = this.tweens.add({
+      targets: this.cat, y: this.cat.y - CLIMB_UP.below * this.cat.scaleY,
+      duration: (CLIMB_UP.riseFrames / fps) * 1000, ease: 'Sine.easeOut',
+    });
     this.pullUpTimer = this.time.delayedCall((frames / fps) * 1000, () => {
       this.cat.body.reset(this.cat.x, this.cat.y + top - this.cat.body.bottom);
       this.endPullUp();
@@ -562,9 +566,10 @@ export class AdventureScene extends Phaser.Scene {
   endPullUp() {
     if (!this.pullingUp) return;
     this.pullUpTimer?.remove();
+    this.pullUpTween?.remove();
     this.pullingUp = false;
+    this.cat.setDepth(this.catDepth);
     this.cat.body.setAllowGravity(true);
-    this.cat.anims.resume();
   }
 
   // ----- Things happening -----

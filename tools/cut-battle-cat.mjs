@@ -1,13 +1,14 @@
 // Cuts the grey battle cat, the hero of the adventure, from the user's two sheets in
 // images/sprites/cat-version-2: cat-v-2-no-weapon.png, him with bare paws, as he starts a level, and
-// cat-v-2-sprite.png, him with the minigun he can find. Running, jumping, sliding, climbing, his rage,
-// his beam, and with the minigun, shooting. See tools/cut-sheet.mjs.
+// cat-v-2-sprite.png, him with the minigun he can find. Running, jumping, sliding, his rage, his beam,
+// and with the minigun, shooting. See tools/cut-sheet.mjs. His climbing, seen from behind, comes from a
+// third sheet, back_view_ladder_cat_assets, and is the same for both: he puts the minigun away to climb.
 // Run: node tools/cut-battle-cat.mjs [folder for review images]
 // Output: images/sprites/battle-cat (with the minigun) and images/sprites/battle-cat-paws (without),
 // as Idle (n).png and so on, every frame the same size in both, so he can swap mid-run. The sheets
 // are left alone.
 import sharp from 'sharp';
-import { readdirSync } from 'node:fs';
+import { readdirSync, unlinkSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { clearPaintedBackground, cutSheet, findCuts } from './cut-sheet.mjs';
@@ -63,11 +64,28 @@ const SHEETS = {
       { band: [796, 1023], anims: [['ClimbDown', 4], ['Special', 3], ['SpecialEnd', 3]], fix: { 7: 1150 } },
     ],
     airborne: [2, 3, 4],
-    removeBlock: removePaleBlock,
   },
 };
 
 const LABEL_HEIGHT = 36;
+
+// Every frame he plays as the cat (but his special attack) is this size, with his feet on the same
+// line: his hitboxes in src/data/characters.js are measured in it.
+const FRAME = { w: 236, h: 171 };
+
+// The back-view climbing sheet: a grid of square cells, one animation per row, left to right.
+// middleY: where his body's middle goes in the climbing frames, the middle of his hitbox, so he
+// doesn't bob as the frames loop. The pull-up ends standing, and that last frame places all of its
+// frames, so the rise it draws is kept, with his feet on the line where he stands.
+const BACK_VIEW = {
+  file: join(SPRITES, 'cat-version-2', 'back_view_ladder_cat_assets', 'sprite_sheet_transparent.png'),
+  cell: 256,
+  rows: [['Climb', 6], ['ClimbDown', 6], ['Hang', 1], ['ClimbUp', 4]],
+  middleY: 102,
+};
+const CLIMBING = ['Climb', 'ClimbDown', 'ClimbUp', 'Hang'];
+const SOLID = 200; // alpha at which a pixel is him, not a soft edge
+const LEGS = 0.18; // his legs: the bottom share of his figure, whose middle places him standing
 
 async function cutCat(name, { file, painted, out, labels, rows }) {
   const sheet = painted ? await clearPaintedBackground(file) : file;
@@ -100,17 +118,13 @@ async function cutCat(name, { file, painted, out, labels, rows }) {
   }
 }
 
-// The sheet draws a ladder behind him as he climbs, and a block he climbs onto. The game has its own
-// ladders and islands, so they're taken out, leaving only him.
+// Frames are changed in place: `edit` gets the frame's pixels to change.
 async function editFrame(path, edit) {
   const { data, info } = await sharp(path).raw().toBuffer({ resolveWithObject: true });
   edit(data, info.width, info.height);
   const png = await sharp(data, { raw: { width: info.width, height: info.height, channels: 4 } }).png({ compressionLevel: 9 }).toBuffer();
   await sharp(png).toFile(path);
 }
-// The ladder's wood is a warm grey, a little redder than blue, and dull; his fur is a cool grey, and
-// his tongue and nose are strongly coloured.
-const isWood = (r, g, b) => r - b > 8 && r - b < 45 && Math.max(r, g, b) - Math.min(r, g, b) < 45 && Math.max(r, g, b) > 60;
 
 // Keeps only him: the biggest piece of the frame once it's thinned by `thin` pixels, so thin lines
 // joined to him, like a ladder's outlines, come apart from him and go, along with loose dust. What's
@@ -165,62 +179,13 @@ function keepHim(px, w, h, thin) {
   }
 }
 
-// His nose and mouth are shaded in pinkish greys like the wood, so nothing close to their bright red
-// is taken for wood.
-const isRed = (r, g, b) => r > 170 && r - g > 80;
-const FACE_GUARD = 7;
-function removeLadder(px, w, h) {
-  const red = [];
-  for (let p = 0; p < w * h; p++) if (px[p * 4 + 3] > 100 && isRed(px[p * 4], px[p * 4 + 1], px[p * 4 + 2])) red.push(p);
-  const guarded = new Uint8Array(w * h);
-  for (const p of red) {
-    const x = p % w, y = (p - x) / w;
-    for (let dy = -FACE_GUARD; dy <= FACE_GUARD; dy++) for (let dx = -FACE_GUARD; dx <= FACE_GUARD; dx++) {
-      const nx = x + dx, ny = y + dy;
-      if (nx >= 0 && ny >= 0 && nx < w && ny < h) guarded[ny * w + nx] = 1;
-    }
-  }
-  for (let p = 0; p < w * h; p++) if (!guarded[p] && isWood(px[p * 4], px[p * 4 + 1], px[p * 4 + 2])) px[p * 4 + 3] = 0;
-  keepHim(px, w, h, 3);
-}
-
-// The block is the solid rectangle at the bottom of the frame: its rows are all about as wide as it is,
-// and he's narrower. Everything from its top edge down goes, and the game's island stands in its place.
-const BLOCK = { sample: 8, wide: 0.95 };
-function removeBlock(px, w, h) {
-  const solidIn = (y) => { let n = 0; for (let x = 0; x < w; x++) if (px[(y * w + x) * 4 + 3] > 200) n += 1; return n; };
-  let bottom = h - 1;
-  while (bottom > 0 && solidIn(bottom) === 0) bottom -= 1;
-  // Its width, from rows just above its soft bottom edge.
-  const widths = Array.from({ length: BLOCK.sample }, (_, i) => solidIn(bottom - 3 - i)).sort((a, b) => a - b);
-  const blockW = widths[Math.floor(widths.length / 2)];
-  if (blockW < w * 0.4) throw new Error('no block found in a ClimbUp frame');
-  let top = bottom - 3;
-  while (top > 0 && solidIn(top - 1) >= blockW * BLOCK.wide) top -= 1;
-  for (let y = top; y < h; y++) for (let x = 0; x < w; x++) px[(y * w + x) * 4 + 3] = 0;
-}
-
-// On the bare-pawed sheet he dangles a leg in front of the block, so its rows aren't all its width.
-// But it's painted a flat pale grey, unlike his fur: its top is the first row that's mostly that grey.
-// Its dark top edge, just above, goes with it.
-const isBlockGrey = (r, g, b) => Math.max(r, g, b) - Math.min(r, g, b) < 14 && r > 165 && r < 228;
-const BLOCK_EDGE = 4;
-function removePaleBlock(px, w, h) {
-  const greyIn = (y) => { let n = 0; for (let x = 0; x < w; x++) { const i = (y * w + x) * 4; if (px[i + 3] > 200 && isBlockGrey(px[i], px[i + 1], px[i + 2])) n += 1; } return n; };
-  const counts = Array.from({ length: h }, (_, y) => greyIn(y));
-  const most = Math.max(...counts);
-  if (most < w * 0.25) throw new Error('no pale block found in a ClimbUp frame');
-  const top = Math.max(0, counts.findIndex((n) => n >= most / 2) - BLOCK_EDGE);
-  for (let y = top; y < h; y++) for (let x = 0; x < w; x++) px[(y * w + x) * 4 + 3] = 0;
-}
-
 for (const [name, sheet] of Object.entries(SHEETS)) {
   await cutCat(name, sheet);
   const { out } = sheet;
   const framesOf = (anim) => readdirSync(out).filter((f) => f.startsWith(`${anim} (`));
   const edit = (file, change) => editFrame(join(out, file), change);
-  for (const anim of ['Climb', 'ClimbDown']) for (const file of framesOf(anim)) await edit(file, removeLadder);
-  for (const file of framesOf('ClimbUp')) await edit(file, sheet.removeBlock ?? removeBlock);
+  // His climbing comes from the back-view sheet instead (below), so the sheet's own climbing goes.
+  for (const anim of CLIMBING) for (const file of framesOf(anim)) unlinkSync(join(out, file));
   // The dust drawn under him as he leaves the ground stays behind, so in the air it goes.
   for (const n of sheet.airborne) await edit(`Jump (${n}).png`, (px, w, h) => keepHim(px, w, h, 1));
 }
@@ -254,8 +219,9 @@ const OWN_SIZE = ['Special'];
 const files = Object.values(SHEETS).flatMap(({ out }) => readdirSync(out)
   .filter((f) => f.endsWith('.png') && !OWN_SIZE.some((name) => f.startsWith(`${name} (`))).map((f) => join(out, f)));
 const sizes = await Promise.all(files.map((f) => sharp(f).metadata()));
-const W = Math.max(...sizes.map((s) => s.width));
-const H = Math.max(...sizes.map((s) => s.height));
+const W = FRAME.w, H = FRAME.h;
+const tooBig = files.filter((_, i) => sizes[i].width > W || sizes[i].height > H);
+if (tooBig.length) throw new Error(`frames bigger than ${W}x${H}: ${tooBig.join(', ')}`);
 for (let i = 0; i < files.length; i++) {
   const { width, height } = sizes[i];
   const left = Math.floor((W - width) / 2);
@@ -265,3 +231,50 @@ for (let i = 0; i < files.length; i++) {
   await sharp(png).toFile(files[i]);
 }
 console.log(`The frames he plays as the cat are padded to ${W}x${H}`);
+
+// Where he is in a picture: the box round his solid pixels, his middle, and the middle of his legs.
+function placeOf(px, w, h) {
+  let top = h, bottom = -1, left = w, right = -1, sx = 0, sy = 0, n = 0;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (px[(y * w + x) * 4 + 3] <= SOLID) continue;
+    top = Math.min(top, y); bottom = Math.max(bottom, y); left = Math.min(left, x); right = Math.max(right, x);
+    sx += x; sy += y; n += 1;
+  }
+  let lx = 0, ln = 0;
+  for (let y = Math.round(bottom - (bottom - top) * LEGS); y <= bottom; y++) {
+    for (let x = 0; x < w; x++) if (px[(y * w + x) * 4 + 3] > SOLID) { lx += x; ln += 1; }
+  }
+  return { top, bottom, left, right, x: sx / n, y: sy / n, legsX: lx / ln };
+}
+const placeIn = async (file) => {
+  const { data, info } = await sharp(file).raw().toBuffer({ resolveWithObject: true });
+  return placeOf(data, info.width, info.height);
+};
+
+// The back-view climbing, cut for both versions. It's scaled so his standing frame at the end of the
+// pull-up is his standing height with the minigun, and placed where he stands in his other frames.
+const standing = await placeIn(join(SHEETS.minigun.out, 'Idle (1).png'));
+const { cell } = BACK_VIEW;
+const cells = await Promise.all(BACK_VIEW.rows.map(([anim, frames], row) => Promise.all(Array.from({ length: frames }, async (_, i) => {
+  const png = await sharp(BACK_VIEW.file).ensureAlpha().extract({ left: i * cell, top: row * cell, width: cell, height: cell }).png().toBuffer();
+  const { data } = await sharp(png).raw().toBuffer({ resolveWithObject: true });
+  return { anim, n: i + 1, png, place: placeOf(data, cell, cell) };
+}))));
+const standingUp = cells.at(-1).at(-1).place;
+const scale = (standing.bottom - standing.top) / (standingUp.bottom - standingUp.top);
+const size = Math.round(cell * scale);
+for (const frame of cells.flat()) {
+  const { place } = frame;
+  // Climbing and hanging: his body's middle on one spot. The pull-up: all placed by its last frame.
+  const left = frame.anim === 'ClimbUp' ? standing.legsX - standingUp.legsX * scale : standing.legsX - place.x * scale;
+  const top = frame.anim === 'ClimbUp' ? standing.bottom - standingUp.bottom * scale : BACK_VIEW.middleY - place.y * scale;
+  const x = Math.round(left), y = Math.round(top);
+  const scaled = await sharp(frame.png).resize(size, size, { kernel: 'lanczos3' }).png().toBuffer();
+  // sharp needs every piece inside the canvas, so what reaches past the frame is cut off.
+  const x0 = Math.max(0, x), y0 = Math.max(0, y), x1 = Math.min(W, x + size), y1 = Math.min(H, y + size);
+  const piece = await sharp(scaled).extract({ left: x0 - x, top: y0 - y, width: x1 - x0, height: y1 - y0 }).toBuffer();
+  const out = await sharp({ create: { width: W, height: H, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+    .composite([{ input: piece, left: x0, top: y0 }]).png({ compressionLevel: 9 }).toBuffer();
+  for (const { out: dir } of Object.values(SHEETS)) await sharp(out).toFile(join(dir, `${frame.anim} (${frame.n}).png`));
+}
+console.log(`His back-view climbing is scaled by ${scale.toFixed(3)}: ${BACK_VIEW.rows.map(([a, n]) => `${a} ${n}`).join(', ')}`);

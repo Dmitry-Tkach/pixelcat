@@ -133,9 +133,12 @@ export const CHARACTERS = {
       burst: { file: 'burst', frames: 4, fps: 16, repeat: -1 },
       rage: { file: 'rage', frames: 4, fps: 10, repeat: -1 },
       dash: { file: 'dash', frames: 4, fps: 14, repeat: 0 },
-      climb: { file: 'climb', frames: 4, fps: 8, repeat: -1 },
-      climbUp: { file: 'climbup', frames: 4, fps: 10, repeat: 0 },
-      climbDown: { file: 'climbdown', frames: 4, fps: 8, repeat: -1 },
+      // Climbing, seen from behind, the same for both: he puts the minigun away to climb. Holding
+      // still on a ladder, he hangs; at the top he pulls himself up and stands.
+      climb: { file: 'climb', frames: 6, fps: 10, repeat: -1 },
+      climbUp: { file: 'climbup', frames: 4, fps: 8, repeat: 0 },
+      climbDown: { file: 'climbdown', frames: 6, fps: 10, repeat: -1 },
+      hang: { file: 'hang', frames: 1, fps: 1, repeat: 0 },
       // He charges up, then holds the last frame while the beam the game draws fires (see
       // data/adventure/beams.js). beamFrame: where in the frame list, counting from 1, it fires.
       special: { file: 'special', frames: 4, frameList: [1, 2, 3, 4, 4, 4, 4, 4], fps: 8, repeat: 0, beamFrame: 4 },
@@ -167,9 +170,12 @@ export const CHARACTERS = {
       victory: { file: 'idle', frames: 4, fps: 8, repeat: -1 },
       rage: { file: 'rage', frames: 4, fps: 10, repeat: -1 },
       dash: { file: 'dash', frames: 4, fps: 14, repeat: 0 },
-      climb: { file: 'climb', frames: 4, fps: 8, repeat: -1 },
-      climbUp: { file: 'climbup', frames: 3, fps: 8, repeat: 0 },
-      climbDown: { file: 'climbdown', frames: 4, fps: 8, repeat: -1 },
+      // Climbing, seen from behind, the same for both: he puts the minigun away to climb. Holding
+      // still on a ladder, he hangs; at the top he pulls himself up and stands.
+      climb: { file: 'climb', frames: 6, fps: 10, repeat: -1 },
+      climbUp: { file: 'climbup', frames: 4, fps: 8, repeat: 0 },
+      climbDown: { file: 'climbdown', frames: 6, fps: 10, repeat: -1 },
+      hang: { file: 'hang', frames: 1, fps: 1, repeat: 0 },
       special: { file: 'special', frames: 3, frameList: [1, 2, 3, 3, 3, 3, 3, 3], fps: 8, repeat: 0, beamFrame: 3 },
       specialEnd: { file: 'specialend', frames: 3, fps: 8, repeat: 0 },
     },
