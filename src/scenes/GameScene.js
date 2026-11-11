@@ -931,7 +931,7 @@ export class GameScene extends Phaser.Scene {
     this.playHomeMusic();
     this.overlay.show({
       layout: 'adventure',
-      backdrop: 'assets/ui/home-adventure.webp',
+      backdrop: 'assets/ui/adventure-home.webp', // painted by tools/adventure-home-art.mjs
       title: 'The Battle Cat',
       message: 'Climb the World Tree: find the minigun, take on zombies and gunners, and reach the portal.\nArrows: run. Space: jump. Up and Down: climb. X: shoot. Shift: dash. C: magic bolt.',
       actions: [
