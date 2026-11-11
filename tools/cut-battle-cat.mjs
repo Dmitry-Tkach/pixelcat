@@ -1,6 +1,6 @@
 // Cuts the grey battle cat, the hero of the adventure, from the user's two sheets in
-// images/sprites/cat-version-2: cat-v-2-no-weapon.png, him with bare paws, as he starts a level, and
-// cat-v-2-sprite.png, him with the minigun he can find. Running, jumping, sliding, his rage, his beam,
+// images/sprites/cat-version-2: grey_cat_development_assets/source_redrawn_sheet.png, him with bare
+// paws, as he starts a level, and cat-v-2-sprite.png, him with the minigun he can find. Running, jumping, sliding, his rage, his beam,
 // and with the minigun, shooting. See tools/cut-sheet.mjs. His climbing, seen from behind, comes from a
 // third sheet, back_view_ladder_cat_assets, and is the same for both: he puts the minigun away to climb.
 // Run: node tools/cut-battle-cat.mjs [folder for review images]
@@ -21,9 +21,11 @@ const REVIEW = process.argv[2];
 const isFur = (r, g, b) => Math.max(r, g, b) - Math.min(r, g, b) < 30 && Math.max(r, g, b) > 50 && Math.max(r, g, b) < 200;
 
 // Each sheet: its name tags (cleared before cutting), and its rows top to bottom, each with its
-// animations left to right and how many frames each has. band: the row's top and bottom. fix: frame
+// animations left to right and how many frames each has. band: the row's top and bottom. cuts: the
+// frame edges, left to right, when they're given rather than found. fix: frame
 // edges moved by hand, by their place in the row; drop: cuts that aren't between two frames, by their
-// place in the row. airborne: the jump frames off the ground, whose dust is left behind.
+// place in the row. airborne: the jump frames off the ground, whose dust is left behind. close: the
+// cats stand so close that slivers of the next one are cleared.
 const SHEETS = {
   minigun: {
     file: join(SPRITES, 'cat-version-2', 'cat-v-2-sprite.png'),
@@ -44,26 +46,24 @@ const SHEETS = {
     ],
     airborne: [2, 3, 4],
   },
-  // The bare-pawed sheet, with real transparency (from grey_cat_development_assets). Its first test
-  // version, cat-v-2-no-weapon.png, had a checkerboard painted in instead: `painted: true` clears that.
+  // The bare-pawed sheet, redrawn clean: real transparency, with no name tags, ladders or haze. (A
+  // sheet with a checkerboard painted in instead of transparency takes `painted: true`, which clears it.)
   paws: {
-    file: join(SPRITES, 'cat-version-2', 'grey_cat_development_assets', 'source_sprite_sheet.png'),
+    file: join(SPRITES, 'cat-version-2', 'grey_cat_development_assets', 'source_redrawn_sheet.png'),
     out: join(SPRITES, 'battle-cat-paws'),
-    labels: [
-      [14, 10, 110, 45], [600, 10, 697, 45], [13, 214, 113, 249], [780, 214, 885, 250], [506, 392, 667, 428],
-      [13, 394, 87, 429], [1064, 396, 1216, 431], [14, 592, 108, 627], [1081, 592, 1216, 628], [631, 593, 728, 628],
-      [14, 797, 192, 833], [517, 797, 726, 833], [1148, 799, 1312, 834],
-    ],
+    labels: [],
+    // The redrawn cats stand only a few pixels apart, so each row's cuts are given, in the gaps
+    // measured between them (the hit stars, glows and dust stay with their own frame).
     rows: [
-      { band: [10, 205], anims: [['Idle', 4], ['Run', 7]] },
-      { band: [210, 388], anims: [['Jump', 4], ['Slide', 4]] },
-      { band: [390, 588], anims: [['Hit', 3], ['Rage', 4], ['Defeated', 3]] },
-      // The dash's speed lines, at the far left, look like a frame of their own: that cut goes.
-      { band: [590, 795], anims: [['Dash', 4], ['Climb', 4], ['ClimbUp', 3]], drop: [1] },
-      // The beam of the third special frame reaches well past the gap before the special end.
-      { band: [796, 1023], anims: [['ClimbDown', 4], ['Special', 3], ['SpecialEnd', 3]], fix: { 7: 1150 } },
+      { band: [10, 205], anims: [['Idle', 4], ['Run', 7]], cuts: [11, 145, 280, 410, 570, 739, 880, 1013, 1140, 1269, 1395, 1536] },
+      { band: [210, 388], anims: [['Jump', 4], ['Slide', 4]], cuts: [0, 168, 323, 480, 700, 952, 1122, 1300, 1536] },
+      { band: [390, 588], anims: [['Hit', 3], ['Rage', 4], ['Defeated', 3]], cuts: [0, 170, 325, 485, 637, 775, 912, 1048, 1206, 1352, 1536] },
+      { band: [590, 795], anims: [['Dash', 4], ['Climb', 4], ['ClimbUp', 3]], cuts: [0, 165, 313, 452, 620, 745, 852, 949, 1070, 1260, 1390, 1536] },
+      // The beam of the third special frame reaches almost to the special end.
+      { band: [796, 1023], anims: [['ClimbDown', 4], ['Special', 3], ['SpecialEnd', 3]], cuts: [0, 126, 245, 359, 480, 624, 746, 1148, 1273, 1397, 1536] },
     ],
     airborne: [2, 3, 4],
+    close: true, // its cats stand close, so slivers of the next one are cleared (see dropSlivers)
   },
 };
 
@@ -90,9 +90,9 @@ const LEGS = 0.18; // his legs: the bottom share of his figure, whose middle pla
 async function cutCat(name, { file, painted, out, labels, rows }) {
   const sheet = painted ? await clearPaintedBackground(file) : file;
   let first = true;
-  for (const { band, anims, fix = {}, drop = [] } of rows) {
-    // Frames are found below the name tags, whose grey edges would look like fur.
-    const cuts = (await findCuts(sheet, [band[0] + LABEL_HEIGHT, band[1]], isFur)).filter((_, i) => !drop.includes(i));
+  for (const { band, anims, fix = {}, drop = [], cuts: given } of rows) {
+    // Frames are found below the name tags, whose grey edges would look like fur, unless they're given.
+    const cuts = given ? [...given] : (await findCuts(sheet, [band[0] + LABEL_HEIGHT, band[1]], isFur)).filter((_, i) => !drop.includes(i));
     for (const [index, x] of Object.entries(fix)) cuts[index] = x;
     const total = anims.reduce((sum, [, n]) => sum + n, 0);
     if (cuts.length - 1 !== total) throw new Error(`${name} ${anims.map(([n]) => n)}: found ${cuts.length - 1} frames, not ${total} (cuts ${cuts})`);
@@ -179,6 +179,34 @@ function keepHim(px, w, h, thin) {
   }
 }
 
+// Where cats stand close on a sheet, a sliver of the next cat's dark outline can reach over the cut.
+// Small loose pieces that are mostly that dark go, and thin upright strips left along the cut, such
+// as an edge of the next cat's dust. His own dust, stars and flames are wider, and light or coloured.
+// seen: the alpha at which a pixel joins a piece, so near-invisible haze doesn't join a sliver to him.
+const SLIVER = { size: 400, dark: 70, share: 0.6, thin: 10, seen: 40 }; // pixels; how dark; share; width; alpha
+function dropSlivers(px, w, h) {
+  const seen = new Uint8Array(w * h);
+  const isDark = (p) => Math.max(px[p * 4], px[p * 4 + 1], px[p * 4 + 2]) < SLIVER.dark;
+  for (let start = 0; start < w * h; start++) {
+    if (seen[start] || px[start * 4 + 3] < SLIVER.seen) continue;
+    const piece = [start];
+    seen[start] = 1;
+    for (let k = 0; k < piece.length; k++) {
+      const p = piece[k], x = p % w;
+      for (const q of [p - 1, p + 1, p - w, p + w]) {
+        if (q < 0 || q >= w * h || Math.abs((q % w) - x) > 1 || seen[q] || px[q * 4 + 3] < SLIVER.seen) continue;
+        seen[q] = 1;
+        piece.push(q);
+      }
+    }
+    const xs = piece.map((p) => p % w);
+    const thin = Math.max(...xs) - Math.min(...xs) < SLIVER.thin;
+    if (piece.length < SLIVER.size && (thin || piece.filter(isDark).length >= piece.length * SLIVER.share)) {
+      for (const p of piece) px[p * 4 + 3] = 0;
+    }
+  }
+}
+
 for (const [name, sheet] of Object.entries(SHEETS)) {
   await cutCat(name, sheet);
   const { out } = sheet;
@@ -186,6 +214,7 @@ for (const [name, sheet] of Object.entries(SHEETS)) {
   const edit = (file, change) => editFrame(join(out, file), change);
   // His climbing comes from the back-view sheet instead (below), so the sheet's own climbing goes.
   for (const anim of CLIMBING) for (const file of framesOf(anim)) unlinkSync(join(out, file));
+  if (sheet.close) for (const file of readdirSync(out).filter((f) => f.endsWith('.png'))) await edit(file, dropSlivers);
   // The dust drawn under him as he leaves the ground stays behind, so in the air it goes.
   for (const n of sheet.airborne) await edit(`Jump (${n}).png`, (px, w, h) => keepHim(px, w, h, 1));
 }

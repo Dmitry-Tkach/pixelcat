@@ -1,6 +1,6 @@
 # Prompt: ask ChatGPT to split a sprite sheet into game frames
 
-Attach the sprite sheet (for example `source_sprite_sheet.png`), then paste everything below the
+Attach the sprite sheet (for example a sheet with name labels on it), then paste everything below the
 line. It tests whether ChatGPT can split a sheet cleanly enough for the game. Check its result with
 the checklist at the end.
 

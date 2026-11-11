@@ -2,7 +2,7 @@
 
 **Before you paste it,** attach the cat's existing sprite sheet as the reference for his look and
 size:
-- `grey_cat_development_assets/source_sprite_sheet.png` for bare paws;
+- `grey_cat_development_assets/source_redrawn_sheet.png` for bare paws;
 - `cat-v-2-sprite.png` for the version with the minigun.
 
 Use the same ChatGPT chat you drew him in, if you can, so he stays the same cat.

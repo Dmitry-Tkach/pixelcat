@@ -153,7 +153,7 @@ export const CHARACTERS = {
   },
 
   // The battle cat with bare paws, as he starts an adventure level, from
-  // images/sprites/cat-version-2/grey_cat_development_assets/source_sprite_sheet.png. His frames are the same size as his frames
+  // images/sprites/cat-version-2/grey_cat_development_assets/source_redrawn_sheet.png. His frames are the same size as his frames
   // with the minigun, with him in the same place, so finding it swaps one for the other mid-run.
   battleCatPaws: {
     folder: 'battle-cat-paws',
