@@ -119,7 +119,8 @@ export const CHARACTERS = {
     // From his sheet with the minigun (images/sprites/cat-version-2/cat-v-2-sprite.png).
     anims: {
       idle: { file: 'idle', frames: 4, fps: 8, repeat: -1 },
-      run: { file: 'run', frames: 6, fps: 12, repeat: -1 },
+      // A redrawn 8-frame run, the legs taking turns (see tools/cut-battle-cat.mjs).
+      run: { file: 'run', frames: 8, fps: 12, repeat: -1 },
       // Take-off and rising; the last frame, coming down, is the fall.
       jump: { file: 'jump', frames: 4, frameList: [1, 2, 3], fps: 12, repeat: 0 },
       fall: { file: 'jump', frames: 4, frameList: [4], fps: 1, repeat: 0 },
@@ -161,7 +162,7 @@ export const CHARACTERS = {
     face: { x: 68, y: 40, size: 84 },
     anims: {
       idle: { file: 'idle', frames: 4, fps: 8, repeat: -1 },
-      run: { file: 'run', frames: 7, fps: 12, repeat: -1 },
+      run: { file: 'run', frames: 8, fps: 12, repeat: -1 },
       jump: { file: 'jump', frames: 4, frameList: [1, 2, 3], fps: 12, repeat: 0 },
       fall: { file: 'jump', frames: 4, frameList: [4], fps: 1, repeat: 0 },
       slide: { file: 'slide', frames: 4, fps: 12, repeat: -1 },
