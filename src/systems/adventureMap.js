@@ -42,6 +42,9 @@ export const OBJECTS = {
   z: 'ammo-laser',
   k: 'key',
   T: 'chest',
+  j: 'silver-key',
+  U: 'silver-chest',
+  '%': 'leaves', // a crumbling leafy ledge: it falls soon after the cat lands, and grows back
   '?': 'bonus',
   B: 'box',
   X: 'stone',
@@ -69,6 +72,19 @@ export const SCENERY = {
   '>': 'sign-right',
   '/': 'sign-up',
 };
+
+// Every cell a moving log covers somewhere along its path: from where it starts, `across` cells to
+// the right (or left, if negative) and `up` cells up (or down, if negative), `width` cells wide.
+export function moverCells({ col, row, width = 3, across = 0, up = 0 }) {
+  const cells = new Set();
+  const steps = Math.max(Math.abs(across), Math.abs(up));
+  for (let i = 0; i <= steps; i++) {
+    const c = col + Math.round((across * i) / (steps || 1));
+    const r = row - Math.round((up * i) / (steps || 1));
+    for (let w = 0; w < width; w++) cells.add(`${c + w},${r}`);
+  }
+  return cells;
+}
 
 // Earth pillars (R) only hold up low islands: at most this many tiles above what's below them.
 export const PILLAR_MAX_TILES = 4;
@@ -136,6 +152,15 @@ export function checkAdventureLevel(level) {
   if (count('start') !== 1) errors.push('the map needs exactly one start, @');
   if (count('portal') !== 1) errors.push('the map needs exactly one portal, E');
   if (count('chest') > 0 && count('key') < count('chest')) errors.push('each chest needs a key');
+  if (count('silver-chest') > 0 && count('silver-key') < count('silver-chest')) errors.push('each silver chest needs a silver key');
+  // A moving log's path mustn't run into the ground.
+  for (const [i, { col, row, width, across = 0, up = 0 }] of (level.movers ?? []).entries()) {
+    for (const cell of moverCells({ col, row, width, across, up })) {
+      const [c, r] = cell.split(',').map(Number);
+      if (r < 0 || r >= map.length || c < 0 || c >= map[0].length) errors.push(`moving log ${i + 1} goes off the map`);
+      else if (map[r][c] === '#') errors.push(`moving log ${i + 1} runs into the ground at column ${c}, row ${r}`);
+    }
+  }
   for (const { kind, col, row } of objects.filter((o) => o.type === 'enemy' || o.type === 'gunner')) {
     if ((tiles[row + 1]?.[col] ?? -1) < 0) errors.push(`the ${kind} in column ${col} isn't standing on anything`);
   }

@@ -39,6 +39,7 @@ const ICON = {
   coin: 'coin-1', gem: 'gem', heart: 'heart', key: 'key', rage: 'mushroom', weapon: 'minigun',
   'ammo-standard': 'ammo-standard', 'ammo-explosive': 'ammo-explosive', 'ammo-laser': 'ammo-laser',
   bonus: 'bonus', box: 'box', stone: 'stone', spike: 'spike', chest: 'chest-locked', checkpoint: 'lantern', portal: 'portal',
+  'silver-key': 'silver-key', 'silver-chest': 'chest-silver-locked', leaves: 'leaves',
 };
 const place = async (input, col, row, bottom = false) => {
   const { width, height } = await sharp(input).metadata();
@@ -50,7 +51,14 @@ for (const o of objects) {
   if (o.type === 'enemy') await place(await atlasFrame('enemies', o.kind, 'idle-0', enemyLayout(o.kind).frameW / SCALE * SCALE), o.col, o.row, true);
   else if (o.type === 'gunner') await place(await atlasFrame('gunners', o.kind, 'idle-0', gunnerLayout(o.kind).frameW), o.col, o.row, true);
   else if (o.type === 'start') await place(await sharp({ create: { width: CELL, height: CELL * 1.5, channels: 4, background: '#3a7bff' } }).png().toBuffer(), o.col, o.row, true);
-  else if (ICON[o.type]) await place(await image(art(ICON[o.type])), o.col, o.row, ['spike', 'chest', 'checkpoint', 'portal'].includes(o.type));
+  else if (ICON[o.type]) await place(await image(art(ICON[o.type])), o.col, o.row, ['spike', 'chest', 'silver-chest', 'checkpoint', 'portal'].includes(o.type));
+}
+// Moving logs: where each starts, and a dotted line along its path.
+const plank = await sharp(art('bridge')).resize(CELL, CELL).toBuffer();
+for (const { col, row, width = 3, across = 0, up = 0 } of level.movers ?? []) {
+  for (let w = 0; w < width; w++) comps.push({ input: plank, left: (col + w) * CELL, top: row * CELL });
+  const x0 = (col + width / 2) * CELL, y0 = (row + 0.5) * CELL, x1 = x0 + across * CELL, y1 = y0 - up * CELL;
+  comps.push({ input: Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${cols * CELL}" height="${rows * CELL}"><path d="M${x0} ${y0} L${x1} ${y1}" stroke="#ffe066" stroke-width="2" stroke-dasharray="4 3"/><circle cx="${x1}" cy="${y1}" r="3" fill="#ffe066"/></svg>`), left: 0, top: 0 });
 }
 
 if (routes) {

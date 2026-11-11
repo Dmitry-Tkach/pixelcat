@@ -9,6 +9,7 @@ import { AdventureGunner } from '../entities/AdventureGunner.js';
 import { Cat } from '../entities/Cat.js';
 import { InputController } from '../input/InputController.js';
 import { AdventureMoves } from '../systems/AdventureMoves.js';
+import { AdventurePlatforms } from '../systems/AdventurePlatforms.js';
 import { MAX_FALL_SPEED, ONE_WAY, TILE, TILE_BIAS, pillarFoot, readAdventureMap } from '../systems/adventureMap.js';
 import { Effects } from '../ui/Effects.js';
 
@@ -34,6 +35,8 @@ const BACKGROUND_DRIFT = { far: 0.12, near: 0.3 };
 const SPIKE_HIT = { w: 52, h: 20 };
 const BONUS_COINS = 3;
 const CHEST_COINS = 5;
+// The silver chest, for whoever finds its key off the main route: more coins, and explosive rounds.
+const SILVER_CHEST = { coins: 8, ammo: 'explosive' };
 // Landing on an enemy: the cat counts as coming from above if its feet were no lower than this
 // below the enemy's top a step earlier, and it bounces off this fast.
 const STOMP = { margin: 14, bounce: -760 };
@@ -103,6 +106,12 @@ export class AdventureScene extends Phaser.Scene {
     // Against a list of blocks, Phaser passes the block first, so the bullet is the one in the group.
     this.physics.add.collider(this.enemyBullets, this.solids, (a, b) => (this.enemyBullets.contains(a) ? a : b).destroy());
     this.physics.add.overlap(this.cat, this.enemyBullets, (cat, bullet) => this.shotByGunner(bullet));
+    this.platforms = new AdventurePlatforms(this, this.cat, {
+      art: this.art,
+      movers: level.movers,
+      leaves: this.layout.objects.filter((o) => o.type === 'leaves'),
+      canLand: () => !this.climbing && !this.pullingUp,
+    });
     this.moves = new AdventureMoves(this, this.cat, {
       art: this.art,
       groundLayer: this.groundLayer,
@@ -120,6 +129,7 @@ export class AdventureScene extends Phaser.Scene {
     this.coins = 0;
     this.gems = 0;
     this.hasKey = false;
+    this.hasSilverKey = false;
     this.chestsOpened = 0;
     this.knockedOut = 0;
     this.climbing = false;
@@ -259,6 +269,7 @@ export class AdventureScene extends Phaser.Scene {
         case 'gem':
         case 'heart':
         case 'key':
+        case 'silver-key':
         case 'rage':
         case 'weapon':
         case 'ammo-standard':
@@ -295,8 +306,11 @@ export class AdventureScene extends Phaser.Scene {
           this.lanterns.push(lantern);
           break;
         }
-        case 'chest': {
-          const chest = this.physics.add.staticImage(x, y + 2, this.art('chest-locked')).setOrigin(0.5, 1).setDepth(3);
+        case 'chest':
+        case 'silver-chest': {
+          const silver = object.type === 'silver-chest';
+          const chest = this.physics.add.staticImage(x, y + 2, this.art(silver ? 'chest-silver-locked' : 'chest-locked')).setOrigin(0.5, 1).setDepth(3);
+          chest.silver = silver;
           chest.refreshBody();
           this.chests.push(chest);
           break;
@@ -340,6 +354,9 @@ export class AdventureScene extends Phaser.Scene {
     fixed(this.add.image(150, 84, this.art('gem'))).setScale(0.75);
     this.gemText = fixed(this.add.text(172, 84, `0/${this.totals.gems}`, HUD_STYLE).setOrigin(0, 0.5));
     this.keyIcon = fixed(this.add.image(272, 84, this.art('key'))).setScale(0.8).setAlpha(0.3);
+    // The silver key, only in levels with a silver chest.
+    const silver = this.chests.some((chest) => chest.silver);
+    this.silverKeyIcon = fixed(this.add.image(318, 84, this.art('silver-key'))).setScale(0.8).setAlpha(0.3).setVisible(silver);
     // The beam's charge: a pip for each enemy knocked out, up to a full beam.
     fixed(this.add.text(24, 128, 'BEAM', { ...HUD_STYLE, fontSize: '20px' }).setOrigin(0, 0.5));
     this.beamPips = fixed(this.add.graphics());
@@ -362,6 +379,7 @@ export class AdventureScene extends Phaser.Scene {
     this.coinText.setText(String(this.coins));
     this.gemText.setText(`${this.gems}/${this.totals.gems}`);
     this.keyIcon.setAlpha(this.hasKey ? 1 : 0.3);
+    this.silverKeyIcon.setAlpha(this.hasSilverKey ? 1 : 0.3);
     this.drawBeamPips();
     const { armed, ammo, rounds } = this.moves;
     const ammoDef = AMMO[ammo];
@@ -581,6 +599,10 @@ export class AdventureScene extends Phaser.Scene {
       this.hasKey = true;
       this.audio.playSfx('pawPickup');
       this.showHint('You found the key! Now find the chest');
+    } else if (item.kind === 'silver-key') {
+      this.hasSilverKey = true;
+      this.audio.playSfx('pawPickup');
+      this.showHint('A silver key! Somewhere there is a silver chest');
     }
     this.tweens.killTweensOf(item);
     this.tweens.add({ targets: item, y: y - 40, alpha: 0, scale: 1.3, duration: 260, onComplete: () => item.destroy() });
@@ -603,20 +625,27 @@ export class AdventureScene extends Phaser.Scene {
     this.updateHud();
   }
 
+  // The gold chest takes the gold key, and the silver chest the silver one.
   openChest(chest) {
     if (chest.opened) return;
-    if (!this.hasKey) {
-      if (!chest.hinted) this.showHint('Locked. Find the key!');
+    if (!(chest.silver ? this.hasSilverKey : this.hasKey)) {
+      if (!chest.hinted) this.showHint(chest.silver ? 'Locked. Find the silver key!' : 'Locked. Find the key!');
       chest.hinted = true;
       return;
     }
     chest.opened = true;
-    chest.setTexture(this.art('chest-open'));
-    this.coins += CHEST_COINS;
+    chest.setTexture(this.art(chest.silver ? 'chest-silver-open' : 'chest-open'));
     this.chestsOpened += 1;
     this.audio.playSfx('cheer');
     this.effects.confetti(chest.x, chest.y - 50);
-    this.showHint(`Treasure! +${CHEST_COINS} coins`);
+    if (chest.silver) {
+      this.coins += SILVER_CHEST.coins;
+      this.moves.addAmmo(SILVER_CHEST.ammo);
+      this.showHint(`Silver treasure! +${SILVER_CHEST.coins} coins and explosive rounds`);
+    } else {
+      this.coins += CHEST_COINS;
+      this.showHint(`Treasure! +${CHEST_COINS} coins`);
+    }
     this.updateHud();
   }
 
@@ -827,6 +856,7 @@ export class AdventureScene extends Phaser.Scene {
     this.moves.update(ms, { canAct: !this.climbing && !this.pullingUp });
     for (const enemy of this.enemies.getChildren()) enemy.update(this.cat, ms);
     this.updateEnemyBullets();
+    this.platforms.update(ms);
     this.updateLook(ms);
     if (this.cat.body.top > this.worldH + FALL_OUT_BELOW) this.fellOut();
   }

@@ -7,9 +7,11 @@
 //   walk to the next cell along, or off an edge and fall to whatever's below;
 //   jump, with a double jump, to anywhere within JUMP_REACH (a safe share of what he can really do,
 //   from the physics in config/gameConfig.js), if no ground is in the way;
-//   climb any ladder he's at, up to the island at its top or down to its foot.
+//   climb any ladder he's at, up to the island at its top or down to its foot;
+//   ride a moving log: anywhere along its path counts as somewhere to stand, as he can wait for it;
+//   stand on crumbling leaves, which hold him long enough to jump on.
 // Enemies and gunners don't block him: he can always knock them out or get past them.
-import { readAdventureMap } from './adventureMap.js';
+import { moverCells, readAdventureMap } from './adventureMap.js';
 
 // How many cells across he can jump, with a double jump, for each number of cells up (or down, as
 // negative). He really reaches about 6 up and 8 across at full speed; these leave a margin, so a
@@ -23,7 +25,7 @@ const reachAcross = (up) => JUMP_REACH[up] ?? (up < 0 ? 8 : 0);
 export const VIEW = { ahead: 11, below: 9, up: 4 };
 
 const SOLID_OBJECTS = new Set(['box', 'stone', 'bonus']);
-const PICKUPS = new Set(['coin', 'gem', 'heart', 'rage', 'weapon', 'ammo-standard', 'ammo-explosive', 'ammo-laser', 'key', 'chest', 'checkpoint']);
+const PICKUPS = new Set(['coin', 'gem', 'heart', 'rage', 'weapon', 'ammo-standard', 'ammo-explosive', 'ammo-laser', 'key', 'chest', 'silver-key', 'silver-chest', 'checkpoint']);
 
 export function adventureRoutes(level) {
   const { rows, cols, tiles, ladders, objects } = readAdventureMap(level.map);
@@ -35,7 +37,9 @@ export function adventureRoutes(level) {
   const isGround = (c, r) => inside(c, r) && level.map[r][c] === '#';
   // What he can't pass through: the ground and blocks. Islands and bridges he jumps up through.
   const solid = (c, r) => isGround(c, r) || blocks.has(key(c, r));
-  const floor = (c, r) => inside(c, r) && (tiles[r][c] >= 0 || blocks.has(key(c, r)));
+  const logs = new Set((level.movers ?? []).flatMap((mover) => [...moverCells(mover)]));
+  const leaves = new Set(objects.filter((o) => o.type === 'leaves').map((o) => key(o.col, o.row)));
+  const floor = (c, r) => inside(c, r) && (tiles[r][c] >= 0 || blocks.has(key(c, r)) || logs.has(key(c, r)) || leaves.has(key(c, r)));
   const standable = (c, r) => inside(c, r) && r > 0 && !solid(c, r) && !solid(c, r - 1) && !spikes.has(key(c, r)) && floor(c, r + 1);
 
   // Where he lands, falling from this cell: the first cell down with a floor, or null if he falls out.
@@ -109,10 +113,11 @@ export function adventureRoutes(level) {
   // nowhere to land that the camera shows (see VIEW). A level shouldn't have any: a jump down
   // should never be a leap of faith.
   const blindEdges = [];
-  // Only the edges of ground and islands count: he gets onto a block's top on purpose.
+  // Only the edges of ground, islands and leaves count: he gets onto a block's top on purpose, and
+  // jumps off a moving log on purpose, onto where it's taking him.
   for (const cell of reached) {
     const [c, r] = cell.split(',').map(Number);
-    if (!standable(c, r) || blocks.has(key(c, r + 1))) continue;
+    if (!standable(c, r) || blocks.has(key(c, r + 1)) || logs.has(key(c, r + 1))) continue;
     for (const dir of [-1, 1]) {
       const next = c + dir;
       if (next < 0 || next >= cols || standable(next, r) || solid(next, r) || solid(next, r - 1)) continue;

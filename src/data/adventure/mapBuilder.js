@@ -6,9 +6,13 @@
 //   ladder(col, top, bottom)  from the island at `top` down to `bottom`
 //   put(col, row, letter)  one thing: a coin, an enemy, a sign...
 //   coins(from, to, row)   a line of coins; arc(from, to, row, rise) coins over a jump
+//   mover(col, row, { across, up, width, speed })  a moving log: it starts at (col, row), its left
+//                          end, and glides `across` cells sideways and `up` cells up (negative for
+//                          left or down), and back. movers() lists them for the level.
 // Everything but ground and gaps must go in an empty cell, so pieces can't silently overwrite each other.
 export function mapBuilder(cols, rows) {
   const grid = Array.from({ length: rows }, () => Array(cols).fill('.'));
+  const movers = [];
   const inside = (c, r) => {
     if (!Number.isInteger(c) || !Number.isInteger(r) || c < 0 || c >= cols || r < 0 || r >= rows) throw new Error(`(${c}, ${r}) is outside the map`);
   };
@@ -42,7 +46,13 @@ export function mapBuilder(cols, rows) {
       span(from, to, (c) => place(c, row - Math.round(rise * (1 - ((c - mid) / half) ** 2)), 'o'));
       return builder;
     },
+    mover(col, row, { across = 0, up = 0, width = 3, speed } = {}) {
+      inside(col, row);
+      movers.push({ col, row, width, across, up, ...(speed ? { speed } : {}) });
+      return builder;
+    },
     rows: () => grid.map((r) => r.join('')),
+    movers: () => movers.map((m) => ({ ...m })),
   };
   return builder;
 }

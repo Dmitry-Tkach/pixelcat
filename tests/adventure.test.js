@@ -11,7 +11,7 @@ import { ADVENTURE_MAP_LOOK, ADVENTURE_ROADMAP } from '../src/data/adventure/roa
 import { ADVENTURE_MAP_WORLDS, mapArt } from '../src/ui/mapArt.js';
 import { Progress } from '../src/systems/Progress.js';
 import { adventureRoutes } from '../src/systems/adventureRoutes.js';
-import { ENEMY_LETTERS, GUNNER_LETTERS, PILLAR_MAX_TILES, pillarFoot, MAX_FALL_SPEED, PHYSICS_STEPS_PER_SECOND, TILE, TILES, TILE_BIAS, checkAdventureLevel, readAdventureMap } from '../src/systems/adventureMap.js';
+import { ENEMY_LETTERS, GUNNER_LETTERS, PILLAR_MAX_TILES, moverCells, pillarFoot, MAX_FALL_SPEED, PHYSICS_STEPS_PER_SECOND, TILE, TILES, TILE_BIAS, checkAdventureLevel, readAdventureMap } from '../src/systems/adventureMap.js';
 
 describe('adventure levels', () => {
   it.each(ADVENTURE_LEVELS.map((level) => [level.id, level]))('%s has no mistakes', (_id, level) => {
@@ -61,11 +61,41 @@ describe('the route checker', () => {
     expect(blind).toContainEqual({ col: 3, row: 1, dir: 1 });
   });
 
+  it('rides a moving log across a gap too wide to jump', () => {
+    const map = ['...............', '@.............E', '###.........###'];
+    expect(adventureRoutes({ map }).portal).toBe(false);
+    expect(adventureRoutes({ map, movers: [{ col: 3, row: 2, width: 3, across: 6 }] }).portal).toBe(true);
+  });
+
+  it('stands on crumbling leaves', () => {
+    const map = ['..............', '@............E', '###..%%%%...##'];
+    expect(adventureRoutes({ map }).portal).toBe(true);
+    expect(adventureRoutes({ map: ['..............', '@............E', '###.........##'] }).portal).toBe(false);
+  });
+
   it('climbs ladders, and finds a coin out of reach', () => {
     const map = ['o........', '.........', '.........', '.........', '.........', '.....=H=E', '......H..', '@.....H..', '#########'];
     const { portal, unreachable } = adventureRoutes(level(map));
     expect(portal).toBe(true);
     expect(unreachable.map((o) => o.type)).toEqual(['coin']);
+  });
+});
+
+describe('moving logs', () => {
+  it('cover every cell along their path', () => {
+    expect([...moverCells({ col: 2, row: 5, width: 2, across: 2 })].sort()).toEqual(['2,5', '3,5', '4,5', '5,5'].sort());
+    expect([...moverCells({ col: 0, row: 5, width: 1, up: 2 })].sort()).toEqual(['0,3', '0,4', '0,5'].sort());
+  });
+
+  it("are checked: one running into the ground, or a silver chest with no key, is a mistake", () => {
+    const map = ['@....E', '......', '######'];
+    expect(checkAdventureLevel({ map, movers: [{ col: 0, row: 1, width: 2, up: -1 }] })).toContain('moving log 1 runs into the ground at column 0, row 2');
+    expect(checkAdventureLevel({ map: ['@.U..E', '######'] })).toContain('each silver chest needs a silver key');
+  });
+
+  it('are listed by the map builder', () => {
+    const built = mapBuilder(10, 4).ground(0, 9, 3).mover(2, 1, { across: 4, width: 2 });
+    expect(built.movers()).toEqual([{ col: 2, row: 1, width: 2, across: 4, up: 0 }]);
   });
 });
 

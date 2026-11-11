@@ -43,6 +43,9 @@ const WOOD = {
   ...Object.fromEntries([1, 2, 3, 4, 5, 6].map((n) => [`coin-${n}`, [wood('Collectable Object', `Coin 0${n}`), 0.375]])),
   gem: [wood('Collectable Object', 'Crystal'), 0.4],
   key: [wood('Collectable Object', 'Golden Key'), 0.45],
+  'silver-key': [wood('Collectable Object', 'Silver Key'), 0.45],
+  'chest-silver-locked': [wood('Collectable Object', 'Locked Silver Treasure Box'), HALF],
+  'chest-silver-open': [wood('Collectable Object', 'Unlocked Silver Treasure Box'), HALF],
   'chest-locked': [wood('Collectable Object', 'Locked Golden Treasure Box'), HALF],
   'chest-open': [wood('Collectable Object', 'Unlocked Golden Treasure Box'), HALF],
   heart: [wood('Collectable Object', 'Life'), 0.4],
@@ -57,6 +60,8 @@ const WOOD = {
   'sign-right': [wood('Environment', 'Signpost 01'), HALF],
   'sign-up': [wood('Environment', 'Signpost 02'), HALF],
   ivy: [wood('Environment', 'Ivy 02'), HALF],
+  // A crumbling ledge's leaves, one cell wide.
+  leaves: [wood('Environment', 'Leaves'), 0.25],
   rock: [wood('Environment', 'Rock 01'), HALF],
   statue: [wood('Environment', 'Statue'), HALF],
   lantern: [wood('Environment', 'Fireplace'), HALF],
@@ -71,7 +76,7 @@ const out = join(OUT, 'wood');
 mkdirSync(out, { recursive: true });
 // Things that stand on the ground. Some pack images leave empty rows under the drawing, which would
 // float it above the grass, so those rows are cut off: the picture's bottom is where it stands.
-const STANDS = new Set(['chest-locked', 'chest-open', 'portal', 'statue', 'bush-1', 'bush-2', 'plant-1', 'plant-2',
+const STANDS = new Set(['chest-locked', 'chest-open', 'chest-silver-locked', 'chest-silver-open', 'portal', 'statue', 'bush-1', 'bush-2', 'plant-1', 'plant-2',
   'fence', 'sign-right', 'sign-up', 'rock', 'lantern', 'spike']);
 const emptyRowsBelow = async (png) => {
   const { data, info } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });

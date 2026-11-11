@@ -3,7 +3,7 @@
 // the map locked until they're built.
 export const ADVENTURE_ROADMAP = [
   { id: 'wood-1', world: 'Wood', title: 'Into the Roots', level: 'wood-1' },
-  { id: 'wood-2', world: 'Wood', title: 'The Canopy' },
+  { id: 'wood-2', world: 'Wood', title: 'The Canopy', level: 'wood-2' },
   { id: 'wood-3', world: 'Wood', title: 'Heart of the Tree' },
   { id: 'caves-1', world: 'Crystal Caves', title: 'Glittering Deep' },
   { id: 'caves-2', world: 'Crystal Caves', title: 'Echo Tunnels' },
