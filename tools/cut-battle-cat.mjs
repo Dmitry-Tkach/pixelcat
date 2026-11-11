@@ -21,8 +21,8 @@ const isFur = (r, g, b) => Math.max(r, g, b) - Math.min(r, g, b) < 30 && Math.ma
 
 // Each sheet: its name tags (cleared before cutting), and its rows top to bottom, each with its
 // animations left to right and how many frames each has. band: the row's top and bottom. fix: frame
-// edges moved by hand, by their place in the row. airborne: the jump frames off the ground, whose
-// dust is left behind.
+// edges moved by hand, by their place in the row; drop: cuts that aren't between two frames, by their
+// place in the row. airborne: the jump frames off the ground, whose dust is left behind.
 const SHEETS = {
   minigun: {
     file: join(SPRITES, 'cat-version-2', 'cat-v-2-sprite.png'),
@@ -43,25 +43,26 @@ const SHEETS = {
     ],
     airborne: [2, 3, 4],
   },
-  // This sheet has no transparency: a checkerboard is painted where it should be, so it's cleared first.
+  // The bare-pawed sheet, with real transparency (from grey_cat_development_assets). Its first test
+  // version, cat-v-2-no-weapon.png, had a checkerboard painted in instead: `painted: true` clears that.
   paws: {
-    file: join(SPRITES, 'cat-version-2', 'cat-v-2-no-weapon.png'),
-    painted: true,
+    file: join(SPRITES, 'cat-version-2', 'grey_cat_development_assets', 'source_sprite_sheet.png'),
     out: join(SPRITES, 'battle-cat-paws'),
     labels: [
-      [11, 12, 93, 48], [557, 12, 640, 48], [12, 209, 96, 243], [813, 209, 899, 243], [12, 396, 75, 431],
-      [532, 396, 672, 432], [1085, 399, 1226, 435], [12, 596, 93, 630], [1122, 596, 1237, 630], [626, 598, 714, 633],
-      [12, 811, 170, 845], [538, 811, 725, 845], [1170, 811, 1329, 845],
+      [14, 10, 110, 45], [600, 10, 697, 45], [13, 214, 113, 249], [780, 214, 885, 250], [506, 392, 667, 428],
+      [13, 394, 87, 429], [1064, 396, 1216, 431], [14, 592, 108, 627], [1081, 592, 1216, 628], [631, 593, 728, 628],
+      [14, 797, 192, 833], [517, 797, 726, 833], [1148, 799, 1312, 834],
     ],
     rows: [
-      { band: [10, 188], anims: [['Idle', 4], ['Run', 6]] },
-      { band: [204, 378], anims: [['Jump', 5], ['Slide', 4]] },
-      { band: [390, 590], anims: [['Hit', 3], ['Rage', 4], ['Defeated', 3]] },
-      { band: [592, 798], anims: [['Dash', 4], ['Climb', 4], ['ClimbUp', 3]] },
+      { band: [10, 205], anims: [['Idle', 4], ['Run', 7]] },
+      { band: [210, 388], anims: [['Jump', 4], ['Slide', 4]] },
+      { band: [390, 588], anims: [['Hit', 3], ['Rage', 4], ['Defeated', 3]] },
+      // The dash's speed lines, at the far left, look like a frame of their own: that cut goes.
+      { band: [590, 795], anims: [['Dash', 4], ['Climb', 4], ['ClimbUp', 3]], drop: [1] },
       // The beam of the third special frame reaches well past the gap before the special end.
-      { band: [804, 1018], anims: [['ClimbDown', 4], ['Special', 3], ['SpecialEnd', 3]], fix: { 7: 1160 } },
+      { band: [796, 1023], anims: [['ClimbDown', 4], ['Special', 3], ['SpecialEnd', 3]], fix: { 7: 1150 } },
     ],
-    airborne: [2, 3, 4, 5],
+    airborne: [2, 3, 4],
     removeBlock: removePaleBlock,
   },
 };
@@ -71,9 +72,9 @@ const LABEL_HEIGHT = 36;
 async function cutCat(name, { file, painted, out, labels, rows }) {
   const sheet = painted ? await clearPaintedBackground(file) : file;
   let first = true;
-  for (const { band, anims, fix = {} } of rows) {
+  for (const { band, anims, fix = {}, drop = [] } of rows) {
     // Frames are found below the name tags, whose grey edges would look like fur.
-    const cuts = await findCuts(sheet, [band[0] + LABEL_HEIGHT, band[1]], isFur);
+    const cuts = (await findCuts(sheet, [band[0] + LABEL_HEIGHT, band[1]], isFur)).filter((_, i) => !drop.includes(i));
     for (const [index, x] of Object.entries(fix)) cuts[index] = x;
     const total = anims.reduce((sum, [, n]) => sum + n, 0);
     if (cuts.length - 1 !== total) throw new Error(`${name} ${anims.map(([n]) => n)}: found ${cuts.length - 1} frames, not ${total} (cuts ${cuts})`);

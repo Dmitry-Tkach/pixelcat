@@ -150,7 +150,7 @@ export const CHARACTERS = {
   },
 
   // The battle cat with bare paws, as he starts an adventure level, from
-  // images/sprites/cat-version-2/cat-v-2-no-weapon.png. His frames are the same size as his frames
+  // images/sprites/cat-version-2/grey_cat_development_assets/source_sprite_sheet.png. His frames are the same size as his frames
   // with the minigun, with him in the same place, so finding it swaps one for the other mid-run.
   battleCatPaws: {
     folder: 'battle-cat-paws',
@@ -158,9 +158,9 @@ export const CHARACTERS = {
     face: { x: 68, y: 40, size: 84 },
     anims: {
       idle: { file: 'idle', frames: 4, fps: 8, repeat: -1 },
-      run: { file: 'run', frames: 6, fps: 12, repeat: -1 },
-      jump: { file: 'jump', frames: 5, frameList: [1, 2, 3, 4], fps: 12, repeat: 0 },
-      fall: { file: 'jump', frames: 5, frameList: [5], fps: 1, repeat: 0 },
+      run: { file: 'run', frames: 7, fps: 12, repeat: -1 },
+      jump: { file: 'jump', frames: 4, frameList: [1, 2, 3], fps: 12, repeat: 0 },
+      fall: { file: 'jump', frames: 4, frameList: [4], fps: 1, repeat: 0 },
       slide: { file: 'slide', frames: 4, fps: 12, repeat: -1 },
       hurt: { file: 'hit', frames: 3, fps: 10, repeat: 0 },
       caught: { file: 'defeated', frames: 3, fps: 6, repeat: 0 },
