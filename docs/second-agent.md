@@ -1,7 +1,11 @@
 # Prompt for the second agent
 
+**When to use it:** only when it clearly saves time: a separate, clear-cut task that can run while
+the main agent works on something else. For anything small, creative or touching the core files, the
+main agent does it alone. (The owner's decision, 2026-11-11.)
+
 Paste everything below the line into the second agent (Codex, or another session). Part 1 stays the
-same every time. Part 2 is the task: replace it with the next one when this one is done.
+same every time. Part 2 is the task: write in the next one each time.
 
 ---
 
@@ -49,47 +53,15 @@ You're joining the Cat Escape project as the **second engineer**.
 
 ## Part 2: your task
 
-**Prepare the troll boss for the adventure's Wood 3 level** ("Heart of the Tree"): its art and its
-data, ready for the main agent to build the boss fight. **No scene or fight code** in this task.
+[Write the task here, the same way each time:
+- the branch to start from, and the name of the new one;
+- the files the main agent is working in, which it mustn't change;
+- what to build, and what it's for;
+- how to check it: tests, the build, pictures;
+- what to report, and where to save pictures for the owner (outside the project).]
 
-- **Start from** the branch `cat-v2-sheet`. Make a branch called `troll-boss-art`.
-- **The main agent is working in:** `src/scenes/AdventureScene.js`, `src/systems/adventureMap.js`,
-  `src/systems/adventureRoutes.js`, `src/data/adventure/wood.js` and `tools/adventure-art.mjs`.
-  Don't change those.
-- **The art:** the pack at `images/assets/worlds/characters/troll-bosses/PNG/Animation/`.
-  - **Three trolls** (`Troll1`, `Troll2`, `Troll3`), each with Idle, Walk, Run, Jump, Attack, Hurt
-    and Dead, 10 frames each (Troll3's Walk has 9).
-  - **Mismatched frame sizes:** the frames aren't the same size from animation to animation (Idle
-    is 1056x715, Attack 1598x1323). Work out how they line up, so the troll's feet stay on one line
-    and he doesn't jump about between animations.
-  - **The pack stays out of git.**
-
-**What to build:**
-
-1. **A new tool, `tools/adventure-boss-art.mjs`.** It cuts each troll into a Phaser atlas (a grid
-   of frames and a JSON file, like the enemy atlases in `tools/adventure-art.mjs`) in
-   `public/assets/adventure/bosses/`.
-   - **What to keep:** every frame, or every other one if the atlas gets too big. Keep each atlas
-     under 2048px on its longest side.
-   - **One crop and one scale** for all of a troll's animations.
-   - **Size:** about **3 tiles tall** in the game, around 190px, next to a battle cat of about 90px.
-2. **Add it to `npm run assets` in `package.json`,** just before `outline-art.mjs`. Mention this in
-   your report: it's a shared file.
-3. **A new data file, `src/data/adventure/bosses.js`,** describing each troll the way
-   `src/data/adventure/enemies.js` describes the zombies:
-   - its crop and scale;
-   - its **feet**: the bottom of its feet, not its shadow;
-   - its **body** hitbox;
-   - the **attack frame** where its club lands;
-   - which way the art **faces**;
-   - each animation's frame count and speed;
-   - a layout function, and key and path helpers.
-4. **Tests in a new file, `tests/adventure-bosses.test.js`:**
-   - each atlas has every frame its animations use;
-   - each body sits inside its frame with its bottom on the feet line;
-   - each troll is about 3 tiles tall.
-5. **For the owner:** a contact sheet and a GIF of each troll's animations, saved outside the
-   project (in your scratch folder), so they can choose which troll they like. Tell them where.
-
-**When you report back,** also say which troll you'd suggest as the Wood boss, and why, as a
-suggestion for the owner to decide.
+**Every task:**
+- Work only in your own copy of the project, on your own branch. Don't copy files into the main
+  project folder.
+- Measure what you describe (sizes, hitboxes, frames): don't guess.
+- Tests must open the real files they check, not just repeat the data.

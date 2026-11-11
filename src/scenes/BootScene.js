@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { BOSSES, bossAnimKey, bossFrameCount, bossKey, bossPath } from '../data/adventure/bosses.js';
 import { EXPLOSION, EXPLOSION_KEY, EXPLOSION_PATH, explosionFrameCount } from '../data/adventure/ammo.js';
 import { ENEMIES, enemyAnimKey, enemyFrameCount, enemyKey, enemyPath } from '../data/adventure/enemies.js';
 import { FLASH, FLASH_KEY, FLASH_PATH, GUNNERS, flashFrameCount, gunnerAnimKey, gunnerFrameCount, gunnerKey, gunnerPath } from '../data/adventure/gunners.js';
@@ -34,6 +35,10 @@ export class BootScene extends Phaser.Scene {
     }
     this.load.atlas(FLASH_KEY, `${FLASH_PATH}.png`, `${FLASH_PATH}.json`);
     this.load.atlas(EXPLOSION_KEY, `${EXPLOSION_PATH}.png`, `${EXPLOSION_PATH}.json`);
+    // The bosses: atlases of several pages, listed in one JSON.
+    for (const kind of Object.keys(BOSSES)) {
+      this.load.multiatlas(bossKey(kind), `${bossPath(kind)}.json`, 'assets/adventure/bosses');
+    }
     for (const [name, character] of Object.entries(CHARACTERS)) {
       for (const { file, frames } of Object.values(character.anims)) {
         for (let i = 1; i <= frames; i++) {
@@ -104,6 +109,16 @@ export class BootScene extends Phaser.Scene {
       frameRate: FLASH.fps,
       repeat: 0,
     });
+    for (const [kind, { anims }] of Object.entries(BOSSES)) {
+      for (const [anim, info] of Object.entries(anims)) {
+        this.anims.create({
+          key: bossAnimKey(kind, anim),
+          frames: Array.from({ length: bossFrameCount(info) }, (_, i) => ({ key: bossKey(kind), frame: `${anim}-${i}` })),
+          frameRate: info.fps,
+          repeat: info.repeat,
+        });
+      }
+    }
     this.anims.create({
       key: EXPLOSION_KEY,
       frames: Array.from({ length: explosionFrameCount() }, (_, i) => ({ key: EXPLOSION_KEY, frame: `explosion-${i}` })),
