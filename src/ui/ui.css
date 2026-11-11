@@ -614,7 +614,7 @@ html, body, #game {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(14, 18, 34, 0.1) 30%, rgba(14, 18, 34, 0.92) 78%);
+  background: linear-gradient(0deg, rgba(14, 18, 34, 0.1) 30%, rgba(14, 18, 34, 0.92) 78%);
   pointer-events: none;
 }
 
@@ -639,7 +639,7 @@ html, body, #game {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 0;
+  top: 0;
   z-index: 2;
   display: flex;
   flex-direction: column;
