@@ -271,6 +271,31 @@ for (let i = 0; i < files.length; i++) {
 }
 console.log(`The frames he plays as the cat are padded to ${W}x${H}`);
 
+// The minigun sheet draws his fur darker and a little bluer than all his other drawings (bare paws,
+// the run, the climbing), so he'd change colour between moves and when he picks the minigun up. Its
+// greys are matched to the bare-pawed frames', channel by channel, so each shade of grey keeps its
+// place among the others: his outline stays black and his chest white. Only greys change: the gun's
+// brass, his nose and tongue, the flash and the flames stay as drawn.
+const GREY = 30; // a pixel whose channels are this close is grey
+const isGrey = (px, i) => px[i + 3] > 0 && Math.max(px[i], px[i + 1], px[i + 2]) - Math.min(px[i], px[i + 1], px[i + 2]) < GREY;
+const greyLevels = async (paths) => {
+  const counts = [0, 1, 2].map(() => new Float64Array(256));
+  for (const path of paths) {
+    const { data } = await sharp(path).raw().toBuffer({ resolveWithObject: true });
+    for (let i = 0; i < data.length; i += 4) if (isGrey(data, i) && data[i + 3] > 200) for (let k = 0; k < 3; k++) counts[k][data[i + k]] += 1;
+  }
+  // Each channel's share of greys at or below each level.
+  return counts.map((c) => { const total = c.reduce((a, b) => a + b, 0); let run = 0; return Array.from(c, (v) => (run += v) / total); });
+};
+const pngsIn = (dir) => readdirSync(dir).filter((f) => f.endsWith('.png')).map((f) => join(dir, f));
+const from = await greyLevels(pngsIn(SHEETS.minigun.out)), to = await greyLevels(pngsIn(SHEETS.paws.out));
+// For each channel and level: the level with the same share in the bare-pawed frames.
+const recolour = from.map((share, k) => Array.from(share, (v) => { let level = 0; while (level < 255 && to[k][level] < v) level += 1; return level; }));
+for (const path of pngsIn(SHEETS.minigun.out)) {
+  await editFrame(path, (px) => { for (let i = 0; i < px.length; i += 4) if (isGrey(px, i)) for (let k = 0; k < 3; k++) px[i + k] = recolour[k][px[i + k]]; });
+}
+console.log('His greys with the minigun are matched to his bare-pawed frames');
+
 // Where he is in a picture: the box round his solid pixels, his middle, and the middle of his legs.
 function placeOf(px, w, h) {
   let top = h, bottom = -1, left = w, right = -1, sx = 0, sy = 0, n = 0;
