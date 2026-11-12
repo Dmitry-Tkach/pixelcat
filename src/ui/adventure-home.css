@@ -93,21 +93,66 @@
   filter: drop-shadow(0 0 calc(9 * var(--u)) rgba(120, 225, 255, 0.85));
 }
 
-/* The wizard's orb: a pink light on it that swells and dims. */
+/* The wizard's orb, shining: a wide pink halo that swells and fades, a white-hot core that flickers
+   a little faster, and a four-pointed twinkle that turns slowly and flashes. Each layer only moves,
+   grows and fades, so they're cheap. */
 .paws-orb-light {
   position: absolute;
-  width: 42%;
+  width: 70%;
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.paws-orb-light::before,
+.paws-orb-light::after,
+.paws-orb-star {
+  content: '';
+  position: absolute;
   border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(255, 190, 255, 0.85), rgba(255, 80, 220, 0.35) 55%, rgba(255, 80, 220, 0));
-  animation: paws-orb-light 2s ease-in-out infinite alternate;
   will-change: transform, opacity;
 }
 
-@keyframes paws-orb-light {
-  from { opacity: 0.25; transform: translate(-50%, -50%) scale(0.8); }
-  to { opacity: 0.9; transform: translate(-50%, -50%) scale(1.1); }
+/* The halo. */
+.paws-orb-light::before {
+  inset: 0;
+  background: radial-gradient(closest-side, rgba(255, 210, 255, 0.95), rgba(255, 110, 235, 0.6) 40%, rgba(255, 70, 220, 0.2) 70%, rgba(255, 70, 220, 0));
+  animation: paws-orb-halo 1.6s ease-in-out infinite alternate;
+}
+
+/* The core: small and almost white. */
+.paws-orb-light::after {
+  inset: 34%;
+  background: radial-gradient(closest-side, #fff, rgba(255, 235, 255, 0.9) 50%, rgba(255, 180, 250, 0));
+  animation: paws-orb-core 0.8s ease-in-out infinite alternate;
+}
+
+/* The twinkle: two thin crossing beams of light, turning. */
+.paws-orb-star {
+  inset: 12%;
+  border-radius: 0;
+  background:
+    radial-gradient(closest-side, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0)) center / 100% 9% no-repeat,
+    radial-gradient(closest-side, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0)) center / 9% 100% no-repeat;
+  animation: paws-orb-star 3.2s linear infinite;
+}
+
+@keyframes paws-orb-halo {
+  from { opacity: 0.45; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1.25); }
+}
+
+@keyframes paws-orb-core {
+  from { opacity: 0.75; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1.15); }
+}
+
+@keyframes paws-orb-star {
+  0% { opacity: 0.2; transform: rotate(0deg) scale(0.6); }
+  25% { opacity: 1; transform: rotate(45deg) scale(1.1); }
+  50% { opacity: 0.3; transform: rotate(90deg) scale(0.7); }
+  75% { opacity: 0.9; transform: rotate(135deg) scale(1); }
+  100% { opacity: 0.2; transform: rotate(180deg) scale(0.6); }
 }
 
 /* ----- Leaves drifting down from the trees (HOME_LEAVES in data/adventure/home.js) ----- */
@@ -216,7 +261,9 @@
 @media (prefers-reduced-motion: reduce) {
   .paws-button,
   .paws-button.paws-big img,
-  .paws-orb-light {
+  .paws-orb-light::before,
+  .paws-orb-light::after,
+  .paws-orb-star {
     animation: none;
     transition: none;
   }

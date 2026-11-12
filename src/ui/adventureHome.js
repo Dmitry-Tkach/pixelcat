@@ -66,7 +66,8 @@ export function adventureHome({ overlay, on }) {
   return root;
 }
 
-// A character, standing still. The wizard's orb has a light of its own, placed on it.
+// A character, standing still. The wizard's orb has a light of its own on it: a halo and a core
+// (the light's ::before and ::after in adventure-home.css) and a twinkle.
 function figure({ name, x, y, w: cw, glow, orb }, w, h) {
   const frame = document.createElement('div');
   frame.className = 'paws-figure';
@@ -76,6 +77,9 @@ function figure({ name, x, y, w: cw, glow, orb }, w, h) {
     const light = document.createElement('div');
     light.className = 'paws-orb-light';
     Object.assign(light.style, { left: percent(orb.x, 1), top: percent(orb.y, 1) });
+    const star = document.createElement('div');
+    star.className = 'paws-orb-star';
+    light.append(star);
     frame.append(light);
   }
   return frame;
