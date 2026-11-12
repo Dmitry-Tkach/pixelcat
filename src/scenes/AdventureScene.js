@@ -33,9 +33,11 @@ const CAMERA = { lerp: 0.12, deadzoneW: 120, deadzoneH: 70 };
 //   below: normally a little below him, as what's beneath is what's dangerous
 //   above: while he climbs a ladder up, above him instead
 //   peek: standing still by an island's edge, well below him, to show where he'd land
+//   ride: riding a moving log going down, this far below him, to show where it's taking him. Going
+//         up, it looks `above` him, as on a ladder. A log is ground, so he never peeks off it.
 //   ahead: this far in front of him, the way he runs or faces
 //   stillMs: how long he stands by an edge before the camera peeks over. easeMs: how quickly it turns.
-const LOOK = { below: 110, above: 120, peek: 250, ahead: 160, runningFrom: 120, stillMs: 350, easeMs: 300, edgeCells: 2 };
+const LOOK = { below: 110, above: 120, peek: 250, ride: 180, ahead: 160, runningFrom: 120, stillMs: 350, easeMs: 300, edgeCells: 2 };
 const BACKGROUND_DRIFT = { far: 0.12, near: 0.3 };
 const SPIKE_HIT = { w: 52, h: 20 };
 const BONUS_COINS = 3;
@@ -508,14 +510,18 @@ export class AdventureScene extends Phaser.Scene {
   }
 
   // Turns the camera, smoothly, to where the player needs to see: ahead as he runs, above as he
-  // climbs, and over the edge when he stands at one, so a jump down is never blind.
+  // climbs, over the edge when he stands at one, so a jump down is never blind, and the way a moving
+  // log is taking him while he rides it.
   updateLook(ms) {
     const { cat, look } = this;
     const running = Math.abs(cat.moveVelocity) > LOOK.runningFrom;
+    const riding = this.platforms.riding;
     const standing = cat.onGround && !running && !this.climbing && !this.pullingUp;
-    look.edgeMs = standing && this.atEdge() ? look.edgeMs + ms : 0;
+    look.edgeMs = standing && !riding && this.atEdge() ? look.edgeMs + ms : 0;
     let y = -LOOK.below;
     if (this.climbing && this.upHeld) y = LOOK.above;
+    else if (riding && riding.body.velocity.y < 0) y = LOOK.above;
+    else if (riding && riding.body.velocity.y > 0) y = -LOOK.ride;
     else if (look.edgeMs > LOOK.stillMs) y = -LOOK.peek;
     // Ahead of him: the way he's running, or standing, the way he faces.
     const x = -(running ? Math.sign(cat.moveVelocity) : (cat.flipX ? -1 : 1)) * LOOK.ahead;
