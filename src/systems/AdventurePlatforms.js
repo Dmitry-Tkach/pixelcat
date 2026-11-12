@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { TILE } from './adventureMap.js';
-import { landsFromAbove } from './platformLanding.js';
+import { landsFromAbove, staysOn } from './platformLanding.js';
 
 // Platforms that move or fall, in an adventure level:
 //   moving logs (the level's `movers`) glide to and fro along their path, pausing at each end. The
@@ -36,7 +36,8 @@ export class AdventurePlatforms {
       const log = scene.add.tileSprite(col * TILE, row * TILE, width * TILE, TILE, art('bridge')).setOrigin(0, 0).setDepth(LOG.depth);
       this.logs.add(log);
       log.body.setSize(width * TILE, LOG.plankHeight).setOffset(0, LOG.plankTop);
-      log.body.setAllowGravity(false).setImmovable(true);
+      // The game carries him along itself (see update), so Phaser doesn't too.
+      log.body.setAllowGravity(false).setImmovable(true).setFriction(0, 0);
       log.ends = [{ x: col * TILE, y: row * TILE }, { x: (col + across) * TILE, y: (row - up) * TILE }];
       log.heading = 1; // towards ends[1]
       log.speed = speed;
@@ -70,12 +71,21 @@ export class AdventurePlatforms {
     }, fromAbove);
   }
 
-  // Each log on towards the end it's heading for, then a pause, then back. A log going down takes him
-  // down with it, rather than leaving him to fall a little behind it every step.
+  // Each log on towards the end it's heading for, then a pause, then back. The log he's riding carries
+  // him by as far as it moved this frame, across, and down when it goes down, rather than leaving him
+  // to fall a little behind it every step. (Going up, it pushes him up itself.)
   update(ms) {
     const dt = ms / 1000;
-    if (this.riding && this.riding.body.velocity.y > 0) this.cat.y += this.riding.body.deltaY();
-    this.riding = null;
+    const log = this.riding, body = this.cat.body;
+    if (log && staysOn({
+      left: body.left, right: body.right, bottom: body.bottom, vy: body.velocity.y,
+      top: log.body.top, logLeft: log.body.left, logRight: log.body.right, platformVy: log.body.velocity.y,
+    })) {
+      this.cat.x += log.body.deltaX();
+      if (log.body.deltaY() > 0) this.cat.y += log.body.deltaY();
+    } else {
+      this.riding = null;
+    }
     for (const log of this.logs.getChildren()) {
       if (log.waitMs > 0) {
         log.waitMs -= ms;

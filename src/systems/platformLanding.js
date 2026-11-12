@@ -14,3 +14,17 @@ export function landsFromAbove({ bottom, prevBottom, top, prevTop = top, vy, pla
   if (vy < platformVy - RISING_SLACK) return false;
   return bottom <= top + margin || prevBottom <= prevTop + margin;
 }
+
+// Whether the cat, riding a moving log, is still on it: over it, his feet close to its top, and not
+// jumping off. The game then carries him along by however far it moved. (Phaser's own carrying
+// misses steps where a log going down drops away from his feet, and counts a frame's movement more
+// than once when a frame has several physics steps.)
+//   left, right, bottom: his body; top, logLeft, logRight: the log's
+export const RIDE_GAP = 6; // px: his feet this far above the log's top still ride it
+
+export function staysOn({ left, right, bottom, vy, top, logLeft, logRight, platformVy = 0 }) {
+  // Jumping off: rising faster than the log rises. (On a log going down, he falls slower than it at
+  // first, which isn't jumping.)
+  if (vy < Math.min(platformVy, 0) - RISING_SLACK) return false;
+  return right > logLeft && left < logRight && bottom >= top - RIDE_GAP && bottom <= top + LAND_MARGIN;
+}
