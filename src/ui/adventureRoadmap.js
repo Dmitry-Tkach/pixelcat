@@ -1,3 +1,4 @@
+import { HOME_ART } from '../data/adventure/home.js';
 import { ADVENTURE_ROADMAP, ADVENTURE_WORLDS, ROADMAP_ART, ROADMAP_LOOK, ROADMAP_PIECES } from '../data/adventure/roadmap.js';
 import { roadmapLayout } from '../systems/adventure/roadmapLayout.js';
 import './adventure-roadmap.css';
@@ -7,7 +8,8 @@ import './adventure-roadmap.css';
 // through their levels (systems/adventure/roadmapLayout.js places everything). It scrolls up and
 // down, and opens on the level the player is up to, with the cat standing on it like a game piece.
 // Each level is a button from the owner's art: its number when open, a tick when finished, a padlock
-// when locked. It's plain HTML; nothing moves but the glow round the current level.
+// when locked. It floats over the home screen's landscape. It's plain HTML; nothing moves but the
+// glow round the current level.
 
 const CRYSTALS = 3; // a level's crystals, shown under it once it's been played
 const art = (name) => `${ROADMAP_ART}/${name}.webp`;
@@ -23,6 +25,7 @@ export function adventureRoadmap({ levels, crystals, onBack, overlay }) {
 
   const root = document.createElement('div');
   root.className = 'roadmap';
+  root.style.setProperty('--landscape', `url(${HOME_ART}/landscape.webp)`);
   const scroller = document.createElement('div');
   scroller.className = 'roadmap-scroll';
   const map = document.createElement('div');

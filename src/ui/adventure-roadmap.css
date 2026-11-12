@@ -1,7 +1,8 @@
 /* The adventure's road map (ui/adventureRoadmap.js): the islands climbing up a column down the
-   middle that scrolls up and down, over a sky that darkens as it rises, from the forest's green at
-   the bottom to deep blue at the top. Everything is placed in shares of the map, so it scales with
-   the column. Only the current level's glow moves. */
+   middle that scrolls up and down, floating over the home screen's painted landscape, which fills
+   the window and stays still, so they seem to rise past it. A soft dark-blue shade at the top makes
+   the sky feel higher. Everything on the map is placed in shares of it, so it scales with the
+   column. Only the current level's glow moves. */
 
 #overlay[data-layout='paws-roadmap'] {
   padding: 0;
@@ -44,8 +45,11 @@
 .roadmap {
   position: absolute;
   inset: 0;
-  /* Beside the map, on a wide window: the same sky, darker. */
-  background: linear-gradient(180deg, #0d2140, #12365e 55%, #1d4a3a);
+  /* The shade over the top, then the landscape (--landscape, set by adventureRoadmap.js). */
+  background:
+    linear-gradient(180deg, rgba(8, 22, 52, 0.7), rgba(8, 22, 52, 0.25) 40%, rgba(8, 22, 52, 0) 65%, rgba(8, 22, 52, 0.2)),
+    var(--landscape) center bottom / cover no-repeat,
+    #2a6fb8;
   font-family: var(--font);
 }
 
@@ -57,14 +61,12 @@
   overscroll-behavior: contain;
 }
 
-/* The map's column. */
+/* The map's column: see-through, so the islands float over the landscape. */
 .roadmap-map {
   position: relative;
   width: clamp(320px, 56vw, 900px);
   max-width: 100%;
   margin: 0 auto;
-  background: linear-gradient(180deg, #1b3f78, #3a8fd6 55%, #4caf6a);
-  box-shadow: 0 0 5vw rgba(0, 0, 0, 0.5);
   user-select: none;
 }
 
@@ -78,7 +80,12 @@
 }
 
 .roadmap-cloud {
-  opacity: 0.9;
+  opacity: 0.95;
+}
+
+/* The islands, a little shadow under each, so they stand off the landscape behind them. */
+.roadmap-island {
+  filter: drop-shadow(0 1.2vw 1vw rgba(6, 18, 40, 0.45));
 }
 
 .roadmap-road {
