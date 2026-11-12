@@ -73,7 +73,8 @@ const SHEETS = {
       { band: [796, 1023], anims: [['ClimbDown', 4], ['Special', 3], ['SpecialEnd', 3]], cuts: [0, 126, 245, 359, 480, 624, 746, 1148, 1273, 1397, 1536] },
     ],
     airborne: [2, 3, 4],
-    strips: { Run: { file: join(SPRITES, 'cat-version-2', 'grey_cat_run_cycle', 'run_strip.png'), scale: 0.486 } },
+    // Scaled so his head is the size it is when he stands (the strip draws him a little smaller).
+    strips: { Run: { file: join(SPRITES, 'cat-version-2', 'grey_cat_run_cycle', 'run_strip.png'), scale: 0.515 } },
     close: true, // its cats stand close, so slivers of the next one are cleared (see dropSlivers)
   },
 };
