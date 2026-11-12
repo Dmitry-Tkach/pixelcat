@@ -24,11 +24,15 @@ page of its own, which loads only that game:
    grandma) through four worlds (City, Village, Farm, Sunset), with bosses (Crown Cat, Bomber Rat,
    Ginger Gunner). Scene: `src/scenes/GameScene.js`. Levels: `src/data/levels/`.
 2. **The adventure, "The Battle Cat":** a multi-direction platformer. The grey battle cat climbs,
-   fights and explores fantasy worlds (Wood, Crystal Caves, Ancient, Medieval).
+   fights and explores fantasy worlds, eight of them (see below).
    - **Scenes:** `AdventureBootScene` (loading), `AdventureMenuScene` (its menus) and
      `AdventureScene` (a level), in `src/scenes/`. Levels: `src/data/adventure/`.
-   - **Built so far:** one level, `wood-1`, "Into the Roots".
-   - **Planned:** 12 levels, on the road map in `src/data/adventure/roadmap.js`.
+   - **Built so far:** two levels, `wood-1` "Into the Roots" and `wood-2` "The Canopy", and the
+     troll's fight in a test arena (`docs/adventure-boss-troll.md`).
+   - **Planned:** 8 worlds of 3 levels, 24 in all, the third of each a boss level, on the road map in
+     `src/data/adventure/roadmap.js`: Wood, Autumn Forest, Graveyard, Crystal Caves, Ancient, Sky
+     Ruins, Execution Grounds, Medieval. Their tile packs are in `images/assets/worlds/`.
+   - **The road map** (Level Select) shows one world to a page, with arrows between them.
 
 They keep separate progress and share nothing but the home screen and the menus' look.
 

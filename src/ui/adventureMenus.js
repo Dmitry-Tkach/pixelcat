@@ -1,6 +1,6 @@
 import { ADVENTURE_HERO, ADVENTURE_LEVELS } from '../data/adventure/index.js';
 import { ADVENTURE_NAME, CREDITS, HOME_ART } from '../data/adventure/home.js';
-import { ADVENTURE_MAP_LOOK, ADVENTURE_MAP_WORLDS, ADVENTURE_ROADMAP } from '../data/adventure/roadmap.js';
+import { ADVENTURE_MAP_WORLDS, ADVENTURE_ROADMAP, ADVENTURE_WORLDS, worldEnds } from '../data/adventure/roadmap.js';
 import { ADVENTURE_KEYS } from './adventureGameMenu.js';
 import { adventureHome } from './adventureHome.js';
 import { journeyMap } from './JourneyMap.js';
@@ -90,14 +90,20 @@ export function nextAdventureLevel(progress) {
   return ADVENTURE_LEVELS.findIndex((level) => level.id === stop.level);
 }
 
-// The adventure's own road map: every level planned, world by world, the built ones open as each
-// is reached, their stars the crystals found in them.
-export function showAdventureMap(scene) {
+// The adventure's own road map, one world to a page: its levels, the built ones open as each is
+// reached, their stars the crystals found in them. It opens on the world of the level the player is
+// up to; arrows turn to the world before or after. The cat stands on his level's page only.
+export function showAdventureMap(scene, worldIndex = null) {
   const progress = scene.registry.get('adventureProgress');
   const playable = (stop) => ADVENTURE_LEVELS.some((level) => level.id === stop.level);
-  const stops = ADVENTURE_ROADMAP.map((stop, index) => {
+  const upTo = ADVENTURE_ROADMAP[progress.nextIndex] ?? ADVENTURE_ROADMAP[0];
+  const page = worldIndex ?? ADVENTURE_WORLDS.indexOf(upTo.world);
+  const world = ADVENTURE_WORLDS[page];
+  const stops = [];
+  ADVENTURE_ROADMAP.forEach((stop, index) => {
+    if (stop.world !== world) return;
     const result = progress.resultFor(stop.id);
-    return {
+    stops.push({
       number: index + 1,
       title: playable(stop) ? stop.title : `${stop.title} (coming soon)`,
       world: stop.world,
@@ -105,15 +111,26 @@ export function showAdventureMap(scene) {
       current: index === progress.nextIndex,
       stars: result?.stars ?? 0,
       onPick: () => openAdventure(scene, ADVENTURE_LEVELS.findIndex((level) => level.id === stop.level)),
-    };
+    });
   });
   const built = ADVENTURE_ROADMAP.filter(playable).length;
+  const before = ADVENTURE_WORLDS[page - 1], after = ADVENTURE_WORLDS[page + 1];
   scene.overlay.show({
-    title: 'Adventure',
+    title: world,
     backdrop: PAGE_BACKDROP,
-    message: `${progress.totalStars} of ${built * 3} crystals. More of the battle cat's road opens as it's built.`,
-    content: journeyMap({ stops, instant: scene.screenFx.instant, character: ADVENTURE_HERO.character, look: { worlds: ADVENTURE_MAP_WORLDS, ...ADVENTURE_MAP_LOOK } }),
-    actions: [{ label: 'Back', primary: true, onClick: () => showAdventureHome(scene) }],
+    message: `World ${page + 1} of ${ADVENTURE_WORLDS.length} · ${progress.totalStars} of ${built * 3} crystals`,
+    content: journeyMap({
+      stops,
+      instant: scene.screenFx.instant,
+      character: ADVENTURE_HERO.character,
+      walker: stops.some((stop) => stop.current),
+      look: { worlds: ADVENTURE_MAP_WORLDS, ...worldEnds(page) },
+    }),
+    actions: [
+      ...(before ? [{ label: `◀ ${before}`, onClick: () => showAdventureMap(scene, page - 1) }] : []),
+      { label: 'Back', primary: true, onClick: () => showAdventureHome(scene) },
+      ...(after ? [{ label: `${after} ▶`, onClick: () => showAdventureMap(scene, page + 1) }] : []),
+    ],
   });
 }
 
