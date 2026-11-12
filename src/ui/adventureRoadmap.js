@@ -1,67 +1,73 @@
-import { HOME_ART } from '../data/adventure/home.js';
-import { ADVENTURE_ROADMAP, ADVENTURE_WORLDS, ROADMAP_MAP } from '../data/adventure/roadmap.js';
+import { ADVENTURE_ROADMAP, ADVENTURE_WORLDS, ROADMAP_ART, ROADMAP_LOOK, ROADMAP_PIECES } from '../data/adventure/roadmap.js';
+import { roadmapLayout } from '../systems/adventure/roadmapLayout.js';
 import './adventure-roadmap.css';
 
-// The adventure's road map (Level Select): the owner's vertical map, climbed like a ladder, the
-// first world at the bottom and the last at the top (ROADMAP_MAP in data/adventure/roadmap.js). It
-// scrolls up and down, and opens on the level the player is up to, with a gold paw bobbing over it.
-// Each level is a live hexagon button over the painted one: open, current, finished (with its
-// crystals) or locked. The picture is plain HTML; nothing moves but the paw.
+// The adventure's road map (Level Select), from the owner's design: the worlds' islands stacked from
+// the bottom, the first, to the top, the last, climbed like a ladder, the golden road snaking up
+// through their levels (systems/adventure/roadmapLayout.js places everything). It scrolls up and
+// down, and opens on the level the player is up to, with the cat standing on it like a game piece.
+// Each level is a button from the owner's art: its number when open, a tick when finished, a padlock
+// when locked. It's plain HTML; nothing moves but the glow round the current level.
 
-const PAW = `${HOME_ART}/icon-paw.webp`;
 const CRYSTALS = 3; // a level's crystals, shown under it once it's been played
-const percent = (part, whole) => `${(part / whole) * 100}%`;
-
-// A hexagon, pointy at the top like the painted ones: its outline, and a lighter inside.
-const HEX = '25,2 47,14.5 47,39.5 25,52 3,39.5 3,14.5';
-const HEX_IN = '25,7.5 42.5,17.5 42.5,36.5 25,46.5 7.5,36.5 7.5,17.5';
-const PADLOCK = '<g fill="#5d6470" stroke="#2c3038" stroke-width="1.5"><path d="M19 25 v-4 a6 6 0 0 1 12 0 v4" fill="none" stroke-width="3"/><rect x="16" y="24.5" width="18" height="14" rx="3"/></g>';
+const art = (name) => `${ROADMAP_ART}/${name}.webp`;
 
 // levels: one for each stop of ADVENTURE_ROADMAP, in order: { locked, current, played, stars,
 // title, onPick }. crystals: { found, total }. onBack: back to the home screen. overlay: for
 // buttons that click like the rest of the menus. Returns the element, and scrollToCurrent(), to
 // call once it's on screen.
 export function adventureRoadmap({ levels, crystals, onBack, overlay }) {
-  const { w, h, hex, nodes, file, backdrop } = ROADMAP_MAP;
+  const layout = roadmapLayout(ROADMAP_LOOK, ROADMAP_PIECES, ADVENTURE_WORLDS.length);
+  const { w, h } = layout;
+  const at = (box) => ({ left: pct(box.x, w), top: pct(box.y, h), width: pct(box.w, w) });
+
   const root = document.createElement('div');
   root.className = 'roadmap';
-  root.style.setProperty('--backdrop', `url(${backdrop})`);
-  root.innerHTML = `<svg class="roadmap-defs" aria-hidden="true"><defs>
-    <linearGradient id="roadmap-gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe680"/><stop offset="1" stop-color="#f2a414"/></linearGradient>
-    <linearGradient id="roadmap-stone" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c3c8d0"/><stop offset="1" stop-color="#868d98"/></linearGradient>
-  </defs></svg>`;
-
   const scroller = document.createElement('div');
   scroller.className = 'roadmap-scroll';
   const map = document.createElement('div');
   map.className = 'roadmap-map';
   map.style.aspectRatio = `${w} / ${h}`;
-  const picture = document.createElement('img');
-  picture.className = 'roadmap-picture';
-  picture.src = file;
-  picture.alt = '';
-  picture.width = w;
-  picture.height = h;
-  picture.draggable = false;
-  map.append(picture);
 
+  // Clouds drifting by, at the back.
+  for (const { x, y, w: cw, cloud } of ROADMAP_LOOK.clouds) {
+    const [pw, ph] = ROADMAP_PIECES.clouds[cloud - 1];
+    map.append(piece(`cloud-${cloud}`, 'roadmap-cloud', at({ x: x * w - cw / 2, y: y * h - (cw * ph) / pw / 2, w: cw })));
+  }
+  // The islands, the top one first, so each lower one is in front of the one above it.
+  for (let i = layout.worlds.length - 1; i >= 0; i--) map.append(piece(`island-${i + 1}`, 'roadmap-island', at(layout.worlds[i].island)));
+
+  // The golden road: a soft glow, a dark edge and the gold, in the map's own units.
+  const road = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  road.setAttribute('class', 'roadmap-road');
+  road.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  road.setAttribute('preserveAspectRatio', 'none');
+  road.setAttribute('aria-hidden', 'true');
+  road.innerHTML = ['glow', 'edge', 'gold'].map((part) => `<path class="roadmap-road-${part}" d="${layout.route}"/>`).join('');
+  map.append(road);
+
+  // Each world's title plate and number badge.
+  layout.worlds.forEach(({ title, badge }, i) => {
+    map.append(piece(`title-${i + 1}`, 'roadmap-plate', at(title), ADVENTURE_WORLDS[i]));
+    map.append(piece(`badge-${i + 1}`, 'roadmap-plate', at(badge)));
+  });
+
+  // The levels.
   let current = null;
+  const points = layout.worlds.flatMap((world) => world.levels);
   levels.forEach((level, i) => {
     const stop = ADVENTURE_ROADMAP[i];
-    const [x, y] = nodes[i];
-    const world = ADVENTURE_WORLDS.indexOf(stop.world) + 1;
     const number = (i % 3) + 1;
+    const world = ADVENTURE_WORLDS.indexOf(stop.world) + 1;
+    const { x, y } = points[i];
+    const look = level.locked ? 'locked' : level.played && !level.current ? 'done' : String(number);
     const button = overlay.button('', () => level.onPick());
-    button.className = `roadmap-level${level.locked ? ' locked' : ''}${level.current ? ' current' : ''}${level.played ? ' played' : ''}`;
+    button.className = `roadmap-level${level.current ? ' current' : ''}`;
     button.disabled = level.locked;
-    Object.assign(button.style, { left: percent(x, w), top: percent(y, h), width: percent(hex, w) });
+    Object.assign(button.style, at({ x: x - layout.button.w / 2, y: y - layout.button.h / 2, w: layout.button.w }));
     const state = level.locked ? 'locked' : level.played ? `${level.stars} of ${CRYSTALS} crystals` : 'not played yet';
     button.setAttribute('aria-label', `World ${world}, ${stop.world}, level ${number}: ${level.title}, ${state}`);
-    button.innerHTML = `<svg viewBox="0 0 50 54" aria-hidden="true">
-      <polygon points="${HEX}" fill="${level.locked ? 'url(#roadmap-stone)' : 'url(#roadmap-gold)'}" stroke="#4a2410" stroke-width="3.5" stroke-linejoin="round"/>
-      <polygon points="${HEX_IN}" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="1.5" stroke-linejoin="round"/>
-      ${level.locked ? PADLOCK : `<text x="25" y="35" text-anchor="middle">${number}</text>`}
-    </svg>`;
+    button.append(piece(`level-${look}`, 'roadmap-level-picture'));
     if (level.played) {
       const gems = document.createElement('span');
       gems.className = 'roadmap-crystals';
@@ -76,14 +82,13 @@ export function adventureRoadmap({ levels, crystals, onBack, overlay }) {
     if (level.current) current = { x, y };
   });
 
-  // The paw over the level the player is up to.
+  // The cat, standing on the level the player is up to.
   if (current) {
-    const paw = document.createElement('img');
-    paw.className = 'roadmap-paw';
-    paw.src = PAW;
-    paw.alt = '';
-    Object.assign(paw.style, { left: percent(current.x, w), top: percent(current.y - hex * 0.95, h), width: percent(hex * 0.8, w) });
-    map.append(paw);
+    const [cw, ch] = ROADMAP_PIECES.cat;
+    const height = ROADMAP_LOOK.cat;
+    const width = (height * cw) / ch;
+    const feet = current.y - layout.button.h * 0.42;
+    map.append(piece('cat', 'roadmap-cat', at({ x: current.x - width / 2, y: feet - height, w: width })));
   }
   scroller.append(map);
 
@@ -105,12 +110,31 @@ export function adventureRoadmap({ levels, crystals, onBack, overlay }) {
 
   // Centres the level the player is up to, or shows the bottom, where the road starts.
   const scrollToCurrent = () => {
-    const at = current ? current.y / h : 1;
-    scroller.scrollTop = at * map.offsetHeight - scroller.clientHeight / 2;
+    const share = current ? current.y / h : 1;
+    scroller.scrollTop = share * map.offsetHeight - scroller.clientHeight / 2;
   };
   return { element: root, scrollToCurrent };
 }
 
+// Every picture the road map shows, to fetch early, so it opens whole.
 export function adventureRoadmapPictures() {
-  return [ROADMAP_MAP.file, ROADMAP_MAP.backdrop];
+  const worlds = ADVENTURE_WORLDS.map((_, i) => i + 1);
+  return [
+    ...worlds.flatMap((n) => [`island-${n}`, `title-${n}`, `badge-${n}`]),
+    'level-1', 'level-2', 'level-3', 'level-done', 'level-locked', 'cat', 'cloud-1', 'cloud-2',
+  ].map(art);
+}
+
+function pct(part, whole) {
+  return `${(part / whole) * 100}%`;
+}
+
+function piece(name, className, style = {}, alt = '') {
+  const img = document.createElement('img');
+  img.src = art(name);
+  img.alt = alt;
+  img.className = className;
+  img.draggable = false;
+  Object.assign(img.style, style);
+  return img;
 }
