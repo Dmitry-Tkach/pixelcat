@@ -118,7 +118,8 @@ export const CHARACTERS = {
     face: { x: 68, y: 40, size: 84 },
     // From his sheet with the minigun (images/sprites/cat-version-2/cat-v-2-sprite.png).
     anims: {
-      idle: { file: 'idle', frames: 4, fps: 8, repeat: -1 },
+      // Standing with the minigun, redrawn as a slow 8-frame loop.
+      idle: { file: 'idle', frames: 8, fps: 6, repeat: -1 },
       // A redrawn 8-frame run, the legs taking turns (see tools/cut-battle-cat.mjs).
       run: { file: 'run', frames: 8, fps: 12, repeat: -1 },
       // Take-off and rising; the last frame, coming down, is the fall.
@@ -128,10 +129,12 @@ export const CHARACTERS = {
       hurt: { file: 'hit', frames: 3, fps: 10, repeat: 0 },
       caught: { file: 'defeated', frames: 5, fps: 8, repeat: 0 },
       // His sheet has no victory pose, so he stands proud with his minigun.
-      victory: { file: 'idle', frames: 4, fps: 8, repeat: -1 },
-      // His other moves, for the adventure.
-      shoot: { file: 'shoot', frames: 6, fps: 16, repeat: 0 },
-      burst: { file: 'burst', frames: 4, fps: 16, repeat: -1 },
+      victory: { file: 'idle', frames: 8, fps: 6, repeat: -1 },
+      // His other moves, for the adventure. The redrawn shoot: frame 1 is him still, 2 the barrel
+      // spinning up, 3 to 7 firing, 8 cooling down. A tap plays it once from the spin-up (in the
+      // time a tap shows, SHOOT.tapMs in systems/AdventureMoves.js); a burst loops the firing.
+      shoot: { file: 'shoot', frames: 8, frameList: [2, 3, 4, 5, 6, 7, 8], fps: 19, repeat: 0 },
+      burst: { file: 'shoot', frames: 8, frameList: [3, 4, 5, 6, 7], fps: 16, repeat: -1 },
       rage: { file: 'rage', frames: 4, fps: 10, repeat: -1 },
       dash: { file: 'dash', frames: 4, fps: 14, repeat: 0 },
       // Climbing, seen from behind, the same for both: he puts the minigun away to climb. Holding

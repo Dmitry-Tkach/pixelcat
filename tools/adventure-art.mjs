@@ -99,8 +99,8 @@ for (const [name, [file, scale]] of Object.entries(WOOD)) {
 // standing with it, the barrel and the gold housing, without his paws and chin, which are grey,
 // white or red.
 {
-  const box = { left: 118, top: 115, width: 64, height: 35 };
-  const allGunFrom = 146; // right of here, everything is gun
+  const box = { left: 117, top: 113, width: 55, height: 29 };
+  const allGunFrom = 142; // right of here, everything is gun
   const { data, info } = await sharp(join(ROOT, 'images', 'sprites', 'battle-cat', 'Idle (1).png')).extract(box).raw().toBuffer({ resolveWithObject: true });
   const w = info.width, n = w * info.height, keep = new Uint8Array(n);
   for (let p = 0; p < n; p++) {

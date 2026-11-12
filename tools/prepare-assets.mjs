@@ -21,7 +21,7 @@ const SETS = [
   { dir: 'bomber-rat', out: 'bomber-rat', scale: 1, anims: { Idle: 8, Run: 9, Jump: 8, Throw: 7, Bomb: 1, Blast: 1, Lunge: 6, Power: 8, Won: 5, Defeated: 9 } },
   // The test character for new levels and worlds, tried with ?cat=battle. Cut by tools/cut-battle-cat.mjs,
   // and kept at the size it's drawn, which is the game cat's size.
-  { dir: 'battle-cat', out: 'battle-cat', scale: 1, anims: { Idle: 4, Run: 8, Shoot: 6, Burst: 4, Hit: 3, Rage: 4, Defeated: 5, Jump: 4, Slide: 4, Dash: 4, Climb: 6, ClimbUp: 4, ClimbDown: 6, Hang: 1, Special: 4, SpecialEnd: 3 } },
+  { dir: 'battle-cat', out: 'battle-cat', scale: 1, anims: { Idle: 8, Run: 8, Shoot: 8, Hit: 3, Rage: 4, Defeated: 5, Jump: 4, Slide: 4, Dash: 4, Climb: 6, ClimbUp: 4, ClimbDown: 6, Hang: 1, Special: 4, SpecialEnd: 3 } },
   // The same cat with bare paws, as he starts each adventure level. Cut by tools/cut-battle-cat.mjs.
   { dir: 'battle-cat-paws', out: 'battle-cat-paws', scale: 1, anims: { Idle: 4, Run: 8, Jump: 4, Slide: 4, Hit: 3, Rage: 4, Defeated: 3, Dash: 4, Climb: 6, ClimbUp: 4, ClimbDown: 6, Hang: 1, Special: 3, SpecialEnd: 3 } },
 ];

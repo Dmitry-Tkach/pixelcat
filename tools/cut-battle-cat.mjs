@@ -25,7 +25,9 @@ const isFur = (r, g, b) => Math.max(r, g, b) - Math.min(r, g, b) < 30 && Math.ma
 // frame edges, left to right, when they're given rather than found. fix: frame
 // edges moved by hand, by their place in the row; drop: cuts that aren't between two frames, by their
 // place in the row. airborne: the jump frames off the ground, whose dust is left behind. close: the
-// cats stand so close that slivers of the next one are cleared. run: his run's own strip (RUN_STRIP).
+// cats stand so close that slivers of the next one are cleared. strips: moves redrawn as strips of
+// their own (STRIP), which replace the sheet's: each with its file and scale. unused: moves of the
+// sheet the game no longer plays.
 const SHEETS = {
   minigun: {
     file: join(SPRITES, 'cat-version-2', 'cat-v-2-sprite.png'),
@@ -45,7 +47,14 @@ const SHEETS = {
       { band: [847, 1023], anims: [['Special', 4], ['SpecialEnd', 3]], fix: { 4: 990 } },
     ],
     airborne: [2, 3, 4],
-    run: { file: join(SPRITES, 'cat-version-2', 'grey_cat_minigun_run', 'run_strip.png'), scale: 0.596 },
+    // Scaled so his head is the same size in all three, and he stands as tall as he always has.
+    strips: {
+      Idle: { file: join(SPRITES, 'cat-version-2', 'grey_cat_minigun_idle', 'idle_strip.png'), scale: 0.496 },
+      Run: { file: join(SPRITES, 'cat-version-2', 'grey_cat_minigun_run', 'run_strip.png'), scale: 0.570 },
+      Shoot: { file: join(SPRITES, 'cat-version-2', 'grey_cat_minigun_shoot', 'shoot_strip.png'), scale: 0.53 },
+    },
+    // His burst now loops the new shoot's firing frames.
+    unused: ['Burst'],
   },
   // The bare-pawed sheet, redrawn clean: real transparency, with no name tags, ladders or haze. (A
   // sheet with a checkerboard painted in instead of transparency takes `painted: true`, which clears it.)
@@ -64,7 +73,7 @@ const SHEETS = {
       { band: [796, 1023], anims: [['ClimbDown', 4], ['Special', 3], ['SpecialEnd', 3]], cuts: [0, 126, 245, 359, 480, 624, 746, 1148, 1273, 1397, 1536] },
     ],
     airborne: [2, 3, 4],
-    run: { file: join(SPRITES, 'cat-version-2', 'grey_cat_run_cycle', 'run_strip.png'), scale: 0.486 },
+    strips: { Run: { file: join(SPRITES, 'cat-version-2', 'grey_cat_run_cycle', 'run_strip.png'), scale: 0.486 } },
     close: true, // its cats stand close, so slivers of the next one are cleared (see dropSlivers)
   },
 };
@@ -87,11 +96,10 @@ const BACK_VIEW = {
 };
 const CLIMBING = ['Climb', 'ClimbDown', 'ClimbUp', 'Hang'];
 
-// His run, redrawn as a proper 8-frame cycle, one strip per version (`run` in SHEETS): a row of square
-// cells with him centred at `middle`, his feet on one line. Its scale, per version, makes him his
-// running size beside his other moves (measured against the sheets' own runs, which it replaces), and
-// his feet are put where that version's feet are standing.
-const RUN_STRIP = { cell: 256, frames: 8, middle: 128 };
+// Moves redrawn as strips of their own (`strips` in SHEETS), like his 8-frame run: a row of square
+// cells with him centred at `middle`, his feet on one line. Each one's scale makes him his size beside
+// his other moves, and his feet are put where that version's feet are standing.
+const STRIP = { cell: 256, middle: 128 };
 const SOLID = 200; // alpha at which a pixel is him, not a soft edge
 const LEGS = 0.18; // his legs: the bottom share of his figure, whose middle places him standing
 
@@ -222,8 +230,7 @@ for (const [name, sheet] of Object.entries(SHEETS)) {
   const edit = (file, change) => editFrame(join(out, file), change);
   // His climbing comes from the back-view sheet instead (below), so the sheet's own climbing goes.
   for (const anim of CLIMBING) for (const file of framesOf(anim)) unlinkSync(join(out, file));
-  // His run comes from its own strip instead (below).
-  if (sheet.run) for (const file of framesOf('Run')) unlinkSync(join(out, file));
+  for (const anim of sheet.unused ?? []) for (const file of framesOf(anim)) unlinkSync(join(out, file));
   if (sheet.close) for (const file of readdirSync(out).filter((f) => f.endsWith('.png'))) await edit(file, dropSlivers);
   // The dust drawn under him as he leaves the ground stays behind, so in the air it goes.
   for (const n of sheet.airborne) await edit(`Jump (${n}).png`, (px, w, h) => keepHim(px, w, h, 1));
@@ -343,19 +350,52 @@ for (const frame of cells.flat()) {
 }
 console.log(`His back-view climbing is scaled by ${scale.toFixed(3)}: ${BACK_VIEW.rows.map(([a, n]) => `${a} ${n}`).join(', ')}`);
 
-// The runs, from their strips, placed where he stands in his other frames.
-for (const { out, run } of Object.values(SHEETS)) {
-  if (!run) continue;
-  const { cell, frames, middle } = RUN_STRIP;
-  const size = Math.round(cell * run.scale);
-  const feet = (await placeIn(run.file)).bottom;
-  const own = await placeIn(join(out, 'Idle (1).png'));
-  const x = Math.round(standing.legsX - middle * run.scale), y = Math.round(own.bottom + 0.5 - (feet + 0.5) * run.scale);
-  if (x < 0 || y < 0 || x + size > W || y + size > H) throw new Error(`the run's cells don't fit in ${W}x${H}: lower its scale`);
-  for (let i = 0; i < frames; i++) {
-    const piece = await sharp(run.file).extract({ left: i * cell, top: 0, width: cell, height: cell }).resize(size, size, { kernel: 'lanczos3' }).png().toBuffer();
-    await sharp({ create: { width: W, height: H, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
-      .composite([{ input: piece, left: x, top: y }]).png({ compressionLevel: 9 }).toFile(join(out, `Run (${i + 1}).png`));
+// The redrawn moves, from their strips, placed where he stands in his other frames. Where flashes
+// reach over into the next cell, the loose bits of them go: small pieces touching a cell's side, or
+// lying wholly in its left margin, behind him (his tail, which reaches in there, is joined to him).
+// A flash that touches his tail goes too: nothing of his is yellow or orange in the margin.
+const EDGE_BITS = { seen: 40, size: 1500, margin: 45, warm: 80 }; // alpha joining a piece; smaller go; px; red over blue
+const isWarm = (px, i) => px[i] - px[i + 2] > EDGE_BITS.warm;
+function edgeBits(px, w, h) {
+  const seen = new Uint8Array(w * h);
+  for (let start = 0; start < w * h; start++) {
+    if (seen[start] || px[start * 4 + 3] < EDGE_BITS.seen) continue;
+    const piece = [start];
+    seen[start] = 1;
+    let side = false, right = 0;
+    for (let k = 0; k < piece.length; k++) {
+      const p = piece[k], x = p % w;
+      if (x <= 1 || x >= w - 2) side = true;
+      right = Math.max(right, x);
+      for (const q of [p - 1, p + 1, p - w, p + w]) {
+        if (q < 0 || q >= w * h || Math.abs((q % w) - x) > 1 || seen[q] || px[q * 4 + 3] < EDGE_BITS.seen) continue;
+        seen[q] = 1;
+        piece.push(q);
+      }
+    }
+    if ((side || right < EDGE_BITS.margin) && piece.length < EDGE_BITS.size) for (const p of piece) px[p * 4 + 3] = 0;
   }
-  console.log(`${out.split('/').pop()}: his run is ${frames} frames, scaled by ${run.scale}`);
+  for (let y = 0; y < h; y++) for (let x = 0; x < EDGE_BITS.margin; x++) if (isWarm(px, (y * w + x) * 4)) px[(y * w + x) * 4 + 3] = 0;
+}
+for (const { out, strips = {} } of Object.values(SHEETS)) {
+  // Where he stands, from the sheet's own standing frame, before any strip replaces it.
+  const own = await placeIn(join(out, 'Idle (1).png'));
+  for (const [anim, strip] of Object.entries(strips)) {
+    const { cell, middle } = STRIP;
+    const { width } = await sharp(strip.file).metadata();
+    const frames = Math.round(width / cell);
+    const size = Math.round(cell * strip.scale);
+    const feet = (await placeIn(strip.file)).bottom;
+    const x = Math.round(standing.legsX - middle * strip.scale), y = Math.round(own.bottom + 0.5 - (feet + 0.5) * strip.scale);
+    if (x < 0 || y < 0 || x + size > W || y + size > H) throw new Error(`the ${anim} strip's cells don't fit in ${W}x${H}: lower its scale`);
+    for (const file of readdirSync(out).filter((f) => f.startsWith(`${anim} (`))) unlinkSync(join(out, file));
+    for (let i = 0; i < frames; i++) {
+      const { data } = await sharp(strip.file).extract({ left: i * cell, top: 0, width: cell, height: cell }).raw().toBuffer({ resolveWithObject: true });
+      edgeBits(data, cell, cell);
+      const piece = await sharp(data, { raw: { width: cell, height: cell, channels: 4 } }).resize(size, size, { kernel: 'lanczos3' }).png().toBuffer();
+      await sharp({ create: { width: W, height: H, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+        .composite([{ input: piece, left: x, top: y }]).png({ compressionLevel: 9 }).toFile(join(out, `${anim} (${i + 1}).png`));
+    }
+    console.log(`${out.split('/').pop()}: ${anim} is ${frames} frames from its strip, scaled by ${strip.scale}`);
+  }
 }

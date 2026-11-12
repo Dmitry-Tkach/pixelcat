@@ -112,7 +112,8 @@ const cat = await scaled(join(ROOT, 'images', 'sprites', 'battle-cat', 'Shoot (5
 const catX = 470;
 await stand(cat, catX, GROUND + 16, 158 * catScale);
 {
-  const muzzleX = catX + 57 * catScale + 60, muzzleY = GROUND + 16 - 41 * catScale;
+  // His muzzle in the frame: this far right of its middle, and above his feet.
+  const muzzleX = catX + 36 * catScale + 60, muzzleY = GROUND + 16 - 47 * catScale;
   const [w] = BOLT_LAYERS[0];
   const k = 2.2;
   const bolt = BOLT_LAYERS.map(([length, height, colour, alpha]) =>
