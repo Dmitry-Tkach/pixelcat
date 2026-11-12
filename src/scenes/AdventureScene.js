@@ -16,6 +16,7 @@ import { AdventurePlatforms } from '../systems/AdventurePlatforms.js';
 import { MAX_FALL_SPEED, ONE_WAY, TILE, TILE_BIAS, pillarFoot, readAdventureMap } from '../systems/adventureMap.js';
 import { bossTouch } from '../systems/adventure/bosses/bossTouch.js';
 import { AdventureBossBar } from '../ui/AdventureBossBar.js';
+import { addMenuButton, showGameMenu } from '../ui/adventureGameMenu.js';
 import { Effects } from '../ui/Effects.js';
 
 // reach: how far from a ladder's middle it can be grabbed. standStill: slower than this, the cat counts
@@ -454,6 +455,8 @@ export class AdventureScene extends Phaser.Scene {
     this.ammoIcon = fixed(this.add.image(AMMO_HUD.x, AMMO_HUD.y, this.art('bullet'))).setVisible(false);
     this.ammoText = fixed(this.add.text(AMMO_HUD.x + AMMO_HUD.textGap, AMMO_HUD.y, '', { ...HUD_STYLE, fontSize: '22px' }).setOrigin(0, 0.5)).setVisible(false);
     this.hint = fixed(this.add.text(GAME.WIDTH / 2, 150, '', { ...HUD_STYLE, fontSize: '30px', align: 'center' }).setOrigin(0.5));
+    // The game menu's button, in the top right corner (ui/adventureGameMenu.js). Esc and P open it too.
+    this.menuButton = addMenuButton(this, () => this.togglePause());
     this.showHint(this.level.hint ?? `${this.level.title}\nRun, jump and climb up to the portal\nShift dash · C beam · find the minigun to shoot`, 4200);
   }
 
@@ -493,6 +496,7 @@ export class AdventureScene extends Phaser.Scene {
     this.backFar.setSize(GAME.WIDTH, GAME.HEIGHT);
     this.backNear.setSize(GAME.WIDTH, GAME.HEIGHT);
     this.hint.setX(GAME.WIDTH / 2);
+    this.menuButton.layout();
     this.bossBar?.layout();
   }
 
@@ -933,6 +937,7 @@ export class AdventureScene extends Phaser.Scene {
     this.cat.moveVelocity = 0;
     for (const enemy of this.enemies.getChildren()) enemy.halt();
     this.boss?.halt();
+    this.menuButton.setVisible(false);
     this.enemyBullets.clear(true, true);
   }
 
@@ -944,7 +949,7 @@ export class AdventureScene extends Phaser.Scene {
       message: `Coins ${this.coins}, crystals ${this.gems}/${this.totals.gems}${chest}, enemies ${this.knockedOut}/${this.totals.enemies}`,
       actions: [
         ...(won && next ? [{ label: 'Next level', primary: true, onClick: () => this.scene.restart({ levelIndex: this.levelIndex + 1 }) }] : []),
-        { label: won ? 'Play again' : 'Try again', primary: !(won && next), onClick: () => this.scene.restart(this.restartData) },
+        { label: won ? 'Play again' : 'Try again', primary: !(won && next), onClick: () => this.restartLevel() },
         { label: 'Map', onClick: () => this.goHome('adventure') },
         { label: 'Home', onClick: () => this.goHome() },
       ],
@@ -954,7 +959,7 @@ export class AdventureScene extends Phaser.Scene {
   // Back to the adventure's home screen, or with `screen` 'adventure', to its road map.
   goHome(screen = 'adventure-home') {
     const leave = () => {
-      this.anims.resumeAll();
+      this.endPause();
       this.audio.stopMusic();
       this.overlay.hide();
       this.scene.start('Game', { screen });
@@ -963,31 +968,47 @@ export class AdventureScene extends Phaser.Scene {
     else leave();
   }
 
+  // The level again, from its start.
+  restartLevel() {
+    this.endPause();
+    this.scene.restart(this.restartData);
+  }
+
+  // Esc, P or the menu button: pauses the game behind the game menu, or carries on.
   togglePause() {
     if (!this.playing && !this.paused) return;
-    this.paused = !this.paused;
     if (this.paused) {
-      this.playing = false;
-      this.physics.pause();
-      this.anims.pauseAll();
-      this.controls.releaseSteering();
-      this.audio.pauseMusic();
-      this.overlay.show({
-        title: 'Paused',
-        actions: [
-          { label: 'Resume', primary: true, onClick: () => this.togglePause() },
-          { label: 'Restart', onClick: () => this.scene.restart(this.restartData) },
-          { label: 'Map', onClick: () => this.goHome('adventure') },
-          { label: 'Home', onClick: () => this.goHome() },
-        ],
-      });
-    } else {
       this.overlay.hide();
-      this.physics.resume();
-      this.anims.resumeAll();
+      this.endPause();
       this.audio.resumeMusic();
       this.playing = true;
+      return;
     }
+    this.paused = true;
+    this.playing = false;
+    // Everything stops: physics, animations, tweens and timers, so nothing moves on behind the menu.
+    this.physics.pause();
+    this.anims.pauseAll();
+    this.tweens.pauseAll();
+    this.time.paused = true;
+    this.controls.releaseSteering();
+    this.audio.pauseMusic();
+    showGameMenu(this, {
+      resume: () => this.togglePause(),
+      restart: () => this.restartLevel(),
+      map: () => this.goHome('adventure'),
+      home: () => this.goHome(),
+    });
+  }
+
+  // Undoes the pause. Animations are paused for the whole game, not just this scene, so leaving the
+  // level from the menu must undo it too, or the next screen's animations stay frozen.
+  endPause() {
+    this.paused = false;
+    this.physics.resume();
+    this.anims.resumeAll();
+    this.tweens.resumeAll();
+    this.time.paused = false;
   }
 
   update(time, delta) {
