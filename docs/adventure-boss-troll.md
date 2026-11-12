@@ -53,15 +53,18 @@ pose is made from them by playing part of an animation, or holding a frame:
 | Part | Health | What's new |
 |---|---|---|
 | **1** | 100–70% | the quick smash and the big smash; slow walking |
-| **2** | 70–35% | he roars and turns red; the stone burst and the charge; two acorn goblins drop in now and then, so the cat can earn the magic bolt |
+| **2** | 70–35% | he roars and turns red; the stone burst and the charge; small enemies drop in now and then, two at most, so the cat can earn the magic bolt (the pack's goons for now: acorn goblins need art) |
 | **3** | 35–0% | the jump slam; chains of two attacks (a big smash then the stone burst, a jump slam then a charge) |
 
 - **The roar** at the start of a part: about 1.5 s. He can't be hurt during it.
 - **A big hit past two marks at once** plays one roar, to the later part.
 - **The roar waits** for the attack he's in to finish. If he passes a mark during a weak moment,
   the weak moment ends and he roars at once, so a part can't be skipped by shooting through it.
-- **Ammo:** he needs about 120 rounds in all. The cat brings what he has; ammo crates fall when the
-  tree shakes, in parts 2 and 3.
+- **Ammo:** he needs about 120 rounds in all. The cat brings what he has. In parts 2 and 3, when
+  the tree shakes (a big smash, the stone burst, a landing, the charge into a wall) and the cat has
+  fewer than 30 rounds, an ammo crate falls, one at a time.
+- **The stones:** one always comes down where the cat stands. Under an island, it lands on the
+  island instead: the islands are cover from stones, but not from his smashes.
 
 ## The cat's damage on him
 

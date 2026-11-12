@@ -5,6 +5,7 @@ import { MAX_FALL_SPEED, TILE } from '../systems/adventureMap.js';
 import { BossBrain } from '../systems/adventure/bosses/bossBrain.js';
 import { BOSS_ATTACKS } from './adventureBossAttacks/index.js';
 import { ShockWaves } from './adventureBossAttacks/ShockWaves.js';
+import { Stones } from './adventureBossAttacks/Stones.js';
 
 // stopAt: walking to the cat, he stops this close, across, from his middle to the cat's.
 // turnDeadzone: he doesn't turn round for a cat almost straight above or below him.
@@ -27,9 +28,11 @@ const DEFEAT = { endMs: 1600, shake: { ms: 400, strength: 0.012 } };
 // takeHit, and hears from him through onHurtCat and onDefeated.
 export class AdventureBoss {
   // x, feetY: where he stands. cat: the battle cat, to watch and hurt. arena: its walls' inner
-  // faces, `left` and `right`, where his shock waves stop. onHurtCat(fromX): he hurt the cat.
+  // faces, `left` and `right`, where his shock waves stop. surfaceAt(x): the top of whatever is
+  // under x, island or floor. shots: the cat's bullets, `list()` and `stop(bullet)`, which can break
+  // his stones. onHurtCat(fromX): he hurt the cat. onShake(): his smash or landing shook the tree.
   // onDefeated(): he's beaten and has fallen. assisted: the easier try.
-  constructor(scene, { kind, x, feetY, cat, arena, onHurtCat, onDefeated, assisted = false }) {
+  constructor(scene, { kind, x, feetY, cat, arena, surfaceAt, shots, onHurtCat, onShake, onDefeated, assisted = false }) {
     this.scene = scene;
     this.kind = kind;
     this.cat = cat;
@@ -38,6 +41,10 @@ export class AdventureBoss {
     this.layout = bossLayout(kind);
     this.onHurtCat = onHurtCat;
     this.onDefeated = onDefeated;
+    this.onShake = onShake;
+    this.arena = arena;
+    this.surfaceAt = surfaceAt;
+    this.leftovers = []; // things an attack showed for a while: cleaned up when he moves on
     this.brain = new BossBrain(this.fight, { assisted, only: Object.keys(BOSS_ATTACKS) });
     this.floorY = feetY;
     this.posing = null; // frames he's holding or stepping through, outside his animations
@@ -51,6 +58,7 @@ export class AdventureBoss {
     this.sprite.body.setGravityY(MOVEMENT.GRAVITY).setMaxVelocityY(MAX_FALL_SPEED);
     scene.physics.add.collider(this.sprite, scene.groundLayer);
     this.waves = new ShockWaves(scene, { left: arena.left, right: arena.right, onHit: (fromX) => this.hurtCat(fromX) });
+    this.stones = new Stones(scene, { onHit: (fromX) => this.hurtCat(fromX), shots, surfaceAt });
     this.setFacing(Math.sign(cat.x - x) || -1);
   }
 
@@ -96,10 +104,11 @@ export class AdventureBoss {
     if (Math.abs(dx) > WALK.turnDeadzone) this.setFacing(Math.sign(dx));
   }
 
-  // Steps evenly through `frames` of an animation over `seconds`, then holds the last one.
-  pose(anim, frames, seconds) {
+  // Steps evenly through `frames` of an animation over `seconds`, then holds the last one, or
+  // with `loop`, starts again.
+  pose(anim, frames, seconds, { loop = false } = {}) {
     this.sprite.anims.stop();
-    this.posing = { anim, frames, seconds, elapsed: 0 };
+    this.posing = { anim, frames, seconds, elapsed: 0, loop };
     this.sprite.setFrame(`${anim}-${frames[0]}`);
   }
 
@@ -112,7 +121,8 @@ export class AdventureBoss {
     const { posing } = this;
     if (!posing) return;
     posing.elapsed += ms / 1000;
-    const { frames, seconds, elapsed, anim } = posing;
+    const { frames, seconds, anim, loop } = posing;
+    const elapsed = loop && seconds > 0 ? posing.elapsed % seconds : posing.elapsed;
     const i = seconds > 0 ? Math.min(frames.length - 1, Math.floor((elapsed / seconds) * frames.length)) : frames.length - 1;
     this.sprite.setFrame(`${anim}-${frames[i]}`);
   }
@@ -126,6 +136,26 @@ export class AdventureBoss {
     return dealt;
   }
 
+  // Something an attack shows for a while, such as glowing cracks or a landing shadow: it goes
+  // when he moves on to his next state, even if the attack was cut short.
+  addLeftover(...objects) {
+    this.leftovers.push(...objects);
+  }
+
+  clearLeftovers() {
+    for (const object of this.leftovers) {
+      this.scene.tweens.killTweensOf(object);
+      object.destroy();
+    }
+    this.leftovers = [];
+    this.dizzyStars = null;
+  }
+
+  // His smash or landing shook the tree (the arena may drop something).
+  shakeTree() {
+    this.onShake?.();
+  }
+
   hurtCat(fromX) {
     if (this.halted || this.brain.isDefeated) return;
     this.onHurtCat(fromX);
@@ -135,6 +165,8 @@ export class AdventureBoss {
   halt() {
     this.halted = true;
     this.waves.clear();
+    this.stones.clear();
+    this.clearLeftovers();
     this.sprite.setVelocityX(0);
     if (!this.brain.isDefeated) this.playAnim('idle');
   }
@@ -161,6 +193,9 @@ export class AdventureBoss {
       }
     } else if (brain.state === 'attack' && BOSS_ATTACKS[brain.attack]?.update) {
       BOSS_ATTACKS[brain.attack].update(this, ms, brain.attackData);
+    } else if (brain.state === 'recover') {
+      this.sprite.setVelocityX(0);
+      BOSS_ATTACKS[brain.attack]?.recoverUpdate?.(this, ms, brain.attackData, brain.recoverKind);
     } else {
       this.sprite.setVelocityX(0);
     }
@@ -171,6 +206,7 @@ export class AdventureBoss {
       this.hurtCat(this.sprite.x);
     }
     this.waves.update(ms, catBody);
+    this.stones.update(ms, catBody);
     this.updatePose(ms);
     if (this.flashMs > 0) {
       this.flashMs -= ms;
@@ -206,6 +242,9 @@ export class AdventureBoss {
   show(event) {
     const attackCode = BOSS_ATTACKS[event.attack];
     const data = this.fight.attacks[event.attack];
+    // Whatever the last state showed goes, except while an attack plays out (its landing shadow
+    // stays until he lands) and for a hit, which changes nothing.
+    if (event.type !== 'hit' && event.type !== 'attack') this.clearLeftovers();
     switch (event.type) {
       case 'intro':
       case 'idle':
@@ -237,6 +276,7 @@ export class AdventureBoss {
       case 'defeated':
         this.halted = true;
         this.waves.clear();
+        this.stones.clear();
         this.sprite.setVelocityX(0);
         this.sprite.clearTint();
         this.flashMs = 0;

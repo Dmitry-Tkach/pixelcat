@@ -52,11 +52,17 @@ describe('the troll\'s club', () => {
     expect(club.from).toBeLessThan(club.to);
   });
 
-  it('every attack of his first part has the code to show it', async () => {
+  it('every attack, in every part, has the code to show it', async () => {
     const { BOSS_ATTACKS } = await import('../src/entities/adventureBossAttacks/index.js');
-    for (const { attack } of phaseAttacks(BOSS_FIGHTS.troll1, BOSS_FIGHTS.troll1.phases[0])) {
-      if (attack === 'jumpSlam') continue; // step 4, docs/adventure-boss-troll.md
-      expect(BOSS_ATTACKS[attack], attack).toBeDefined();
+    for (const phase of BOSS_FIGHTS.troll1.phases) {
+      for (const { attack } of phaseAttacks(BOSS_FIGHTS.troll1, phase)) {
+        expect(BOSS_ATTACKS[attack], attack).toBeDefined();
+        expect(BOSS_ATTACKS[attack].windup, attack).toBeTypeOf('function');
+        expect(BOSS_ATTACKS[attack].attack, attack).toBeTypeOf('function');
+        expect(BOSS_ATTACKS[attack].recover, attack).toBeTypeOf('function');
+        // An attack his body ends (active: null) needs the code that ends it.
+        if (BOSS_FIGHTS.troll1.attacks[attack].active === null) expect(BOSS_ATTACKS[attack].update, attack).toBeTypeOf('function');
+      }
     }
   });
 });

@@ -8,11 +8,11 @@
 //   attack 6-7  bent over, the club on the floor: stuck
 // liftShare: the share of the warning spent lifting; the rest he holds the club up, so it's seen.
 // shake: the camera, as the club lands, for each size of smash.
-const LIFT = [0, 1, 2, 3, 4];
-const LANDS = [5, 6];
-const STUCK = [6, 7];
+export const LIFT = [0, 1, 2, 3, 4];
+export const LANDS = [5, 6];
+export const STUCK = [6, 7];
 // landsSeconds: how quickly the club comes down.
-const SMASH = { liftShare: 0.6, landsSeconds: 0.1, stuckSeconds: 0.25 };
+export const SMASH = { liftShare: 0.6, landsSeconds: 0.1, stuckSeconds: 0.25 };
 const SHAKE = { quick: { ms: 120, strength: 0.004 }, big: { ms: 260, strength: 0.012 } };
 
 export const smash = {
@@ -29,7 +29,10 @@ export const smash = {
     const x = boss.clubLandsAt;
     boss.scene.effects.dust(x, boss.feetY, data.shockWave ? 14 : 8);
     boss.scene.audio.playSfx(data.shockWave ? 'boom' : 'thud');
-    if (data.shockWave) boss.waves.spawn(x, boss.feetY);
+    if (data.shockWave) {
+      boss.waves.spawn(x, boss.feetY);
+      boss.shakeTree();
+    }
   },
 
   recover(boss) {

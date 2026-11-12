@@ -6,6 +6,7 @@ import { AMMO } from '../data/adventure/ammo.js';
 import { FLASH, FLASH_KEY } from '../data/adventure/gunners.js';
 import { BOSS_FIGHTS } from '../data/adventure/bossFights.js';
 import { AdventureBoss } from '../entities/AdventureBoss.js';
+import { AdventureBossArena } from '../entities/AdventureBossArena.js';
 import { AdventureEnemy } from '../entities/AdventureEnemy.js';
 import { AdventureGunner } from '../entities/AdventureGunner.js';
 import { Cat } from '../entities/Cat.js';
@@ -52,6 +53,7 @@ const BOSS_TOUCH = { headBounceShare: 0.75, bounceOff: { x: 420, y: -460 }, onTo
 // The gunners' bullets: how far they fly before fading, their hitbox, and how big their flash is.
 const ENEMY_BULLET = { range: 14 * TILE, size: 14, depth: 5 };
 const END_SCREEN_MS = 1100;
+const DROP = { fromY: TILE, ms: 700 }; // a pickup the arena drops falls from here, this long
 const STARS = 3; // a level's stars are its crystals, up to this many
 const BEAM_PIPS = { x: 98, y: 128, gap: 26, r: 8 };
 const AMMO_HUD = { x: 44, y: 166, textGap: 34 };
@@ -251,6 +253,45 @@ export class AdventureScene extends Phaser.Scene {
     this.add.image(x, bottom, this.art('pillar-base')).setOrigin(0.5, 1).setDepth(PILLAR_FIT.depth);
   }
 
+  // A walking enemy, standing (or falling in) at x, y. The boss arena drops some in too.
+  makeEnemy(kind, x, y) {
+    const isSpike = (px, py) => this.spikeCells.has(`${Math.floor(px / TILE)},${Math.floor(py / TILE)}`);
+    const enemy = new AdventureEnemy(this, x, y, kind, { groundLayer: this.groundLayer, isSpike });
+    enemy.on('swipe', () => {
+      if (enemy.swipeLands(this.cat) && !this.moves.isRaging) this.hurt(enemy.x);
+    });
+    this.enemies.add(enemy);
+    return enemy;
+  }
+
+  // The top of whatever is under x, island or ground: the highest solid tile in its column.
+  surfaceAt(x) {
+    const col = Math.max(0, Math.min(this.layout.cols - 1, Math.floor(x / TILE)));
+    let row = 0;
+    while (row < this.layout.rows && this.layout.tiles[row][col] < 0) row += 1;
+    return row * TILE;
+  }
+
+  // A pickup falling from above to land on whatever is under x. It can only be collected once it
+  // lands. It joins the level's pickups, so collecting it works as for any other.
+  dropPickup(kind, x) {
+    const landY = this.surfaceAt(x) - TILE / 2;
+    const item = this.physics.add.staticImage(x, DROP.fromY, this.art(kind)).setDepth(4);
+    item.kind = kind;
+    item.body.enable = false;
+    this.pickups.push(item);
+    this.tweens.add({
+      targets: item, y: landY, duration: DROP.ms, ease: 'Bounce.easeOut',
+      onComplete: () => {
+        if (!item.active) return;
+        item.body.enable = true;
+        item.refreshBody();
+        this.tweens.add({ targets: item, scale: 1.12, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      },
+    });
+    return item;
+  }
+
   // The middle of a cell's floor, where things stand.
   cellFeet({ col, row }) {
     return { x: col * TILE + TILE / 2, y: (row + 1) * TILE };
@@ -267,7 +308,7 @@ export class AdventureScene extends Phaser.Scene {
     // each enemy his, to stand on the ground and find its edges.
     this.enemies = this.physics.add.group({ gravityY: MOVEMENT.GRAVITY, maxVelocityY: MAX_FALL_SPEED });
     this.totals = { coins: 0, gems: 0, enemies: 0 };
-    const spikeCells = new Set(this.layout.objects.filter((o) => o.type === 'spike').map(({ col, row }) => `${col},${row}`));
+    this.spikeCells = new Set(this.layout.objects.filter((o) => o.type === 'spike').map(({ col, row }) => `${col},${row}`));
     for (const object of this.layout.objects) {
       const { x, y } = this.cellFeet(object);
       const middle = y - TILE / 2;
@@ -330,11 +371,7 @@ export class AdventureScene extends Phaser.Scene {
           break;
         }
         case 'enemy': {
-          const enemy = new AdventureEnemy(this, x, y, object.kind, { groundLayer: this.groundLayer, isSpike: (px, py) => spikeCells.has(`${Math.floor(px / TILE)},${Math.floor(py / TILE)}`) });
-          enemy.on('swipe', () => {
-            if (enemy.swipeLands(this.cat) && !this.moves.isRaging) this.hurt(enemy.x);
-          });
-          this.enemies.add(enemy);
+          this.makeEnemy(object.kind, x, y);
           this.totals.enemies += 1;
           break;
         }
@@ -374,8 +411,20 @@ export class AdventureScene extends Phaser.Scene {
       feetY: row * TILE,
       cat: this.cat,
       arena: { left: arena.left * TILE, right: (arena.right + 1) * TILE },
+      surfaceAt: (x) => this.surfaceAt(x),
+      shots: { list: () => this.moves.bullets.getChildren(), stop: (bullet) => this.moves.bulletStops(bullet) },
       onHurtCat: (fromX) => this.hurt(fromX),
+      onShake: () => this.bossArena.shake(),
       onDefeated: () => this.complete(),
+    });
+    this.bossArena = new AdventureBossArena({
+      boss: this.boss,
+      cat: this.cat,
+      left: arena.left * TILE,
+      right: (arena.right + 1) * TILE,
+      spawnEnemy: (enemyKind, x, y) => this.makeEnemy(enemyKind, x, y),
+      dropPickup: (pickup, x) => this.dropPickup(pickup, x),
+      roundsLeft: () => (this.moves.armed ? Object.values(this.moves.rounds).reduce((sum, n) => sum + n, 0) : Infinity),
     });
     this.moves.setBoss(this.boss);
     this.physics.add.overlap(this.cat, this.boss.sprite, () => this.meetBoss());
@@ -957,6 +1006,7 @@ export class AdventureScene extends Phaser.Scene {
     this.updateEnemyBullets();
     if (this.boss) {
       this.boss.update(ms);
+      this.bossArena.update(ms);
       this.bossBar.update(ms, this.boss.brain.healthShare);
     }
     this.platforms.update(ms);
