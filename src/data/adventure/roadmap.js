@@ -18,3 +18,12 @@ export const ADVENTURE_ROADMAP = [
 
 // What the map looks like: these worlds' ground and scenery (ui/mapArt.js), from a portal to a castle.
 export const ADVENTURE_MAP_LOOK = { start: 'portal', end: 'castle' };
+
+// Each world's ground and scenery on the road map (drawn by ui/mapArt.js), as MAP_WORLDS there does
+// for the runner's.
+export const ADVENTURE_MAP_WORLDS = {
+  Wood: { ground: '#6cbf52', edge: '#4f9a3c', props: ['darkTree', 'tree', 'mushroom', 'darkTree', 'bush', 'stump'] },
+  'Crystal Caves': { ground: '#7d8bb3', edge: '#65739b', props: ['crystal', 'rock', 'crystal', 'mushroom', 'crystal', 'rock'] },
+  Ancient: { ground: '#dcc287', edge: '#c3a768', props: ['bone', 'ruin', 'rock', 'bone', 'ruin', 'bone'] },
+  Medieval: { ground: '#93c26c', edge: '#76a454', props: ['tower', 'banner', 'tree', 'fence', 'house', 'banner'] },
+};

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { TILE } from './adventureMap.js';
-import { landsFromAbove, staysOn } from './platformLanding.js';
+import { landsFromAbove, staysOn } from './adventurePlatformLanding.js';
 
 // Platforms that move or fall, in an adventure level:
 //   moving logs (the level's `movers`) glide to and fro along their path, pausing at each end. The

@@ -7,8 +7,8 @@ import { ADVENTURE_ART, ADVENTURE_HERO, ADVENTURE_LEVELS, adventurePath } from '
 import { CHARACTERS } from '../src/data/characters.js';
 import { MOVEMENT } from '../src/config/gameConfig.js';
 import { mapBuilder } from '../src/data/adventure/mapBuilder.js';
-import { ADVENTURE_MAP_LOOK, ADVENTURE_ROADMAP } from '../src/data/adventure/roadmap.js';
-import { ADVENTURE_MAP_WORLDS, mapArt } from '../src/ui/mapArt.js';
+import { ADVENTURE_MAP_LOOK, ADVENTURE_MAP_WORLDS, ADVENTURE_ROADMAP } from '../src/data/adventure/roadmap.js';
+import { mapArt } from '../src/ui/mapArt.js';
 import { Progress } from '../src/systems/Progress.js';
 import { adventureRoutes } from '../src/systems/adventureRoutes.js';
 import { ENEMY_LETTERS, GUNNER_LETTERS, PILLAR_MAX_TILES, moverCells, pillarFoot, MAX_FALL_SPEED, PHYSICS_STEPS_PER_SECOND, TILE, TILES, TILE_BIAS, checkAdventureLevel, readAdventureMap } from '../src/systems/adventureMap.js';

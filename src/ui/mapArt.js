@@ -18,14 +18,6 @@ export const MAP_WORLDS = {
   Sunset: { ground: '#d9b45f', edge: '#b88f43', props: ['tree', 'vet', 'bush', 'rock', 'tree', 'stump'] },
 };
 
-// The adventure's worlds, for its own road map.
-export const ADVENTURE_MAP_WORLDS = {
-  Wood: { ground: '#6cbf52', edge: '#4f9a3c', props: ['darkTree', 'tree', 'mushroom', 'darkTree', 'bush', 'stump'] },
-  'Crystal Caves': { ground: '#7d8bb3', edge: '#65739b', props: ['crystal', 'rock', 'crystal', 'mushroom', 'crystal', 'rock'] },
-  Ancient: { ground: '#dcc287', edge: '#c3a768', props: ['bone', 'ruin', 'rock', 'bone', 'ruin', 'bone'] },
-  Medieval: { ground: '#93c26c', edge: '#76a454', props: ['tower', 'banner', 'tree', 'fence', 'house', 'banner'] },
-};
-
 // Where each stop sits, in map units: left to right, zigzagging down and up as it climbs.
 const ZIGZAG = { low: 350, climb: 110, swing: 62 };
 export function stopPositions(count) {

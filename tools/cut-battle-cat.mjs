@@ -81,7 +81,7 @@ const SHEETS = {
 const LABEL_HEIGHT = 36;
 
 // Every frame he plays as the cat (but his special attack) is this size, with his feet on the same
-// line: his hitboxes in src/data/characters.js are measured in it.
+// line: his hitboxes in src/data/adventure/heroes.js are measured in it.
 const FRAME = { w: 236, h: 171 };
 
 // The back-view climbing sheet: a grid of square cells, one animation per row, left to right.

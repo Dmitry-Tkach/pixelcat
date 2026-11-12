@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LAND_MARGIN, RIDE_GAP, landsFromAbove, staysOn } from '../src/systems/platformLanding.js';
+import { LAND_MARGIN, RIDE_GAP, landsFromAbove, staysOn } from '../src/systems/adventurePlatformLanding.js';
 import { MAX_FALL_SPEED, PHYSICS_STEPS_PER_SECOND } from '../src/systems/adventureMap.js';
 
 describe('landing on a moving log or leaves', () => {

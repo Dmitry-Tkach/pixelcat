@@ -90,6 +90,15 @@ They keep separate progress and share nothing but the home screen and the menus'
 
 ## The adventure, in detail
 
+- **Where its code is:** adventure files have "adventure" in their name or folder. The runner's
+  files (`GameScene.js`, `BootScene.js`, `data/characters.js`) only call into them:
+  - `ui/adventureMenus.js`: its home screen, road map, and opening a level;
+  - `scenes/adventureLoading.js`: loading its art and making its animations;
+  - `data/adventure/heroes.js`: the battle cats' frames and hitboxes;
+  - `data/adventure/roadmap.js`: its levels in order, and the road map's colours.
+- **Still shared with the runner:** the cat's body and running (`entities/Cat.js`), the controls,
+  `config/gameConfig.js`, the effects, the menu look and the first screen.
+
 - **Levels** are written with the map builder (`src/data/adventure/mapBuilder.js`) in named
   sections, instead of rows of letters. See `wood.js`.
   - **The tile grid:** 64px tiles. Islands are one-way: you jump up through them and land on top.

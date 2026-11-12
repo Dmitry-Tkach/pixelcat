@@ -25,7 +25,7 @@ const DASH = { speed: 950, ms: 220, cooldownMs: 650 };
 const RAGE = { ms: 8000, poseMs: 650, tint: 0xff9a9a, flashMs: 160 };
 // charge: knockouts to fill the beam. height: how far up from his feet the beam hits; ahead, it hits
 // as far as it's drawn, the half of his special's frame in front of him. The beam fires on his
-// special's `beamFrame` (see data/characters.js).
+// special's `beamFrame` (see data/adventure/heroes.js).
 // belowFeet: the room tools/cut-sheet.mjs leaves under his feet in each frame.
 const SPECIAL = { charge: 3, endMs: 375, belowFeet: 13 };
 const NO_WEAPON_HINT_MS = 2500; // how often pressing fire without the minigun says so
