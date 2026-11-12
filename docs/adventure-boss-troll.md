@@ -80,7 +80,8 @@ pose is made from them by playing part of an animation, or holding a frame:
 ## The arena
 
 - One screen wide, a solid floor, walls at both ends (the charge hits them).
-- Two low islands, left and right: safe from the shock wave, but he jumps at a cat standing on one.
+- Two islands, left and right, 3 tiles above the floor: he's about 3 tiles tall and walks under
+  them, and the cat double-jumps onto them. Safe from the shock wave, but he jumps at a cat on one.
 - Branches above, which shake when he smashes or lands.
 - A checkpoint lantern at the arena door, with the minigun and an ammo crate before it.
 - The camera stays still on the arena during the fight.

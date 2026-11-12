@@ -2,10 +2,14 @@
 // enemies and gunners, scaled down. With --routes, every cell the cat can stand on gets a dot, and
 // anything he can't reach is ringed in red (see systems/adventureRoutes.js).
 // Run after npm run assets: node tools/adventure-preview.mjs <out.png> [level index] [--routes]
+// A boss's test arena (data/adventure/bossArenas.js) is drawn by his name in place of the index,
+// as in node tools/adventure-preview.mjs out.png troll1, bigger, with him standing in it.
 import sharp from 'sharp';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ADVENTURE_LEVELS, adventurePath } from '../src/data/adventure/index.js';
+import { BOSS_ARENAS } from '../src/data/adventure/bossArenas.js';
+import { bossLayout, bossPath } from '../src/data/adventure/bosses.js';
 import { enemyLayout } from '../src/data/adventure/enemies.js';
 import { gunnerLayout } from '../src/data/adventure/gunners.js';
 import { adventureRoutes } from '../src/systems/adventureRoutes.js';
@@ -13,8 +17,8 @@ import { TILE, readAdventureMap } from '../src/systems/adventureMap.js';
 
 const [out, index = '0'] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const routes = process.argv.includes('--routes');
-const level = ADVENTURE_LEVELS[Number(index)];
-const SCALE = 0.25;
+const level = BOSS_ARENAS[index] ?? ADVENTURE_LEVELS[Number(index)];
+const SCALE = level.boss ? 0.5 : 0.25; // an arena is small, so it's drawn bigger
 const CELL = TILE * SCALE;
 const { rows, cols, tiles, ladders, objects } = readAdventureMap(level.map);
 const art = (name) => join('public', adventurePath(level.world, name));
@@ -52,6 +56,19 @@ for (const o of objects) {
   else if (o.type === 'gunner') await place(await atlasFrame('gunners', o.kind, 'idle-0', gunnerLayout(o.kind).frameW), o.col, o.row, true);
   else if (o.type === 'start') await place(await sharp({ create: { width: CELL, height: CELL * 1.5, channels: 4, background: '#3a7bff' } }).png().toBuffer(), o.col, o.row, true);
   else if (ICON[o.type]) await place(await image(art(ICON[o.type])), o.col, o.row, ['spike', 'chest', 'silver-chest', 'checkpoint', 'portal'].includes(o.type));
+}
+// The boss, standing on the floor at his column, in his first idle frame.
+if (level.boss) {
+  const { kind, col } = level.boss;
+  const L = bossLayout(kind);
+  const atlas = JSON.parse(readFileSync(`public/${bossPath(kind)}.json`, 'utf8'));
+  const page = atlas.textures.find((t) => t.frames.some((f) => f.filename === 'idle-0'));
+  const f = page.frames.find((fr) => fr.filename === 'idle-0').frame;
+  const frame = await sharp(`public/assets/adventure/bosses/${page.image}`).extract({ left: f.x, top: f.y, width: f.w, height: f.h })
+    .resize({ width: Math.round(L.frameW * SCALE) }).toBuffer();
+  let floor = rows - 1; // the top of the ground at the bottom of his column, under any islands
+  while (floor > 0 && tiles[floor - 1][col] >= 0) floor -= 1;
+  comps.push({ input: frame, left: Math.round(col * CELL + CELL / 2 - L.feetX * SCALE), top: Math.max(0, Math.round(floor * CELL - L.feetY * SCALE)) });
 }
 // Moving logs: where each starts, and a dotted line along its path.
 const plank = await sharp(art('bridge')).resize(CELL, CELL).toBuffer();

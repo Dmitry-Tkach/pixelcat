@@ -47,9 +47,12 @@ export function phaseAttacks(fight, phase) {
 }
 
 export class BossBrain {
-  // `random` picks his attacks (tests pass their own). `assisted` is the easier try.
-  constructor(fight, { random = Math.random, assisted = false } = {}) {
+  // `random` picks his attacks (tests pass their own). `assisted` is the easier try. `only` lists
+  // the attacks his body can do, if not all of them: he never picks another, so a fight can be
+  // tried while some of its attacks are still being built.
+  constructor(fight, { random = Math.random, assisted = false, only = null } = {}) {
     this.fight = fight;
+    this.only = only ? new Set(only) : null;
     this.random = random;
     this.maxHealth = bossMaxHealth(fight, { assisted });
     this.health = this.maxHealth;
@@ -243,7 +246,7 @@ export class BossBrain {
       return range === 'near' ? distance <= fight.nearRange : distance > fight.nearRange;
     };
     let ready = phaseAttacks(fight, this.phaseData)
-      .filter(({ attack, range }) => fits(range) && !(this.cooldowns[attack] > 0))
+      .filter(({ attack, range }) => fits(range) && !(this.cooldowns[attack] > 0) && (!this.only || this.only.has(attack)))
       .map(({ attack }) => attack);
     if (ready.length > 1) ready = ready.filter((attack) => attack !== this.lastAttack);
     if (ready.length === 0) return null;

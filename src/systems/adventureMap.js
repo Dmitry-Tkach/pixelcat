@@ -150,7 +150,10 @@ export function checkAdventureLevel(level) {
   const { objects, ladders, tiles } = readAdventureMap(map);
   const count = (type) => objects.filter((o) => o.type === type).length;
   if (count('start') !== 1) errors.push('the map needs exactly one start, @');
-  if (count('portal') !== 1) errors.push('the map needs exactly one portal, E');
+  // A boss's arena ends when he's beaten, so it has no portal; every other level needs one.
+  if (level.boss && count('portal') !== 0) errors.push('a boss arena ends when he is beaten, so it has no portal');
+  if (!level.boss && count('portal') !== 1) errors.push('the map needs exactly one portal, E');
+  if (level.boss && (tiles[map.length - 1]?.[level.boss.col] ?? -1) < 0) errors.push(`the boss in column ${level.boss.col} has no floor under him`);
   if (count('chest') > 0 && count('key') < count('chest')) errors.push('each chest needs a key');
   if (count('silver-chest') > 0 && count('silver-key') < count('silver-chest')) errors.push('each silver chest needs a silver key');
   // A moving log's path mustn't run into the ground.

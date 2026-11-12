@@ -10,6 +10,9 @@
 //          as measured over all of them: lying back when knocked out, the club's swing, the club up
 //          as he runs). Under his feet, `below`.
 //   body   his hitbox, from the same spot: his trunk and legs, without the club
+//   club   where his club hurts as it comes down (attack frames 5-6, counted from 0): from `from`
+//          to `to` ahead of his feet, and up to `up` above them; and `lands`, how far ahead of his
+//          feet it hits the floor (frame 6), where the dust and the shock wave start
 //   scale  how much smaller he's shown: about 3 tiles tall standing, like a boss should be
 // facing: which way the art faces (1 is right). hitFrame: the attack frame where the club lands.
 export const BOSSES = {
@@ -19,6 +22,7 @@ export const BOSSES = {
     facing: 1,
     cell: { left: 870, right: 996, up: 1272, below: 20 },
     body: { left: 230, right: 230, up: 560 },
+    club: { from: 220, to: 850, up: 440, lands: 480 },
     hp: 30,
     anims: {
       idle: { folder: 'Idle', frames: 10, fps: 10, repeat: -1 },
@@ -37,7 +41,7 @@ export const BOSS_PAGE = { cols: 4, rows: 5 };
 
 // A boss's size in the game, and his body and feet in a cell, as the atlas draws them.
 export function bossLayout(kind) {
-  const { scale, cell, body } = BOSSES[kind];
+  const { scale, cell, body, club } = BOSSES[kind];
   const s = (v) => Math.round(v * scale);
   const frameW = s(cell.left + cell.right);
   const frameH = s(cell.up + cell.below);
@@ -45,6 +49,7 @@ export function bossLayout(kind) {
   return {
     frameW, frameH, feetX, feetY,
     body: { x: feetX - s(body.left), y: feetY - s(body.up), w: s(body.left + body.right), h: s(body.up) },
+    club: club ? { from: s(club.from), to: s(club.to), up: s(club.up), lands: s(club.lands) } : null,
   };
 }
 

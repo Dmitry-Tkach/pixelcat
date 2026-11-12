@@ -4,6 +4,8 @@ import { ADVENTURE_HERO, ADVENTURE_LEVELS, PILLAR, adventureKey } from '../data/
 import { CHARACTERS, animKey } from '../data/characters.js';
 import { AMMO } from '../data/adventure/ammo.js';
 import { FLASH, FLASH_KEY } from '../data/adventure/gunners.js';
+import { BOSS_FIGHTS } from '../data/adventure/bossFights.js';
+import { AdventureBoss } from '../entities/AdventureBoss.js';
 import { AdventureEnemy } from '../entities/AdventureEnemy.js';
 import { AdventureGunner } from '../entities/AdventureGunner.js';
 import { Cat } from '../entities/Cat.js';
@@ -11,6 +13,7 @@ import { InputController } from '../input/InputController.js';
 import { AdventureMoves } from '../systems/AdventureMoves.js';
 import { AdventurePlatforms } from '../systems/AdventurePlatforms.js';
 import { MAX_FALL_SPEED, ONE_WAY, TILE, TILE_BIAS, pillarFoot, readAdventureMap } from '../systems/adventureMap.js';
+import { AdventureBossBar } from '../ui/AdventureBossBar.js';
 import { Effects } from '../ui/Effects.js';
 
 // reach: how far from a ladder's middle it can be grabbed. standStill: slower than this, the cat counts
@@ -57,9 +60,12 @@ export class AdventureScene extends Phaser.Scene {
     super('Adventure');
   }
 
-  init({ levelIndex = 0 } = {}) {
-    this.levelIndex = levelIndex;
-    this.level = ADVENTURE_LEVELS[levelIndex];
+  // A level from the road map by its place in ADVENTURE_LEVELS, or one given whole, such as a boss's
+  // test arena (data/adventure/bossArenas.js).
+  init({ levelIndex = 0, level = null } = {}) {
+    this.levelIndex = level ? -1 : levelIndex;
+    this.level = level ?? ADVENTURE_LEVELS[levelIndex];
+    this.restartData = level ? { level } : { levelIndex };
   }
 
   create() {
@@ -124,6 +130,8 @@ export class AdventureScene extends Phaser.Scene {
         this.updateHud();
       },
     });
+
+    if (level.boss) this.buildBoss();
 
     this.hearts = level.hearts;
     this.coins = 0;
@@ -346,6 +354,28 @@ export class AdventureScene extends Phaser.Scene {
     }
   }
 
+  // The level's boss, standing on the floor at his column, with his health bar. Beating him finishes
+  // the level. His shock waves stop at the arena's walls, its first and last open columns.
+  buildBoss() {
+    const { kind, col, arena } = this.level.boss;
+    // The floor: the top of the ground at the bottom of his column, under any islands.
+    const { tiles } = this.layout;
+    let row = this.layout.rows - 1;
+    while (row > 0 && tiles[row - 1][col] >= 0) row -= 1;
+    this.boss = new AdventureBoss(this, {
+      kind,
+      x: col * TILE + TILE / 2,
+      feetY: row * TILE,
+      cat: this.cat,
+      arena: { left: arena.left * TILE, right: (arena.right + 1) * TILE },
+      onHurtCat: (fromX) => this.hurt(fromX),
+      onDefeated: () => this.complete(),
+    });
+    this.moves.setBoss(this.boss);
+    this.bossBar = new AdventureBossBar(this, { name: this.boss.name, marks: BOSS_FIGHTS[kind].phases.slice(1).map((phase) => phase.from) });
+    this.boss.start();
+  }
+
   buildHud() {
     const fixed = (object) => object.setScrollFactor(0).setDepth(100);
     this.heartIcons = Array.from({ length: this.level.hearts }, (_, i) => fixed(this.add.image(34 + i * 44, 36, this.art('heart'))).setScale(0.75));
@@ -365,7 +395,7 @@ export class AdventureScene extends Phaser.Scene {
     this.ammoIcon = fixed(this.add.image(AMMO_HUD.x, AMMO_HUD.y, this.art('bullet'))).setVisible(false);
     this.ammoText = fixed(this.add.text(AMMO_HUD.x + AMMO_HUD.textGap, AMMO_HUD.y, '', { ...HUD_STYLE, fontSize: '22px' }).setOrigin(0, 0.5)).setVisible(false);
     this.hint = fixed(this.add.text(GAME.WIDTH / 2, 150, '', { ...HUD_STYLE, fontSize: '30px', align: 'center' }).setOrigin(0.5));
-    this.showHint(`${this.level.title}\nRun, jump and climb up to the portal\nShift dash · C beam · find the minigun to shoot`, 4200);
+    this.showHint(this.level.hint ?? `${this.level.title}\nRun, jump and climb up to the portal\nShift dash · C beam · find the minigun to shoot`, 4200);
   }
 
   showHint(text, ms = 2200) {
@@ -404,6 +434,7 @@ export class AdventureScene extends Phaser.Scene {
     this.backFar.setSize(GAME.WIDTH, GAME.HEIGHT);
     this.backNear.setSize(GAME.WIDTH, GAME.HEIGHT);
     this.hint.setX(GAME.WIDTH / 2);
+    this.bossBar?.layout();
   }
 
   // ----- The camera -----
@@ -763,9 +794,12 @@ export class AdventureScene extends Phaser.Scene {
     this.audio.playSfx('escape');
     this.effects.confetti(this.cat.x, this.cat.y - 60);
     this.cat.play(animKey(this.cat.character, 'victory'), true);
-    // Its stars are the crystals he found, kept with the adventure's progress.
-    this.registry.get('adventureProgress')?.record(this.level.id, Math.min(STARS, this.gems), this.coins);
-    this.time.delayedCall(END_SCREEN_MS, () => this.showEnd('Level complete!', true));
+    // Its stars are the crystals he found, kept with the adventure's progress. A test arena isn't
+    // part of it.
+    if (!this.level.test) this.registry.get('adventureProgress')?.record(this.level.id, Math.min(STARS, this.gems), this.coins);
+    this.bossBar?.hide();
+    const title = this.boss ? `You beat ${this.boss.name}!` : 'Level complete!';
+    this.time.delayedCall(END_SCREEN_MS, () => this.showEnd(title, true));
   }
 
   gameOver() {
@@ -784,18 +818,19 @@ export class AdventureScene extends Phaser.Scene {
     this.cat.setVelocityX(0);
     this.cat.moveVelocity = 0;
     for (const enemy of this.enemies.getChildren()) enemy.halt();
+    this.boss?.halt();
     this.enemyBullets.clear(true, true);
   }
 
   showEnd(title, won = false) {
     const chest = this.chests.length ? `, treasure ${this.chestsOpened}/${this.chests.length}` : '';
-    const next = ADVENTURE_LEVELS[this.levelIndex + 1];
+    const next = this.level.test ? null : ADVENTURE_LEVELS[this.levelIndex + 1];
     this.overlay.show({
       title,
       message: `Coins ${this.coins}, crystals ${this.gems}/${this.totals.gems}${chest}, enemies ${this.knockedOut}/${this.totals.enemies}`,
       actions: [
         ...(won && next ? [{ label: 'Next level', primary: true, onClick: () => this.scene.restart({ levelIndex: this.levelIndex + 1 }) }] : []),
-        { label: won ? 'Play again' : 'Try again', primary: !(won && next), onClick: () => this.scene.restart({ levelIndex: this.levelIndex }) },
+        { label: won ? 'Play again' : 'Try again', primary: !(won && next), onClick: () => this.scene.restart(this.restartData) },
         { label: 'Map', onClick: () => this.goHome('adventure') },
         { label: 'Home', onClick: () => this.goHome() },
       ],
@@ -827,7 +862,7 @@ export class AdventureScene extends Phaser.Scene {
         title: 'Paused',
         actions: [
           { label: 'Resume', primary: true, onClick: () => this.togglePause() },
-          { label: 'Restart', onClick: () => this.scene.restart({ levelIndex: this.levelIndex }) },
+          { label: 'Restart', onClick: () => this.scene.restart(this.restartData) },
           { label: 'Map', onClick: () => this.goHome('adventure') },
           { label: 'Home', onClick: () => this.goHome() },
         ],
@@ -861,6 +896,10 @@ export class AdventureScene extends Phaser.Scene {
     this.moves.update(ms, { canAct: !this.climbing && !this.pullingUp });
     for (const enemy of this.enemies.getChildren()) enemy.update(this.cat, ms);
     this.updateEnemyBullets();
+    if (this.boss) {
+      this.boss.update(ms);
+      this.bossBar.update(ms, this.boss.brain.healthShare);
+    }
     this.platforms.update(ms);
     this.updateLook(ms);
     if (this.cat.body.top > this.worldH + FALL_OUT_BELOW) this.fellOut();

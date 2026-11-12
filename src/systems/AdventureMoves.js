@@ -57,6 +57,7 @@ export class AdventureMoves {
     scene.physics.add.collider(this.bullets, solids, (a, b) => this.bulletStops(this.bullets.contains(a) ? a : b));
     scene.physics.add.overlap(this.bullets, enemies, (bullet, enemy) => this.shotHits(bullet, enemy));
     this.enemies = enemies;
+    this.boss = null; // a boss to fight, if the level has one (see setBoss)
 
     this.fireHeldMs = 0;
     this.fireCooldownMs = 0;
@@ -218,6 +219,7 @@ export class AdventureMoves {
     bullet.setVelocityX(dir * ammo.speed);
     bullet.startX = bullet.x;
     bullet.ammo = ammo;
+    bullet.kind = kind; // its ammo's name, which is also what a boss's damage is listed by
     bullet.hit = new Set(); // the enemies a piercing bolt has gone through
     this.scene.audio.playSfx('shot');
     // Out of this kind: on to the next he has.
@@ -255,7 +257,39 @@ export class AdventureMoves {
     if (enemy.takeShot()) this.onKnockOut(enemy);
   }
 
-  // Knocks out every enemy whose body is within `radius` of the blast.
+  // A boss to fight (entities/AdventureBoss.js). He isn't one of the enemies: his shots, blasts and
+  // bolt don't knock him out, but hurt him by his own damage table, through boss.takeHit.
+  setBoss(boss) {
+    this.boss = boss;
+    // Against one sprite, Phaser may pass it first, so the bullet is whichever is in the group.
+    this.scene.physics.add.overlap(this.bullets, boss.sprite, (a, b) => this.shotHitsBoss(this.bullets.contains(a) ? a : b));
+  }
+
+  // A shot into the boss. It stops in him even while he can't be hurt, so he feels solid; a
+  // piercing one goes through, hitting him once.
+  shotHitsBoss(bullet) {
+    if (!bullet.active || this.boss.brain.isDefeated) return;
+    if (bullet.ammo.pierce) {
+      if (bullet.hit.has(this.boss)) return;
+      bullet.hit.add(this.boss);
+    } else {
+      bullet.destroy();
+    }
+    if (bullet.ammo.blast) {
+      this.explode(bullet.x, bullet.y, bullet.ammo.blast);
+      return;
+    }
+    this.boss.takeHit(bullet.kind, bullet.x, bullet.y);
+  }
+
+  // Whether a point is within `radius` of a body's nearest edge.
+  static near(body, x, y, radius) {
+    const nearestX = Phaser.Math.Clamp(x, body.left, body.right);
+    const nearestY = Phaser.Math.Clamp(y, body.top, body.bottom);
+    return Phaser.Math.Distance.Between(x, y, nearestX, nearestY) <= radius;
+  }
+
+  // Knocks out every enemy whose body is within `radius` of the blast, and hurts a boss in it.
   explode(x, y, radius) {
     const blast = this.scene.add.sprite(x, y, EXPLOSION_KEY, 'explosion-0').setDepth(BULLET.depth + 1);
     blast.play(EXPLOSION_KEY).once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => blast.destroy());
@@ -268,6 +302,8 @@ export class AdventureMoves {
       const nearestY = Phaser.Math.Clamp(y, e.top, e.bottom);
       if (Phaser.Math.Distance.Between(x, y, nearestX, nearestY) <= radius) this.onKnockOut(enemy);
     }
+    const { boss } = this;
+    if (boss && !boss.brain.isDefeated && AdventureMoves.near(boss.sprite.body, x, y, radius)) boss.takeHit('explosive', x, y);
   }
 
   // ----- Dashing -----
@@ -400,6 +436,14 @@ export class AdventureMoves {
         this.beamBoom(e.center.x, e.center.y, BEAM_HIT.scale, BEAM_HIT.ring);
         this.onKnockOut(enemy);
       }
+    }
+    // A boss isn't knocked out: the bolt hurts him once, and flies on.
+    const { boss } = this;
+    if (boss && !bolt.hit.has(boss) && !boss.brain.isDefeated && AdventureMoves.near(boss.sprite.body, x, y, radius)) {
+      bolt.hit.add(boss);
+      const b = boss.sprite.body;
+      this.beamBoom(b.center.x, b.center.y, BEAM_HIT.scale, BEAM_HIT.ring);
+      boss.takeHit('bolt', b.center.x, b.center.y);
     }
     if (bolt.flown >= reach || (tile && !ONE_WAY.has(tile.index))) this.endBolt(true);
   }

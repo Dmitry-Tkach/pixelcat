@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { loadAdventureArt, makeAdventureAnims } from './adventureLoading.js';
+import { bossTryOutArena, loadAdventureArt, makeAdventureAnims } from './adventureLoading.js';
 import { CHARACTERS, animKey, frameKey } from '../data/characters.js';
 import { ESCAPE_ANIMATION, HOME_ANIMATION } from '../data/screens.js';
 import { LEVELS } from '../data/levels/index.js';
@@ -55,6 +55,12 @@ export class BootScene extends Phaser.Scene {
       }
     }
     makeAdventureAnims(this);
+    // For trying an adventure boss while developing: ?boss=troll1 (see adventureLoading.js).
+    const arena = bossTryOutArena();
+    if (arena) {
+      this.scene.start('Adventure', { level: arena });
+      return;
+    }
     // For trying the adventure while developing: open the page with ?adventure.
     if (import.meta.env.DEV && new URLSearchParams(location.search).has('adventure')) {
       this.scene.start('Adventure', { levelIndex: 0 });

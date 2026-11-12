@@ -3,6 +3,7 @@ import { EXPLOSION, EXPLOSION_KEY, EXPLOSION_PATH, explosionFrameCount } from '.
 import { ENEMIES, enemyAnimKey, enemyFrameCount, enemyKey, enemyPath } from '../data/adventure/enemies.js';
 import { FLASH, FLASH_KEY, FLASH_PATH, GUNNERS, flashFrameCount, gunnerAnimKey, gunnerFrameCount, gunnerKey, gunnerPath } from '../data/adventure/gunners.js';
 import { ADVENTURE_ART, adventureKey, adventurePath } from '../data/adventure/index.js';
+import { BOSS_ARENAS } from '../data/adventure/bossArenas.js';
 
 // Loads the adventure's own art and makes its animations: its tiles and pickups, enemies, gunners,
 // bosses and effects. BootScene calls these for the whole game, so new adventure content is loaded
@@ -80,4 +81,11 @@ export function makeAdventureAnims(scene) {
     frameRate: EXPLOSION.fps,
     repeat: 0,
   });
+}
+
+// For trying an adventure boss while developing: the page opened with ?boss=troll1 goes straight to
+// his test arena. Null otherwise, and in the build players get.
+export function bossTryOutArena() {
+  if (!import.meta.env.DEV) return null;
+  return BOSS_ARENAS[new URLSearchParams(location.search).get('boss')] ?? null;
 }

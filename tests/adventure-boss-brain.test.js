@@ -347,6 +347,21 @@ describe('the boss brain', () => {
     expect(brain.isWeak).toBe(true);
   });
 
+  it('only picks the attacks his body can do, when told which', () => {
+    const brain = new BossBrain(TROLL, { random: () => 0, only: ['bigSmash'] });
+    brain.start();
+    run(brain, TROLL.introSeconds + STEP);
+    brain.phase = 2;
+    for (let i = 0; i < 3; i++) {
+      runUntil(brain, 'windup', FAR);
+      expect(brain.attack).toBe('bigSmash');
+      runUntil(brain, 'idle', FAR);
+    }
+    // Close by, or up on an island, nothing he can do fits: he waits.
+    expect(runUntil(brain, 'windup', NEAR, 8)).toBe('idle');
+    expect(runUntil(brain, 'windup', HIGH, 8)).toBe('idle');
+  });
+
   it('offers an easier try after 3 losses, with a quarter less health', () => {
     expect(offersAssist(TROLL, 2)).toBe(false);
     expect(offersAssist(TROLL, 3)).toBe(true);
