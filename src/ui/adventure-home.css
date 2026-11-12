@@ -67,8 +67,16 @@
   height: 100%;
 }
 
-.paws-character {
+/* A character in his frame: the frame is placed in the landscape and carries his effect. */
+.paws-figure {
   position: absolute;
+  will-change: transform;
+}
+
+.paws-character {
+  position: relative;
+  display: block;
+  width: 100%;
   height: auto;
 }
 
@@ -82,9 +90,106 @@
   }
 }
 
-/* The cat's light, as in the example. It's drawn once: nothing about it moves. */
+/* The cat's light, as in the example: a glowing copy of him under him. The glow is drawn once;
+   only the copy's fading moves, so it pulses cheaply. */
 .paws-glow {
-  filter: drop-shadow(0 0 calc(9 * var(--u)) rgba(120, 225, 255, 0.85));
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 0 calc(10 * var(--u)) rgba(120, 225, 255, 0.95));
+  animation: paws-glow 1.8s ease-in-out infinite alternate;
+  will-change: opacity;
+}
+
+@keyframes paws-glow {
+  from { opacity: 0.35; }
+  to { opacity: 1; }
+}
+
+/* ----- The characters' effects (`effect` in data/adventure/home.js) ----- */
+
+/* The cat runs on the spot: up and down, leaning into it. */
+.paws-run {
+  transform-origin: 50% 90%;
+  animation: paws-run var(--seconds) ease-in-out infinite;
+}
+
+@keyframes paws-run {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(calc(-4 * var(--u))) rotate(-1.5deg); }
+  50% { transform: translateY(0) rotate(0deg); }
+  75% { transform: translateY(calc(-2 * var(--u))) rotate(1deg); }
+}
+
+/* Breathing: a little taller and wider, from the feet, and back. */
+.paws-breathe,
+.paws-figure.paws-orb {
+  transform-origin: 50% 100%;
+  animation: paws-breathe var(--seconds) ease-in-out infinite;
+}
+
+@keyframes paws-breathe {
+  0%, 100% { transform: scale(1, 1); }
+  50% { transform: scale(1.012, 1.022); }
+}
+
+/* The wizard's orb: a pink light that swells and dims on it, and sparks floating up from it. */
+.paws-orb-light {
+  position: absolute;
+  width: 42%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 190, 255, 0.85), rgba(255, 80, 220, 0.35) 55%, rgba(255, 80, 220, 0));
+  animation: paws-orb-light 2s ease-in-out infinite alternate;
+  will-change: transform, opacity;
+}
+
+@keyframes paws-orb-light {
+  from { opacity: 0.25; transform: translate(-50%, -50%) scale(0.8); }
+  to { opacity: 0.9; transform: translate(-50%, -50%) scale(1.1); }
+}
+
+.paws-spark {
+  position: absolute;
+  width: calc(7 * var(--u));
+  height: calc(7 * var(--u));
+  margin: calc(-3.5 * var(--u)) 0 0 calc(-3.5 * var(--u));
+  border-radius: 50%;
+  background: radial-gradient(closest-side, #fff, #ff8cf0 60%, rgba(255, 140, 240, 0));
+  opacity: 0;
+  animation: paws-spark 2.4s ease-out infinite backwards;
+  animation-delay: calc(var(--i) * 0.6s);
+  will-change: transform, opacity;
+}
+
+/* Each spark drifts its own way: --i picks a side. */
+@keyframes paws-spark {
+  0% { opacity: 0; transform: translate(0, 0) scale(1); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc((var(--i) - 1.5) * 9 * var(--u)), calc(-52 * var(--u))) scale(0.3); }
+}
+
+/* ----- Leaves drifting down from the trees (HOME_LEAVES in data/adventure/home.js) ----- */
+
+.paws-leaf {
+  position: absolute;
+  width: calc(40 * var(--u));
+  opacity: 0;
+  animation: paws-leaf var(--seconds) linear var(--delay) infinite backwards;
+  will-change: transform, opacity;
+}
+
+/* Down, swaying side to side, turning as it falls, and gone at the bottom. */
+@keyframes paws-leaf {
+  0% { opacity: 0; transform: translate(0, 0) rotate(0deg); }
+  8% { opacity: 1; }
+  25% { transform: translate(calc((var(--drift) * 0.25 + 30) * var(--u)), calc(var(--fall) * 0.25 * var(--u))) rotate(90deg); }
+  50% { transform: translate(calc(var(--drift) * 0.5 * var(--u)), calc(var(--fall) * 0.5 * var(--u))) rotate(180deg); }
+  75% { transform: translate(calc((var(--drift) * 0.75 - 30) * var(--u)), calc(var(--fall) * 0.75 * var(--u))) rotate(270deg); }
+  90% { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(var(--drift) * var(--u)), calc(var(--fall) * var(--u))) rotate(360deg); }
 }
 
 .paws-shadow {
@@ -141,6 +246,13 @@
 
 .paws-button.paws-big img {
   height: 9.6vh;
+  animation: paws-pulse 2s ease-in-out infinite;
+}
+
+/* Play gently grows and shrinks, so the eye goes to it first. */
+@keyframes paws-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
 }
 
 .paws-button:hover {
@@ -161,10 +273,25 @@
   to { opacity: 1; transform: none; }
 }
 
+/* For players who ask for less motion: everything stands still, and no leaves fall. */
 @media (prefers-reduced-motion: reduce) {
-  .paws-button {
+  .paws-button,
+  .paws-button.paws-big img,
+  .paws-figure,
+  .paws-glow,
+  .paws-orb-light,
+  .paws-spark {
     animation: none;
     transition: none;
+  }
+
+  .paws-glow {
+    opacity: 1;
+  }
+
+  .paws-leaf,
+  .paws-spark {
+    display: none;
   }
 }
 

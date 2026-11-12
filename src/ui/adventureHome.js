@@ -1,10 +1,13 @@
-import { ADVENTURE_NAME, HOME_ART, HOME_BUTTONS, HOME_CHARACTERS, HOME_SCENE } from '../data/adventure/home.js';
+import { ADVENTURE_NAME, HOME_ART, HOME_BUTTONS, HOME_CHARACTERS, HOME_LEAVES, HOME_SCENE } from '../data/adventure/home.js';
 import './adventure-home.css';
 
 // The adventure's home screen, "Adventure Paws", in layers (see data/adventure/home.js): the
 // landscape at the back, its characters standing on it, then the logo and the wooden buttons. It's
 // plain HTML in the menu overlay. The landscape is fitted by CSS alone (adventure-home.css), so a
-// window of any shape shows every character whole, and nothing runs while it's on screen.
+// window of any shape shows every character whole. The characters' small effects, the falling
+// leaves and the Play button's pulse are CSS animations of movement and fading only, which the
+// graphics card does by itself; they stop with the screen, and for players who ask for less motion.
+const SPARKS = 4; // floating up from the wizard's orb, one after another
 
 const percent = (part, whole) => `${(part / whole) * 100}%`;
 const picture = (name) => `${HOME_ART}/${name}.webp`;
@@ -24,16 +27,24 @@ export function adventureHome({ overlay, on }) {
   const stage = document.createElement('div');
   stage.className = 'paws-stage';
   stage.append(image(picture('landscape'), 'paws-landscape'));
-  for (const { name, x, y, w: cw, h: ch, shadow, glow } of HOME_CHARACTERS) {
+  for (const character of HOME_CHARACTERS) {
+    const { x, y, w: cw, h: ch, shadow } = character;
     if (shadow) {
       const under = document.createElement('div');
       under.className = 'paws-shadow';
       Object.assign(under.style, { left: percent(x + cw / 2, w), top: percent(y + ch, h), width: percent(cw * 0.72, w) });
       stage.append(under);
     }
-    const figure = image(picture(name), `paws-character${glow ? ' paws-glow' : ''}`);
-    Object.assign(figure.style, { left: percent(x, w), top: percent(y, h), width: percent(cw, w) });
-    stage.append(figure);
+    stage.append(figure(character, w, h));
+  }
+  for (const { x, y, fall, drift, seconds, delay } of HOME_LEAVES) {
+    const leaf = image(picture('icon-leaf'), 'paws-leaf');
+    Object.assign(leaf.style, { left: percent(x, w), top: percent(y, h) });
+    leaf.style.setProperty('--fall', fall);
+    leaf.style.setProperty('--drift', drift);
+    leaf.style.setProperty('--seconds', `${seconds}s`);
+    leaf.style.setProperty('--delay', `${delay}s`);
+    stage.append(leaf);
   }
 
   // The logo and the menu.
@@ -55,9 +66,35 @@ export function adventureHome({ overlay, on }) {
   return root;
 }
 
+// A character, in a frame that carries his effect (see HOME_CHARACTERS). The cat's glow is a second
+// copy of him, glowing, under him: fading it in and out makes the glow pulse, without drawing the
+// glow again. The wizard's orb has a light and sparks of its own, placed on it.
+function figure({ name, x, y, w: cw, effect, seconds, glow, orb }, w, h) {
+  const frame = document.createElement('div');
+  frame.className = `paws-figure paws-${effect}`;
+  Object.assign(frame.style, { left: percent(x, w), top: percent(y, h), width: percent(cw, w) });
+  frame.style.setProperty('--seconds', `${seconds}s`);
+  if (glow) frame.append(image(picture(name), 'paws-glow'));
+  frame.append(image(picture(name), 'paws-character'));
+  if (orb) {
+    const light = document.createElement('div');
+    light.className = 'paws-orb-light';
+    Object.assign(light.style, { left: percent(orb.x, 1), top: percent(orb.y, 1) });
+    frame.append(light);
+    for (let i = 0; i < SPARKS; i++) {
+      const spark = document.createElement('div');
+      spark.className = 'paws-spark';
+      Object.assign(spark.style, { left: percent(orb.x, 1), top: percent(orb.y, 1) });
+      spark.style.setProperty('--i', i);
+      frame.append(spark);
+    }
+  }
+  return frame;
+}
+
 // Every picture the screen shows, to fetch early, so it appears whole when it opens.
 export function adventureHomePictures() {
-  return ['landscape', 'logo', ...HOME_CHARACTERS.map((c) => c.name), ...HOME_BUTTONS.map((b) => `button-${b.name}`)].map(picture);
+  return ['landscape', 'logo', 'icon-leaf', ...HOME_CHARACTERS.map((c) => c.name), ...HOME_BUTTONS.map((b) => `button-${b.name}`)].map(picture);
 }
 
 function image(src, className, alt = '') {
