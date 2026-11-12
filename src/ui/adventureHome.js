@@ -4,10 +4,10 @@ import './adventure-home.css';
 // The adventure's home screen, "Adventure Paws", in layers (see data/adventure/home.js): the
 // landscape at the back, its characters standing on it, then the logo and the wooden buttons. It's
 // plain HTML in the menu overlay. The landscape is fitted by CSS alone (adventure-home.css), so a
-// window of any shape shows every character whole. The characters' small effects, the falling
-// leaves and the Play button's pulse are CSS animations of movement and fading only, which the
-// graphics card does by itself; they stop with the screen, and for players who ask for less motion.
-const SPARKS = 4; // floating up from the wizard's orb, one after another
+// window of any shape shows every character whole. The characters stand still; the wizard's orb
+// glows, leaves fall and the Play button pulses, as CSS animations of movement and fading only,
+// which the graphics card does by itself. They stop with the screen, and for players who ask for
+// less motion.
 
 const percent = (part, whole) => `${(part / whole) * 100}%`;
 const picture = (name) => `${HOME_ART}/${name}.webp`;
@@ -66,28 +66,17 @@ export function adventureHome({ overlay, on }) {
   return root;
 }
 
-// A character, in a frame that carries his effect (see HOME_CHARACTERS). The cat's glow is a second
-// copy of him, glowing, under him: fading it in and out makes the glow pulse, without drawing the
-// glow again. The wizard's orb has a light and sparks of its own, placed on it.
-function figure({ name, x, y, w: cw, effect, seconds, glow, orb }, w, h) {
+// A character, standing still. The wizard's orb has a light of its own, placed on it.
+function figure({ name, x, y, w: cw, glow, orb }, w, h) {
   const frame = document.createElement('div');
-  frame.className = `paws-figure paws-${effect}`;
+  frame.className = 'paws-figure';
   Object.assign(frame.style, { left: percent(x, w), top: percent(y, h), width: percent(cw, w) });
-  frame.style.setProperty('--seconds', `${seconds}s`);
-  if (glow) frame.append(image(picture(name), 'paws-glow'));
-  frame.append(image(picture(name), 'paws-character'));
+  frame.append(image(picture(name), `paws-character${glow ? ' paws-glow' : ''}`));
   if (orb) {
     const light = document.createElement('div');
     light.className = 'paws-orb-light';
     Object.assign(light.style, { left: percent(orb.x, 1), top: percent(orb.y, 1) });
     frame.append(light);
-    for (let i = 0; i < SPARKS; i++) {
-      const spark = document.createElement('div');
-      spark.className = 'paws-spark';
-      Object.assign(spark.style, { left: percent(orb.x, 1), top: percent(orb.y, 1) });
-      spark.style.setProperty('--i', i);
-      frame.append(spark);
-    }
   }
   return frame;
 }

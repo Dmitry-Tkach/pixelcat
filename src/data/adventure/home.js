@@ -17,20 +17,16 @@ export const HOME_SCENE = { w: 1672, h: 941, keep: { left: 40, right: 1640 }, sk
 // The characters, standing where the owner's example has them (found by matching each cut-out
 // against the example picture). x, y: the top left of the picture; w, h: its size there.
 // shadow: a soft shadow under the feet, for those standing on the ground. glow: a light round him.
+// orb: the wizard's staff has a glowing orb, here in his picture, as shares of its width and height,
+// whose light swells and dims (the only character effect: the owner wants them standing still).
 // In this order, back to front: the knight stands in front of the wizard.
-// Each has a small effect of his own, chosen with the owner (ui/adventure-home.css draws them):
-//   run      the cat, bobbing and leaning as if running on the spot, his glow pulsing
-//   breathe  swelling a little and settling, from his feet up
-//   orb      the wizard: breathing, and the orb on his staff glowing, with sparks floating up from
-//            it; `orb` is where it is in his picture, as shares of its width and height
-// seconds: how long one round of it takes; each has his own, so nobody moves together.
 export const HOME_CHARACTERS = [
-  { name: 'troll', x: 49, y: 326, w: 257, h: 244, shadow: true, effect: 'breathe', seconds: 3.2 },
-  { name: 'cat', x: 143, y: 581, w: 228, h: 207, glow: true, effect: 'run', seconds: 0.6 },
-  { name: 'gunCat', x: 1510, y: 283, w: 105, h: 84, shadow: true, effect: 'breathe', seconds: 2.6 },
-  { name: 'wizard', x: 1459, y: 483, w: 177, h: 188, effect: 'orb', seconds: 3.6, orb: { x: 0.775, y: 0.204 } },
-  { name: 'goblin', x: 1305, y: 587, w: 166, h: 151, shadow: true, effect: 'breathe', seconds: 2.9 },
-  { name: 'knight', x: 1461, y: 626, w: 166, h: 172, shadow: true, effect: 'breathe', seconds: 3.4 },
+  { name: 'troll', x: 49, y: 326, w: 257, h: 244, shadow: true },
+  { name: 'cat', x: 143, y: 581, w: 228, h: 207, glow: true },
+  { name: 'gunCat', x: 1510, y: 283, w: 105, h: 84, shadow: true },
+  { name: 'wizard', x: 1459, y: 483, w: 177, h: 188, orb: { x: 0.775, y: 0.204 } },
+  { name: 'goblin', x: 1305, y: 587, w: 166, h: 151, shadow: true },
+  { name: 'knight', x: 1461, y: 626, w: 166, h: 172, shadow: true },
 ];
 
 // Leaves drifting down from the trees at the sides, in the landscape's pixels: where each starts,
