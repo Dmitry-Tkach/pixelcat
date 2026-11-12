@@ -33,8 +33,7 @@ function face(character, size, className) {
 // id. The picture's buttons are drawn; real, see-through buttons sit on them, for clicks, keys and
 // screen readers. `instant` skips the cat's walk, for the fast in-game tests. `character` is who
 // walks the map, and `look` is passed on to mapArt: the worlds' looks, and what's at each end.
-// `walker: false` leaves the cat off, for a page of the map his level isn't on.
-export function journeyMap({ stops, instant = false, character = PLAYER, look = {}, walker = true }) {
+export function journeyMap({ stops, instant = false, character = PLAYER, look = {} }) {
   const map = document.createElement('div');
   map.className = 'map';
   const art = document.createElement('div');
@@ -78,7 +77,7 @@ export function journeyMap({ stops, instant = false, character = PLAYER, look = 
     if (stop.boss) button.append(face(stop.boss, BOSS_FACE_PX, 'map-boss'));
     button.addEventListener('click', () => {
       if (walking) return;
-      if (instant || !walker || i === startAt) {
+      if (instant || i === startAt) {
         stop.onPick();
         return;
       }
@@ -90,6 +89,6 @@ export function journeyMap({ stops, instant = false, character = PLAYER, look = 
     });
     map.append(button);
   });
-  if (walker) map.append(cat);
+  map.append(cat);
   return map;
 }

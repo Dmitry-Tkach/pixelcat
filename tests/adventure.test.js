@@ -7,8 +7,7 @@ import { ADVENTURE_ART, ADVENTURE_HERO, ADVENTURE_LEVELS, adventurePath } from '
 import { CHARACTERS } from '../src/data/characters.js';
 import { MOVEMENT } from '../src/config/gameConfig.js';
 import { mapBuilder } from '../src/data/adventure/mapBuilder.js';
-import { ADVENTURE_MAP_LOOK, ADVENTURE_MAP_WORLDS, ADVENTURE_ROADMAP } from '../src/data/adventure/roadmap.js';
-import { mapArt } from '../src/ui/mapArt.js';
+import { ADVENTURE_ROADMAP } from '../src/data/adventure/roadmap.js';
 import { Progress } from '../src/systems/Progress.js';
 import { adventureRoutes } from '../src/systems/adventureRoutes.js';
 import { ENEMY_LETTERS, GUNNER_LETTERS, PILLAR_MAX_TILES, moverCells, pillarFoot, MAX_FALL_SPEED, PHYSICS_STEPS_PER_SECOND, TILE, TILES, TILE_BIAS, checkAdventureLevel, readAdventureMap } from '../src/systems/adventureMap.js';
@@ -322,17 +321,10 @@ describe('the battle cat in the adventure', () => {
 });
 
 describe("the adventure's road map", () => {
-  it('has every built level on it, once, with a look for every world', () => {
+  it('has every built level on it, once', () => {
     const ids = ADVENTURE_ROADMAP.map((stop) => stop.id);
     expect(new Set(ids).size).toBe(ids.length);
     for (const level of ADVENTURE_LEVELS) expect(ADVENTURE_ROADMAP.filter((stop) => stop.level === level.id)).toHaveLength(1);
-    for (const { world } of ADVENTURE_ROADMAP) expect(ADVENTURE_MAP_WORLDS[world], world).toBeDefined();
-  });
-
-  it('draws a padlock for every level not built yet', () => {
-    const stops = ADVENTURE_ROADMAP.map((stop, i) => ({ number: i + 1, world: stop.world, locked: !stop.level, stars: 0 }));
-    const svg = mapArt(stops, { worlds: ADVENTURE_MAP_WORLDS, ...ADVENTURE_MAP_LOOK });
-    for (const stop of stops) expect(svg.includes(`>${stop.number}</text>`)).toBe(!stop.locked);
   });
 
   it("keeps its progress apart from the runner's", () => {

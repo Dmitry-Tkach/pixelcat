@@ -1,9 +1,9 @@
-import { ADVENTURE_HERO, ADVENTURE_LEVELS } from '../data/adventure/index.js';
+import { ADVENTURE_LEVELS } from '../data/adventure/index.js';
 import { ADVENTURE_NAME, CREDITS, HOME_ART } from '../data/adventure/home.js';
-import { ADVENTURE_MAP_WORLDS, ADVENTURE_ROADMAP, ADVENTURE_WORLDS, worldEnds } from '../data/adventure/roadmap.js';
+import { ADVENTURE_ROADMAP } from '../data/adventure/roadmap.js';
 import { ADVENTURE_KEYS } from './adventureGameMenu.js';
 import { adventureHome } from './adventureHome.js';
-import { journeyMap } from './JourneyMap.js';
+import { adventureRoadmap } from './adventureRoadmap.js';
 
 // Behind the home screen's own pages (settings, credits...), its landscape. The pages are wooden
 // boards (layout 'paws-page', styled in adventure-home.css).
@@ -90,48 +90,33 @@ export function nextAdventureLevel(progress) {
   return ADVENTURE_LEVELS.findIndex((level) => level.id === stop.level);
 }
 
-// The adventure's own road map, one world to a page: its levels, the built ones open as each is
-// reached, their stars the crystals found in them. It opens on the world of the level the player is
-// up to; arrows turn to the world before or after. The cat stands on his level's page only.
-export function showAdventureMap(scene, worldIndex = null) {
+// The adventure's road map (ui/adventureRoadmap.js): the owner's vertical map, the first world at
+// the bottom and the last at the top, every level on it, the built ones open as each is reached,
+// their stars the crystals found in them. It opens scrolled to the level the player is up to.
+export function showAdventureMap(scene) {
   const progress = scene.registry.get('adventureProgress');
   const playable = (stop) => ADVENTURE_LEVELS.some((level) => level.id === stop.level);
-  const upTo = ADVENTURE_ROADMAP[progress.nextIndex] ?? ADVENTURE_ROADMAP[0];
-  const page = worldIndex ?? ADVENTURE_WORLDS.indexOf(upTo.world);
-  const world = ADVENTURE_WORLDS[page];
-  const stops = [];
-  ADVENTURE_ROADMAP.forEach((stop, index) => {
-    if (stop.world !== world) return;
+  const levels = ADVENTURE_ROADMAP.map((stop, index) => {
     const result = progress.resultFor(stop.id);
-    stops.push({
-      number: index + 1,
+    return {
       title: playable(stop) ? stop.title : `${stop.title} (coming soon)`,
-      world: stop.world,
       locked: !playable(stop) || !progress.isUnlocked(index),
-      current: index === progress.nextIndex,
+      current: index === progress.nextIndex && playable(stop),
+      played: Boolean(result),
       stars: result?.stars ?? 0,
       onPick: () => openAdventure(scene, ADVENTURE_LEVELS.findIndex((level) => level.id === stop.level)),
-    });
+    };
   });
   const built = ADVENTURE_ROADMAP.filter(playable).length;
-  const before = ADVENTURE_WORLDS[page - 1], after = ADVENTURE_WORLDS[page + 1];
-  scene.overlay.show({
-    title: world,
-    backdrop: PAGE_BACKDROP,
-    message: `World ${page + 1} of ${ADVENTURE_WORLDS.length} · ${progress.totalStars} of ${built * 3} crystals`,
-    content: journeyMap({
-      stops,
-      instant: scene.screenFx.instant,
-      character: ADVENTURE_HERO.character,
-      walker: stops.some((stop) => stop.current),
-      look: { worlds: ADVENTURE_MAP_WORLDS, ...worldEnds(page) },
-    }),
-    actions: [
-      ...(before ? [{ label: `◀ ${before}`, onClick: () => showAdventureMap(scene, page - 1) }] : []),
-      { label: 'Back', primary: true, onClick: () => showAdventureHome(scene) },
-      ...(after ? [{ label: `${after} ▶`, onClick: () => showAdventureMap(scene, page + 1) }] : []),
-    ],
+  const roadmap = adventureRoadmap({
+    levels,
+    crystals: { found: progress.totalStars, total: built * 3 },
+    onBack: () => showAdventureHome(scene),
+    overlay: scene.overlay,
   });
+  scene.overlay.show({ layout: 'paws-roadmap', title: 'Level Select', actions: [], content: roadmap.element });
+  roadmap.scrollToCurrent();
+  roadmap.element.querySelector('.roadmap-level.current, .roadmap-back')?.focus({ preventScroll: true });
 }
 
 // Leaves the menus for one of the battle cat's adventure levels.

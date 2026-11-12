@@ -183,7 +183,7 @@ const castle = (x, y) => `${shadow(x, y + 42, 60)}
   <rect x="${x - 24}" y="${y - 30}" width="48" height="66" rx="4" fill="#bcc2ce" ${outlined}/>
   <path d="M${x - 30} ${y - 28} L${x} ${y - 64} L${x + 30} ${y - 28} Z" fill="#d8443a" ${outlined}/>
   <path d="M${x - 10} ${y + 36} V${y + 10} A10 10 0 0 1 ${x + 10} ${y + 10} V${y + 36} Z" fill="#5d4532"/>`;
-const ENDS = { house: home, portal, trophy: (x, y) => trophy(x, y), castle, none: () => '' };
+const ENDS = { house: home, portal, trophy: (x, y) => trophy(x, y), castle };
 const SIGN_ROOM = 92; // scenery stays below the world signs
 const BLEND = 70; // how wide the ground fades from one world to the next
 const trophy = (x, y) => `${shadow(x, y + 40, 36)}
@@ -198,8 +198,7 @@ const trophy = (x, y) => `${shadow(x, y + 40, 36)}
 
 // The whole picture, as an SVG string. `stops`: { number, world, locked, current, stars }, in order.
 // `look`: { worlds, start, end }: each world's ground and scenery (MAP_WORLDS by default), and what
-// stands at each end of the path ('house' and 'trophy' by default; also 'portal' and 'castle', or
-// 'none', for a path that runs on off the edge).
+// stands at each end of the path ('house' and 'trophy' by default; also 'portal' and 'castle').
 export function mapArt(stops, { worlds = MAP_WORLDS, start = 'house', end = 'trophy' } = {}) {
   const worldLook = (world) => worlds[world] ?? Object.values(worlds)[0];
   const positions = stopPositions(stops.length);

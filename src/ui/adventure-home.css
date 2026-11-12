@@ -278,12 +278,16 @@
    and buttons: brown wood with a dark outline and nails, and a yellow plank for the main one. All
    drawn in CSS, so any words fit on them. Nothing moves but a button under the pointer. */
 
-#overlay[data-layout='paws-page'] {
+/* The wood's colours, for every wooden page and plank (the road map's Back is one too). */
+#overlay {
   --wood-light: #d48542;
   --wood-dark: #a5591f;
   --wood-edge: #3b1d0c;
   --wood-ink: #4a2410;
   --nail: radial-gradient(circle, #f2d2a6 0 2.5px, #5a2a0e 3px 4px, transparent 4.5px);
+}
+
+#overlay[data-layout='paws-page'] {
   background: rgba(0, 40, 90, 0.25);
 }
 
@@ -330,8 +334,10 @@
   gap: 12px;
 }
 
-/* A plank: brown wood, a dark outline, a nail at each end, white words outlined in brown. */
-#overlay[data-layout='paws-page'] .actions button {
+/* A plank: brown wood, a dark outline, a nail at each end, white words outlined in brown. The
+   pages' buttons are planks, and so is anything else with the class paws-plank. */
+#overlay[data-layout='paws-page'] .actions button,
+#overlay .paws-plank {
   min-width: min(320px, 72vw);
   min-height: 54px;
   border: 4px solid var(--wood-edge);
@@ -362,7 +368,8 @@
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 
-#overlay[data-layout='paws-page'] .actions button:hover:not(:disabled) {
+#overlay[data-layout='paws-page'] .actions button:hover:not(:disabled),
+#overlay .paws-plank:hover {
   transform: translateY(-2px) scale(1.03);
   box-shadow:
     inset 0 3px 0 rgba(255, 220, 160, 0.45),
@@ -370,7 +377,8 @@
     0 6px 0 #2a1406;
 }
 
-#overlay[data-layout='paws-page'] .actions button:active:not(:disabled) {
+#overlay[data-layout='paws-page'] .actions button:active:not(:disabled),
+#overlay .paws-plank:active {
   transform: translateY(2px) scale(0.98);
   box-shadow:
     inset 0 3px 0 rgba(255, 220, 160, 0.45),
@@ -378,7 +386,8 @@
     0 1px 0 #2a1406;
 }
 
-#overlay[data-layout='paws-page'] .actions button:focus-visible {
+#overlay[data-layout='paws-page'] .actions button:focus-visible,
+#overlay .paws-plank:focus-visible {
   outline: 4px solid #fff;
   outline-offset: 3px;
 }

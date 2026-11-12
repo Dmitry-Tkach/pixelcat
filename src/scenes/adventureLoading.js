@@ -5,6 +5,7 @@ import { FLASH, FLASH_KEY, FLASH_PATH, GUNNERS, flashFrameCount, gunnerAnimKey, 
 import { ADVENTURE_ART, adventureKey, adventurePath } from '../data/adventure/index.js';
 import { BOSS_ARENAS } from '../data/adventure/bossArenas.js';
 import { adventureHomePictures } from '../ui/adventureHome.js';
+import { adventureRoadmapPictures } from '../ui/adventureRoadmap.js';
 
 // Loads the adventure's own art and makes its animations: its tiles and pickups, enemies, gunners,
 // bosses and effects. AdventureBootScene calls these, so new adventure content is loaded from its
@@ -15,8 +16,9 @@ import { adventureHomePictures } from '../ui/adventureHome.js';
 const SHARED_IMAGES = { star: 'assets/city/star.png' };
 
 export function loadAdventureArt(scene) {
-  // The home screen is HTML, not Phaser: its pictures are fetched now, so it opens whole.
-  for (const src of adventureHomePictures()) new Image().src = src;
+  // The home screen and the road map are HTML, not Phaser: their pictures are fetched now, so they
+  // open whole.
+  for (const src of [...adventureHomePictures(), ...adventureRoadmapPictures()]) new Image().src = src;
   for (const [key, path] of Object.entries(SHARED_IMAGES)) scene.load.image(key, path);
   for (const [world, names] of Object.entries(ADVENTURE_ART)) {
     for (const name of names) scene.load.image(adventureKey(world, name), adventurePath(world, name));
