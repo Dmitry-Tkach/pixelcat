@@ -4,12 +4,15 @@ import { ENEMIES, enemyAnimKey, enemyFrameCount, enemyKey, enemyPath } from '../
 import { FLASH, FLASH_KEY, FLASH_PATH, GUNNERS, flashFrameCount, gunnerAnimKey, gunnerFrameCount, gunnerKey, gunnerPath } from '../data/adventure/gunners.js';
 import { ADVENTURE_ART, adventureKey, adventurePath } from '../data/adventure/index.js';
 import { BOSS_ARENAS } from '../data/adventure/bossArenas.js';
+import { adventureHomePictures } from '../ui/adventureHome.js';
 
 // Loads the adventure's own art and makes its animations: its tiles and pickups, enemies, gunners,
 // bosses and effects. BootScene calls these for the whole game, so new adventure content is loaded
 // from its data with no loading code. (The battle cats' frames load with every other character's.)
 
 export function loadAdventureArt(scene) {
+  // The home screen is HTML, not Phaser: its pictures are fetched now, so it opens whole.
+  for (const src of adventureHomePictures()) new Image().src = src;
   for (const [world, names] of Object.entries(ADVENTURE_ART)) {
     for (const name of names) scene.load.image(adventureKey(world, name), adventurePath(world, name));
   }

@@ -9,6 +9,7 @@ import { BOSSES } from '../data/bosses.js';
 import { journeyMap } from '../ui/JourneyMap.js';
 import { gameChoice } from '../ui/GameChoice.js';
 import { showAdventureHome, showAdventureMap } from '../ui/adventureMenus.js';
+import { ADVENTURE_NAME } from '../data/adventure/home.js';
 import { showHomeScreen } from '../ui/HomeScreen.js';
 import { Cat } from '../entities/Cat.js';
 import { Chaser } from '../entities/Chaser.js';
@@ -890,7 +891,7 @@ export class GameScene extends Phaser.Scene {
         {
           id: 'adventure',
           kicker: 'Adventure',
-          title: 'The Battle Cat',
+          title: ADVENTURE_NAME,
           text: 'Climb the World Tree with the battle cat: find the minigun, take on zombies and gunners, and reach the portal.',
           keys: 'X: shoot · Shift: dash · C: magic bolt · Up and Down: climb',
           still: 'assets/ui/home-adventure-still.webp',

@@ -11,7 +11,7 @@
     "test:play": "node tests/play/run.mjs",
     "test:balance": "node tests/play/balance.mjs",
     "test:realtime": "node tests/realtime/run.mjs",
-    "assets": "node tools/prepare-assets.mjs && node tools/street-art.mjs && node tools/world-art.mjs && node tools/home-art.mjs && node tools/adventure-art.mjs && node tools/adventure-home-art.mjs && node tools/adventure-boss-art.mjs && node tools/outline-art.mjs"
+    "assets": "node tools/prepare-assets.mjs && node tools/street-art.mjs && node tools/world-art.mjs && node tools/home-art.mjs && node tools/adventure-art.mjs && node tools/adventure-home-art.mjs && node tools/adventure-paws-home-art.mjs && node tools/adventure-boss-art.mjs && node tools/outline-art.mjs"
   },
   "dependencies": {
     "phaser": "^3.90.0"

@@ -1,0 +1,169 @@
+/* The adventure's home screen, "Adventure Paws" (ui/adventureHome.js). It fills the window: the
+   landscape at the bottom, as wide as the window, but never so wide that its sides (the `keep`
+   stretch in data/adventure/home.js) are cut off. Then it's a little smaller, and its sky colour
+   fills the window above it. One length does it, --u: the size of one of the landscape's pixels. */
+
+#overlay[data-layout='paws'] {
+  padding: 0;
+  place-items: stretch;
+  background: #0078fc;
+}
+
+#overlay[data-layout='paws'] .panel {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  padding: 0;
+  overflow: hidden;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  animation: none;
+}
+
+/* The name stays for screen readers; the logo shows it. */
+#overlay[data-layout='paws'] .panel h1 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+#overlay[data-layout='paws'] .panel p,
+#overlay[data-layout='paws'] .tiles,
+#overlay[data-layout='paws'] .actions {
+  display: none;
+}
+
+#overlay[data-layout='paws'] [data-content] {
+  position: absolute;
+  inset: 0;
+}
+
+.paws-home {
+  --u: max(calc(100vw / var(--scene-w)), min(calc(100vh / var(--scene-h)), calc(100vw / var(--keep-w))));
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--sky);
+  user-select: none;
+}
+
+.paws-stage {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: calc(var(--scene-w) * var(--u));
+  height: calc(var(--scene-h) * var(--u));
+  transform: translateX(-50%);
+}
+
+.paws-landscape {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.paws-character {
+  position: absolute;
+  height: auto;
+}
+
+/* Narrower than the `keep` stretch (1600 x 941 in data/adventure/home.js), the landscape no longer
+   reaches the top, and the sky fills the window above it. Its top then fades into that sky, so the
+   trees in its corners don't end in a hard line. */
+@media (max-aspect-ratio: 1600 / 941) {
+  .paws-stage {
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 14%);
+    mask-image: linear-gradient(to bottom, transparent 0%, #000 14%);
+  }
+}
+
+/* The cat's light, as in the example. It's drawn once: nothing about it moves. */
+.paws-glow {
+  filter: drop-shadow(0 0 calc(9 * var(--u)) rgba(120, 225, 255, 0.85));
+}
+
+.paws-shadow {
+  position: absolute;
+  height: 3.2%;
+  transform: translate(-50%, -60%);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(20, 40, 10, 0.4), rgba(20, 40, 10, 0));
+}
+
+/* The logo and the buttons, in a column down the middle, sized by the window's height. */
+.paws-menu {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 5vh;
+  pointer-events: none;
+}
+
+.paws-logo {
+  height: 21vh;
+  max-width: 46vw;
+  object-fit: contain;
+  filter: drop-shadow(0 0.6vh 0.8vh rgba(0, 0, 0, 0.3));
+}
+
+.paws-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.1vh;
+  margin-top: 3.5vh;
+}
+
+.paws-button {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: transform 120ms ease-out;
+  animation: paws-button-in 360ms ease-out backwards; /* not `both`: held after, it would block the hover */
+  animation-delay: calc(var(--i) * 50ms);
+}
+
+.paws-button img {
+  display: block;
+  height: 7.2vh;
+  max-width: 40vw;
+  object-fit: contain;
+}
+
+.paws-button.paws-big img {
+  height: 9.6vh;
+}
+
+.paws-button:hover {
+  transform: translateY(-0.3vh) scale(1.05);
+}
+
+.paws-button:active {
+  transform: scale(0.97);
+}
+
+.paws-button:focus-visible {
+  outline: none;
+  filter: drop-shadow(0 0 0.5vh #fff) drop-shadow(0 0 0.5vh #fff);
+}
+
+@keyframes paws-button-in {
+  from { opacity: 0; transform: translateY(1.5vh); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .paws-button {
+    animation: none;
+    transition: none;
+  }
+}

@@ -1,26 +1,80 @@
 import { ADVENTURE_HERO, ADVENTURE_LEVELS } from '../data/adventure/index.js';
+import { ADVENTURE_NAME, CREDITS, HOME_ART } from '../data/adventure/home.js';
 import { ADVENTURE_MAP_LOOK, ADVENTURE_MAP_WORLDS, ADVENTURE_ROADMAP } from '../data/adventure/roadmap.js';
+import { ADVENTURE_KEYS } from './adventureGameMenu.js';
+import { adventureHome } from './adventureHome.js';
 import { journeyMap } from './JourneyMap.js';
+
+// Behind the home screen's own pages (settings, credits...), its landscape.
+const PAGE_BACKDROP = `${HOME_ART}/landscape.webp`;
 
 // The adventure's menus: its home screen and its road map. They show over the menu scene, which is
 // the runner's GameScene, since the first screen (the choice of two games) is shared. `scene` lends
 // them its overlay, sound buttons, home tune and the way back to that first screen.
 
-// The adventure's home screen: the party of its characters behind, and its menu.
+// The adventure's home screen, "Adventure Paws" (ui/adventureHome.js): the landscape and its
+// characters, the logo and six wooden buttons.
 export function showAdventureHome(scene) {
   const progress = scene.registry.get('adventureProgress');
   scene.playHomeMusic();
   scene.overlay.show({
-    layout: 'adventure',
-    backdrop: 'assets/ui/adventure-home.webp', // painted by tools/adventure-home-art.mjs
-    title: 'The Battle Cat',
-    message: 'Climb the World Tree: find the minigun, take on zombies and gunners, and reach the portal.\nArrows: run. Space: jump. Up and Down: climb. X: shoot. Shift: dash. C: magic bolt.',
+    layout: 'paws',
+    title: ADVENTURE_NAME,
+    actions: [],
+    content: adventureHome({
+      overlay: scene.overlay,
+      on: {
+        // The next level not yet finished, so Play is also "carry on".
+        play: () => openAdventure(scene, nextAdventureLevel(progress)),
+        levels: () => showAdventureMap(scene),
+        settings: () => showSettings(scene),
+        achievements: () => showAchievements(scene),
+        credits: () => showCredits(scene),
+        exit: () => scene.showChoiceScreen(),
+      },
+    }),
+  });
+  scene.overlay.content.querySelector('button')?.focus();
+}
+
+// Music and sound on or off, and the keys.
+function showSettings(scene) {
+  scene.overlay.show({
+    title: 'Settings',
+    backdrop: PAGE_BACKDROP,
     actions: [
-      { label: progress.hasStarted ? 'Continue' : 'Play', primary: true, onClick: () => openAdventure(scene, nextAdventureLevel(progress)) },
-      { label: 'Map', onClick: () => showAdventureMap(scene) },
-      { label: 'Back', onClick: () => scene.showChoiceScreen() },
-      ...scene.soundToggles(() => showAdventureHome(scene)),
+      ...scene.soundToggles(() => showSettings(scene)),
+      { label: 'How to play', onClick: () => showKeys(scene) },
+      { label: 'Back', primary: true, onClick: () => showAdventureHome(scene) },
     ],
+  });
+}
+
+function showKeys(scene) {
+  scene.overlay.show({
+    title: 'How to play',
+    message: ADVENTURE_KEYS.join('\n'),
+    backdrop: PAGE_BACKDROP,
+    actions: [{ label: 'Back', primary: true, onClick: () => showSettings(scene) }],
+  });
+}
+
+// None yet: the page says they're coming.
+function showAchievements(scene) {
+  scene.overlay.show({
+    title: 'Achievements',
+    message: 'Coming soon! Crystals found and bosses beaten will be kept here.',
+    backdrop: PAGE_BACKDROP,
+    actions: [{ label: 'Back', primary: true, onClick: () => showAdventureHome(scene) }],
+  });
+}
+
+function showCredits(scene) {
+  scene.overlay.show({
+    title: 'Credits',
+    message: CREDITS.join('\n'),
+    backdrop: PAGE_BACKDROP,
+    actions: [{ label: 'Back', primary: true, onClick: () => showAdventureHome(scene) }],
   });
 }
 

@@ -57,6 +57,7 @@ export class Overlay {
     this.root.classList.toggle('home', layout === 'home' || layout === 'adventure');
     this.root.classList.toggle('adventure-home', layout === 'adventure');
     this.root.classList.toggle('choose', layout === 'choose');
+    this.root.dataset.layout = layout ?? ''; // for a screen styled in its own file, such as 'paws'
     this.title.textContent = title;
     this.message.textContent = message;
     this.setImage(image);
