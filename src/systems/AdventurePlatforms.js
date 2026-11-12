@@ -100,10 +100,13 @@ export class AdventurePlatforms {
       const dx = target.x - log.x, dy = target.y - log.y;
       const distance = Math.hypot(dx, dy);
       if (distance <= log.speed * dt) {
-        // It snaps the last bit to its end: the cat on it goes with it, so he doesn't slip.
+        // It snaps the last bit to its end: the cat on it goes with it, so he doesn't slip. That's
+        // from where its body is now, as its picture only catches up after this update.
         if (log === this.riding) {
-          this.cat.x += dx;
-          if (dy > 0) this.cat.y += dy;
+          const snapX = target.x - log.body.position.x;
+          const snapY = target.y + LOG.plankTop - log.body.position.y;
+          this.cat.x += snapX;
+          if (snapY > 0) this.cat.y += snapY;
         }
         log.body.reset(target.x, target.y);
         log.heading = 1 - log.heading;
