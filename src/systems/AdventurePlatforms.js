@@ -74,6 +74,9 @@ export class AdventurePlatforms {
   // Each log on towards the end it's heading for, then a pause, then back. The log he's riding carries
   // him by as far as it moved this frame, across, and down when it goes down, rather than leaving him
   // to fall a little behind it every step. (Going up, it pushes him up itself.)
+  // "This frame" is from where it was when the frame began (Phaser's prevFrame), not its last physics
+  // step (deltaX): a slow computer takes two steps in some frames, a fast screen none in some, and
+  // carrying him by one step's worth made him drift along the log, backwards or forwards.
   update(ms) {
     const dt = ms / 1000;
     const log = this.riding, body = this.cat.body;
@@ -81,8 +84,9 @@ export class AdventurePlatforms {
       left: body.left, right: body.right, bottom: body.bottom, vy: body.velocity.y,
       top: log.body.top, logLeft: log.body.left, logRight: log.body.right, platformVy: log.body.velocity.y,
     })) {
-      this.cat.x += log.body.deltaX();
-      if (log.body.deltaY() > 0) this.cat.y += log.body.deltaY();
+      const { position, prevFrame } = log.body;
+      this.cat.x += position.x - prevFrame.x;
+      if (position.y > prevFrame.y) this.cat.y += position.y - prevFrame.y;
     } else {
       this.riding = null;
     }
@@ -96,6 +100,11 @@ export class AdventurePlatforms {
       const dx = target.x - log.x, dy = target.y - log.y;
       const distance = Math.hypot(dx, dy);
       if (distance <= log.speed * dt) {
+        // It snaps the last bit to its end: the cat on it goes with it, so he doesn't slip.
+        if (log === this.riding) {
+          this.cat.x += dx;
+          if (dy > 0) this.cat.y += dy;
+        }
         log.body.reset(target.x, target.y);
         log.heading = 1 - log.heading;
         log.waitMs = LOG.pauseMs;
