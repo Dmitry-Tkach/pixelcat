@@ -167,3 +167,113 @@
     transition: none;
   }
 }
+
+/* ----- The home screen's own pages (Settings, How to play, Achievements, Credits) -----
+   A wooden board over the landscape, with plank buttons, in the colours of the home screen's sign
+   and buttons: brown wood with a dark outline and nails, and a yellow plank for the main one. All
+   drawn in CSS, so any words fit on them. Nothing moves but a button under the pointer. */
+
+#overlay[data-layout='paws-page'] {
+  --wood-light: #d48542;
+  --wood-dark: #a5591f;
+  --wood-edge: #3b1d0c;
+  --wood-ink: #4a2410;
+  --nail: radial-gradient(circle, #f2d2a6 0 2.5px, #5a2a0e 3px 4px, transparent 4.5px);
+  background: rgba(0, 40, 90, 0.25);
+}
+
+#overlay[data-layout='paws-page'] .panel {
+  width: min(560px, 92vw);
+  padding: clamp(18px, 4vh, 34px) clamp(20px, 4vw, 40px);
+  border: 6px solid var(--wood-edge);
+  border-radius: 26px;
+  background:
+    var(--nail) 10px 10px / 16px 16px no-repeat,
+    var(--nail) calc(100% - 10px) 10px / 16px 16px no-repeat,
+    var(--nail) 10px calc(100% - 10px) / 16px 16px no-repeat,
+    var(--nail) calc(100% - 10px) calc(100% - 10px) / 16px 16px no-repeat,
+    repeating-linear-gradient(180deg, transparent 0 58px, rgba(60, 25, 5, 0.45) 58px 61px),
+    repeating-linear-gradient(90deg, rgba(255, 230, 190, 0.05) 0 3px, transparent 3px 11px),
+    linear-gradient(180deg, #c97a34, var(--wood-dark));
+  box-shadow:
+    inset 0 4px 0 rgba(255, 214, 150, 0.35),
+    inset 0 -6px 0 rgba(60, 25, 5, 0.35),
+    0 10px 0 rgba(42, 20, 6, 0.55),
+    0 16px 30px rgba(0, 0, 0, 0.35);
+  color: #fff;
+}
+
+/* Yellow words with a thick brown outline, like the sign's. */
+#overlay[data-layout='paws-page'] .panel h1 {
+  color: #ffd23a;
+  text-shadow:
+    3px 0 0 var(--wood-ink), -3px 0 0 var(--wood-ink), 0 3px 0 var(--wood-ink), 0 -3px 0 var(--wood-ink),
+    2px 2px 0 var(--wood-ink), -2px 2px 0 var(--wood-ink), 2px -2px 0 var(--wood-ink), -2px -2px 0 var(--wood-ink),
+    0 6px 0 rgba(42, 20, 6, 0.6);
+}
+
+#overlay[data-layout='paws-page'] .panel p {
+  color: #fff6e0;
+  font-weight: 600;
+  line-height: 1.5;
+  text-shadow: 0 2px 0 rgba(60, 25, 5, 0.85);
+}
+
+#overlay[data-layout='paws-page'] .actions {
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+/* A plank: brown wood, a dark outline, a nail at each end, white words outlined in brown. */
+#overlay[data-layout='paws-page'] .actions button {
+  min-width: min(320px, 72vw);
+  min-height: 54px;
+  border: 4px solid var(--wood-edge);
+  border-radius: 12px;
+  background:
+    var(--nail) 8px 50% / 16px 16px no-repeat,
+    var(--nail) calc(100% - 8px) 50% / 16px 16px no-repeat,
+    repeating-linear-gradient(90deg, rgba(255, 230, 190, 0.06) 0 3px, transparent 3px 13px),
+    linear-gradient(180deg, var(--wood-light), var(--wood-dark));
+  box-shadow:
+    inset 0 3px 0 rgba(255, 220, 160, 0.45),
+    inset 0 -4px 0 rgba(60, 25, 5, 0.4),
+    0 4px 0 #2a1406;
+  color: #fff;
+  font: 700 22px var(--font);
+  text-shadow:
+    2px 0 0 var(--wood-ink), -2px 0 0 var(--wood-ink), 0 2px 0 var(--wood-ink), 0 -2px 0 var(--wood-ink),
+    1.5px 1.5px 0 var(--wood-ink), -1.5px 1.5px 0 var(--wood-ink), 1.5px -1.5px 0 var(--wood-ink), -1.5px -1.5px 0 var(--wood-ink);
+}
+
+/* The main one, yellow like Play, with dark words. */
+#overlay[data-layout='paws-page'] .actions button.primary {
+  background:
+    var(--nail) 8px 50% / 16px 16px no-repeat,
+    var(--nail) calc(100% - 8px) 50% / 16px 16px no-repeat,
+    linear-gradient(180deg, #ffe066, #f2a91c);
+  color: var(--wood-ink);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+#overlay[data-layout='paws-page'] .actions button:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow:
+    inset 0 3px 0 rgba(255, 220, 160, 0.45),
+    inset 0 -4px 0 rgba(60, 25, 5, 0.4),
+    0 6px 0 #2a1406;
+}
+
+#overlay[data-layout='paws-page'] .actions button:active:not(:disabled) {
+  transform: translateY(2px) scale(0.98);
+  box-shadow:
+    inset 0 3px 0 rgba(255, 220, 160, 0.45),
+    inset 0 -4px 0 rgba(60, 25, 5, 0.4),
+    0 1px 0 #2a1406;
+}
+
+#overlay[data-layout='paws-page'] .actions button:focus-visible {
+  outline: 4px solid #fff;
+  outline-offset: 3px;
+}

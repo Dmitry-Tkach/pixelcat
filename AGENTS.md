@@ -139,7 +139,8 @@ They keep separate progress and share nothing but the home screen and the menus'
 - **Progress:** the adventure's progress is its own `Progress` (key `cat-escape-adventure`). A
   level's stars are the crystals found in it, up to 3.
 - **The adventure's screens:** the road map (`ui/mapArt.js` with `ADVENTURE_MAP_WORLDS`), and the
-  adventure home screen with a painted picture (`tools/adventure-home-art.mjs`).
+  adventure home screen, "Adventure Paws" (`ui/adventureHome.js`, its data in
+  `data/adventure/home.js`, its art cut by `tools/adventure-paws-home-art.mjs`).
 
 ## Art
 

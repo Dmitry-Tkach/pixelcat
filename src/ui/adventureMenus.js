@@ -5,7 +5,8 @@ import { ADVENTURE_KEYS } from './adventureGameMenu.js';
 import { adventureHome } from './adventureHome.js';
 import { journeyMap } from './JourneyMap.js';
 
-// Behind the home screen's own pages (settings, credits...), its landscape.
+// Behind the home screen's own pages (settings, credits...), its landscape. The pages are wooden
+// boards (layout 'paws-page', styled in adventure-home.css).
 const PAGE_BACKDROP = `${HOME_ART}/landscape.webp`;
 
 // The adventure's menus: its home screen and its road map. They show over the menu scene, which is
@@ -41,6 +42,7 @@ export function showAdventureHome(scene) {
 function showSettings(scene) {
   scene.overlay.show({
     title: 'Settings',
+    layout: 'paws-page',
     backdrop: PAGE_BACKDROP,
     actions: [
       ...scene.soundToggles(() => showSettings(scene)),
@@ -54,6 +56,7 @@ function showKeys(scene) {
   scene.overlay.show({
     title: 'How to play',
     message: ADVENTURE_KEYS.join('\n'),
+    layout: 'paws-page',
     backdrop: PAGE_BACKDROP,
     actions: [{ label: 'Back', primary: true, onClick: () => showSettings(scene) }],
   });
@@ -64,6 +67,7 @@ function showAchievements(scene) {
   scene.overlay.show({
     title: 'Achievements',
     message: 'Coming soon! Crystals found and bosses beaten will be kept here.',
+    layout: 'paws-page',
     backdrop: PAGE_BACKDROP,
     actions: [{ label: 'Back', primary: true, onClick: () => showAdventureHome(scene) }],
   });
@@ -73,6 +77,7 @@ function showCredits(scene) {
   scene.overlay.show({
     title: 'Credits',
     message: CREDITS.join('\n'),
+    layout: 'paws-page',
     backdrop: PAGE_BACKDROP,
     actions: [{ label: 'Back', primary: true, onClick: () => showAdventureHome(scene) }],
   });

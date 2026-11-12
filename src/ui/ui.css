@@ -563,7 +563,7 @@ html, body, #game {
   min-height: 0;
 }
 
-/* ----- The adventure's home screen: its menu to one side, in front of its characters ----- */
+/* ----- A picture filling the screen behind a menu (the adventure's pages use it) ----- */
 
 .overlay-backdrop {
   position: absolute;
@@ -580,14 +580,6 @@ html, body, #game {
 
 #overlay .panel {
   position: relative; /* in front of the backdrop */
-}
-
-#overlay.adventure-home {
-  background: linear-gradient(90deg, transparent 45%, rgba(14, 18, 34, 0.55));
-}
-
-#overlay.adventure-home .panel {
-  background: rgba(30, 42, 74, 0.88);
 }
 
 .game-panel {

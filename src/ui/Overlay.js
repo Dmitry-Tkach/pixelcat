@@ -44,8 +44,8 @@ export class Overlay {
   // `tiles` is an optional grid: { label, detail, world, locked, current, onClick }.
   // `content` is an optional element of the screen's own, such as the journey map.
   // `layout: 'home'` puts the menu to one side, so the home screen's picture shows; `layout: 'choose'`
-  // is the first screen's choice of game, filling the window; `layout: 'adventure'` is the adventure's
-  // home screen, laid out like the runner's, in front of its characters' picture.
+  // is the first screen's choice of game, filling the window. Other layouts, such as the adventure's
+  // 'paws', are styled in their own files, by the overlay's data-layout.
   // `backdrop` is an optional picture filling the screen behind the menu.
   show({ title, message = '', image, actions, tiles = [], content = null, layout = null, backdrop = null }) {
     this.backdrop.hidden = !backdrop;
@@ -54,8 +54,7 @@ export class Overlay {
     } else {
       this.backdrop.removeAttribute('src');
     }
-    this.root.classList.toggle('home', layout === 'home' || layout === 'adventure');
-    this.root.classList.toggle('adventure-home', layout === 'adventure');
+    this.root.classList.toggle('home', layout === 'home');
     this.root.classList.toggle('choose', layout === 'choose');
     this.root.dataset.layout = layout ?? ''; // for a screen styled in its own file, such as 'paws'
     this.title.textContent = title;
