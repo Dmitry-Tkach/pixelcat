@@ -17,14 +17,16 @@ the main agent (Claude Code) without getting in each other's way.
 
 ## The game
 
-Two separate games, chosen on the home screen (a full-window choice of two cards):
+Two separate games, chosen on the first page (a full-window choice of two cards). Each game has a
+page of its own, which loads only that game:
 
 1. **The runner, "Bath Day Escape":** the home cat runs from the family (the girl, the boy,
    grandma) through four worlds (City, Village, Farm, Sunset), with bosses (Crown Cat, Bomber Rat,
    Ginger Gunner). Scene: `src/scenes/GameScene.js`. Levels: `src/data/levels/`.
 2. **The adventure, "The Battle Cat":** a multi-direction platformer. The grey battle cat climbs,
    fights and explores fantasy worlds (Wood, Crystal Caves, Ancient, Medieval).
-   - **Scene:** `src/scenes/AdventureScene.js`. Levels: `src/data/adventure/`.
+   - **Scenes:** `AdventureBootScene` (loading), `AdventureMenuScene` (its menus) and
+     `AdventureScene` (a level), in `src/scenes/`. Levels: `src/data/adventure/`.
    - **Built so far:** one level, `wood-1`, "Into the Roots".
    - **Planned:** 12 levels, on the road map in `src/data/adventure/roadmap.js`.
 
@@ -33,8 +35,13 @@ They keep separate progress and share nothing but the home screen and the menus'
 ## The tools and commands
 
 - Phaser 3.90 (Arcade physics), Vite, plain JavaScript modules. Images are prepared with sharp.
-- `npm run dev`: the game in the browser. Add `?adventure` to open the adventure straight away (in
-  development only), `?unlockAll` to open every level.
+- `npm run dev`: the game in the browser. It's three pages, each loading only its own game:
+  - `/`: the first page, the choice of the two games (plain HTML, no Phaser);
+  - `/runner.html`: the runner (`src/pages/runner.js`);
+  - `/adventure.html`: the adventure (`src/pages/adventure.js`). In development, add `?adventure` to
+    go straight to its first level, or `?boss=troll1` for the troll's test arena.
+  - Add `?unlockAll` to either game's page to open every level.
+  - The start-up both games share is `src/startGame.js`.
 - `npm test`: the unit tests (vitest). They must pass before every commit.
 - `npx vite build`: checks the game builds.
 - `npm run assets`: prepares every image in `public/assets` from `images/`.

@@ -9,9 +9,9 @@ import { journeyMap } from './JourneyMap.js';
 // boards (layout 'paws-page', styled in adventure-home.css).
 const PAGE_BACKDROP = `${HOME_ART}/landscape.webp`;
 
-// The adventure's menus: its home screen and its road map. They show over the menu scene, which is
-// the runner's GameScene, since the first screen (the choice of two games) is shared. `scene` lends
-// them its overlay, sound buttons, home tune and the way back to that first screen.
+// The adventure's menus: its home screen and its road map. They show over the adventure's menu
+// scene (scenes/AdventureMenuScene.js), which lends them its overlay, sound buttons, home tune and
+// the way back to the first page, the choice of games.
 
 // The adventure's home screen, "Adventure Paws" (ui/adventureHome.js): the landscape and its
 // characters, the logo and six wooden buttons.
@@ -110,6 +110,7 @@ export function showAdventureMap(scene) {
   const built = ADVENTURE_ROADMAP.filter(playable).length;
   scene.overlay.show({
     title: 'Adventure',
+    backdrop: PAGE_BACKDROP,
     message: `${progress.totalStars} of ${built * 3} crystals. More of the battle cat's road opens as it's built.`,
     content: journeyMap({ stops, instant: scene.screenFx.instant, character: ADVENTURE_HERO.character, look: { worlds: ADVENTURE_MAP_WORLDS, ...ADVENTURE_MAP_LOOK } }),
     actions: [{ label: 'Back', primary: true, onClick: () => showAdventureHome(scene) }],

@@ -13,7 +13,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const shots = mkdtempSync(join(tmpdir(), 'cat-escape-'));
 const server = await createServer({ server: { port: 0 }, logLevel: 'error' });
 await server.listen();
-const url = server.resolvedUrls.local[0];
+const url = `${server.resolvedUrls.local[0]}runner.html`; // the runner's own page
 
 let failed = false;
 for (const script of ['play.mjs', 'touch.mjs', 'audio.mjs']) {

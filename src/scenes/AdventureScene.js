@@ -950,19 +950,19 @@ export class AdventureScene extends Phaser.Scene {
       actions: [
         ...(won && next ? [{ label: 'Next level', primary: true, onClick: () => this.scene.restart({ levelIndex: this.levelIndex + 1 }) }] : []),
         { label: won ? 'Play again' : 'Try again', primary: !(won && next), onClick: () => this.restartLevel() },
-        { label: 'Map', onClick: () => this.goHome('adventure') },
+        { label: 'Map', onClick: () => this.goHome('map') },
         { label: 'Home', onClick: () => this.goHome() },
       ],
     });
   }
 
-  // Back to the adventure's home screen, or with `screen` 'adventure', to its road map.
-  goHome(screen = 'adventure-home') {
+  // Back to the adventure's home screen, or with `screen` 'map', to its road map (AdventureMenuScene).
+  goHome(screen = 'home') {
     const leave = () => {
       this.endPause();
       this.audio.stopMusic();
       this.overlay.hide();
-      this.scene.start('Game', { screen });
+      this.scene.start('AdventureMenu', { screen });
     };
     if (this.screenFx) this.screenFx.cover(leave);
     else leave();
@@ -996,7 +996,7 @@ export class AdventureScene extends Phaser.Scene {
     showGameMenu(this, {
       resume: () => this.togglePause(),
       restart: () => this.restartLevel(),
-      map: () => this.goHome('adventure'),
+      map: () => this.goHome('map'),
       home: () => this.goHome(),
     });
   }

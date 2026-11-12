@@ -1,13 +1,14 @@
 import Phaser from 'phaser';
-import { bossTryOutArena, loadAdventureArt, makeAdventureAnims } from './adventureLoading.js';
-import { CHARACTERS, animKey, frameKey } from '../data/characters.js';
+import { CHARACTERS } from '../data/characters.js';
+import { loadCharacters, makeCharacterAnims } from './characterLoading.js';
 import { ESCAPE_ANIMATION, HOME_ANIMATION } from '../data/screens.js';
 import { LEVELS } from '../data/levels/index.js';
 import { IMAGE_ASSETS } from '../data/themes.js';
 
 const BOSS_TRY_OUT_RUN_UP = 300;
 
-// Loads everything from the data files, so new content needs no loading code.
+// The runner's boot scene, on its page (runner.html): loads everything the runner uses from the
+// data files, so new content needs no loading code. The adventure has its own (AdventureBootScene).
 export class BootScene extends Phaser.Scene {
   constructor() {
     super('Boot');
@@ -20,14 +21,8 @@ export class BootScene extends Phaser.Scene {
     for (const [key, path] of Object.entries(IMAGE_ASSETS)) {
       this.load.image(key, path);
     }
-    loadAdventureArt(this);
-    for (const [name, character] of Object.entries(CHARACTERS)) {
-      for (const { file, frames } of Object.values(character.anims)) {
-        for (let i = 1; i <= frames; i++) {
-          this.load.image(frameKey(name, file, i), `assets/sprites/${character.folder}/${file}-${i}.png`);
-        }
-      }
-    }
+    // Every character, the battle cats too: ?cat=battle tries the battle cat in the runner.
+    loadCharacters(this, Object.keys(CHARACTERS));
   }
 
   // For trying a boss while developing: open the page with ?boss for the first one, or name one,
@@ -43,29 +38,7 @@ export class BootScene extends Phaser.Scene {
   }
 
   create() {
-    for (const [name, character] of Object.entries(CHARACTERS)) {
-      for (const [role, { file, frames, frameList, fps, repeat }] of Object.entries(character.anims)) {
-        const numbers = frameList ?? Array.from({ length: frames }, (_, i) => i + 1);
-        this.anims.create({
-          key: animKey(name, role),
-          frames: numbers.map((n) => ({ key: frameKey(name, file, n) })),
-          frameRate: fps,
-          repeat,
-        });
-      }
-    }
-    makeAdventureAnims(this);
-    // For trying an adventure boss while developing: ?boss=troll1 (see adventureLoading.js).
-    const arena = bossTryOutArena();
-    if (arena) {
-      this.scene.start('Adventure', { level: arena });
-      return;
-    }
-    // For trying the adventure while developing: open the page with ?adventure.
-    if (import.meta.env.DEV && new URLSearchParams(location.search).has('adventure')) {
-      this.scene.start('Adventure', { levelIndex: 0 });
-      return;
-    }
+    makeCharacterAnims(this, Object.keys(CHARACTERS));
     this.scene.start('Game', this.firstLevel());
   }
 }

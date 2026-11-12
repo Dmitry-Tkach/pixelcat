@@ -7,9 +7,8 @@ import { THEMES } from '../data/themes.js';
 import { BossFight } from '../entities/BossFight.js';
 import { BOSSES } from '../data/bosses.js';
 import { journeyMap } from '../ui/JourneyMap.js';
-import { gameChoice } from '../ui/GameChoice.js';
-import { showAdventureHome, showAdventureMap } from '../ui/adventureMenus.js';
-import { ADVENTURE_NAME } from '../data/adventure/home.js';
+import { playHomeMusic, soundToggles } from '../ui/menuSound.js';
+import { PAGES, goToPage } from '../ui/pages.js';
 import { showHomeScreen } from '../ui/HomeScreen.js';
 import { Cat } from '../entities/Cat.js';
 import { Chaser } from '../entities/Chaser.js';
@@ -57,7 +56,6 @@ const RUN_DUST_SHARE = 0.6; // running faster than this share of top speed kicks
 const IMPACT_AHEAD = 40;
 const DITCH_SPLASH = 0x8cc6e6;
 const CAT_FLAP_LEAD = 250;
-const HOME_MUSIC = { track: 'home', bpm: 120 };
 const CATNIP_HUE_MS = 700; // how fast the cat's catnip shimmer runs through the colours
 const CATNIP_TINT_SATURATION = 0.45; // how much further ahead of the chaser a cat flap puts the cat
 const IMPACT_HEIGHT = 70;
@@ -74,7 +72,7 @@ export class GameScene extends Phaser.Scene {
 
   // `checkpoint`, when restarting from one, holds where the cat was and what it had collected.
   // `screen` is the menu to open first when the level doesn't start straight away.
-  init({ levelIndex = 0, autoStart = false, checkpoint = null, screen = 'choose' }) {
+  init({ levelIndex = 0, autoStart = false, checkpoint = null, screen = 'menu' }) {
     this.levelIndex = levelIndex;
     this.level = LEVELS[levelIndex];
     this.autoStart = autoStart;
@@ -230,10 +228,7 @@ export class GameScene extends Phaser.Scene {
     if (this.autoStart) this.state.to(STATE.PLAYING);
     else if (this.firstScreen === 'intro') this.showIntroScreen();
     else if (this.firstScreen === 'levels') this.showLevelsScreen();
-    else if (this.firstScreen === 'adventure') showAdventureMap(this);
-    else if (this.firstScreen === 'adventure-home') showAdventureHome(this);
-    else if (this.firstScreen === 'menu') this.showStartScreen();
-    else this.showChoiceScreen();
+    else this.showStartScreen();
   }
 
   createEscapeGate() {
@@ -758,11 +753,7 @@ export class GameScene extends Phaser.Scene {
 
   // The two sound toggles, shared by menus. Pressing one redraws its menu with the new label.
   soundToggles(redraw) {
-    const { music, sound } = this.audio.settings;
-    return [
-      { label: `Music: ${music ? 'On' : 'Off'}`, onClick: () => { this.audio.toggleMusic(); redraw(); } },
-      { label: `Sound: ${sound ? 'On' : 'Off'}`, onClick: () => { this.audio.toggleSound(); redraw(); } },
-    ];
+    return soundToggles(this.audio, redraw);
   }
 
   enterPause() {
@@ -868,40 +859,10 @@ export class GameScene extends Phaser.Scene {
     showHomeScreen(this);
   }
 
-  // The first screen: the two games, side by side, filling the window. Each card opens its game's
-  // own home screen.
+  // Back to the first page, the choice of the two games (index.html).
   showChoiceScreen() {
-    this.showHomePicture();
-    this.playHomeMusic();
-    this.overlay.show({
-      layout: 'choose',
-      title: 'Cat Escape',
-      content: gameChoice([
-        {
-          id: 'runner',
-          kicker: 'Runner',
-          title: 'Bath Day Escape',
-          text: "It's bath day, and the whole family wants to catch you. Run, jump and slide all the way to the park!",
-          keys: 'Arrows: run · Space: jump, twice in the air · Down: slide · E: Super Paw',
-          still: 'assets/ui/home-runner-still.webp',
-          moving: 'assets/ui/home-runner.webp',
-          alt: 'The girl reads in a beanbag while the cat dozes on the rug.',
-          actions: [{ label: 'Play', primary: true, onClick: () => this.showStartScreen() }],
-        },
-        {
-          id: 'adventure',
-          kicker: 'Adventure',
-          title: ADVENTURE_NAME,
-          text: 'Climb the World Tree with the battle cat: find the minigun, take on zombies and gunners, and reach the portal.',
-          keys: 'X: shoot · Shift: dash · C: magic bolt · Up and Down: climb',
-          still: 'assets/ui/home-adventure-still.webp',
-          moving: 'assets/ui/home-adventure.webp',
-          alt: 'A party: the battle cat with the gun cats, a wizard, warriors and an orc.',
-          actions: [{ label: 'Play', primary: true, onClick: () => showAdventureHome(this) }],
-        },
-      ]),
-      actions: this.soundToggles(() => this.showChoiceScreen()),
-    });
+    this.audio.stopMusic();
+    goToPage(PAGES.choice, this.screenFx);
   }
 
   // The runner's home screen: the bathroom, the family after the cat, and the runner's menu.
@@ -923,23 +884,9 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  // The home screen's tune. Browsers only allow sound after a click or a key press, so before the
-  // first one it waits, and starts then if the home screen is still showing.
+  // The home screen's tune (ui/menuSound.js).
   playHomeMusic() {
-    if (this.audio.track === HOME_MUSIC.track) return;
-    if (this.audio.ctx) {
-      this.audio.startMusic(HOME_MUSIC);
-      return;
-    }
-    const start = () => {
-      window.removeEventListener('pointerdown', start);
-      window.removeEventListener('keydown', start);
-      this.audio.unlock();
-      const onHome = this.overlay.root.classList.contains('home') || this.overlay.content.childElementCount > 0;
-      if (onHome && this.audio.track === null) this.audio.startMusic(HOME_MUSIC);
-    };
-    window.addEventListener('pointerdown', start);
-    window.addEventListener('keydown', start);
+    playHomeMusic(this.audio, this.overlay);
   }
 
   // The level menu: a road from home to the parks, with a stop for each level.

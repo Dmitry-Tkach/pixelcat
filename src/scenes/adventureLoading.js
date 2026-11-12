@@ -7,12 +7,17 @@ import { BOSS_ARENAS } from '../data/adventure/bossArenas.js';
 import { adventureHomePictures } from '../ui/adventureHome.js';
 
 // Loads the adventure's own art and makes its animations: its tiles and pickups, enemies, gunners,
-// bosses and effects. BootScene calls these for the whole game, so new adventure content is loaded
-// from its data with no loading code. (The battle cats' frames load with every other character's.)
+// bosses and effects. AdventureBootScene calls these, so new adventure content is loaded from its
+// data with no loading code. (Its battle cats' frames load through characterLoading.js.)
+
+// Pictures the adventure shares with the runner: the star of the effects (ui/Effects.js), which the
+// troll's dizzy stars use too.
+const SHARED_IMAGES = { star: 'assets/city/star.png' };
 
 export function loadAdventureArt(scene) {
   // The home screen is HTML, not Phaser: its pictures are fetched now, so it opens whole.
   for (const src of adventureHomePictures()) new Image().src = src;
+  for (const [key, path] of Object.entries(SHARED_IMAGES)) scene.load.image(key, path);
   for (const [world, names] of Object.entries(ADVENTURE_ART)) {
     for (const name of names) scene.load.image(adventureKey(world, name), adventurePath(world, name));
   }
