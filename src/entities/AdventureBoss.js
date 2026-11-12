@@ -11,6 +11,9 @@ import { ShockWaves } from './adventureBossAttacks/ShockWaves.js';
 const WALK = { stopAt: 150, turnDeadzone: 24 };
 const DEPTH = 4.5; // in front of the scenery and ladders, behind the cat
 const HIT_FLASH_MS = 70;
+// The burst where he's hit: bigger for full damage, in his weak moments, than for half, and small
+// where nothing gets through.
+const HIT_BURST = { weak: 0.8, half: 0.5, none: 0.3 };
 // Each part's colour on him: none in part 1, then redder as he gets angrier.
 const PART_TINTS = [null, 0xffa898, 0xff7a6a];
 // The roar at a new part: jump frames 3-5, ending with his arms out wide, held, the camera shaking.
@@ -117,8 +120,9 @@ export class AdventureBoss {
   // The cat hits him with `kind` (an ammo kind, bolt, stomp, dash or rage), at x, y. Returns the
   // damage done: none while he can't be hurt.
   takeHit(kind, x, y) {
+    const weak = this.brain.isWeak;
     const dealt = this.brain.takeHit(kind);
-    this.scene.effects.impact(x, y, dealt > 0 ? 0.6 : 0.35);
+    this.scene.effects.impact(x, y, dealt === 0 ? HIT_BURST.none : weak ? HIT_BURST.weak : HIT_BURST.half);
     return dealt;
   }
 

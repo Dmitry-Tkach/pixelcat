@@ -72,9 +72,13 @@ pose is made from them by playing part of an animation, or holding a frame:
 | Explosive round | 3 |
 | Magic bolt | 20, and he staggers (hurt) |
 | Jumping on his head | 8, only in his weak moments; the cat bounces off (about 15 win the fight) |
-| Dash or rage | none: the cat bounces off |
+| Dash, slide or rage | none: the cat bounces off |
 
-- **Outside his weak moments,** everything does half damage. In them, full damage.
+- **Outside his weak moments,** everything does half damage. In them, full damage, with a bigger
+  burst where he's hit.
+- **He's solid:** walking into him pushes the cat back. Landing on his head outside a weak moment
+  just bounces the cat (the first time, a hint says when it counts). During the charge and the jump
+  slam, touching him hurts.
 - **Nothing hurts him** during his entrance, his roars, or once he's beaten.
 
 ## The arena

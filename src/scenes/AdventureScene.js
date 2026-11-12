@@ -13,6 +13,7 @@ import { InputController } from '../input/InputController.js';
 import { AdventureMoves } from '../systems/AdventureMoves.js';
 import { AdventurePlatforms } from '../systems/AdventurePlatforms.js';
 import { MAX_FALL_SPEED, ONE_WAY, TILE, TILE_BIAS, pillarFoot, readAdventureMap } from '../systems/adventureMap.js';
+import { bossTouch } from '../systems/adventure/bosses/bossTouch.js';
 import { AdventureBossBar } from '../ui/AdventureBossBar.js';
 import { Effects } from '../ui/Effects.js';
 
@@ -43,6 +44,11 @@ const SILVER_CHEST = { coins: 8, ammo: 'explosive' };
 // Landing on an enemy: the cat counts as coming from above if its feet were no lower than this
 // below the enemy's top a step earlier, and it bounces off this fast.
 const STOMP = { margin: 14, bounce: -760 };
+// Touching a boss (systems/adventure/bosses/bossTouch.js): a jump on his head outside his weak
+// moments bounces the cat this share as high; dashing, sliding or raging into him knocks the cat
+// back this fast, across and up.
+// onTop: with his feet this close below the top of the boss's body, the cat is on top of him.
+const BOSS_TOUCH = { headBounceShare: 0.75, bounceOff: { x: 420, y: -460 }, onTop: 30 };
 // The gunners' bullets: how far they fly before fading, their hitbox, and how big their flash is.
 const ENEMY_BULLET = { range: 14 * TILE, size: 14, depth: 5 };
 const END_SCREEN_MS = 1100;
@@ -372,6 +378,8 @@ export class AdventureScene extends Phaser.Scene {
       onDefeated: () => this.complete(),
     });
     this.moves.setBoss(this.boss);
+    this.physics.add.overlap(this.cat, this.boss.sprite, () => this.meetBoss());
+    this.toldAboutHead = false;
     this.bossBar = new AdventureBossBar(this, { name: this.boss.name, marks: BOSS_FIGHTS[kind].phases.slice(1).map((phase) => phase.from) });
     this.boss.start();
   }
@@ -705,6 +713,57 @@ export class AdventureScene extends Phaser.Scene {
       this.audio.playSfx('smash');
     } else {
       this.hurt(enemy.x);
+    }
+  }
+
+  // Touching the boss: what happens is decided by bossTouch, from what the cat and the boss are doing.
+  meetBoss() {
+    if (!this.playing || this.moves.isFiringSpecial || this.climbing || this.pullingUp) return;
+    const { boss, cat } = this;
+    const { body } = cat;
+    const him = boss.sprite.body;
+    const fromAbove = body.velocity.y > 0 && body.prev.y + body.height <= him.top + STOMP.margin;
+    const onTop = body.bottom <= him.top + BOSS_TOUCH.onTop;
+    const { brain } = boss;
+    const touch = bossTouch(
+      { fromAbove, onTop, dashing: this.moves.isDashing, sliding: cat.isSliding, raging: this.moves.isRaging },
+      { defeated: brain.isDefeated, weak: brain.isWeak, invulnerable: brain.isInvulnerable, touchHurts: brain.touchHurts },
+    );
+    const away = body.center.x < him.center.x ? -1 : 1;
+    switch (touch) {
+      case 'stomp':
+        boss.takeHit('stomp', cat.x, him.top);
+        cat.bounce(STOMP.bounce);
+        this.audio.playSfx('bounce');
+        break;
+      case 'bounceHead':
+        cat.bounce(STOMP.bounce * BOSS_TOUCH.headBounceShare);
+        this.audio.playSfx('bump');
+        if (!this.toldAboutHead) {
+          this.toldAboutHead = true;
+          this.showHint('Too tough! Jump on his head while his club is stuck');
+        }
+        break;
+      case 'bounceOff':
+        this.moves.endDash();
+        cat.endSlide();
+        boss.takeHit(this.moves.isRaging ? 'rage' : 'dash', body.center.x + away * -body.halfWidth, body.center.y);
+        cat.moveVelocity = away * BOSS_TOUCH.bounceOff.x;
+        cat.setVelocity(away * BOSS_TOUCH.bounceOff.x, BOSS_TOUCH.bounceOff.y);
+        this.audio.playSfx('bump');
+        break;
+      case 'hurt':
+        this.hurt(him.center.x);
+        break;
+      case 'push': {
+        // He's solid: out of him, on the side the cat is on.
+        const overlap = away < 0 ? body.right - him.left : him.right - body.left;
+        cat.x += away * overlap;
+        if (Math.sign(cat.moveVelocity) === -away) cat.moveVelocity = 0;
+        break;
+      }
+      default:
+        break;
     }
   }
 
