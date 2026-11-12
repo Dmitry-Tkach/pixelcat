@@ -97,7 +97,12 @@ They keep separate progress and share nothing but the home screen and the menus'
   - `data/adventure/heroes.js`: the battle cats' frames and hitboxes;
   - `data/adventure/roadmap.js`: its levels in order, and the road map's colours.
 - **Still shared with the runner:** the cat's body and running (`entities/Cat.js`), the controls,
-  `config/gameConfig.js`, the effects, the menu look and the first screen.
+  `config/gameConfig.js`, the effects, the menu look and the first screen. They stay as they are.
+- **Everything new goes in adventure files.** We work only on the adventure now; the runner is
+  frozen. New code, data and tests go in files named for the adventure (`Adventure...js`,
+  `adventure...js`, `adventure-....test.js`) or in its folders (`data/adventure/`), never into the
+  runner's files. The bosses' code, for example, goes in a `systems/adventure/bosses/` folder.
+  When something new must hook into a shared file, keep that hook to a line or two.
 
 - **Levels** are written with the map builder (`src/data/adventure/mapBuilder.js`) in named
   sections, instead of rows of letters. See `wood.js`.
