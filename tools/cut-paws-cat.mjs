@@ -60,6 +60,7 @@ const STRIPS = [
   { name: 'SpecialEnd', file: 'magic-end.png', frames: 3, scale: 0.356, ground: 633, planted: true, byGaps: true, ms: 125 },
   { name: 'Victory', file: 'victory2.png', frames: 6, scale: 0.546, ground: 563, planted: true, byGaps: true, ms: 100 },
   { name: 'Climb', file: 'climb.png', frames: 6, scale: 0.46, ground: 576, air: [1, 2, 3, 4, 5, 6], steadyHead: true, byGaps: true, ms: 100 },
+  { name: 'ClimbDown', file: 'climb-down.png', frames: 6, scale: 0.46, ground: 577, air: [1, 2, 3, 4, 5, 6], steadyHead: true, byGaps: true, ms: 100 },
   { name: 'ClimbUp', file: 'pull-up.png', frames: 4, scale: 0.41, ground: 615, eachOnFeet: true, byGaps: true, ms: 125 },
   // With the minigun.
   { name: 'Idle', folder: 'frames-minigun', file: 'minigun.png', frames: 6, scale: 0.66, ground: 500, planted: true, byGaps: true, ms: 160 },

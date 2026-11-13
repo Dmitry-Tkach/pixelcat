@@ -164,6 +164,8 @@ export const BATTLE_CATS = {
         burst: { file: 'shoot', frames: 6, frameList: [1, 2, 5, 6], fps: 14, repeat: -1 },
         // Firing on the run, the gun held forward (systems/AdventureMoves.js, SHOOT.runningSpeed).
         runShoot: { file: 'runshoot', frames: 8, fps: 13, repeat: -1 },
+        // Climbing down with the minigun on his back: his climb played backwards, until it's drawn.
+        climbDown: { file: 'climb', frames: 6, frameList: [6, 5, 4, 3, 2, 1], fps: 10, repeat: -1 },
         victory: { file: 'idle', frames: 6, fps: 7, repeat: -1 },
         swipe: CLAW_SWIPE,
       },
