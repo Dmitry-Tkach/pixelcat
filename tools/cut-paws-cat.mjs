@@ -43,7 +43,8 @@ const SKY = '#9fd3f0'; // the review pictures' background
 // idle frame (the dash, where ChatGPT draws him further forward in some cells than others).
 // byGaps: cut at the empty columns between the drawings, not into equal cells (when ChatGPT draws
 // one over the edge of its cell). byValleys: where the drawings touch, cut at the emptiest column
-// near each cell's edge. folder: where its frames go, if not `frames` (the minigun look's own
+// near each cell's edge. eachOnFeet: each frame's lowest point is put on the feet line (the
+// pull-up, which the game lifts itself). folder: where its frames go, if not `frames` (the minigun look's own
 // moves go in `frames-minigun`, by the same names). ms: how long each frame shows in the review GIF.
 const STRIPS = [
   { name: 'Idle', file: 'cat_idle_spriteshe.png', frames: 6, scale: 1, ground: 243, ms: 160 },
@@ -59,6 +60,7 @@ const STRIPS = [
   { name: 'SpecialEnd', file: 'magic-end.png', frames: 3, scale: 0.356, ground: 633, planted: true, byGaps: true, ms: 125 },
   { name: 'Victory', file: 'victory2.png', frames: 6, scale: 0.546, ground: 563, planted: true, byGaps: true, ms: 100 },
   { name: 'Climb', file: 'climb.png', frames: 6, scale: 0.46, ground: 576, air: [1, 2, 3, 4, 5, 6], steadyHead: true, byGaps: true, ms: 100 },
+  { name: 'ClimbUp', file: 'pull-up.png', frames: 4, scale: 0.41, ground: 615, eachOnFeet: true, byGaps: true, ms: 125 },
   // With the minigun.
   { name: 'Idle', folder: 'frames-minigun', file: 'minigun.png', frames: 6, scale: 0.66, ground: 500, planted: true, byGaps: true, ms: 160 },
   { name: 'Shoot', folder: 'frames-minigun', file: 'firing_minigun.png', frames: 6, scale: 0.66, ground: 495, planted: true, byGaps: true, ms: 60 },
@@ -81,7 +83,7 @@ for (const strip of STRIPS) {
 
 // Splits a strip into equal cells, clears the faint haze, shrinks each one and stands it on the
 // feet line (or lines it up with the other frames in the air), its middle on the frame's middle.
-async function cutStrip({ file, frames, scale, ground, air = [], planted, steadyHead, byGaps, byValleys }) {
+async function cutStrip({ file, frames, scale, ground, air = [], planted, steadyHead, byGaps, byValleys, eachOnFeet }) {
   const { data, info } = await sharp(join(FOLDER, file)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const { width: W, height: H } = info;
   for (let i = 3; i < data.length; i += 4) if (data[i] < FAINT) data[i - 3] = data[i - 2] = data[i - 1] = data[i] = 0;
@@ -108,7 +110,8 @@ async function cutStrip({ file, frames, scale, ground, air = [], planted, steady
     let x = Math.round(MIDDLE - width / 2);
     if (planted) x = Math.round(feetMiddle(idle, FEET) - feetMiddle(pixels, feet));
     if (steadyHead) x = Math.round(headMiddle(idle) - headMiddle(pixels));
-    const y = air.includes(c + 1) ? headRow - head : Math.round(FEET - ground * shrink);
+    let y = air.includes(c + 1) ? headRow - head : Math.round(FEET - ground * shrink);
+    if (eachOnFeet) y = FEET - (feet + 1);
     cells.push(await clearSpecks(await placeInFrame(small, width, height, x, y)));
   }
   return cells;
