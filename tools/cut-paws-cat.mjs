@@ -27,6 +27,7 @@ const HERO = 0.64;
 const FAINT = 40; // pixels fainter than this (out of 255) are cleared: the haze some strips have
 const SPECK = 30; // loose dots smaller than this many pixels, not touching the cat, are cleared
 const FOOT_ROWS = 10;
+const VALLEY = 70; // how far from a cell's edge `byValleys` looks for the emptiest column
 const GAP = 12; // empty columns narrower than this are inside a drawing, for `byGaps`
 const HEAD_ROWS = 40; // how far down from the top of his head it's measured, for `steadyHead` (his ears and brow) // how far up from his lowest row his feet are measured, for `planted`
 const SKY = '#9fd3f0'; // the review pictures' background
@@ -41,7 +42,9 @@ const SKY = '#9fd3f0'; // the review pictures' background
 // steadyHead: each frame placed left to right by the middle of his head, where it is in his first
 // idle frame (the dash, where ChatGPT draws him further forward in some cells than others).
 // byGaps: cut at the empty columns between the drawings, not into equal cells (when ChatGPT draws
-// one over the edge of its cell). ms: how long each frame shows in the review GIF.
+// one over the edge of its cell). byValleys: where the drawings touch, cut at the emptiest column
+// near each cell's edge. folder: where its frames go, if not `frames` (the minigun look's own
+// moves go in `frames-minigun`, by the same names). ms: how long each frame shows in the review GIF.
 const STRIPS = [
   { name: 'Idle', file: 'cat_idle_spriteshe.png', frames: 6, scale: 1, ground: 243, ms: 160 },
   { name: 'Run', file: 'run.png', frames: 8, scale: 0.68, ground: 505, ms: 80 },
@@ -56,32 +59,37 @@ const STRIPS = [
   { name: 'SpecialEnd', file: 'magic-end.png', frames: 3, scale: 0.356, ground: 633, planted: true, byGaps: true, ms: 125 },
   { name: 'Victory', file: 'victory2.png', frames: 6, scale: 0.546, ground: 563, planted: true, byGaps: true, ms: 100 },
   { name: 'Climb', file: 'climb.png', frames: 6, scale: 0.46, ground: 576, air: [1, 2, 3, 4, 5, 6], steadyHead: true, byGaps: true, ms: 100 },
+  // With the minigun.
+  { name: 'Idle', folder: 'frames-minigun', file: 'minigun.png', frames: 6, scale: 0.66, ground: 500, planted: true, byGaps: true, ms: 160 },
+  { name: 'Shoot', folder: 'frames-minigun', file: 'firing_minigun.png', frames: 6, scale: 0.66, ground: 495, planted: true, byGaps: true, ms: 60 },
+  { name: 'Run', folder: 'frames-minigun', file: 'run-with-minigun.png', frames: 8, scale: 0.66, ground: 514, steadyHead: true, byValleys: true, ms: 80 },
 ];
 
-mkdirSync(OUT, { recursive: true });
 if (REVIEW) mkdirSync(REVIEW, { recursive: true });
 
 for (const strip of STRIPS) {
-  for (const f of readdirSync(OUT)) if (f.startsWith(`${strip.name} (`)) unlinkSync(join(OUT, f));
+  const out = join(FOLDER, strip.folder ?? 'frames');
+  mkdirSync(out, { recursive: true });
+  for (const f of readdirSync(out)) if (f.startsWith(`${strip.name} (`)) unlinkSync(join(out, f));
   const cells = await cutStrip(strip);
-  for (const [i, cell] of cells.entries()) await sharp(cell).png().toFile(join(OUT, `${strip.name} (${i + 1}).png`));
-  if (REVIEW) await review(strip, cells);
+  for (const [i, cell] of cells.entries()) await sharp(cell).png().toFile(join(out, `${strip.name} (${i + 1}).png`));
+  if (REVIEW) await review({ ...strip, name: strip.folder ? `${strip.folder}-${strip.name}` : strip.name }, cells);
   console.log(`${strip.name}: ${cells.length} frames`);
 }
 
 // Splits a strip into equal cells, clears the faint haze, shrinks each one and stands it on the
 // feet line (or lines it up with the other frames in the air), its middle on the frame's middle.
-async function cutStrip({ file, frames, scale, ground, air = [], planted, steadyHead, byGaps }) {
+async function cutStrip({ file, frames, scale, ground, air = [], planted, steadyHead, byGaps, byValleys }) {
   const { data, info } = await sharp(join(FOLDER, file)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const { width: W, height: H } = info;
   for (let i = 3; i < data.length; i += 4) if (data[i] < FAINT) data[i - 3] = data[i - 2] = data[i - 1] = data[i] = 0;
   const shrink = scale * HERO;
-  const columns = byGaps ? drawingColumns(data, W, H, frames) : null;
   const step = W / frames;
+  const columns = byGaps ? drawingColumns(data, W, H, frames) : byValleys ? valleyColumns(data, W, H, frames) : null;
   const pieces = [];
   for (let c = 0; c < frames; c++) {
-    const left = byGaps ? columns[c][0] : Math.round(c * step);
-    const width = byGaps ? columns[c][1] - left + 1 : Math.round((c + 1) * step) - left;
+    const left = columns ? columns[c][0] : Math.round(c * step);
+    const width = columns ? columns[c][1] - left + 1 : Math.round((c + 1) * step) - left;
     const piece = await sharp(data, { raw: { width: W, height: H, channels: 4 } })
       .extract({ left, top: 0, width, height: H }).png().toBuffer();
     const small = await sharp(piece).resize(Math.round(width * shrink), Math.round(H * shrink)).png().toBuffer();
@@ -160,6 +168,21 @@ function drawingColumns(data, W, H, frames) {
   const drawings = runs.filter(([a, b]) => b - a > 40);
   if (drawings.length !== frames) throw new Error(`Found ${drawings.length} drawings, not ${frames}`);
   return drawings.map(([a, b]) => [Math.max(0, a - 2), Math.min(W - 1, b + 2)]);
+}
+
+// The left and right columns of each frame of a strip whose drawings touch: each cut between two
+// cells is moved to the emptiest column within VALLEY of where it would be.
+function valleyColumns(data, W, H, frames) {
+  const filled = (x) => { let n = 0; for (let y = 0; y < H; y++) if (data[(y * W + x) * 4 + 3] > 0) n += 1; return n; };
+  const cuts = [0];
+  for (let c = 1; c < frames; c++) {
+    const at = Math.round((c * W) / frames);
+    let best = at;
+    for (let x = Math.max(1, at - VALLEY); x <= Math.min(W - 2, at + VALLEY); x++) if (filled(x) < filled(best)) best = x;
+    cuts.push(best);
+  }
+  cuts.push(W);
+  return cuts.slice(0, -1).map((left, c) => [left, cuts[c + 1] - 1]);
 }
 
 // Puts a picture into an empty frame at (x, y), clipping whatever falls outside it (sharp needs every

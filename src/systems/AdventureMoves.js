@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { AMMO, EXPLOSION_KEY, LOADED } from '../data/adventure/ammo.js';
+import { FLASH, FLASH_KEY } from '../data/adventure/gunners.js';
 import { BEAMS, BEAM_HIT, BOLT, BOLT_KEY, BOLT_LAYERS } from '../data/adventure/beams.js';
 import { CHARACTERS, animKey, frameKey } from '../data/characters.js';
 import { ONE_WAY, TILE } from './adventureMap.js';
@@ -16,7 +17,9 @@ import { DASH_LOOK } from './adventure/dashLook.js';
 // touches. The scene calls update every frame and asks it what he's doing, for when he meets enemies.
 
 // muzzle: where the barrel's end is, from his middle and up from his feet, in the frame's pixels.
-const GUN = { muzzleX: 57, muzzleY: 41 };
+// The look's own `muzzle` (data/adventure/heroes.js) wins over this. flashScale: the size of his
+// muzzle flash (the gunners' flash, data/adventure/gunners.js).
+const GUN = { muzzleX: 57, muzzleY: 41, flashScale: 0.75 };
 // Every bullet's hitbox. The rest (speed, range and so on) depends on its ammunition.
 const BULLET = { w: 30, h: 12, depth: 5 };
 // tapMs: how long a tap's shoot animation shows. holdMs: held this long, a tap becomes a burst.
@@ -218,8 +221,9 @@ export class AdventureMoves {
     const ammo = AMMO[kind];
     this.rounds[kind] -= 1;
     const dir = this.facing;
-    const { body } = this.cat;
-    const bullet = this.bullets.create(this.cat.x + dir * GUN.muzzleX * this.cat.scaleX, body.bottom - GUN.muzzleY * this.cat.scaleY, this.art(ammo.bullet));
+    const muzzle = this.muzzleAt();
+    const bullet = this.bullets.create(muzzle.x, muzzle.y, this.art(ammo.bullet));
+    this.showMuzzleFlash();
     bullet.setFlipX(dir < 0).setDepth(BULLET.depth);
     bullet.body.setSize(BULLET.w, BULLET.h);
     bullet.setVelocityX(dir * ammo.speed);
@@ -233,7 +237,33 @@ export class AdventureMoves {
     this.onAmmo?.(null);
   }
 
+  // Where the barrel's end is now, in the world.
+  muzzleAt() {
+    const { cat } = this;
+    const { x, y } = CHARACTERS[cat.character].muzzle ?? { x: GUN.muzzleX, y: GUN.muzzleY };
+    return { x: cat.x + this.facing * x * cat.scaleX, y: cat.body.bottom - y * cat.scaleY };
+  }
+
+  // The flash at the barrel's end, kept there as he moves, until it's played.
+  showMuzzleFlash() {
+    this.muzzleFlash?.destroy();
+    const { x, y } = this.muzzleAt();
+    const dir = this.facing;
+    const flash = this.scene.add.sprite(x, y, FLASH_KEY, 'flash-0').setDepth(this.cat.depth + 1)
+      .setOrigin(FLASH.origin.x / FLASH.size.w, FLASH.origin.y / FLASH.size.h)
+      .setScale(dir * GUN.flashScale, GUN.flashScale);
+    flash.play(FLASH_KEY).once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+      flash.destroy();
+      if (this.muzzleFlash === flash) this.muzzleFlash = null;
+    });
+    this.muzzleFlash = flash;
+  }
+
   updateBullets() {
+    if (this.muzzleFlash?.active) {
+      const { x, y } = this.muzzleAt();
+      this.muzzleFlash.setPosition(x, y).setScale(this.facing * GUN.flashScale, GUN.flashScale);
+    }
     for (const bullet of this.bullets.getChildren().slice()) {
       if (Math.abs(bullet.x - bullet.startX) > bullet.ammo.range) bullet.destroy();
     }

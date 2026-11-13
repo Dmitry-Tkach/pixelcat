@@ -60,3 +60,14 @@ describe("every look of the adventure's hero", () => {
     }
   });
 });
+
+describe('the hero with the minigun', () => {
+  it("fires from the barrel's end, inside his frame and in front of him", async () => {
+    const { PAWS_FRAME } = await import('../src/data/adventure/heroes.js');
+    const { muzzle } = CHARACTERS[ADVENTURE_HERO.armed];
+    expect(muzzle.x).toBeGreaterThan(0);
+    expect(PAWS_FRAME.middle + muzzle.x).toBeLessThan(PAWS_FRAME.w);
+    expect(muzzle.y).toBeGreaterThan(0);
+    expect(muzzle.y).toBeLessThan(PAWS_FRAME.feet);
+  });
+});

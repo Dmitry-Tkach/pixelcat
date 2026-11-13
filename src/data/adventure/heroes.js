@@ -142,10 +142,27 @@ export const BATTLE_CATS = {
 
   // With the minigun: the battle cat's armed frames in the new cat's frame, until the new cat's are
   // drawn (if he keeps the minigun).
-  // With the minigun out of rounds he swipes too: with his bare-pawed frames for now, the minigun
-  // gone for that moment, until he has a swipe drawn with it.
+  // With the minigun: his own standing, running (the minigun on his back) and shooting, from the
+  // owner's ChatGPT strips; his climb is the bare-pawed one (he puts the minigun away to climb). His
+  // other moves are the armed battle cat's, padded into his frame, until they're drawn. Out of rounds
+  // he swipes with his bare-pawed frames, the minigun gone for that moment.
+  // muzzle: where the barrel ends, in his frame's pixels: across from his middle, up from his feet.
   pawsCatArmed: (() => {
     const look = padded(BATTLE_CAT_LOOKS.battleCat, 'paws-cat-armed');
-    return { ...look, anims: { ...look.anims, swipe: CLAW_SWIPE } };
+    return {
+      ...look,
+      muzzle: { x: 76, y: 26 },
+      anims: {
+        ...look.anims,
+        idle: { file: 'idle', frames: 6, fps: 7, repeat: -1 },
+        run: { file: 'run', frames: 8, fps: 13, repeat: -1 },
+        // A tap plays the six firing frames once (in SHOOT.tapMs, systems/AdventureMoves.js); a burst
+        // loops the four that hold the gun at one height.
+        shoot: { file: 'shoot', frames: 6, fps: 16, repeat: 0 },
+        burst: { file: 'shoot', frames: 6, frameList: [1, 2, 5, 6], fps: 14, repeat: -1 },
+        victory: { file: 'idle', frames: 6, fps: 7, repeat: -1 },
+        swipe: CLAW_SWIPE,
+      },
+    };
   })(),
 };
