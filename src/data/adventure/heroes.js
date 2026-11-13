@@ -122,8 +122,9 @@ export const BATTLE_CATS = {
       ...PAWS_CAT_PAWS.anims,
       idle: { file: 'idle', frames: 6, fps: 7, repeat: -1 },
       run: { file: 'run', frames: 8, fps: 13, repeat: -1 },
-      // Take-off and rising; the last frame, coming down, is the fall.
-      jump: { file: 'jump', frames: 4, frameList: [1, 2, 3], fps: 12, repeat: 0 },
+      // Pushing off and rising; the last frame, coming down, is the fall. The crouch (frame 1) isn't
+      // played: he's already rising the moment the key is pressed, so it would look like a dip.
+      jump: { file: 'jump', frames: 4, frameList: [2, 3], fps: 10, repeat: 0 },
       fall: { file: 'jump', frames: 4, frameList: [4], fps: 1, repeat: 0 },
       victory: { file: 'idle', frames: 6, fps: 7, repeat: -1 },
     },

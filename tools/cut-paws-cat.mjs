@@ -31,12 +31,13 @@ const SKY = '#9fd3f0'; // the review pictures' background
 // Each strip: its file, its frame count, and how to fit it to the idle cat. scale: how much to
 // shrink it so he's the same size as in the idle strip. ground: the row of the strip his feet
 // stand on when he's on the ground. Frames off the ground keep their height above it, unless
-// `eachOnFeet`: then each frame's lowest point is put on the feet line (the jump, whose height the
-// game makes). ms: how long each frame shows in the review GIF.
+// `air` lists them (counting from 1): the jump, whose height the game makes. Those are lined up by the
+// top of his head, so it stays steady while his legs tuck and reach, as high as fits the tallest of
+// them standing on the feet line. ms: how long each frame shows in the review GIF.
 const STRIPS = [
   { name: 'Idle', file: 'cat_idle_spriteshe.png', frames: 6, scale: 1, ground: 243, ms: 160 },
   { name: 'Run', file: 'run.png', frames: 8, scale: 0.68, ground: 505, ms: 80 },
-  { name: 'Jump', file: 'jump.png', frames: 4, scale: 0.41, ground: 685, eachOnFeet: true, ms: 160 },
+  { name: 'Jump', file: 'jump.png', frames: 4, scale: 0.41, ground: 685, air: [2, 3, 4], ms: 160 },
 ];
 
 mkdirSync(OUT, { recursive: true });
@@ -51,35 +52,48 @@ for (const strip of STRIPS) {
 }
 
 // Splits a strip into equal cells, clears the faint haze, shrinks each one and stands it on the
-// feet line, its middle on the frame's middle.
-async function cutStrip({ file, frames, scale, ground, eachOnFeet }) {
+// feet line (or lines it up with the other frames in the air), its middle on the frame's middle.
+async function cutStrip({ file, frames, scale, ground, air = [] }) {
   const { data, info } = await sharp(join(FOLDER, file)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const { width: W, height: H } = info;
   for (let i = 3; i < data.length; i += 4) if (data[i] < FAINT) data[i - 3] = data[i - 2] = data[i - 1] = data[i] = 0;
   const shrink = scale * HERO;
   const step = W / frames;
-  const cells = [];
+  const pieces = [];
   for (let c = 0; c < frames; c++) {
     const left = Math.round(c * step);
     const width = Math.round((c + 1) * step) - left;
     const piece = await sharp(data, { raw: { width: W, height: H, channels: 4 } })
       .extract({ left, top: 0, width, height: H }).png().toBuffer();
     const small = await sharp(piece).resize(Math.round(width * shrink), Math.round(H * shrink)).png().toBuffer();
-    const meta = await sharp(small).metadata();
-    const x = Math.round(MIDDLE - meta.width / 2);
-    const y = Math.round(FEET - (eachOnFeet ? await lowest(small) + 1 : ground * shrink));
-    cells.push(await clearSpecks(await placeInFrame(small, meta.width, meta.height, x, y)));
+    pieces.push({ small, ...(await sharp(small).metadata()), ...(await headAndFeet(small)) });
+  }
+  // In the air, his head's top goes on one row: as high as the tallest of those frames needs.
+  const inAir = pieces.filter((_, c) => air.includes(c + 1));
+  const headRow = Math.min(...inAir.map((p) => FEET - (p.feet + 1 - p.head)));
+  const cells = [];
+  for (const [c, { small, width, height, head }] of pieces.entries()) {
+    const x = Math.round(MIDDLE - width / 2);
+    const y = air.includes(c + 1) ? headRow - head : Math.round(FEET - ground * shrink);
+    cells.push(await clearSpecks(await placeInFrame(small, width, height, x, y)));
   }
   return cells;
 }
 
-// The lowest row of a picture with anything solid in it.
-async function lowest(input) {
+// The top of his head (the highest solid row that isn't his red scarf, which can fly above it) and
+// his lowest solid row.
+async function headAndFeet(input) {
   const { data, info } = await sharp(input).raw().toBuffer({ resolveWithObject: true });
-  for (let y = info.height - 1; y >= 0; y--) {
-    for (let x = 0; x < info.width; x++) if (data[(y * info.width + x) * 4 + 3] > 128) return y;
+  let head = -1, feet = -1;
+  for (let y = 0; y < info.height; y++) {
+    for (let x = 0; x < info.width; x++) {
+      const [r, g, b, a] = data.subarray((y * info.width + x) * 4, (y * info.width + x) * 4 + 4);
+      if (a <= 128) continue;
+      if (head < 0 && !(r > 180 && g < 90 && b < 90)) head = y;
+      feet = y;
+    }
   }
-  return info.height - 1;
+  return { head, feet };
 }
 
 // Puts a picture into an empty frame at (x, y), clipping whatever falls outside it (sharp needs every
