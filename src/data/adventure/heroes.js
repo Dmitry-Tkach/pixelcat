@@ -128,7 +128,8 @@ export const BATTLE_CATS = {
       // played: he's already rising the moment the key is pressed, so it would look like a dip.
       jump: { file: 'jump', frames: 4, frameList: [2, 3], fps: 10, repeat: 0 },
       fall: { file: 'jump', frames: 4, frameList: [4], fps: 1, repeat: 0 },
-      victory: { file: 'idle', frames: 6, fps: 7, repeat: -1 },
+      // At the portal: he hops on the spot, a fist punched up, and lands with a "yes!".
+      victory: { file: 'victory', frames: 6, fps: 10, repeat: -1 },
       // Losing a life: he falls back, lands with a bump, and lies knocked out, his eyes swirls.
       caught: { file: 'defeated', frames: 5, fps: 8, repeat: 0 },
       // The magic bolt: he gathers it, thrusts his paws forward, then holds the last frame while the

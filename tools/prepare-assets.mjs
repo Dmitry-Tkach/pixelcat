@@ -28,7 +28,7 @@ const SETS = [
   // The new Adventure Paws cat, from the owner's ChatGPT strips, cut by tools/cut-paws-cat.mjs to his
   // taller frame (PAWS_FRAME). As each new strip is cut, its move goes on this line and comes off
   // the stand-ins' line below.
-  { dir: 'paws-cat/frames', out: 'paws-cat', scale: 1, anims: { Idle: 6, Run: 8, Jump: 4, Slide: 4, Swipe: 4, Dash: 4, Hit: 3, Defeated: 5, Rage: 4, Special: 4, SpecialEnd: 3 } },
+  { dir: 'paws-cat/frames', out: 'paws-cat', scale: 1, anims: { Idle: 6, Run: 8, Jump: 4, Slide: 4, Swipe: 4, Dash: 4, Hit: 3, Defeated: 5, Rage: 4, Special: 4, SpecialEnd: 3, Victory: 6 } },
   // His swipe with the minigun, for when it's out of rounds: the bare-pawed one, until it's drawn.
   { dir: 'paws-cat/frames', out: 'paws-cat-armed', scale: 1, anims: { Swipe: 4 } },
   // His other moves for now: the battle cat's, bare-pawed and with the minigun, padded on top (`pad`)
