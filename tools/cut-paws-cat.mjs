@@ -26,6 +26,7 @@ const MIDDLE = PAWS_FRAME.middle; // the column his middle is on
 const HERO = 0.64;
 const FAINT = 40; // pixels fainter than this (out of 255) are cleared: the haze some strips have
 const SPECK = 30; // loose dots smaller than this many pixels, not touching the cat, are cleared
+const FOOT_ROWS = 10; // how far up from his lowest row his feet are measured, for `planted`
 const SKY = '#9fd3f0'; // the review pictures' background
 
 // Each strip: its file, its frame count, and how to fit it to the idle cat. scale: how much to
@@ -33,12 +34,15 @@ const SKY = '#9fd3f0'; // the review pictures' background
 // stand on when he's on the ground. Frames off the ground keep their height above it, unless
 // `air` lists them (counting from 1): the jump, whose height the game makes. Those are lined up by the
 // top of his head, so it stays steady while his legs tuck and reach, as high as fits the tallest of
-// them standing on the feet line. ms: how long each frame shows in the review GIF.
+// them standing on the feet line. planted: his feet stay put (the claw swipe), each frame placed
+// left to right by the middle of his feet, where they are in his first idle frame, not by its cell.
+// ms: how long each frame shows in the review GIF.
 const STRIPS = [
   { name: 'Idle', file: 'cat_idle_spriteshe.png', frames: 6, scale: 1, ground: 243, ms: 160 },
   { name: 'Run', file: 'run.png', frames: 8, scale: 0.68, ground: 505, ms: 80 },
   { name: 'Jump', file: 'jump.png', frames: 4, scale: 0.41, ground: 685, air: [2, 3, 4], ms: 160 },
   { name: 'Slide', file: 'slide.png', frames: 4, scale: 0.41, ground: 587, ms: 90 },
+  { name: 'Swipe', file: 'swipe.png', frames: 4, scale: 0.362, ground: 637, planted: true, ms: 70 },
 ];
 
 mkdirSync(OUT, { recursive: true });
@@ -54,7 +58,7 @@ for (const strip of STRIPS) {
 
 // Splits a strip into equal cells, clears the faint haze, shrinks each one and stands it on the
 // feet line (or lines it up with the other frames in the air), its middle on the frame's middle.
-async function cutStrip({ file, frames, scale, ground, air = [] }) {
+async function cutStrip({ file, frames, scale, ground, air = [], planted }) {
   const { data, info } = await sharp(join(FOLDER, file)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const { width: W, height: H } = info;
   for (let i = 3; i < data.length; i += 4) if (data[i] < FAINT) data[i - 3] = data[i - 2] = data[i - 1] = data[i] = 0;
@@ -72,13 +76,25 @@ async function cutStrip({ file, frames, scale, ground, air = [] }) {
   // In the air, his head's top goes on one row: as high as the tallest of those frames needs.
   const inAir = pieces.filter((_, c) => air.includes(c + 1));
   const headRow = Math.min(...inAir.map((p) => FEET - (p.feet + 1 - p.head)));
+  const idleFeet = planted ? feetMiddle(await sharp(join(OUT, 'Idle (1).png')).raw().toBuffer({ resolveWithObject: true }), FEET) : 0;
   const cells = [];
-  for (const [c, { small, width, height, head }] of pieces.entries()) {
-    const x = Math.round(MIDDLE - width / 2);
+  for (const [c, { small, width, height, head, feet }] of pieces.entries()) {
+    const x = planted
+      ? Math.round(idleFeet - feetMiddle(await sharp(small).raw().toBuffer({ resolveWithObject: true }), feet))
+      : Math.round(MIDDLE - width / 2);
     const y = air.includes(c + 1) ? headRow - head : Math.round(FEET - ground * shrink);
     cells.push(await clearSpecks(await placeInFrame(small, width, height, x, y)));
   }
   return cells;
+}
+
+// The middle, left to right, of his feet: the solid pixels in the FOOT_ROWS rows up from `bottom`.
+function feetMiddle({ data, info }, bottom) {
+  let sum = 0, count = 0;
+  for (let y = Math.max(0, bottom - FOOT_ROWS); y <= bottom; y++) {
+    for (let x = 0; x < info.width; x++) if (data[(y * info.width + x) * 4 + 3] > 128) { sum += x; count += 1; }
+  }
+  return count ? sum / count : info.width / 2;
 }
 
 // The top of his head (the highest solid row that isn't his red scarf, which can fly above it) and

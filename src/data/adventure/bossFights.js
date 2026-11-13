@@ -8,7 +8,8 @@
 //     when he can't be hurt. staggerSeconds: how long a big hit staggers him.
 //   nearRange: how close the cat must be, across, for "near" attacks.
 //   damage: what each of the cat's attacks does to him, by name: the ammo kinds (data/adventure/
-//     ammo.js), the bolt, a jump on his head (`stomp`, only in his weak moments), dash and rage.
+//     ammo.js), the bolt, a jump on his head (`stomp`, only in his weak moments), dash, rage and
+//     the claw swipe (`claw`).
 //   outsideWeakShare: the share of that damage he takes outside his weak moments.
 //   staggeredBy: the attacks that stagger him, cancelling a warning.
 //   assist: after this many losses in a row, the easier try gives him this share of his health.
@@ -38,7 +39,7 @@ export const BOSS_FIGHTS = {
     roarSeconds: 1.5,
     staggerSeconds: 0.6,
     nearRange: 220,
-    damage: { standard: 1, laser: 1, explosive: 3, bolt: 20, stomp: 8, dash: 0, rage: 0 },
+    damage: { standard: 1, laser: 1, explosive: 3, bolt: 20, stomp: 8, dash: 0, rage: 0, claw: 1 },
     outsideWeakShare: 0.5,
     staggeredBy: ['bolt'],
     assist: { afterLosses: 3, healthShare: 0.75 },

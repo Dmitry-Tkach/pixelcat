@@ -3,9 +3,11 @@ import { AMMO, EXPLOSION_KEY, LOADED } from '../data/adventure/ammo.js';
 import { BEAMS, BEAM_HIT, BOLT, BOLT_KEY, BOLT_LAYERS } from '../data/adventure/beams.js';
 import { CHARACTERS, animKey, frameKey } from '../data/characters.js';
 import { ONE_WAY, TILE } from './adventureMap.js';
+import { CLAW, CLAW_ARC, clawArea, overlaps } from './adventure/clawSwipe.js';
 
 // The battle cat's fighting moves in the adventure, from his sheet with the minigun:
-//   X      shoot: a tap fires one shot, holding it fires a burst, while he has rounds
+//   X      shoot: a tap fires one shot, holding it fires a burst, while he has rounds; with bare
+//          paws, or the minigun out of rounds, a claw swipe at whatever's in front of him
 //   Q      switch to the next kind of ammunition he has (see data/adventure/ammo.js)
 //   Shift  dash: a quick rush forward, once in the air until he lands, that knocks enemies out
 //   C      special: a beam that knocks out every enemy ahead, charged by knocking enemies out
@@ -28,14 +30,12 @@ const RAGE = { ms: 8000, poseMs: 650, tint: 0xff9a9a, flashMs: 160 };
 // special's `beamFrame` (see data/adventure/heroes.js).
 // belowFeet: the room tools/cut-sheet.mjs leaves under his feet in each frame.
 const SPECIAL = { charge: 3, endMs: 375, belowFeet: 13 };
-const NO_WEAPON_HINT_MS = 2500; // how often pressing fire without the minigun says so
 
 export class AdventureMoves {
   // art(name): an adventure image's texture key. onKnockOut(enemy): called for each enemy he knocks
   // out, so the scene can count it.
-  // onNoWeapon(): he pressed fire before finding the minigun.
   // onAmmo(message): the rounds changed, with something to tell the player, or null.
-  constructor(scene, cat, { art, groundLayer, solids, enemies, onKnockOut, onNoWeapon, onAmmo }) {
+  constructor(scene, cat, { art, groundLayer, solids, enemies, onKnockOut, onAmmo }) {
     this.scene = scene;
     this.groundLayer = groundLayer;
     this.beam = null; // the magic bolt, while it flies
@@ -43,9 +43,7 @@ export class AdventureMoves {
     this.cat = cat;
     this.art = art;
     this.onKnockOut = onKnockOut;
-    this.onNoWeapon = onNoWeapon;
     this.onAmmo = onAmmo;
-    this.noWeaponHintMs = 0;
     this.emptyHintMs = 0;
     this.rounds = Object.fromEntries(Object.keys(AMMO).map((kind) => [kind, 0]));
     this.ammo = 'standard';
@@ -65,6 +63,9 @@ export class AdventureMoves {
     this.dashMs = 0;
     this.dashCooldownMs = 0;
     this.airDashUsed = false;
+    this.swipeMs = 0; // how long his claw swipe has left to show
+    this.swipeStruck = false; // whether this swipe has struck yet
+    this.swipeCooldownMs = 0;
     this.rageMs = 0;
     this.charge = 0;
     this.special = null; // the beam sprite while he fires it
@@ -144,6 +145,9 @@ export class AdventureMoves {
   update(ms, { canAct }) {
     this.fireCooldownMs = Math.max(0, this.fireCooldownMs - ms);
     this.dashCooldownMs = Math.max(0, this.dashCooldownMs - ms);
+    this.swipeCooldownMs = Math.max(0, this.swipeCooldownMs - ms);
+    this.emptyHintMs = Math.max(0, this.emptyHintMs - ms);
+    this.updateSwipe(ms);
     this.updateRage(ms);
     this.updateBullets();
     if (this.beam) this.updateBeam(ms);
@@ -166,12 +170,10 @@ export class AdventureMoves {
   // ----- Shooting -----
 
   updateShooting(ms, fire) {
-    this.noWeaponHintMs = Math.max(0, this.noWeaponHintMs - ms);
-    if (!this.armed) {
-      if (Phaser.Input.Keyboard.JustDown(fire) && this.noWeaponHintMs === 0) {
-        this.noWeaponHintMs = NO_WEAPON_HINT_MS;
-        this.onNoWeapon?.();
-      }
+    // No minigun, or no rounds left for it: X swipes instead.
+    if (!this.armed || this.nextAmmo() === null) {
+      this.fireHeldMs = 0;
+      if (Phaser.Input.Keyboard.JustDown(fire)) this.startSwipe();
       return;
     }
     if (!fire.isDown || this.cat.isSliding) {
@@ -180,7 +182,6 @@ export class AdventureMoves {
     }
     const firstPress = this.fireHeldMs === 0;
     this.fireHeldMs += ms;
-    this.emptyHintMs = Math.max(0, this.emptyHintMs - ms);
     const everyMs = AMMO[this.ammo].everyMs * (this.isRaging ? SHOOT.rageShare : 1);
     if (this.fireHeldMs < SHOOT.holdMs) {
       if (firstPress && this.fireCooldownMs === 0) {
@@ -304,6 +305,68 @@ export class AdventureMoves {
     }
     const { boss } = this;
     if (boss && !boss.brain.isDefeated && AdventureMoves.near(boss.sprite.body, x, y, radius)) boss.takeHit('explosive', x, y);
+  }
+
+  // ----- The claw swipe (systems/adventure/clawSwipe.js) -----
+
+  startSwipe() {
+    if (this.swipeCooldownMs > 0 || this.cat.isSliding || this.isDashing) return;
+    this.swipeMs = CLAW.ms;
+    this.swipeStruck = false;
+    this.swipeCooldownMs = CLAW.cooldownMs;
+    this.cat.pose('swipe', CLAW.ms);
+    // With the minigun empty, a reminder now and then where rounds come from.
+    if (this.armed && this.emptyHintMs === 0) {
+      this.emptyHintMs = SHOOT.emptyHintMs;
+      this.onAmmo?.('Out of ammo: find a crate!');
+    }
+  }
+
+  // Strikes once, part way through, as his paw sweeps through.
+  updateSwipe(ms) {
+    if (this.swipeMs <= 0) return;
+    this.swipeMs = Math.max(0, this.swipeMs - ms);
+    if (!this.swipeStruck && CLAW.ms - this.swipeMs >= CLAW.hitMs) {
+      this.swipeStruck = true;
+      this.swipeStrikes();
+    }
+  }
+
+  // Knocks out every enemy in reach in front of him, and hurts a boss there, a little.
+  swipeStrikes() {
+    const dir = this.facing;
+    const area = clawArea(this.cat.body, dir);
+    this.drawClawMarks(area, dir);
+    let struck = false;
+    for (const enemy of this.enemies.getChildren().slice()) {
+      if (enemy.dead || !overlaps(area, enemy.body)) continue;
+      this.onKnockOut(enemy);
+      struck = true;
+    }
+    const { boss } = this;
+    if (boss && !boss.brain.isDefeated && overlaps(area, boss.sprite.body)) {
+      boss.takeHit(CLAW.boss, (area.left + area.right) / 2, (area.top + area.bottom) / 2);
+      struck = true;
+    }
+    this.scene.audio.playSfx(struck ? 'punch' : 'lungeMiss');
+  }
+
+  // Three white claw marks sweeping down through the area in front of him, growing and fading.
+  drawClawMarks(area, dir) {
+    const { from, to, width, gap, fadeMs, grow, colour } = CLAW_ARC;
+    const radius = area.right - area.left;
+    const marks = this.scene.add.graphics().setDepth(this.cat.depth + 1);
+    for (let i = 0; i < 3; i++) {
+      marks.lineStyle(width - i, colour, 1 - i * 0.2);
+      marks.beginPath();
+      marks.arc(0, 0, radius - i * gap, from, to);
+      marks.strokePath();
+    }
+    marks.setPosition(dir > 0 ? area.left : area.right, (area.top + area.bottom) / 2).setScale(dir, 1);
+    this.scene.tweens.add({
+      targets: marks, alpha: 0, scaleX: dir * grow, scaleY: grow, duration: fadeMs,
+      onComplete: () => marks.destroy(),
+    });
   }
 
   // ----- Dashing -----

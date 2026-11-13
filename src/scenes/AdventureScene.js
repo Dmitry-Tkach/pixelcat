@@ -135,7 +135,6 @@ export class AdventureScene extends Phaser.Scene {
       solids: this.solids,
       enemies: this.enemies,
       onKnockOut: (enemy) => this.knockOut(enemy),
-      onNoWeapon: () => this.showHint('No weapon yet: find the minigun!'),
       onAmmo: (message) => {
         if (message) this.showHint(message, 1400);
         this.updateHud();
@@ -457,7 +456,7 @@ export class AdventureScene extends Phaser.Scene {
     this.hint = fixed(this.add.text(GAME.WIDTH / 2, 150, '', { ...HUD_STYLE, fontSize: '30px', align: 'center' }).setOrigin(0.5));
     // The game menu's button, in the top right corner (ui/adventureGameMenu.js). Esc and P open it too.
     this.menuButton = addMenuButton(this, () => this.togglePause());
-    this.showHint(this.level.hint ?? `${this.level.title}\nRun, jump and climb up to the portal\nShift dash · C beam · find the minigun to shoot`, 4200);
+    this.showHint(this.level.hint ?? `${this.level.title}\nRun, jump and climb up to the portal\nX claw · Shift dash · C beam · find the minigun to shoot`, 4200);
   }
 
   showHint(text, ms = 2200) {

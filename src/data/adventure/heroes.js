@@ -106,6 +106,8 @@ function padded(look, folder) {
 }
 
 const PAWS_CAT_PAWS = padded(BATTLE_CAT_LOOKS.battleCatPaws, 'paws-cat');
+// The new cat's claw swipe, in both his looks.
+const CLAW_SWIPE = { file: 'swipe', frames: 4, fps: 14, repeat: 0 };
 
 // Every look of the hero, for data/characters.js and the adventure's loading.
 export const BATTLE_CATS = {
@@ -127,10 +129,17 @@ export const BATTLE_CATS = {
       jump: { file: 'jump', frames: 4, frameList: [2, 3], fps: 10, repeat: 0 },
       fall: { file: 'jump', frames: 4, frameList: [4], fps: 1, repeat: 0 },
       victory: { file: 'idle', frames: 6, fps: 7, repeat: -1 },
+      // His claw swipe, X with bare paws (systems/adventure/clawSwipe.js): played once, quickly.
+      swipe: CLAW_SWIPE,
     },
   },
 
   // With the minigun: the battle cat's armed frames in the new cat's frame, until the new cat's are
   // drawn (if he keeps the minigun).
-  pawsCatArmed: padded(BATTLE_CAT_LOOKS.battleCat, 'paws-cat-armed'),
+  // With the minigun out of rounds he swipes too: with his bare-pawed frames for now, the minigun
+  // gone for that moment, until he has a swipe drawn with it.
+  pawsCatArmed: (() => {
+    const look = padded(BATTLE_CAT_LOOKS.battleCat, 'paws-cat-armed');
+    return { ...look, anims: { ...look.anims, swipe: CLAW_SWIPE } };
+  })(),
 };

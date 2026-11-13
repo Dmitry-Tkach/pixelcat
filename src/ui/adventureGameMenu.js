@@ -18,7 +18,7 @@ export const ADVENTURE_KEYS = [
   'Space (or Up): jump, and again in the air',
   'Up and Down (or W and S): climb ladders',
   'Down: slide, or dive in the air',
-  'X: shoot, hold for a burst (once you have the minigun)',
+  'X: claw swipe, or with the minigun, shoot (hold for a burst)',
   'Q: change ammo',
   'Shift: dash',
   'C: magic bolt, after 3 knockouts',
