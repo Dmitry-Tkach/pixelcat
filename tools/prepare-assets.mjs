@@ -30,10 +30,10 @@ const SETS = [
   // the stand-ins' line below.
   { dir: 'paws-cat/frames', out: 'paws-cat', scale: 1, anims: { Idle: 6, Run: 8, Jump: 4, Slide: 4, Swipe: 4, Dash: 4, Hit: 3, Defeated: 5, Rage: 4, Special: 4, SpecialEnd: 3, Victory: 6, Climb: 6 } },
   // His swipe with the minigun, for when it's out of rounds: the bare-pawed one, until it's drawn.
-  // With the minigun: his swipe and climb are the bare-pawed ones (the minigun is put away for them).
-  { dir: 'paws-cat/frames', out: 'paws-cat-armed', scale: 1, anims: { Swipe: 4, Climb: 6 } },
-  // His own standing, running and shooting with the minigun.
-  { dir: 'paws-cat/frames-minigun', out: 'paws-cat-armed', scale: 1, anims: { Idle: 6, Run: 8, Shoot: 6, RunShoot: 8 } },
+  // With the minigun: his swipe is the bare-pawed one (the minigun is put away for it).
+  { dir: 'paws-cat/frames', out: 'paws-cat-armed', scale: 1, anims: { Swipe: 4 } },
+  // His own standing, running, shooting and climbing (the minigun on his back) with the minigun.
+  { dir: 'paws-cat/frames-minigun', out: 'paws-cat-armed', scale: 1, anims: { Idle: 6, Run: 8, Shoot: 6, RunShoot: 8, Climb: 6 } },
   // His other moves for now: the battle cat's, bare-pawed and with the minigun, padded on top (`pad`)
   // into his taller frame.
   { dir: 'battle-cat-paws', out: 'paws-cat', scale: 1, pad: PAWS_FRAME.pad, anims: { ClimbUp: 4, ClimbDown: 6, Hang: 1 } },

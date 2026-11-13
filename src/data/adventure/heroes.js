@@ -142,8 +142,8 @@ export const BATTLE_CATS = {
 
   // With the minigun: the battle cat's armed frames in the new cat's frame, until the new cat's are
   // drawn (if he keeps the minigun).
-  // With the minigun: his own standing, running (the minigun on his back) and shooting, from the
-  // owner's ChatGPT strips; his climb is the bare-pawed one (he puts the minigun away to climb). His
+  // With the minigun: his own standing, running and climbing (the minigun on his back) and shooting,
+  // from the owner's ChatGPT strips. His
   // other moves are the armed battle cat's, padded into his frame, until they're drawn. Out of rounds
   // he swipes with his bare-pawed frames, the minigun gone for that moment.
   // muzzle: where the barrel ends, in his frame's pixels: across from his middle, up from his feet;
