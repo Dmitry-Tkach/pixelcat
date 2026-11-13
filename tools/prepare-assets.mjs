@@ -28,12 +28,12 @@ const SETS = [
   // The new Adventure Paws cat, from the owner's ChatGPT strips, cut by tools/cut-paws-cat.mjs to his
   // taller frame (PAWS_FRAME). As each new strip is cut, its move goes on this line and comes off
   // the stand-ins' line below.
-  { dir: 'paws-cat/frames', out: 'paws-cat', scale: 1, anims: { Idle: 6, Run: 8, Jump: 4, Slide: 4, Swipe: 4 } },
+  { dir: 'paws-cat/frames', out: 'paws-cat', scale: 1, anims: { Idle: 6, Run: 8, Jump: 4, Slide: 4, Swipe: 4, Dash: 4 } },
   // His swipe with the minigun, for when it's out of rounds: the bare-pawed one, until it's drawn.
   { dir: 'paws-cat/frames', out: 'paws-cat-armed', scale: 1, anims: { Swipe: 4 } },
   // His other moves for now: the battle cat's, bare-pawed and with the minigun, padded on top (`pad`)
   // into his taller frame.
-  { dir: 'battle-cat-paws', out: 'paws-cat', scale: 1, pad: PAWS_FRAME.pad, anims: { Hit: 3, Rage: 4, Defeated: 3, Dash: 4, Climb: 6, ClimbUp: 4, ClimbDown: 6, Hang: 1, Special: 3, SpecialEnd: 3 } },
+  { dir: 'battle-cat-paws', out: 'paws-cat', scale: 1, pad: PAWS_FRAME.pad, anims: { Hit: 3, Rage: 4, Defeated: 3, Climb: 6, ClimbUp: 4, ClimbDown: 6, Hang: 1, Special: 3, SpecialEnd: 3 } },
   { dir: 'battle-cat', out: 'paws-cat-armed', scale: 1, pad: PAWS_FRAME.pad, anims: { Idle: 8, Run: 8, Shoot: 8, Hit: 3, Rage: 4, Defeated: 5, Jump: 4, Slide: 4, Dash: 4, Climb: 6, ClimbUp: 4, ClimbDown: 6, Hang: 1, Special: 4, SpecialEnd: 3 } },
 ];
 

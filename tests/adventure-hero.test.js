@@ -45,3 +45,18 @@ describe("the cat's claw swipe", () => {
     }
   });
 });
+
+describe("every look of the adventure's hero", () => {
+  it('has every frame of every move prepared', async () => {
+    const { existsSync } = await import('node:fs');
+    const { BATTLE_CATS } = await import('../src/data/adventure/heroes.js');
+    for (const { folder, anims } of Object.values(BATTLE_CATS)) {
+      for (const { file, frames } of Object.values(anims)) {
+        for (let n = 1; n <= frames; n++) {
+          const path = `public/assets/sprites/${folder}/${file}-${n}.png`;
+          expect(existsSync(path), path).toBe(true);
+        }
+      }
+    }
+  });
+});

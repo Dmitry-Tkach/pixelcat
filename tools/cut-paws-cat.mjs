@@ -26,7 +26,9 @@ const MIDDLE = PAWS_FRAME.middle; // the column his middle is on
 const HERO = 0.64;
 const FAINT = 40; // pixels fainter than this (out of 255) are cleared: the haze some strips have
 const SPECK = 30; // loose dots smaller than this many pixels, not touching the cat, are cleared
-const FOOT_ROWS = 10; // how far up from his lowest row his feet are measured, for `planted`
+const FOOT_ROWS = 10;
+const GAP = 12; // empty columns narrower than this are inside a drawing, for `byGaps`
+const HEAD_ROWS = 40; // how far down from the top of his head it's measured, for `steadyHead` (his ears and brow) // how far up from his lowest row his feet are measured, for `planted`
 const SKY = '#9fd3f0'; // the review pictures' background
 
 // Each strip: its file, its frame count, and how to fit it to the idle cat. scale: how much to
@@ -36,13 +38,17 @@ const SKY = '#9fd3f0'; // the review pictures' background
 // top of his head, so it stays steady while his legs tuck and reach, as high as fits the tallest of
 // them standing on the feet line. planted: his feet stay put (the claw swipe), each frame placed
 // left to right by the middle of his feet, where they are in his first idle frame, not by its cell.
-// ms: how long each frame shows in the review GIF.
+// steadyHead: each frame placed left to right by the middle of his head, where it is in his first
+// idle frame (the dash, where ChatGPT draws him further forward in some cells than others).
+// byGaps: cut at the empty columns between the drawings, not into equal cells (when ChatGPT draws
+// one over the edge of its cell). ms: how long each frame shows in the review GIF.
 const STRIPS = [
   { name: 'Idle', file: 'cat_idle_spriteshe.png', frames: 6, scale: 1, ground: 243, ms: 160 },
   { name: 'Run', file: 'run.png', frames: 8, scale: 0.68, ground: 505, ms: 80 },
   { name: 'Jump', file: 'jump.png', frames: 4, scale: 0.41, ground: 685, air: [2, 3, 4], ms: 160 },
   { name: 'Slide', file: 'slide.png', frames: 4, scale: 0.41, ground: 587, ms: 90 },
   { name: 'Swipe', file: 'swipe.png', frames: 4, scale: 0.362, ground: 637, planted: true, ms: 70 },
+  { name: 'Dash', file: 'dash.png', frames: 4, scale: 0.41, ground: 580, steadyHead: true, byGaps: true, ms: 70 },
 ];
 
 mkdirSync(OUT, { recursive: true });
@@ -58,16 +64,17 @@ for (const strip of STRIPS) {
 
 // Splits a strip into equal cells, clears the faint haze, shrinks each one and stands it on the
 // feet line (or lines it up with the other frames in the air), its middle on the frame's middle.
-async function cutStrip({ file, frames, scale, ground, air = [], planted }) {
+async function cutStrip({ file, frames, scale, ground, air = [], planted, steadyHead, byGaps }) {
   const { data, info } = await sharp(join(FOLDER, file)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const { width: W, height: H } = info;
   for (let i = 3; i < data.length; i += 4) if (data[i] < FAINT) data[i - 3] = data[i - 2] = data[i - 1] = data[i] = 0;
   const shrink = scale * HERO;
+  const columns = byGaps ? drawingColumns(data, W, H, frames) : null;
   const step = W / frames;
   const pieces = [];
   for (let c = 0; c < frames; c++) {
-    const left = Math.round(c * step);
-    const width = Math.round((c + 1) * step) - left;
+    const left = byGaps ? columns[c][0] : Math.round(c * step);
+    const width = byGaps ? columns[c][1] - left + 1 : Math.round((c + 1) * step) - left;
     const piece = await sharp(data, { raw: { width: W, height: H, channels: 4 } })
       .extract({ left, top: 0, width, height: H }).png().toBuffer();
     const small = await sharp(piece).resize(Math.round(width * shrink), Math.round(H * shrink)).png().toBuffer();
@@ -76,12 +83,14 @@ async function cutStrip({ file, frames, scale, ground, air = [], planted }) {
   // In the air, his head's top goes on one row: as high as the tallest of those frames needs.
   const inAir = pieces.filter((_, c) => air.includes(c + 1));
   const headRow = Math.min(...inAir.map((p) => FEET - (p.feet + 1 - p.head)));
-  const idleFeet = planted ? feetMiddle(await sharp(join(OUT, 'Idle (1).png')).raw().toBuffer({ resolveWithObject: true }), FEET) : 0;
+  // His first idle frame, which the others line up with (cut first, as Idle is the first strip).
+  const idle = planted || steadyHead ? await sharp(join(OUT, 'Idle (1).png')).raw().toBuffer({ resolveWithObject: true }) : null;
   const cells = [];
   for (const [c, { small, width, height, head, feet }] of pieces.entries()) {
-    const x = planted
-      ? Math.round(idleFeet - feetMiddle(await sharp(small).raw().toBuffer({ resolveWithObject: true }), feet))
-      : Math.round(MIDDLE - width / 2);
+    const pixels = await sharp(small).raw().toBuffer({ resolveWithObject: true });
+    let x = Math.round(MIDDLE - width / 2);
+    if (planted) x = Math.round(feetMiddle(idle, FEET) - feetMiddle(pixels, feet));
+    if (steadyHead) x = Math.round(headMiddle(idle) - headMiddle(pixels));
     const y = air.includes(c + 1) ? headRow - head : Math.round(FEET - ground * shrink);
     cells.push(await clearSpecks(await placeInFrame(small, width, height, x, y)));
   }
@@ -93,6 +102,23 @@ function feetMiddle({ data, info }, bottom) {
   let sum = 0, count = 0;
   for (let y = Math.max(0, bottom - FOOT_ROWS); y <= bottom; y++) {
     for (let x = 0; x < info.width; x++) if (data[(y * info.width + x) * 4 + 3] > 128) { sum += x; count += 1; }
+  }
+  return count ? sum / count : info.width / 2;
+}
+
+// The middle, left to right, of his head: the solid pixels that aren't his red scarf, in the
+// HEAD_ROWS rows down from the top of his head.
+function headMiddle({ data, info }) {
+  let top = -1, sum = 0, count = 0;
+  for (let y = 0; y < info.height; y++) {
+    for (let x = 0; x < info.width; x++) {
+      const [r, g, b, a] = data.subarray((y * info.width + x) * 4, (y * info.width + x) * 4 + 4);
+      if (a <= 128 || (r > 180 && g < 90 && b < 90)) continue;
+      if (top < 0) top = y;
+      if (y - top > HEAD_ROWS) return sum / count;
+      sum += x;
+      count += 1;
+    }
   }
   return count ? sum / count : info.width / 2;
 }
@@ -111,6 +137,22 @@ async function headAndFeet(input) {
     }
   }
   return { head, feet };
+}
+
+// The left and right columns of each drawing in a strip, found by the empty columns between them:
+// gaps narrower than GAP are inside a drawing. There must be `frames` of them.
+function drawingColumns(data, W, H, frames) {
+  const solid = (x) => { for (let y = 0; y < H; y++) if (data[(y * W + x) * 4 + 3] > 0) return true; return false; };
+  const runs = [];
+  for (let x = 0; x < W; x++) {
+    if (!solid(x)) continue;
+    const last = runs[runs.length - 1];
+    if (last && x - last[1] <= GAP) last[1] = x;
+    else runs.push([x, x]);
+  }
+  const drawings = runs.filter(([a, b]) => b - a > 40);
+  if (drawings.length !== frames) throw new Error(`Found ${drawings.length} drawings, not ${frames}`);
+  return drawings.map(([a, b]) => [Math.max(0, a - 2), Math.min(W - 1, b + 2)]);
 }
 
 // Puts a picture into an empty frame at (x, y), clipping whatever falls outside it (sharp needs every

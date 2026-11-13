@@ -4,6 +4,7 @@ import { BEAMS, BEAM_HIT, BOLT, BOLT_KEY, BOLT_LAYERS } from '../data/adventure/
 import { CHARACTERS, animKey, frameKey } from '../data/characters.js';
 import { ONE_WAY, TILE } from './adventureMap.js';
 import { CLAW, CLAW_SLASH, clawArea, crescentPath, overlaps } from './adventure/clawSwipe.js';
+import { DASH_LOOK } from './adventure/dashLook.js';
 
 // The battle cat's fighting moves in the adventure, from his sheet with the minigun:
 //   X      shoot: a tap fires one shot, holding it fires a burst, while he has rounds; with bare
@@ -427,6 +428,8 @@ export class AdventureMoves {
     this.cat.setVelocityY(0);
     this.cat.pose('dash', DASH.ms);
     this.scene.audio.playSfx('lungeDash');
+    this.ghostMs = 0;
+    if (this.cat.onGround) this.scene.effects.dust(this.cat.x - this.dashDir * 20, this.cat.body.bottom, DASH_LOOK.dust);
   }
 
   // Runs after the cat's own movement each frame, so the dash's speed wins.
@@ -439,6 +442,35 @@ export class AdventureMoves {
     }
     this.cat.moveVelocity = this.dashDir * DASH.speed;
     this.cat.setVelocity(this.dashDir * DASH.speed, 0);
+    this.ghostMs -= ms;
+    if (this.ghostMs <= 0) {
+      this.ghostMs = DASH_LOOK.ghosts.everyMs;
+      this.leaveGhost();
+    }
+  }
+
+  // A glowing copy of him, as he is this moment, left behind to fade, with wind streaks behind it.
+  leaveGhost() {
+    const { cat, scene } = this;
+    const { ghosts, streaks, depthBehind } = DASH_LOOK;
+    const ghost = scene.add.image(cat.x, cat.y, cat.texture.key, cat.frame.name)
+      .setOrigin(cat.originX, cat.originY).setScale(cat.scaleX, cat.scaleY).setFlipX(cat.flipX)
+      .setTintFill(ghosts.tint).setAlpha(ghosts.alpha).setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(cat.depth - depthBehind);
+    scene.tweens.add({ targets: ghost, alpha: 0, duration: ghosts.fadeMs, onComplete: () => ghost.destroy() });
+    const { top, bottom } = cat.body;
+    const middle = (top + bottom) / 2;
+    const back = cat.x - this.dashDir * cat.body.width * 0.6;
+    for (let i = 0; i < streaks.count; i++) {
+      const length = Phaser.Math.Between(...streaks.length);
+      const y = middle + Phaser.Math.FloatBetween(-0.5, 0.5) * streaks.spread * (bottom - top);
+      const line = scene.add.rectangle(back, y, length, streaks.width, streaks.colour, streaks.alpha)
+        .setOrigin(this.dashDir > 0 ? 1 : 0, 0.5).setDepth(cat.depth - depthBehind);
+      scene.tweens.add({
+        targets: line, x: back - this.dashDir * streaks.drift, scaleX: 0.3, alpha: 0, duration: streaks.ms,
+        onComplete: () => line.destroy(),
+      });
+    }
   }
 
   endDash() {
