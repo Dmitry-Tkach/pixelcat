@@ -3,7 +3,7 @@ import { AMMO, EXPLOSION_KEY, LOADED } from '../data/adventure/ammo.js';
 import { BEAMS, BEAM_HIT, BOLT, BOLT_KEY, BOLT_LAYERS } from '../data/adventure/beams.js';
 import { CHARACTERS, animKey, frameKey } from '../data/characters.js';
 import { ONE_WAY, TILE } from './adventureMap.js';
-import { CLAW, CLAW_ARC, clawArea, overlaps } from './adventure/clawSwipe.js';
+import { CLAW, CLAW_SLASH, clawArea, crescentPath, overlaps } from './adventure/clawSwipe.js';
 
 // The battle cat's fighting moves in the adventure, from his sheet with the minigun:
 //   X      shoot: a tap fires one shot, holding it fires a burst, while he has rounds; with bare
@@ -40,6 +40,7 @@ export class AdventureMoves {
     this.groundLayer = groundLayer;
     this.beam = null; // the magic bolt, while it flies
     this.makeBoltTexture();
+    this.makeSlashTexture();
     this.cat = cat;
     this.art = art;
     this.onKnockOut = onKnockOut;
@@ -336,7 +337,7 @@ export class AdventureMoves {
   swipeStrikes() {
     const dir = this.facing;
     const area = clawArea(this.cat.body, dir);
-    this.drawClawMarks(area, dir);
+    this.showSlash(area, dir);
     let struck = false;
     for (const enemy of this.enemies.getChildren().slice()) {
       if (enemy.dead || !overlaps(area, enemy.body)) continue;
@@ -351,22 +352,62 @@ export class AdventureMoves {
     this.scene.audio.playSfx(struck ? 'punch' : 'lungeMiss');
   }
 
-  // Three white claw marks sweeping down through the area in front of him, growing and fading.
-  drawClawMarks(area, dir) {
-    const { from, to, width, gap, fadeMs, grow, colour } = CLAW_ARC;
-    const radius = area.right - area.left;
-    const marks = this.scene.add.graphics().setDepth(this.cat.depth + 1);
-    for (let i = 0; i < 3; i++) {
-      marks.lineStyle(width - i, colour, 1 - i * 0.2);
-      marks.beginPath();
-      marks.arc(0, 0, radius - i * gap, from, to);
-      marks.strokePath();
-    }
-    marks.setPosition(dir > 0 ? area.left : area.right, (area.top + area.bottom) / 2).setScale(dir, 1);
+  // The slash: the glowing crescent swung down through the area in front of him, growing and
+  // fading, and sparks flying off forward. Its centre is his front edge, so it curves out to his reach.
+  showSlash(area, dir) {
+    const { swing, fadeMs, grow, sparks } = CLAW_SLASH;
+    const x = dir > 0 ? area.left : area.right;
+    const y = (area.top + area.bottom) / 2;
+    const slash = this.scene.add.image(x, y, CLAW_SLASH.key).setOrigin(...this.slashOrigin)
+      .setDepth(this.cat.depth + 1).setBlendMode(Phaser.BlendModes.ADD)
+      .setScale(dir * grow[0], grow[0]).setRotation(dir * swing[0]);
     this.scene.tweens.add({
-      targets: marks, alpha: 0, scaleX: dir * grow, scaleY: grow, duration: fadeMs,
-      onComplete: () => marks.destroy(),
+      targets: slash, rotation: dir * swing[1], scaleX: dir * grow[1], scaleY: grow[1], alpha: 0,
+      duration: fadeMs, ease: 'Cubic.easeOut', onComplete: () => slash.destroy(),
     });
+    const tip = CLAW_SLASH.radius * 0.8;
+    const burst = this.scene.add.particles(x + dir * tip, y, 'fx-spark', {
+      speed: { min: sparks.speed[0], max: sparks.speed[1] },
+      angle: dir > 0 ? { min: -50, max: 60 } : { min: 120, max: 230 },
+      lifespan: sparks.lifespan, scale: { start: 0.55, end: 0 }, alpha: { start: 1, end: 0 },
+      tint: sparks.tint, blendMode: 'ADD', emitting: false,
+    }).setDepth(this.cat.depth + 1);
+    burst.explode(sparks.count);
+    this.scene.time.delayedCall(sparks.lifespan + 50, () => burst.destroy());
+  }
+
+  // The slash's crescent, drawn once: a soft gold glow, and a bright white core along its outer edge.
+  makeSlashTexture() {
+    const { radius, thickness, from, to, core, glow, coreColour, blur, tail, key } = CLAW_SLASH;
+    const pad = blur * 2;
+    const w = radius + pad * 2;
+    const h = radius * 2 + pad * 2;
+    const cx = pad;
+    const cy = h / 2;
+    // Where the crescent's circle centre is in it, for placing it at his front edge.
+    this.slashOrigin = [cx / w, cy / h];
+    if (this.scene.textures.exists(key)) return;
+    const canvas = this.scene.textures.createCanvas(key, w, h);
+    const ctx = canvas.getContext();
+    ctx.shadowColor = glow;
+    ctx.shadowBlur = blur;
+    ctx.fillStyle = glow;
+    crescentPath(ctx, cx, cy, radius, thickness, from, to);
+    ctx.fill();
+    ctx.shadowBlur = blur / 2;
+    ctx.shadowColor = coreColour;
+    ctx.fillStyle = coreColour;
+    crescentPath(ctx, cx, cy, radius - 1, thickness * core, from + 0.08, to - 0.08);
+    ctx.fill();
+    const fade = ctx.createLinearGradient(0, cy + radius * Math.sin(from), 0, cy + radius * Math.sin(to));
+    fade.addColorStop(0, `rgba(0, 0, 0, ${1 - tail})`);
+    fade.addColorStop(0.7, 'rgba(0, 0, 0, 0)');
+    ctx.shadowBlur = 0;
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.fillStyle = fade;
+    ctx.fillRect(0, 0, w, h);
+    ctx.globalCompositeOperation = 'source-over';
+    canvas.refresh();
   }
 
   // ----- Dashing -----
