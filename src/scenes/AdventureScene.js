@@ -18,6 +18,7 @@ import { bossTouch } from '../systems/adventure/bosses/bossTouch.js';
 import { AdventureBossBar } from '../ui/AdventureBossBar.js';
 import { addMenuButton, showGameMenu } from '../ui/adventureGameMenu.js';
 import { Effects } from '../ui/Effects.js';
+import { showDizzyStars } from '../systems/adventure/dizzyStars.js';
 
 // reach: how far from a ladder's middle it can be grabbed. standStill: slower than this, the cat counts
 // as standing at a ladder, so Down climbs down it rather than sliding past.
@@ -923,6 +924,7 @@ export class AdventureScene extends Phaser.Scene {
     this.endPlay();
     this.audio.stopMusic();
     this.cat.play(animKey(this.cat.character, 'caught'), true);
+    showDizzyStars(this, this.cat);
     this.time.delayedCall(END_SCREEN_MS, () => this.showEnd('Out of hearts'));
   }
 

@@ -129,6 +129,8 @@ export const BATTLE_CATS = {
       jump: { file: 'jump', frames: 4, frameList: [2, 3], fps: 10, repeat: 0 },
       fall: { file: 'jump', frames: 4, frameList: [4], fps: 1, repeat: 0 },
       victory: { file: 'idle', frames: 6, fps: 7, repeat: -1 },
+      // Losing a life: he falls back, lands with a bump, and lies knocked out, his eyes swirls.
+      caught: { file: 'defeated', frames: 5, fps: 8, repeat: 0 },
       // His claw swipe, X with bare paws (systems/adventure/clawSwipe.js): played once, quickly.
       swipe: CLAW_SWIPE,
     },
