@@ -9,6 +9,8 @@
 export const BEAMS = {
   battleCat: { frame: 'battle-cat/Special (4).png', start: 395, middle: 88 },
   battleCatPaws: { frame: 'battle-cat-paws/Special (3).png', start: 318, middle: 86 },
+  // The new cat casts with the bare-pawed battle cat's frames until his own are drawn.
+  pawsCat: { frame: 'battle-cat-paws/Special (3).png', start: 318, middle: 86 },
 };
 
 // The bolt, drawn once into a texture: glowing layers, outside in, as [length, height, colour,

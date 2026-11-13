@@ -1,11 +1,12 @@
 // The adventure's hero, the grey battle cat, in his two looks: with the minigun (`battleCat`) and
 // with bare paws (`battleCatPaws`), as he starts a level. data/characters.js lists them with every
 // other character, so they load and play like the rest. Both are cut by tools/cut-battle-cat.mjs.
+// The new Adventure Paws cat (`pawsCat`), at the bottom, now starts the levels in his place.
 //
 // `file` is the frame name prefix, `frames` the frame count. `frameList` plays only those frames.
 // `face` is where the face is in the first idle frame, for the HUD's little portrait.
 
-export const BATTLE_CATS = {
+const BATTLE_CAT_LOOKS = {
   // The test character for new levels and worlds, tried with ?cat=battle (see data/player.js). Cut by
   // tools/cut-battle-cat.mjs from the user's second sheet, shown at the size it's drawn. The frames he
   // plays as the cat are all one size with his feet on one line, so the hitboxes match the cat's.
@@ -86,3 +87,34 @@ export const BATTLE_CATS = {
     },
   },
 };
+
+// Every look of the hero, for data/characters.js and the adventure's loading.
+export const BATTLE_CATS = {
+  ...BATTLE_CAT_LOOKS,
+
+  // The new Adventure Paws cat: the home screen's grey tabby with the red scarf, drawn by the owner
+  // with ChatGPT and cut by tools/cut-paws-cat.mjs to the battle cats' frame size, at the same height,
+  // with the same hitboxes. His own idle and run are in; his other moves borrow the bare-pawed
+  // battle cat's frames (`folder`) until they're drawn.
+  pawsCat: {
+    folder: 'paws-cat',
+    scale: 1,
+    face: { x: 72, y: 30, size: 98 },
+    anims: {
+      idle: { file: 'idle', frames: 6, fps: 7, repeat: -1 },
+      run: { file: 'run', frames: 8, fps: 13, repeat: -1 },
+      ...borrowed('battle-cat-paws', ['jump', 'fall', 'slide', 'hurt', 'caught', 'rage', 'dash', 'climb', 'climbUp', 'climbDown', 'hang', 'special', 'specialEnd']),
+      victory: { file: 'idle', frames: 6, fps: 7, repeat: -1 },
+    },
+    hitboxes: {
+      run: { x: 89, y: 46, w: 58, h: 113 },
+      slide: { x: 86, y: 86, w: 64, h: 73 },
+    },
+  },
+};
+
+// The bare-pawed battle cat's moves, named by role, taken from his folder: the stand-ins for moves
+// the new cat doesn't have yet.
+function borrowed(folder, roles) {
+  return Object.fromEntries(roles.map((role) => [role, { ...BATTLE_CAT_LOOKS.battleCatPaws.anims[role], folder }]));
+}

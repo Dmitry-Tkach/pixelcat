@@ -24,6 +24,9 @@ const SETS = [
   { dir: 'battle-cat', out: 'battle-cat', scale: 1, anims: { Idle: 8, Run: 8, Shoot: 8, Hit: 3, Rage: 4, Defeated: 5, Jump: 4, Slide: 4, Dash: 4, Climb: 6, ClimbUp: 4, ClimbDown: 6, Hang: 1, Special: 4, SpecialEnd: 3 } },
   // The same cat with bare paws, as he starts each adventure level. Cut by tools/cut-battle-cat.mjs.
   { dir: 'battle-cat-paws', out: 'battle-cat-paws', scale: 1, anims: { Idle: 4, Run: 8, Jump: 4, Slide: 4, Hit: 3, Rage: 4, Defeated: 3, Dash: 4, Climb: 6, ClimbUp: 4, ClimbDown: 6, Hang: 1, Special: 3, SpecialEnd: 3 } },
+  // The new Adventure Paws cat, from the owner's ChatGPT strips. Cut by tools/cut-paws-cat.mjs to the
+  // battle cat's frame size. More moves are added here as their strips are drawn.
+  { dir: 'paws-cat/frames', out: 'paws-cat', scale: 1, anims: { Idle: 6, Run: 8 } },
 ];
 
 // Sets whose source files use their own naming. `every` keeps one frame in N, to save memory.
