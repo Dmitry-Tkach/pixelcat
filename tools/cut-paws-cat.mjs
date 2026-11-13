@@ -38,6 +38,7 @@ const STRIPS = [
   { name: 'Idle', file: 'cat_idle_spriteshe.png', frames: 6, scale: 1, ground: 243, ms: 160 },
   { name: 'Run', file: 'run.png', frames: 8, scale: 0.68, ground: 505, ms: 80 },
   { name: 'Jump', file: 'jump.png', frames: 4, scale: 0.41, ground: 685, air: [2, 3, 4], ms: 160 },
+  { name: 'Slide', file: 'slide.png', frames: 4, scale: 0.41, ground: 587, ms: 90 },
 ];
 
 mkdirSync(OUT, { recursive: true });
