@@ -6,7 +6,8 @@
 // his paw sweeps through. cooldownMs: the least time from one swipe to the next. reach: how far in
 // front of his body it strikes, in px (about a tile). above: how far over his head it reaches, for
 // tall enemies. boss: the name a boss's damage table lists it by (data/adventure/bossFights.js).
-export const CLAW = { ms: 285, hitMs: 130, cooldownMs: 380, reach: 64, above: 16, boss: 'claw' };
+// rageReachShare: how much further it reaches in a rage, the slash drawn as much bigger.
+export const CLAW = { ms: 285, hitMs: 130, cooldownMs: 380, reach: 64, above: 16, boss: 'claw', rageReachShare: 1.6 };
 
 // The slash the game draws for the swipe: a glowing crescent, drawn once into a texture, swung down
 // through the area in front of him, then fading, with sparks flying off.

@@ -39,7 +39,7 @@ export const BOSS_FIGHTS = {
     roarSeconds: 1.5,
     staggerSeconds: 0.6,
     nearRange: 220,
-    damage: { standard: 1, laser: 1, explosive: 3, bolt: 20, stomp: 8, dash: 0, rage: 0, claw: 1 },
+    damage: { standard: 1, laser: 1, explosive: 3, bolt: 20, stomp: 8, dash: 0, rage: 4, claw: 1 },
     outsideWeakShare: 0.5,
     staggeredBy: ['bolt'],
     assist: { afterLosses: 3, healthShare: 0.75 },

@@ -191,14 +191,20 @@ describe('the boss brain', () => {
       expect(brain.health).toBe(TROLL.health - 1.5);
     });
 
-    it('counts a jump on his head only in a weak moment, and never a dash or rage', () => {
+    it('counts a jump on his head only in a weak moment, and never a dash', () => {
       const brain = idleTroll();
       expect(brain.takeHit('stomp')).toBe(0);
       expect(brain.takeHit('dash')).toBe(0);
-      expect(brain.takeHit('rage')).toBe(0);
       runUntil(brain, 'recover', FAR);
       expect(brain.takeHit('stomp')).toBe(TROLL.damage.stomp);
       expect(brain.takeHit('dash')).toBe(0);
+    });
+
+    it('is hurt by the raging cat running into him, more in a weak moment', () => {
+      const brain = idleTroll();
+      expect(brain.takeHit('rage')).toBe(TROLL.damage.rage * TROLL.outsideWeakShare);
+      runUntil(brain, 'recover', FAR);
+      expect(brain.takeHit('rage')).toBe(TROLL.damage.rage);
     });
 
     it('is staggered by the bolt during a warning, which cancels the attack', () => {

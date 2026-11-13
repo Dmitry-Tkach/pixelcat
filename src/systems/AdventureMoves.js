@@ -25,7 +25,10 @@ const BULLET = { w: 30, h: 12, depth: 5 };
 const SHOOT = { tapMs: 375, holdMs: 300, cooldownMs: 260, rageShare: 0.6, emptyHintMs: 2500 };
 const BLAST_SHAKE = { ms: 180, strength: 0.006 };
 const DASH = { speed: 950, ms: 220, cooldownMs: 650 };
-const RAGE = { ms: 8000, poseMs: 650, tint: 0xff9a9a, flashMs: 160 };
+// The rage, from the mushroom: how long it lasts, his pose as it flares up, the red he glows.
+// speedShare: how much faster he runs in it. endingMs: in its last moments his glow flickers, every
+// flickerMs, so the player knows it's ending.
+const RAGE = { ms: 12000, poseMs: 650, tint: 0xff9a9a, flashMs: 160, speedShare: 1.25, endingMs: 2000, flickerMs: 120 };
 // charge: knockouts to fill the beam. height: how far up from his feet the beam hits; ahead, it hits
 // as far as it's drawn, the half of his special's frame in front of him. The beam fires on his
 // special's `beamFrame` (see data/adventure/heroes.js).
@@ -337,8 +340,9 @@ export class AdventureMoves {
   // Knocks out every enemy in reach in front of him, and hurts a boss there, a little.
   swipeStrikes() {
     const dir = this.facing;
-    const area = clawArea(this.cat.body, dir);
-    this.showSlash(area, dir);
+    const share = this.isRaging ? CLAW.rageReachShare : 1;
+    const area = clawArea(this.cat.body, dir, { reach: CLAW.reach * share, above: CLAW.above });
+    this.showSlash(area, dir, share);
     let struck = false;
     for (const enemy of this.enemies.getChildren().slice()) {
       if (enemy.dead || !overlaps(area, enemy.body)) continue;
@@ -355,8 +359,10 @@ export class AdventureMoves {
 
   // The slash: the glowing crescent swung down through the area in front of him, growing and
   // fading, and sparks flying off forward. Its centre is his front edge, so it curves out to his reach.
-  showSlash(area, dir) {
-    const { swing, fadeMs, grow, sparks } = CLAW_SLASH;
+  // size: how much bigger than usual (in a rage).
+  showSlash(area, dir, size = 1) {
+    const { swing, fadeMs, sparks } = CLAW_SLASH;
+    const grow = CLAW_SLASH.grow.map((g) => g * size);
     const x = dir > 0 ? area.left : area.right;
     const y = (area.top + area.bottom) / 2;
     const slash = this.scene.add.image(x, y, CLAW_SLASH.key).setOrigin(...this.slashOrigin)
@@ -366,7 +372,7 @@ export class AdventureMoves {
       targets: slash, rotation: dir * swing[1], scaleX: dir * grow[1], scaleY: grow[1], alpha: 0,
       duration: fadeMs, ease: 'Cubic.easeOut', onComplete: () => slash.destroy(),
     });
-    const tip = CLAW_SLASH.radius * 0.8;
+    const tip = CLAW_SLASH.radius * size * 0.8;
     const burst = this.scene.add.particles(x + dir * tip, y, 'fx-spark', {
       speed: { min: sparks.speed[0], max: sparks.speed[1] },
       angle: dir > 0 ? { min: -50, max: 60 } : { min: 120, max: 230 },
@@ -485,6 +491,7 @@ export class AdventureMoves {
 
   // He stops for a moment as the rage flares up around him, then goes on.
   startRage() {
+    if (!this.isRaging) this.cat.topSpeed *= RAGE.speedShare;
     this.rageMs = RAGE.ms;
     this.endDash();
     this.cat.running = false;
@@ -500,7 +507,17 @@ export class AdventureMoves {
   updateRage(ms) {
     if (this.rageMs <= 0) return;
     this.rageMs -= ms;
-    if (this.rageMs <= 0) this.cat.clearTint();
+    if (this.rageMs <= 0) {
+      this.cat.clearTint();
+      this.cat.topSpeed /= RAGE.speedShare;
+      return;
+    }
+    // Ending: the glow flickers on and off.
+    if (this.rageMs < RAGE.endingMs) {
+      const on = Math.floor(this.rageMs / RAGE.flickerMs) % 2 === 0;
+      if (on) this.cat.setTint(RAGE.tint);
+      else this.cat.clearTint();
+    }
   }
 
   // ----- The special beam -----

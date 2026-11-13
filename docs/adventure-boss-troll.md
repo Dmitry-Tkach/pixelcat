@@ -75,7 +75,9 @@ pose is made from them by playing part of an animation, or holding a frame:
 | Explosive round | 3 |
 | Magic bolt | 20, and he staggers (hurt) |
 | Jumping on his head | 8, only in his weak moments; the cat bounces off (about 15 win the fight) |
-| Dash, slide or rage | none: the cat bounces off |
+| Claw swipe | 1 |
+| Running into him in a rage | 4; the cat bounces off |
+| Dash or slide | none: the cat bounces off |
 
 - **Outside his weak moments,** everything does half damage. In them, full damage, with a bigger
   burst where he's hit.
