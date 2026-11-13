@@ -53,6 +53,7 @@ const STRIPS = [
   { name: 'Defeated', file: 'defeted.png', frames: 5, scale: 0.55, ground: 545, byGaps: true, ms: 140 },
   { name: 'Rage', file: 'rage.png', frames: 4, scale: 0.45, ground: 582, planted: true, byGaps: true, ms: 100 },
   { name: 'Special', file: 'magic.png', frames: 4, scale: 0.45, ground: 589, planted: true, byGaps: true, ms: 125 },
+  { name: 'SpecialEnd', file: 'magic-end.png', frames: 3, scale: 0.356, ground: 633, planted: true, byGaps: true, ms: 125 },
 ];
 
 mkdirSync(OUT, { recursive: true });
