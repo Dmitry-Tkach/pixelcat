@@ -109,45 +109,44 @@ const PAWS_CAT_PAWS = padded(BATTLE_CAT_LOOKS.battleCatPaws, 'paws-cat');
 // The new cat's claw swipe, in both his looks.
 const CLAW_SWIPE = { file: 'swipe', frames: 4, fps: 14, repeat: 0 };
 
+// The new Adventure Paws cat: the home screen's grey tabby with the red scarf, drawn by the owner
+// with ChatGPT and cut by tools/cut-paws-cat.mjs, at the battle cat's height, with his hitboxes.
+// Every move is his own; the bare-pawed battle cat's settings fill in the rest (hitboxes, climbing).
+const PAWS_CAT = {
+  ...PAWS_CAT_PAWS,
+  face: { x: 72, y: 30 + PAWS_FRAME.pad, size: 98 },
+  anims: {
+    ...PAWS_CAT_PAWS.anims,
+    idle: { file: 'idle', frames: 6, fps: 7, repeat: -1 },
+    run: { file: 'run', frames: 8, fps: 13, repeat: -1 },
+    // Pushing off and rising; the last frame, coming down, is the fall. The crouch (frame 1) isn't
+    // played: he's already rising the moment the key is pressed, so it would look like a dip.
+    jump: { file: 'jump', frames: 4, frameList: [2, 3], fps: 10, repeat: 0 },
+    fall: { file: 'jump', frames: 4, frameList: [4], fps: 1, repeat: 0 },
+    // At the portal: he hops on the spot, a fist punched up, and lands with a "yes!".
+    victory: { file: 'victory', frames: 6, fps: 10, repeat: -1 },
+    // Losing a life: he falls back, lands with a bump, and lies knocked out, his eyes swirls.
+    caught: { file: 'defeated', frames: 5, fps: 8, repeat: 0 },
+    // Holding still on a ladder: his climb's second frame, both paws gripping at his shoulders.
+    hang: { file: 'climb', frames: 6, frameList: [2], fps: 1, repeat: 0 },
+    // The magic bolt: he gathers it, thrusts his paws forward, then holds the last frame while the
+    // bolt the game draws flies (data/adventure/beams.js).
+    special: { file: 'special', frames: 4, frameList: [1, 2, 3, 4, 4, 4, 4, 4], fps: 8, repeat: 0, beamFrame: 4 },
+    // His claw swipe, X with bare paws (systems/adventure/clawSwipe.js): played once, quickly.
+    swipe: CLAW_SWIPE,
+  },
+};
+
 // Every look of the hero, for data/characters.js and the adventure's loading.
 export const BATTLE_CATS = {
   ...BATTLE_CAT_LOOKS,
 
-  // The new Adventure Paws cat: the home screen's grey tabby with the red scarf, drawn by the owner
-  // with ChatGPT and cut by tools/cut-paws-cat.mjs, at the battle cat's height, with his hitboxes.
-  // His own idle, run and jump are in; his other moves are the bare-pawed battle cat's, padded into
-  // the same frame, until they're drawn.
-  pawsCat: {
-    ...PAWS_CAT_PAWS,
-    face: { x: 72, y: 30 + PAWS_FRAME.pad, size: 98 },
-    anims: {
-      ...PAWS_CAT_PAWS.anims,
-      idle: { file: 'idle', frames: 6, fps: 7, repeat: -1 },
-      run: { file: 'run', frames: 8, fps: 13, repeat: -1 },
-      // Pushing off and rising; the last frame, coming down, is the fall. The crouch (frame 1) isn't
-      // played: he's already rising the moment the key is pressed, so it would look like a dip.
-      jump: { file: 'jump', frames: 4, frameList: [2, 3], fps: 10, repeat: 0 },
-      fall: { file: 'jump', frames: 4, frameList: [4], fps: 1, repeat: 0 },
-      // At the portal: he hops on the spot, a fist punched up, and lands with a "yes!".
-      victory: { file: 'victory', frames: 6, fps: 10, repeat: -1 },
-      // Losing a life: he falls back, lands with a bump, and lies knocked out, his eyes swirls.
-      caught: { file: 'defeated', frames: 5, fps: 8, repeat: 0 },
-      // Holding still on a ladder: his climb's second frame, both paws gripping at his shoulders.
-      hang: { file: 'climb', frames: 6, frameList: [2], fps: 1, repeat: 0 },
-      // The magic bolt: he gathers it, thrusts his paws forward, then holds the last frame while the
-      // bolt the game draws flies (data/adventure/beams.js).
-      special: { file: 'special', frames: 4, frameList: [1, 2, 3, 4, 4, 4, 4, 4], fps: 8, repeat: 0, beamFrame: 4 },
-      // His claw swipe, X with bare paws (systems/adventure/clawSwipe.js): played once, quickly.
-      swipe: CLAW_SWIPE,
-    },
-  },
+  pawsCat: PAWS_CAT,
 
-  // With the minigun: the battle cat's armed frames in the new cat's frame, until the new cat's are
-  // drawn (if he keeps the minigun).
-  // With the minigun: his own standing, running and climbing (the minigun on his back) and shooting,
-  // from the owner's ChatGPT strips. His
-  // other moves are the armed battle cat's, padded into his frame, until they're drawn. Out of rounds
-  // he swipes with his bare-pawed frames, the minigun gone for that moment.
+  // With the minigun: his own standing, running, jumping, climbing (the minigun on his back) and
+  // shooting, from the owner's ChatGPT strips. His other moves (the swipe, pull-up, slide, dash, hit,
+  // knock-out, rage and magic bolt) are his bare-pawed ones, the minigun gone for that moment, until
+  // they're drawn with it. tools/prepare-assets.mjs puts both sets of frames in his folder.
   // muzzle: where the barrel ends, in his frame's pixels: across from his middle, up from his feet;
   // runMuzzle: the same as he fires on the run.
   pawsCatArmed: (() => {
@@ -157,7 +156,7 @@ export const BATTLE_CATS = {
       muzzle: { x: 76, y: 26 },
       runMuzzle: { x: 63, y: 42 },
       anims: {
-        ...look.anims,
+        ...PAWS_CAT.anims,
         idle: { file: 'idle', frames: 6, fps: 7, repeat: -1 },
         run: { file: 'run', frames: 8, fps: 13, repeat: -1 },
         // A tap plays the six firing frames once (in SHOOT.tapMs, systems/AdventureMoves.js); a burst
@@ -170,8 +169,8 @@ export const BATTLE_CATS = {
         climbDown: { file: 'climb', frames: 6, frameList: [6, 5, 4, 3, 2, 1], fps: 10, repeat: -1 },
         // Holding still on a ladder: his minigun climb's second frame.
         hang: { file: 'climb', frames: 6, frameList: [2], fps: 1, repeat: 0 },
+        // His sheet has no victory pose with the minigun, so he stands proud with it.
         victory: { file: 'idle', frames: 6, fps: 7, repeat: -1 },
-        swipe: CLAW_SWIPE,
       },
     };
   })(),

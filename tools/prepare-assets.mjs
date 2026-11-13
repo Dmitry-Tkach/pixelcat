@@ -4,7 +4,6 @@ import sharp from 'sharp';
 import { copyFileSync, mkdirSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PAWS_FRAME } from '../src/data/adventure/heroes.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = join(ROOT, 'images', 'sprites');
@@ -28,13 +27,11 @@ const SETS = [
   // The new Adventure Paws cat, from the owner's ChatGPT strips, cut by tools/cut-paws-cat.mjs to his
   // taller frame (PAWS_FRAME): every move of his own with bare paws.
   { dir: 'paws-cat/frames', out: 'paws-cat', scale: 1, anims: { Idle: 6, Run: 8, Jump: 4, Slide: 4, Swipe: 4, Dash: 4, Hit: 3, Defeated: 5, Rage: 4, Special: 4, SpecialEnd: 3, Victory: 6, Climb: 6, ClimbUp: 4, ClimbDown: 6 } },
-  // With the minigun: his swipe and pull-up are the bare-pawed ones, until they're drawn with it.
-  { dir: 'paws-cat/frames', out: 'paws-cat-armed', scale: 1, anims: { Swipe: 4, ClimbUp: 4 } },
-  // His own standing, running, shooting and climbing (the minigun on his back) with the minigun.
-  { dir: 'paws-cat/frames-minigun', out: 'paws-cat-armed', scale: 1, anims: { Idle: 6, Run: 8, Shoot: 6, RunShoot: 8, Climb: 6 } },
-  // His other moves with the minigun, for now: the armed battle cat's, padded on top (`pad`) into his
-  // taller frame. As each is drawn, it comes off this line.
-  { dir: 'battle-cat', out: 'paws-cat-armed', scale: 1, pad: PAWS_FRAME.pad, anims: { Hit: 3, Rage: 4, Defeated: 5, Jump: 4, Slide: 4, Dash: 4, Special: 4, SpecialEnd: 3 } },
+  // With the minigun: the moves drawn only with bare paws (his swipe, pull-up, slide, dash, hit,
+  // knock-out, rage and magic bolt), the minigun gone for that moment, until they're drawn with it.
+  { dir: 'paws-cat/frames', out: 'paws-cat-armed', scale: 1, anims: { Swipe: 4, ClimbUp: 4, Slide: 4, Dash: 4, Hit: 3, Defeated: 5, Rage: 4, Special: 4, SpecialEnd: 3 } },
+  // His own standing, running, jumping, shooting and climbing (the minigun on his back) with the minigun.
+  { dir: 'paws-cat/frames-minigun', out: 'paws-cat-armed', scale: 1, anims: { Idle: 6, Run: 8, Jump: 4, Shoot: 6, RunShoot: 8, Climb: 6 } },
 ];
 
 // Sets whose source files use their own naming. `every` keeps one frame in N, to save memory.
