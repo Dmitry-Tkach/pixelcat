@@ -132,6 +132,8 @@ export const BATTLE_CATS = {
       victory: { file: 'victory', frames: 6, fps: 10, repeat: -1 },
       // Losing a life: he falls back, lands with a bump, and lies knocked out, his eyes swirls.
       caught: { file: 'defeated', frames: 5, fps: 8, repeat: 0 },
+      // Holding still on a ladder: his climb's second frame, both paws gripping at his shoulders.
+      hang: { file: 'climb', frames: 6, frameList: [2], fps: 1, repeat: 0 },
       // The magic bolt: he gathers it, thrusts his paws forward, then holds the last frame while the
       // bolt the game draws flies (data/adventure/beams.js).
       special: { file: 'special', frames: 4, frameList: [1, 2, 3, 4, 4, 4, 4, 4], fps: 8, repeat: 0, beamFrame: 4 },
@@ -166,6 +168,8 @@ export const BATTLE_CATS = {
         runShoot: { file: 'runshoot', frames: 8, fps: 13, repeat: -1 },
         // Climbing down with the minigun on his back: his climb played backwards, until it's drawn.
         climbDown: { file: 'climb', frames: 6, frameList: [6, 5, 4, 3, 2, 1], fps: 10, repeat: -1 },
+        // Holding still on a ladder: his minigun climb's second frame.
+        hang: { file: 'climb', frames: 6, frameList: [2], fps: 1, repeat: 0 },
         victory: { file: 'idle', frames: 6, fps: 7, repeat: -1 },
         swipe: CLAW_SWIPE,
       },
