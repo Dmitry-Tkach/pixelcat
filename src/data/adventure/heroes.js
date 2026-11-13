@@ -131,6 +131,9 @@ export const BATTLE_CATS = {
       victory: { file: 'idle', frames: 6, fps: 7, repeat: -1 },
       // Losing a life: he falls back, lands with a bump, and lies knocked out, his eyes swirls.
       caught: { file: 'defeated', frames: 5, fps: 8, repeat: 0 },
+      // The magic bolt: he gathers it, thrusts his paws forward, then holds the last frame while the
+      // bolt the game draws flies (data/adventure/beams.js).
+      special: { file: 'special', frames: 4, frameList: [1, 2, 3, 4, 4, 4, 4, 4], fps: 8, repeat: 0, beamFrame: 4 },
       // His claw swipe, X with bare paws (systems/adventure/clawSwipe.js): played once, quickly.
       swipe: CLAW_SWIPE,
     },

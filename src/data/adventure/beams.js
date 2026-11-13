@@ -9,9 +9,10 @@
 export const BEAMS = {
   battleCat: { frame: 'battle-cat/Special (4).png', start: 395, middle: 88 },
   battleCatPaws: { frame: 'battle-cat-paws/Special (3).png', start: 318, middle: 86 },
-  // The new cat casts with the battle cat's frames until his own are drawn, moved down 64 rows into
-  // his taller frame (PAWS_FRAME in data/adventure/heroes.js).
-  pawsCat: { frame: 'battle-cat-paws/Special (3).png', start: 318, middle: 86 + 64 },
+  // The new cat: the bolt leaves the glow at his paws, which ends at column 180. With the minigun,
+  // the battle cat's frames, moved down 64 rows into his taller frame (PAWS_FRAME in
+  // data/adventure/heroes.js).
+  pawsCat: { frame: 'paws-cat/frames/Special (4).png', start: 181, middle: 181 },
   pawsCatArmed: { frame: 'battle-cat/Special (4).png', start: 395, middle: 88 + 64 },
 };
 
