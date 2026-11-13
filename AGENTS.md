@@ -64,11 +64,15 @@ They keep separate progress and share nothing but the home screen and the menus'
    real-time tests. The owner's Mac is slow (a 2015 MacBook Pro) and they check speed themselves.
    Check your work with the unit tests, the build, the level preview, and pictures rendered with
    sharp.
-2. **One task, one branch.** Make a new branch for your task from the branch the owner names
-   (today, `cat-v2-sheet`, where all current work is). Don't work on `main`, and never on a branch
-   the other agent is using.
-3. **Don't push, merge into `main`, or open pull requests unless the owner asks.** The GitHub
-   repo is public.
+2. **One task, one branch.** The branches work like this:
+   - **A feature branch** for each task, made from `dev`. Never work on a branch the other agent
+     is using.
+   - **`dev`:** a feature is merged into it once the owner has tried it and is happy. Claude Code
+     does the merge.
+   - **`main`:** only big, production-ready updates, merged from `dev`, and only when the owner
+     says so. Don't work on `main` directly.
+3. **Don't push, merge, or open pull requests unless the owner asks.** The GitHub repo is
+   public.
 4. **Never overwrite or delete the owner's source art** in `images/`. Tools read it and write
    their output elsewhere.
 5. **Keep downloaded asset packs out of git.** `images/assets/` (Craftpix and other free packs)
