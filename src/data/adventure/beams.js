@@ -9,8 +9,10 @@
 export const BEAMS = {
   battleCat: { frame: 'battle-cat/Special (4).png', start: 395, middle: 88 },
   battleCatPaws: { frame: 'battle-cat-paws/Special (3).png', start: 318, middle: 86 },
-  // The new cat casts with the bare-pawed battle cat's frames until his own are drawn.
-  pawsCat: { frame: 'battle-cat-paws/Special (3).png', start: 318, middle: 86 },
+  // The new cat casts with the battle cat's frames until his own are drawn, moved down 64 rows into
+  // his taller frame (PAWS_FRAME in data/adventure/heroes.js).
+  pawsCat: { frame: 'battle-cat-paws/Special (3).png', start: 318, middle: 86 + 64 },
+  pawsCatArmed: { frame: 'battle-cat/Special (4).png', start: 395, middle: 88 + 64 },
 };
 
 // The bolt, drawn once into a texture: glowing layers, outside in, as [length, height, colour,

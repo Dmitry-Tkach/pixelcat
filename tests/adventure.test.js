@@ -291,10 +291,9 @@ describe('the battle cat in the adventure', () => {
     for (const name of [ADVENTURE_HERO.character, ADVENTURE_HERO.armed]) {
       const { folder, anims } = CHARACTERS[name];
       const idle = await sharp(`public/assets/sprites/${folder}/idle-1.png`).metadata();
-      // A move can borrow another look's frames (its own `folder`) until it's drawn.
-      for (const [role, { file, frames, folder: from = folder }] of Object.entries(anims)) {
+      for (const [role, { file, frames }] of Object.entries(anims)) {
         for (let n = 1; n <= frames; n++) {
-          const path = `public/assets/sprites/${from}/${file}-${n}.png`;
+          const path = `public/assets/sprites/${folder}/${file}-${n}.png`;
           expect(existsSync(path), path).toBe(true);
           if (role === 'special') continue;
           const { width, height } = await sharp(path).metadata();

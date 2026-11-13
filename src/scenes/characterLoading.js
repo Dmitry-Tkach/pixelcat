@@ -6,10 +6,9 @@ import { CHARACTERS, animKey, frameKey } from '../data/characters.js';
 export function loadCharacters(scene, names) {
   for (const name of names) {
     const character = CHARACTERS[name];
-    // An animation can borrow its frames from another folder (`folder`), as a stand-in.
-    for (const { file, frames, folder = character.folder } of Object.values(character.anims)) {
+    for (const { file, frames } of Object.values(character.anims)) {
       for (let i = 1; i <= frames; i++) {
-        scene.load.image(frameKey(name, file, i), `assets/sprites/${folder}/${file}-${i}.png`);
+        scene.load.image(frameKey(name, file, i), `assets/sprites/${character.folder}/${file}-${i}.png`);
       }
     }
   }

@@ -1,11 +1,11 @@
 import Phaser from 'phaser';
-import { BATTLE_CATS } from '../data/adventure/heroes.js';
+import { ADVENTURE_HERO } from '../data/adventure/index.js';
 import { bossTryOutArena, loadAdventureArt, makeAdventureAnims } from './adventureLoading.js';
 import { loadCharacters, makeCharacterAnims } from './characterLoading.js';
 
-// The characters the adventure plays: the battle cat, with bare paws and with the minigun. Nobody
-// from the runner.
-export const ADVENTURE_CHARACTERS = Object.keys(BATTLE_CATS);
+// The characters the adventure plays: its hero, with bare paws and with the minigun. Nobody from the
+// runner, and none of the hero's other looks.
+export const ADVENTURE_CHARACTERS = [ADVENTURE_HERO.character, ADVENTURE_HERO.armed];
 
 // The adventure's boot scene, on its page (adventure.html): loads only the adventure's art and its
 // battle cats, then opens its home screen. While developing:

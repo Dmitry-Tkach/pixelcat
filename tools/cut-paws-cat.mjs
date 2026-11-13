@@ -1,9 +1,9 @@
 // Cuts the new Adventure Paws cat (the home screen's grey tabby with the red scarf) from the strips
 // the owner draws with ChatGPT, in images/sprites/paws-cat. Each strip is one row of frames.
-// Every frame comes out the size and layout of the battle cat's frames (236x171, his feet on one
-// line, at the battle cat's height), so the game's hitboxes fit him, and the new cat's moves and the
-// battle cat's, standing in for the ones not drawn yet, swap without a jump. The owner's strips are
-// left alone.
+// Every frame comes out in his frame (PAWS_FRAME in src/data/adventure/heroes.js: the battle cat's,
+// taller), his feet on one line, at the battle cat's height, so the game's hitboxes fit him, and his
+// moves and the battle cat's, standing in for the ones not drawn yet, swap without a jump. The
+// owner's strips are left alone.
 // Run: node tools/cut-paws-cat.mjs [folder for review images], then npm run assets.
 // Output: images/sprites/paws-cat/frames, as Idle (n).png, Run (n).png and so on. With a review
 // folder: a GIF of each animation on sky blue, and a row of its frames beside the first idle one,
@@ -12,16 +12,16 @@ import sharp from 'sharp';
 import { mkdirSync, readdirSync, unlinkSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { PAWS_FRAME } from '../src/data/adventure/heroes.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const FOLDER = join(ROOT, 'images', 'sprites', 'paws-cat');
 const OUT = join(FOLDER, 'frames');
 const REVIEW = process.argv[2];
 
-// The battle cat's frame (data/adventure/heroes.js), so the new cat plays in his place.
-const FRAME = { w: 236, h: 171 };
-const FEET = 160; // the row his feet stand on
-const MIDDLE = 117; // the column his middle is on
+const FRAME = { w: PAWS_FRAME.w, h: PAWS_FRAME.h };
+const FEET = PAWS_FRAME.feet; // the row his feet stand on
+const MIDDLE = PAWS_FRAME.middle; // the column his middle is on
 // How much the idle strip is shrunk to stand as tall as the battle cat (121px against 190px).
 const HERO = 0.64;
 const FAINT = 40; // pixels fainter than this (out of 255) are cleared: the haze some strips have
@@ -30,11 +30,13 @@ const SKY = '#9fd3f0'; // the review pictures' background
 
 // Each strip: its file, its frame count, and how to fit it to the idle cat. scale: how much to
 // shrink it so he's the same size as in the idle strip. ground: the row of the strip his feet
-// stand on when he's on the ground. Frames off the ground keep their height above it. ms: how long
-// each frame shows in the review GIF.
+// stand on when he's on the ground. Frames off the ground keep their height above it, unless
+// `eachOnFeet`: then each frame's lowest point is put on the feet line (the jump, whose height the
+// game makes). ms: how long each frame shows in the review GIF.
 const STRIPS = [
   { name: 'Idle', file: 'cat_idle_spriteshe.png', frames: 6, scale: 1, ground: 243, ms: 160 },
   { name: 'Run', file: 'run.png', frames: 8, scale: 0.68, ground: 505, ms: 80 },
+  { name: 'Jump', file: 'jump.png', frames: 4, scale: 0.41, ground: 685, eachOnFeet: true, ms: 160 },
 ];
 
 mkdirSync(OUT, { recursive: true });
@@ -50,7 +52,7 @@ for (const strip of STRIPS) {
 
 // Splits a strip into equal cells, clears the faint haze, shrinks each one and stands it on the
 // feet line, its middle on the frame's middle.
-async function cutStrip({ file, frames, scale, ground }) {
+async function cutStrip({ file, frames, scale, ground, eachOnFeet }) {
   const { data, info } = await sharp(join(FOLDER, file)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const { width: W, height: H } = info;
   for (let i = 3; i < data.length; i += 4) if (data[i] < FAINT) data[i - 3] = data[i - 2] = data[i - 1] = data[i] = 0;
@@ -65,10 +67,19 @@ async function cutStrip({ file, frames, scale, ground }) {
     const small = await sharp(piece).resize(Math.round(width * shrink), Math.round(H * shrink)).png().toBuffer();
     const meta = await sharp(small).metadata();
     const x = Math.round(MIDDLE - meta.width / 2);
-    const y = Math.round(FEET - ground * shrink);
+    const y = Math.round(FEET - (eachOnFeet ? await lowest(small) + 1 : ground * shrink));
     cells.push(await clearSpecks(await placeInFrame(small, meta.width, meta.height, x, y)));
   }
   return cells;
+}
+
+// The lowest row of a picture with anything solid in it.
+async function lowest(input) {
+  const { data, info } = await sharp(input).raw().toBuffer({ resolveWithObject: true });
+  for (let y = info.height - 1; y >= 0; y--) {
+    for (let x = 0; x < info.width; x++) if (data[(y * info.width + x) * 4 + 3] > 128) return y;
+  }
+  return info.height - 1;
 }
 
 // Puts a picture into an empty frame at (x, y), clipping whatever falls outside it (sharp needs every
@@ -118,6 +129,6 @@ async function review({ name, ms }, frames) {
   const row = [old, join(OUT, 'Idle (1).png'), ...frames];
   const line = Buffer.from(`<svg width="${W * row.length}" height="${H}"><line x1="0" x2="${W * row.length}" y1="${FEET + 0.5}" y2="${FEET + 0.5}" stroke="#d33" stroke-width="1"/></svg>`);
   await sharp({ create: { width: W * row.length, height: H, channels: 4, background: SKY } })
-    .composite([...row.map((input, i) => ({ input, left: i * W, top: 0 })), { input: line }])
+    .composite([...row.map((input, i) => ({ input, left: i * W, top: i === 0 ? PAWS_FRAME.pad : 0 })), { input: line }])
     .png().toFile(join(REVIEW, `${name.toLowerCase()}-row.png`));
 }

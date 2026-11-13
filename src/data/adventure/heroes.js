@@ -88,33 +88,48 @@ const BATTLE_CAT_LOOKS = {
   },
 };
 
+// The new cat's frames: the battle cats' frame with PAWS_FRAME.pad rows more on top, as he
+// stretches taller when he jumps. tools/cut-paws-cat.mjs cuts his strips to it, at the battle cat's
+// height, his feet on row `feet` and his middle on column `middle`. tools/prepare-assets.mjs pads the
+// battle cat's frames to it for the moves the new cat hasn't got yet.
+export const PAWS_FRAME = { w: 236, h: 235, pad: 64, feet: 224, middle: 117 };
+
+// A battle cat look moved down into the taller frame: the same moves, from `folder`.
+function padded(look, folder) {
+  const down = ({ x, y, w, h }) => ({ x, y: y + PAWS_FRAME.pad, w, h });
+  return {
+    ...look,
+    folder,
+    face: { ...look.face, y: look.face.y + PAWS_FRAME.pad },
+    hitboxes: { run: down(look.hitboxes.run), slide: down(look.hitboxes.slide) },
+  };
+}
+
+const PAWS_CAT_PAWS = padded(BATTLE_CAT_LOOKS.battleCatPaws, 'paws-cat');
+
 // Every look of the hero, for data/characters.js and the adventure's loading.
 export const BATTLE_CATS = {
   ...BATTLE_CAT_LOOKS,
 
   // The new Adventure Paws cat: the home screen's grey tabby with the red scarf, drawn by the owner
-  // with ChatGPT and cut by tools/cut-paws-cat.mjs to the battle cats' frame size, at the same height,
-  // with the same hitboxes. His own idle and run are in; his other moves borrow the bare-pawed
-  // battle cat's frames (`folder`) until they're drawn.
+  // with ChatGPT and cut by tools/cut-paws-cat.mjs, at the battle cat's height, with his hitboxes.
+  // His own idle, run and jump are in; his other moves are the bare-pawed battle cat's, padded into
+  // the same frame, until they're drawn.
   pawsCat: {
-    folder: 'paws-cat',
-    scale: 1,
-    face: { x: 72, y: 30, size: 98 },
+    ...PAWS_CAT_PAWS,
+    face: { x: 72, y: 30 + PAWS_FRAME.pad, size: 98 },
     anims: {
+      ...PAWS_CAT_PAWS.anims,
       idle: { file: 'idle', frames: 6, fps: 7, repeat: -1 },
       run: { file: 'run', frames: 8, fps: 13, repeat: -1 },
-      ...borrowed('battle-cat-paws', ['jump', 'fall', 'slide', 'hurt', 'caught', 'rage', 'dash', 'climb', 'climbUp', 'climbDown', 'hang', 'special', 'specialEnd']),
+      // Take-off and rising; the last frame, coming down, is the fall.
+      jump: { file: 'jump', frames: 4, frameList: [1, 2, 3], fps: 12, repeat: 0 },
+      fall: { file: 'jump', frames: 4, frameList: [4], fps: 1, repeat: 0 },
       victory: { file: 'idle', frames: 6, fps: 7, repeat: -1 },
     },
-    hitboxes: {
-      run: { x: 89, y: 46, w: 58, h: 113 },
-      slide: { x: 86, y: 86, w: 64, h: 73 },
-    },
   },
-};
 
-// The bare-pawed battle cat's moves, named by role, taken from his folder: the stand-ins for moves
-// the new cat doesn't have yet.
-function borrowed(folder, roles) {
-  return Object.fromEntries(roles.map((role) => [role, { ...BATTLE_CAT_LOOKS.battleCatPaws.anims[role], folder }]));
-}
+  // With the minigun: the battle cat's armed frames in the new cat's frame, until the new cat's are
+  // drawn (if he keeps the minigun).
+  pawsCatArmed: padded(BATTLE_CAT_LOOKS.battleCat, 'paws-cat-armed'),
+};

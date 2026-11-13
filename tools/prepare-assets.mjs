@@ -4,6 +4,7 @@ import sharp from 'sharp';
 import { copyFileSync, mkdirSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { PAWS_FRAME } from '../src/data/adventure/heroes.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = join(ROOT, 'images', 'sprites');
@@ -24,9 +25,14 @@ const SETS = [
   { dir: 'battle-cat', out: 'battle-cat', scale: 1, anims: { Idle: 8, Run: 8, Shoot: 8, Hit: 3, Rage: 4, Defeated: 5, Jump: 4, Slide: 4, Dash: 4, Climb: 6, ClimbUp: 4, ClimbDown: 6, Hang: 1, Special: 4, SpecialEnd: 3 } },
   // The same cat with bare paws, as he starts each adventure level. Cut by tools/cut-battle-cat.mjs.
   { dir: 'battle-cat-paws', out: 'battle-cat-paws', scale: 1, anims: { Idle: 4, Run: 8, Jump: 4, Slide: 4, Hit: 3, Rage: 4, Defeated: 3, Dash: 4, Climb: 6, ClimbUp: 4, ClimbDown: 6, Hang: 1, Special: 3, SpecialEnd: 3 } },
-  // The new Adventure Paws cat, from the owner's ChatGPT strips. Cut by tools/cut-paws-cat.mjs to the
-  // battle cat's frame size. More moves are added here as their strips are drawn.
-  { dir: 'paws-cat/frames', out: 'paws-cat', scale: 1, anims: { Idle: 6, Run: 8 } },
+  // The new Adventure Paws cat, from the owner's ChatGPT strips, cut by tools/cut-paws-cat.mjs to his
+  // taller frame (PAWS_FRAME). As each new strip is cut, its move goes on this line and comes off
+  // the stand-ins' line below.
+  { dir: 'paws-cat/frames', out: 'paws-cat', scale: 1, anims: { Idle: 6, Run: 8, Jump: 4 } },
+  // His other moves for now: the battle cat's, bare-pawed and with the minigun, padded on top (`pad`)
+  // into his taller frame.
+  { dir: 'battle-cat-paws', out: 'paws-cat', scale: 1, pad: PAWS_FRAME.pad, anims: { Slide: 4, Hit: 3, Rage: 4, Defeated: 3, Dash: 4, Climb: 6, ClimbUp: 4, ClimbDown: 6, Hang: 1, Special: 3, SpecialEnd: 3 } },
+  { dir: 'battle-cat', out: 'paws-cat-armed', scale: 1, pad: PAWS_FRAME.pad, anims: { Idle: 8, Run: 8, Shoot: 8, Hit: 3, Rage: 4, Defeated: 5, Jump: 4, Slide: 4, Dash: 4, Climb: 6, ClimbUp: 4, ClimbDown: 6, Hang: 1, Special: 4, SpecialEnd: 3 } },
 ];
 
 // Sets whose source files use their own naming. `every` keeps one frame in N, to save memory.
@@ -37,6 +43,7 @@ const SEQUENCES = [
 ];
 
 rmSync(DEST, { recursive: true, force: true });
+// Several sets can fill one folder (the new cat's own moves and his stand-ins).
 for (const set of SETS) {
   const outDir = join(DEST, set.out);
   mkdirSync(outDir, { recursive: true });
@@ -46,6 +53,7 @@ for (const set of SETS) {
       const { width } = await img.metadata();
       await img
         .resize({ width: Math.round(width * set.scale) })
+        .extend({ top: set.pad ?? 0, background: { r: 0, g: 0, b: 0, alpha: 0 } })
         .png({ compressionLevel: 9 })
         .toFile(join(outDir, `${anim.toLowerCase()}-${i}.png`));
     }
