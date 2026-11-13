@@ -5,3 +5,8 @@ prompts
 
 # Downloaded art packs (CraftPix and others): their licences forbid sharing them, and the repo is public.
 images/assets/
+
+# Reference screenshots of other games (Nintendo's): for looking at only, never shared.
+images/colors example/
+# The second agent's leftover troll review pictures.
+troll-boss-review/

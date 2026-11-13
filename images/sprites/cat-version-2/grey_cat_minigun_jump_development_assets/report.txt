@@ -1,0 +1,17 @@
+# Grey cat minigun jump extraction report
+
+- Source dimensions: 2172 x 724 RGBA.
+- Detected frame components: 8.
+- Exported frames: 8.
+- Frame canvas: 256 x 256.
+- Horizontal strip: 2048 x 256.
+- Uniform scale factor: 0.7973; no per-frame scaling.
+- Horizontal pivot: x=128.
+- Ground reference: y=244; airborne positions preserve source arc.
+- Minigun retained with cat in all frames.
+- Original alpha transparency retained.
+- Suggested playback: 9 FPS, play once.
+- ZIP integrity checked.
+
+## Limitations
+The generated artwork contains eight jump poses, but exact foot contact and anatomical motion are not hand-keyframed. Inspect the contact sheet before shipping.

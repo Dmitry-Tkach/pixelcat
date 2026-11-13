@@ -1,0 +1,18 @@
+# Grey cat jump animation extraction report
+
+- Source image: 2172 x 724 RGBA.
+- Detected character components: 8.
+- Requested frames: 8; extracted: 8.
+- Frame canvas: 256 x 256.
+- Horizontal strip: 2048 x 256.
+- Uniform scale: 0.8286; no per-frame scaling.
+- Horizontal centre: x=128.
+- Ground reference line: y=244.
+- Source vertical jump arc preserved rather than bottom-aligning airborne poses.
+- Transparent source background retained.
+- Suggested playback: 9 FPS, play once.
+- ZIP archive integrity checked after creation.
+
+## Visual limitations
+- The source generator produced eight poses, but exact contact/down/take-off/airborne/landing biomechanics are not guaranteed to be perfectly keyframed.
+- This extraction uses the detected silhouette bounds; inspect the contact sheet for any small edge artefacts or pose inconsistencies.

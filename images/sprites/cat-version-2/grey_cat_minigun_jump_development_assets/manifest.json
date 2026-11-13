@@ -1,0 +1,36 @@
+{
+  "animation": "jump_minigun",
+  "frame_count": 8,
+  "canvas": {
+    "width": 256,
+    "height": 256
+  },
+  "strip": {
+    "width": 2048,
+    "height": 256
+  },
+  "fps": 9,
+  "loop": false,
+  "pivot": {
+    "x": 128,
+    "ground_line_y": 244
+  },
+  "frames": [
+    "frames/jump/jump_00.png",
+    "frames/jump/jump_01.png",
+    "frames/jump/jump_02.png",
+    "frames/jump/jump_03.png",
+    "frames/jump/jump_04.png",
+    "frames/jump/jump_05.png",
+    "frames/jump/jump_06.png",
+    "frames/jump/jump_07.png"
+  ],
+  "notes": [
+    "Eight poses extracted from the generated minigun jump sprite sheet using measured foreground components.",
+    "Cat and minigun remain together in every frame.",
+    "Uniform scale factor 0.7973; no frame-specific scaling.",
+    "Horizontal centres aligned to x=128.",
+    "Vertical jump arc preserved using source y-position relative to the grounded pose.",
+    "Original alpha transparency retained."
+  ]
+}

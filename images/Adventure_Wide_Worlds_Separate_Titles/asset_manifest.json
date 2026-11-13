@@ -1,0 +1,70 @@
+{
+  "project": "Adventure \u2014 wide world art and separate title plates",
+  "atlas_dimensions": [
+    1536,
+    1024
+  ],
+  "world_count": 8,
+  "levels_per_world": 3,
+  "total_levels": 24,
+  "world_art": "wide landscape crops; no title plates or level buttons included",
+  "world_titles": "separate title plate PNG crops; not attached to world artwork",
+  "level_buttons": "three separate reusable level button PNGs",
+  "worlds": [
+    {
+      "id": 1,
+      "name": "Forest Ruins",
+      "image": "01_wide_world_islands_no_text/01_forest_ruins.png",
+      "title": "02_world_title_plates_separate/01_forest_ruins_title.png"
+    },
+    {
+      "id": 2,
+      "name": "Rustic Village",
+      "image": "01_wide_world_islands_no_text/02_rustic_village.png",
+      "title": "02_world_title_plates_separate/02_rustic_village_title.png"
+    },
+    {
+      "id": 3,
+      "name": "Graveyard",
+      "image": "01_wide_world_islands_no_text/03_graveyard.png",
+      "title": "02_world_title_plates_separate/03_graveyard_title.png"
+    },
+    {
+      "id": 4,
+      "name": "Crystal Cavern",
+      "image": "01_wide_world_islands_no_text/04_crystal_cavern.png",
+      "title": "02_world_title_plates_separate/04_crystal_cavern_title.png"
+    },
+    {
+      "id": 5,
+      "name": "Bone Wastes",
+      "image": "01_wide_world_islands_no_text/05_bone_wastes.png",
+      "title": "02_world_title_plates_separate/05_bone_wastes_title.png"
+    },
+    {
+      "id": 6,
+      "name": "Sky Temple",
+      "image": "01_wide_world_islands_no_text/06_sky_temple.png",
+      "title": "02_world_title_plates_separate/06_sky_temple_title.png"
+    },
+    {
+      "id": 7,
+      "name": "Dark Fortress",
+      "image": "01_wide_world_islands_no_text/07_dark_fortress.png",
+      "title": "02_world_title_plates_separate/07_dark_fortress_title.png"
+    },
+    {
+      "id": 8,
+      "name": "Ancient Wilds",
+      "image": "01_wide_world_islands_no_text/08_ancient_wilds.png",
+      "title": "02_world_title_plates_separate/08_ancient_wilds_title.png"
+    }
+  ],
+  "notes": [
+    "The atlas is a flattened generated image. Crops are source extracts and may include background or neighbouring artwork.",
+    "World images are landscape/wider crops with the world title plates and level buttons excluded.",
+    "World title plates are separate PNG files.",
+    "For final Phaser use, remove the atlas background, clean edges, and trim transparent bounds.",
+    "Place the title plate and three level button objects independently over/near each world island at runtime."
+  ]
+}
