@@ -63,6 +63,7 @@ const STRIPS = [
   { name: 'Idle', folder: 'frames-minigun', file: 'minigun.png', frames: 6, scale: 0.66, ground: 500, planted: true, byGaps: true, ms: 160 },
   { name: 'Shoot', folder: 'frames-minigun', file: 'firing_minigun.png', frames: 6, scale: 0.66, ground: 495, planted: true, byGaps: true, ms: 60 },
   { name: 'Run', folder: 'frames-minigun', file: 'run-with-minigun.png', frames: 8, scale: 0.66, ground: 514, steadyHead: true, byValleys: true, ms: 80 },
+  { name: 'RunShoot', folder: 'frames-minigun', file: 'run-and-hoot.png', frames: 8, scale: 0.66, ground: 513, steadyHead: true, byValleys: true, ms: 80 },
 ];
 
 if (REVIEW) mkdirSync(REVIEW, { recursive: true });

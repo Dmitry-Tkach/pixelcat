@@ -146,12 +146,14 @@ export const BATTLE_CATS = {
   // owner's ChatGPT strips; his climb is the bare-pawed one (he puts the minigun away to climb). His
   // other moves are the armed battle cat's, padded into his frame, until they're drawn. Out of rounds
   // he swipes with his bare-pawed frames, the minigun gone for that moment.
-  // muzzle: where the barrel ends, in his frame's pixels: across from his middle, up from his feet.
+  // muzzle: where the barrel ends, in his frame's pixels: across from his middle, up from his feet;
+  // runMuzzle: the same as he fires on the run.
   pawsCatArmed: (() => {
     const look = padded(BATTLE_CAT_LOOKS.battleCat, 'paws-cat-armed');
     return {
       ...look,
       muzzle: { x: 76, y: 26 },
+      runMuzzle: { x: 63, y: 42 },
       anims: {
         ...look.anims,
         idle: { file: 'idle', frames: 6, fps: 7, repeat: -1 },
@@ -160,6 +162,8 @@ export const BATTLE_CATS = {
         // loops the four that hold the gun at one height.
         shoot: { file: 'shoot', frames: 6, fps: 16, repeat: 0 },
         burst: { file: 'shoot', frames: 6, frameList: [1, 2, 5, 6], fps: 14, repeat: -1 },
+        // Firing on the run, the gun held forward (systems/AdventureMoves.js, SHOOT.runningSpeed).
+        runShoot: { file: 'runshoot', frames: 8, fps: 13, repeat: -1 },
         victory: { file: 'idle', frames: 6, fps: 7, repeat: -1 },
         swipe: CLAW_SWIPE,
       },

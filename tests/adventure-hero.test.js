@@ -71,3 +71,13 @@ describe('the hero with the minigun', () => {
     expect(muzzle.y).toBeLessThan(PAWS_FRAME.feet);
   });
 });
+
+describe('the hero firing on the run', () => {
+  it("fires from the barrel's end as he runs, inside his frame", async () => {
+    const { PAWS_FRAME } = await import('../src/data/adventure/heroes.js');
+    const { runMuzzle, anims } = CHARACTERS[ADVENTURE_HERO.armed];
+    expect(anims.runShoot).toBeDefined();
+    expect(PAWS_FRAME.middle + runMuzzle.x).toBeLessThan(PAWS_FRAME.w);
+    expect(runMuzzle.y).toBeGreaterThan(0);
+  });
+});

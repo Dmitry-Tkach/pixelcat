@@ -33,7 +33,7 @@ const SETS = [
   // With the minigun: his swipe and climb are the bare-pawed ones (the minigun is put away for them).
   { dir: 'paws-cat/frames', out: 'paws-cat-armed', scale: 1, anims: { Swipe: 4, Climb: 6 } },
   // His own standing, running and shooting with the minigun.
-  { dir: 'paws-cat/frames-minigun', out: 'paws-cat-armed', scale: 1, anims: { Idle: 6, Run: 8, Shoot: 6 } },
+  { dir: 'paws-cat/frames-minigun', out: 'paws-cat-armed', scale: 1, anims: { Idle: 6, Run: 8, Shoot: 6, RunShoot: 8 } },
   // His other moves for now: the battle cat's, bare-pawed and with the minigun, padded on top (`pad`)
   // into his taller frame.
   { dir: 'battle-cat-paws', out: 'paws-cat', scale: 1, pad: PAWS_FRAME.pad, anims: { ClimbUp: 4, ClimbDown: 6, Hang: 1 } },

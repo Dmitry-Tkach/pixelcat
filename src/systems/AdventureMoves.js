@@ -24,8 +24,9 @@ const GUN = { muzzleX: 57, muzzleY: 41, flashScale: 0.75 };
 const BULLET = { w: 30, h: 12, depth: 5 };
 // tapMs: how long a tap's shoot animation shows. holdMs: held this long, a tap becomes a burst.
 // cooldownMs: the least time between taps. rageShare: in a rage, bursts come this much quicker.
-// emptyHintMs: how often an empty minigun says so.
-const SHOOT = { tapMs: 375, holdMs: 300, cooldownMs: 260, rageShare: 0.6, emptyHintMs: 2500 };
+// emptyHintMs: how often an empty minigun says so. runningSpeed: running at least this fast (px a
+// second) on the ground, he fires on the run (his `runShoot` move, if his look has one).
+const SHOOT = { tapMs: 375, holdMs: 300, cooldownMs: 260, rageShare: 0.6, emptyHintMs: 2500, runningSpeed: 60 };
 const BLAST_SHAKE = { ms: 180, strength: 0.006 };
 const DASH = { speed: 950, ms: 220, cooldownMs: 650 };
 // The rage, from the mushroom: how long it lasts, his pose as it flares up, the red he glows.
@@ -193,13 +194,13 @@ export class AdventureMoves {
     const everyMs = AMMO[this.ammo].everyMs * (this.isRaging ? SHOOT.rageShare : 1);
     if (this.fireHeldMs < SHOOT.holdMs) {
       if (firstPress && this.fireCooldownMs === 0) {
-        this.cat.pose('shoot', SHOOT.tapMs);
+        this.cat.pose(this.firingPose('shoot'), SHOOT.tapMs);
         this.fireBullet(Math.max(SHOOT.cooldownMs, everyMs));
       }
       return;
     }
     // Held: a burst, for as long as it's held.
-    this.cat.pose('burst', everyMs * 2);
+    this.cat.pose(this.firingPose('burst'), everyMs * 2);
     if (this.fireCooldownMs === 0) this.fireBullet(everyMs);
   }
 
@@ -237,10 +238,24 @@ export class AdventureMoves {
     this.onAmmo?.(null);
   }
 
-  // Where the barrel's end is now, in the world.
+  // Whether he's running along the ground, fast enough to fire on the run.
+  get firingOnTheRun() {
+    const { cat } = this;
+    return Boolean(CHARACTERS[cat.character].anims.runShoot) && cat.onGround
+      && Math.abs(cat.body.velocity.x) >= SHOOT.runningSpeed;
+  }
+
+  // The pose he fires in: running, his run with the gun forward; otherwise `standing`.
+  firingPose(standing) {
+    return this.firingOnTheRun ? 'runShoot' : standing;
+  }
+
+  // Where the barrel's end is now, in the world: higher as he runs with the gun forward.
   muzzleAt() {
     const { cat } = this;
-    const { x, y } = CHARACTERS[cat.character].muzzle ?? { x: GUN.muzzleX, y: GUN.muzzleY };
+    const look = CHARACTERS[cat.character];
+    const running = cat.poseMs > 0 && cat.poseRole === 'runShoot';
+    const { x, y } = (running ? look.runMuzzle : look.muzzle) ?? { x: GUN.muzzleX, y: GUN.muzzleY };
     return { x: cat.x + this.facing * x * cat.scaleX, y: cat.body.bottom - y * cat.scaleY };
   }
 
