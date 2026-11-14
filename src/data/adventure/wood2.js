@@ -22,7 +22,8 @@ const level = mapBuilder(COLS, ROWS).ground(0, 45, FLOOR).put(46, 65, 'X'); // t
 level.put(2, 65, '@').put(4, 65, '>').put(7, 65, 'b')
   .ground(10, 16, 68) // the dip, two cells deep: easy to climb out of
   .mover(10, 66, { across: 4 }).coins(11, 15, 63)
-  .put(22, 65, 'g').coins(19, 21, 64).put(26, 65, 'p');
+  .put(22, 65, 'g').coins(19, 21, 64).put(26, 65, 'p')
+  .trap('mushroom', 17, 65); // a bounce mushroom to play with, near the start
 
 // ----- 2. The Lift: logs that go up and down lift him up the trunk. The minigun waits halfway, and
 // a blaster fires from a ledge as he rides.
@@ -37,12 +38,13 @@ level.mover(30, 65, { up: 8 }).put(29, 65, '/')
 // him across the gaps between branches, cone heads on them, a blaster on a branch above. A log off the
 // last branch goes down to a hidden hollow with the silver key and a crystal.
 level.mover(54, 49, { across: 6 }).coins(55, 61, 47)
-  .island(65, 69, 49).put(67, 48, 'c').put(65, 48, 'a')
+  .island(65, 69, 49).put(67, 48, 'c').put(65, 48, 'a').trap('crusher', 68, 44)
   .island(60, 63, 41).put(61, 40, '1')
   .mover(71, 47, { across: 6 }).coins(72, 78, 45)
   .island(82, 88, 46).put(85, 45, 'g')
   .mover(90, 46, { up: -8 }) // down to the hollow
-  .island(94, 99, 54).put(96, 53, 'j').put(98, 53, '*').coins(94, 95, 53);
+  .island(94, 99, 54).put(96, 53, 'j').put(97, 53, '*').coins(94, 95, 53)
+  .trap('idol', 98, 53, { facing: -1 }); // a dart idol guards the silver key
 
 // ----- 4. Falling Leaves: a checkpoint and a rage mushroom, then a climb up crumbling leaves, which
 // fall soon after he lands: no stopping.
@@ -58,6 +60,8 @@ level.put(83, 45, 'C').put(87, 45, 'm')
 level.mover(50, 31, { across: 6 })
   .island(40, 46, 31).put(43, 30, 'v').put(41, 30, 'z').put(45, 30, '+')
   .island(44, 49, 22).put(46, 21, '3')
+  // A big mace on a long chain, hanging from the sniper's island, sweeps the spiky one's island.
+  .trap('mace', 46, 23, { hanging: true, chain: 400, periodMs: 4200 })
   .put(34, 28, '%').put(35, 28, '%').put(36, 28, '%')
   .mover(28, 28, { up: 7 }).coins(29, 29, 25)
   .island(20, 26, 21).put(25, 20, 'C').put(22, 20, 'T').put(24, 20, 'g').put(19, 20, 'X');
@@ -78,4 +82,5 @@ export const WOOD_CANOPY_LEVEL = {
   hearts: 3,
   map: level.rows(),
   movers: level.movers(),
+  traps: level.traps(),
 };

@@ -15,6 +15,9 @@ export class AdventureGates {
     this.scene = scene;
     this.gates = gates;
     this.layout = layout;
+    // How visible the cat is as he comes out of the start gate, 0 to 1. The scene sets his alpha
+    // every frame (he blinks when hurt), so it multiplies by this rather than being tweened itself.
+    this.catAlpha = 1;
   }
 
   art(name) {
@@ -58,8 +61,8 @@ export class AdventureGates {
     const { tweens } = this.scene;
     swirl.setScale(swirl.baseScale * 1.15);
     tweens.add({ targets: swirl, scale: swirl.baseScale, alpha: s.idleAlpha, delay: s.openMs * 0.4, duration: s.openMs * 0.6, ease: 'Sine.easeOut' });
-    cat.setAlpha(0);
-    tweens.add({ targets: cat, alpha: 1, duration: s.catFadeMs });
+    this.catAlpha = 0;
+    tweens.add({ targets: this, catAlpha: 1, duration: s.catFadeMs });
   }
 
   // A checkpoint's flag post at (x, y). Returns the zone he touches, with its pictures on it.

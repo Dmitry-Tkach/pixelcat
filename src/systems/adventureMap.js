@@ -1,6 +1,7 @@
 // Reads an adventure level's map (see data/adventure/wood.js) into what the scene builds: the tile
 // grid for the ground and islands, the ladders, and every object with its cell. Plain code, no
 // Phaser, so tests can check levels.
+import { trapProblems } from './adventure/trapLogic.js';
 
 export const TILE = 64;
 // How deep into a tile the cat can sink in one physics step and still be pushed back out. Phaser's
@@ -172,6 +173,8 @@ export function checkAdventureLevel(level) {
   for (const { col, row } of readAdventureMap(map).scenery.filter((s) => s.texture === 'roots')) {
     if (pillarFoot(tiles, col, row) === null) errors.push(`the pillar in column ${col}, row ${row} is too high above the ground to stand on it`);
   }
+  // The moving traps must stand on something, hang from something, and clear the ground.
+  errors.push(...trapProblems(level, readAdventureMap(map)));
   // A ladder's top must be on an island or the ground, so the cat has somewhere to step off.
   const byCol = new Map();
   for (const { col, row } of ladders) byCol.set(col, [...(byCol.get(col) ?? []), row]);

@@ -22,6 +22,9 @@ export const ADVENTURE_ART = {
     'decor-tuft-1', 'decor-tuft-2', 'decor-flowers-1', 'decor-flowers-2', 'decor-vine-1', 'decor-vine-2', 'decor-vine-3',
     // The gates (data/adventure/gates.js): the start gate, the checkpoint flags and the portal's arch.
     'gate-ring', 'gate-swirl', 'flag-pole', 'flag-down', 'flag-up', 'portal-arch', 'portal-swirl', 'portal-post',
+    // The moving traps (data/adventure/traps.js): the mace, the crusher, the dart idol and the mushroom.
+    'trap-gallows', 'trap-chain', 'trap-mace', 'trap-crusher', 'trap-crusher-angry', 'trap-idol', 'trap-idol-angry', 'trap-dart',
+    'trap-mushroom', 'trap-mushroom-squashed',
   ],
 };
 

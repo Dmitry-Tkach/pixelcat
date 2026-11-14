@@ -20,6 +20,8 @@ import { placeDecor } from '../src/systems/adventure/decorPlacement.js';
 import { waterRuns } from '../src/systems/adventure/water.js';
 import { GATES } from '../src/data/adventure/gates.js';
 import { portalPosts } from '../src/systems/adventure/gatePlacement.js';
+import { TRAPS } from '../src/data/adventure/traps.js';
+import { floorRow, maceHook } from '../src/systems/adventure/trapLogic.js';
 
 const [out, index = '0'] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const routes = process.argv.includes('--routes');
@@ -116,6 +118,47 @@ for (const o of objects) {
   else if (o.type === 'gunner') await place(await atlasFrame('gunners', o.kind, 'idle-0', gunnerLayout(o.kind).frameW), o.col, o.row, true);
   else if (o.type === 'start') await place(await sharp({ create: { width: CELL, height: CELL * 1.5, channels: 4, background: '#3a7bff' } }).png().toBuffer(), o.col, o.row, true);
   else if (ICON[o.type]) await place(await image(art(ICON[o.type])), o.col, o.row, ['spike', 'chest', 'silver-chest', 'checkpoint', 'portal'].includes(o.type));
+}
+// The moving traps (data/adventure/traps.js), drawn as they are at rest: the mace hanging straight
+// down, the crusher at the top with a dotted line to where it slams, each idol with a dotted line
+// along its darts' path.
+const trapRules = TRAPS[level.world];
+const dots = async (x0, y0, x1, y1, colour) => {
+  const len = Math.hypot(x1 - x0, y1 - y0) * SCALE;
+  for (let d = 0; d < len; d += 8) {
+    const t = d / len;
+    comps.push({ input: await sharp({ create: { width: 3, height: 3, channels: 4, background: colour } }).png().toBuffer(), left: Math.round((x0 + (x1 - x0) * t) * SCALE), top: Math.round((y0 + (y1 - y0) * t) * SCALE) });
+  }
+};
+for (const trap of level.traps ?? []) {
+  const r = trapRules[trap.kind];
+  const x = trap.col * TILE + TILE / 2, feet = (trap.row + 1) * TILE;
+  const flip = async (input) => ((trap.facing ?? 1) < 0 ? sharp(input).flop().toBuffer() : input);
+  if (trap.kind === 'mace') {
+    if (!trap.hanging) await placeAt(await flip(await image(art(r.gallows))), x, trap.row);
+    const hook = maceHook(trap, r);
+    const chain = trap.chain ?? r.chain;
+    const link = await image(art(r.link));
+    const { width: lw, height: lh } = await size(link);
+    for (let y = 0; y < chain; y += lh / SCALE * 0.9) comps.push({ input: link, left: Math.round(hook.x * SCALE - lw / 2), top: Math.round((hook.y + y) * SCALE) });
+    const ball = await image(art(r.ball));
+    comps.push({ input: ball, left: Math.round(hook.x * SCALE - (await size(ball)).width / 2), top: Math.round((hook.y + chain) * SCALE) });
+  } else if (trap.kind === 'crusher') {
+    const block = await image(art(r.calm));
+    const { width, height } = await size(block);
+    const top = trap.row * TILE;
+    const floor = floorRow(tiles, trap.col, trap.row) * TILE;
+    await dots(x, top + height / SCALE, x, floor, '#ff4040');
+    comps.push({ input: block, left: Math.round(x * SCALE - width / 2), top: Math.round(top * SCALE) });
+  } else if (trap.kind === 'idol') {
+    const idol = await flip(await image(art(r.calm)));
+    await placeAt(idol, x, trap.row);
+    const facing = trap.facing ?? 1;
+    const mouthY = feet - r.height + r.mouth.y * r.height;
+    await dots(x + facing * r.height * 0.4, mouthY, x + facing * (r.height * 0.4 + r.dartRange), mouthY, '#ffe040');
+  } else if (trap.kind === 'mushroom') {
+    await placeAt(await image(art(r.calm)), x, trap.row);
+  }
 }
 // The boss, standing on the floor at his column, in his first idle frame.
 if (level.boss) {

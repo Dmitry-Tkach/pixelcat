@@ -18,6 +18,8 @@ import { AMBIENCE } from '../data/adventure/ambience.js';
 import { AdventureAmbience } from '../systems/adventure/AdventureAmbience.js';
 import { GATES } from '../data/adventure/gates.js';
 import { AdventureGates } from '../systems/adventure/AdventureGates.js';
+import { TRAPS } from '../data/adventure/traps.js';
+import { AdventureTraps } from '../systems/adventure/AdventureTraps.js';
 import { FLASH, FLASH_KEY } from '../data/adventure/gunners.js';
 import { BOSS_FIGHTS } from '../data/adventure/bossFights.js';
 import { AdventureBoss } from '../entities/AdventureBoss.js';
@@ -120,6 +122,8 @@ export class AdventureScene extends Phaser.Scene {
     // The start gate, the checkpoint flags and the portal's arch (data/adventure/gates.js).
     this.gates = new AdventureGates(this, GATES[level.world], this.layout);
     this.buildObjects();
+    // The moving traps: maces, crushers, dart idols and bounce mushrooms (data/adventure/traps.js).
+    this.traps = new AdventureTraps(this, TRAPS[level.world], level.traps ?? [], this.layout, (fromX) => this.hurt(fromX));
 
     const start = this.layout.objects.find((o) => o.type === 'start');
     this.respawnAt = this.cellFeet(start);
@@ -1097,7 +1101,7 @@ export class AdventureScene extends Phaser.Scene {
     const ms = Math.min(delta, 50);
     this.controls.update(time);
     this.hurtMs = Math.max(0, this.hurtMs - ms);
-    this.cat.setAlpha(this.hurtMs > 0 && Math.floor(this.hurtMs / HURT.blinkMs) % 2 ? 0.35 : 1);
+    this.cat.setAlpha((this.hurtMs > 0 && Math.floor(this.hurtMs / HURT.blinkMs) % 2 ? 0.35 : 1) * this.gates.catAlpha);
     if (this.climbing) {
       this.updateClimbing();
     } else if (!this.pullingUp) {
@@ -1115,6 +1119,7 @@ export class AdventureScene extends Phaser.Scene {
       this.bossBar.update(ms, this.boss.brain.healthShare);
     }
     this.platforms.update(ms);
+    this.traps.update(ms, this.cat);
     this.updateLook(ms);
     this.updateWater(ms);
     if (this.cat.body.top > this.worldH + FALL_OUT_BELOW) this.fellOut();

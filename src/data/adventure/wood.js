@@ -39,13 +39,17 @@ level.island(30, 36, 25).ladder(31, 25, 29).put(34, 26, 'R')
   .coins(32, 35, 24)
   .island(39, 44, 22).put(41, 18, '?').put(43, 21, 'w').put(39, 21, '/')
   .arc(37, 38, 22, 1)
-  .put(49, 29, 'c').coins(46, 48, 28);
+  .put(49, 29, 'c').coins(46, 48, 28)
+  // A bounce mushroom beside the minigun's island, a shortcut up; a dart idol shoots back along the floor.
+  .trap('mushroom', 45, 29).trap('idol', 52, 29, { facing: -1 });
 
 // ----- 3. The Gunner's Ledge: a raised ledge with a checkpoint. A blaster gunner shoots down from
 // an island above it, which a ladder climbs to, with a crate of rounds for whoever gets there.
 level.put(53, 29, 'B').ground(54, 69, 26)
   .put(56, 25, 'C').coins(57, 59, 24).put(60, 25, 'g').put(68, 25, 'b')
-  .island(62, 67, 20).ladder(62, 20, 25).put(65, 19, '1').put(67, 19, 'a');
+  .island(62, 67, 20).ladder(62, 20, 25).put(65, 19, '1').put(67, 19, 'a')
+  // A swinging mace on a gallows guards the ledge's end, before the drop into the hollow.
+  .trap('mace', 67, 25, { facing: -1 });
 
 // ----- 4. Thorn Hollow: no floor at all, crossed on islands and a bridge. A crate of freeze rounds
 // on the first island, for the spiky enemy who holds the narrow middle island (he can't be stomped), a cone head the last, and a ray gun fires down from above. Above the spiky
@@ -53,6 +57,7 @@ level.put(53, 29, 'B').ground(54, 69, 26)
 level.gap(70, 97)
   .island(72, 75, 27).arc(70, 71, 26, 1).put(74, 26, 'f')
   .bridge(78, 81, 27).coins(78, 81, 25)
+  .trap('crusher', 80, 22) // a crusher slams down onto the bridge
   .island(84, 87, 24).put(86, 23, 'v')
   .island(91, 94, 27).put(93, 26, 'c').coins(95, 96, 26)
   .island(88, 89, 21) // the step up
@@ -97,4 +102,5 @@ export const WOOD_LEVEL = {
   // No moods (data/adventure/moods.js): the owner didn't like the light changing from one part of
   // the level to the next, so it's the same all through.
   map: level.rows(),
+  traps: level.traps(),
 };
