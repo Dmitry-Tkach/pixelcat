@@ -14,9 +14,13 @@ export class AdventureBackdrop {
     this.scene = scene;
     this.backdrop = backdrop;
     this.startY = null; // where the camera was the first frame, for how far it has climbed
+    this.fitted = false; // fitted again on the first frame (see update)
     const fixed = (object) => object.setScrollFactor(0);
+    // Each made at the screen's size from the start: made tiny and sized after, they didn't show
+    // until the window was resized.
+    const { WIDTH, HEIGHT } = GAME;
     this.layers = backdrop.layers.map((layer) => {
-      const sprite = fixed(scene.add.tileSprite(0, 0, 4, 4, art(layer.picture)).setOrigin(0, 0).setDepth(layer.depth));
+      const sprite = fixed(scene.add.tileSprite(0, 0, WIDTH, HEIGHT, art(layer.picture)).setOrigin(0, 0).setDepth(layer.depth));
       if (layer.tint !== undefined) sprite.setTint(layer.tint);
       if (layer.alpha !== undefined) sprite.setAlpha(layer.alpha);
       return { ...layer, sprite };
@@ -24,10 +28,16 @@ export class AdventureBackdrop {
     const { rays, fog, front } = backdrop;
     this.rays = rays && fixed(scene.add.image(0, 0, backdropFxKey('rays')).setOrigin(0.5, 0)
       .setDepth(rays.depth).setTint(rays.tint).setBlendMode(Phaser.BlendModes.ADD));
-    this.fog = fog && fixed(scene.add.tileSprite(0, 0, 4, 4, backdropFxKey('fog')).setOrigin(0, 1)
+    this.fog = fog && fixed(scene.add.tileSprite(0, HEIGHT, WIDTH, HEIGHT * fog.height, backdropFxKey('fog')).setOrigin(0, 1)
       .setDepth(fog.depth).setTint(fog.tint).setAlpha(fog.alpha));
-    this.front = front && fixed(scene.add.tileSprite(0, 0, 4, 4, art(front.picture)).setOrigin(0, 1).setDepth(front.depth));
+    this.front = front && fixed(scene.add.tileSprite(0, HEIGHT, WIDTH, HEIGHT / 3, art(front.picture)).setOrigin(0, 1).setDepth(front.depth));
     this.fit();
+    // While developing, B shows or hides the see-through layers (the tree shadows), to compare.
+    if (import.meta.env.DEV) {
+      scene.input.keyboard.on('keydown-B', () => {
+        for (const { sprite, alpha } of this.layers) if (alpha !== undefined) sprite.setVisible(!sprite.visible);
+      });
+    }
   }
 
   // Sizes everything to the screen, as it is now: each layer as tall as the screen and ROOM more
@@ -59,6 +69,12 @@ export class AdventureBackdrop {
   // Each frame, from where the camera is, and the time (ms) for the rays' breathing and the fog's
   // drift.
   update(cam, time) {
+    // Fitted once more on the first frame, as a window resize would: the layers showed only after
+    // one.
+    if (!this.fitted) {
+      this.fit();
+      this.fitted = true;
+    }
     if (this.startY === null) this.startY = cam.scrollY;
     const climbed = cam.scrollY - this.startY;
     for (const layer of this.layers) {
