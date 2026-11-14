@@ -8,6 +8,8 @@ import { spreadFire } from '../systems/adventure/burning.js';
 import { AdventureAmmoBelt } from '../ui/AdventureAmmoBelt.js';
 import { AdventureBackdrop } from '../systems/adventure/AdventureBackdrop.js';
 import { BACKDROPS } from '../data/adventure/backdrop.js';
+import { DECOR } from '../data/adventure/decor.js';
+import { placeDecor } from '../systems/adventure/decorPlacement.js';
 import { FLASH, FLASH_KEY } from '../data/adventure/gunners.js';
 import { BOSS_FIGHTS } from '../data/adventure/bossFights.js';
 import { AdventureBoss } from '../entities/AdventureBoss.js';
@@ -100,6 +102,7 @@ export class AdventureScene extends Phaser.Scene {
 
     this.buildBackground();
     this.buildTiles();
+    this.buildDecor();
     this.buildLadders();
     this.buildScenery();
     this.buildObjects();
@@ -220,6 +223,14 @@ export class AdventureScene extends Phaser.Scene {
     this.groundLayer.forEachTile((tile) => {
       if (ONE_WAY.has(tile.index)) tile.setCollision(false, false, true, false, false);
     });
+  }
+
+  // The plants the level grows by itself: grass and flowers on the tops, vines under the islands
+  // (data/adventure/decor.js, placed by systems/adventure/decorPlacement.js).
+  buildDecor() {
+    for (const { picture, x, y, hang, depth, flip } of placeDecor(this.layout, DECOR[this.level.world])) {
+      this.add.image(x, y, this.art(picture)).setOrigin(0.5, hang ? 0 : 1).setDepth(depth).setFlipX(flip);
+    }
   }
 
   buildLadders() {

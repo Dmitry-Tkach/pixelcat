@@ -14,13 +14,17 @@ import { enemyLayout } from '../src/data/adventure/enemies.js';
 import { gunnerLayout } from '../src/data/adventure/gunners.js';
 import { adventureRoutes } from '../src/systems/adventureRoutes.js';
 import { TILE, readAdventureMap } from '../src/systems/adventureMap.js';
+import { DECOR } from '../src/data/adventure/decor.js';
+import { BACKDROPS } from '../src/data/adventure/backdrop.js';
+import { placeDecor } from '../src/systems/adventure/decorPlacement.js';
 
 const [out, index = '0'] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const routes = process.argv.includes('--routes');
 const level = BOSS_ARENAS[index] ?? ADVENTURE_LEVELS[Number(index)];
 const SCALE = level.boss ? 0.5 : 0.25; // an arena is small, so it's drawn bigger
 const CELL = TILE * SCALE;
-const { rows, cols, tiles, ladders, objects } = readAdventureMap(level.map);
+const layout = readAdventureMap(level.map);
+const { rows, cols, tiles, ladders, objects } = layout;
 const art = (name) => join('public', adventurePath(level.world, name));
 const image = async (file, scale = SCALE) => {
   const { width } = await sharp(file).metadata();
@@ -35,7 +39,17 @@ const atlasFrame = async (folder, kind, frame, w) => {
 const comps = [];
 const strip = 'public/assets/adventure/' + level.world + '/tiles.png';
 const tileImages = await Promise.all(Array.from({ length: 10 }, (_, i) => sharp(strip).extract({ left: i * TILE, top: 0, width: TILE, height: TILE }).resize(CELL, CELL).toBuffer()));
+// The automatic decoration (data/adventure/decor.js): vines behind the tiles, plants in front.
+const decor = placeDecor(layout, DECOR[level.world]);
+const decorPiece = async ({ picture, x, y, hang, flip }) => {
+  let input = await image(art(picture));
+  if (flip) input = await sharp(input).flop().toBuffer();
+  const { width, height } = await sharp(input).metadata();
+  return { input, left: Math.max(0, Math.round(x * SCALE - width / 2)), top: Math.max(0, Math.round(y * SCALE - (hang ? 0 : height))) };
+};
+for (const item of decor.filter((d) => d.hang)) comps.push(await decorPiece(item));
 for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) if (tiles[r][c] >= 0) comps.push({ input: tileImages[tiles[r][c]], left: c * CELL, top: r * CELL });
+for (const item of decor.filter((d) => !d.hang)) comps.push(await decorPiece(item));
 const ladder = await sharp(art('ladder')).resize(CELL, CELL).toBuffer();
 for (const { col, row } of ladders) comps.push({ input: ladder, left: col * CELL, top: row * CELL });
 
@@ -90,7 +104,8 @@ if (routes) {
 }
 
 const W = cols * CELL, H = rows * CELL;
-const back = await sharp(art('back-far')).resize({ height: H, width: W, fit: 'cover' }).toBuffer();
+// The world's backmost backdrop layer (data/adventure/backdrop.js), stretched behind the whole level.
+const back = await sharp(art((BACKDROPS[level.world] ?? BACKDROPS.wood).layers[0].picture)).resize({ height: H, width: W, fit: 'cover' }).toBuffer();
 await sharp({ create: { width: W, height: H, channels: 4, background: level.sky ?? '#8fd18f' } })
   .composite([{ input: back, left: 0, top: 0 }, ...comps]).png().toFile(out);
 console.log(`${level.title}: ${cols} x ${rows} cells, drawn to ${out}`);
