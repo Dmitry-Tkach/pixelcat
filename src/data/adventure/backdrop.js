@@ -18,14 +18,12 @@
 //   than the world (drift above 1), so they feel close. null for none yet.
 export const BACKDROPS = {
   wood: {
-    // The owner's painted sky (images/levels/forest/sky.png, its leaves cut off), with its misty
-    // trees and ruins: it's the far layer too. In front, the pack's flat trees, tinted and see-through
-    // so they're shadows in the mist, until the owner's middle and near layers come.
+    // The owner's painted layers (images/levels/forest): the sky, its leaves cut off, with its misty
+    // trees and ruins (it's the far layer too), and the middle: big trees, ruined arches and two
+    // waterfalls. They replaced the pack's flat trees, which stood in as misty shadows.
     layers: [
       { picture: 'layer-sky', drift: 0.08, rise: 0.03, depth: -10 },
-      // Drawn to sit on the screen's bottom: stretched and moved up and down, its joins showed lines
-      // and its bottom looked wrong as the cat climbed.
-      { picture: 'back-near', drift: 0.25, rise: 0, depth: -9, tint: 0x9fe0d0, alpha: 0.55 },
+      { picture: 'layer-middle', drift: 0.3, rise: 0.07, depth: -9 },
     ],
     // Softer than they'd be alone: the sky has rays painted in.
     rays: { tint: 0xf2ffb8, alpha: 0.18, breatheMs: 5200, swayPx: 18, depth: -7 },

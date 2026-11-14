@@ -30,7 +30,8 @@ const OWNER_LAYERS = {
 const SOURCE_FOLDER = { wood: 'forest' };
 const LAYER_HEIGHT = 820; // the screen's height and a little room to move up and down
 const FRONT_HEIGHT = 300; // the leaves in front, cut to the bottom of the picture, this tall
-const SEAM = 0.12; // the share of a picture's width blended across its join
+const SEAM = 0.04; // the share of a picture's width blended across its join
+const JOIN_SEARCH = 0.22; // how far in from each side (a share of the width) the best join is looked for
 
 // ----- 1. Light rays and fog -----
 
@@ -120,6 +121,47 @@ async function seamless(input, band) {
   return sharp(out, { raw: { width: outW, height, channels: 4 } }).png().toBuffer();
 }
 
+// ChatGPT's see-through pictures are never quite solid where they're drawn (opacity 250 or so, not
+// 255), so the sky behind showed faintly through: nearly solid pixels are made solid.
+const NEARLY_SOLID = 235;
+async function solidify(input) {
+  const { data, info } = await sharp(input).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  for (let i = 3; i < data.length; i += 4) if (data[i] >= NEARLY_SOLID) data[i] = 255;
+  return sharp(data, { raw: info }).png().toBuffer();
+}
+
+// The picture cut to where it joins itself best: of the columns near its left side and near its
+// right side, the two most alike (in colour and opacity), so that, repeated, the right one runs on
+// into the left one. A big tree drawn at both sides would otherwise be blended into a ghost.
+async function bestJoin(input) {
+  const { data, info } = await sharp(input).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { width, height } = info;
+  const step = 4; // every 4th row is enough to compare
+  const column = (x) => {
+    const values = [];
+    for (let y = 0; y < height; y += step) {
+      const i = (y * width + x) * 4;
+      const a = data[i + 3] / 255;
+      values.push(data[i] * a, data[i + 1] * a, data[i + 2] * a, data[i + 3]);
+    }
+    return values;
+  };
+  const search = Math.round(width * JOIN_SEARCH);
+  const lefts = Array.from({ length: search }, (_, x) => column(x));
+  let best = { left: 0, right: width - 1, cost: Infinity };
+  for (let right = width - search; right < width; right++) {
+    const r = column(right);
+    for (let left = 0; left < search; left++) {
+      const l = lefts[left];
+      let cost = 0;
+      for (let k = 0; k < r.length; k++) cost += Math.abs(r[k] - l[k]);
+      if (cost < best.cost) best = { left, right, cost };
+    }
+  }
+  // The right column is where it runs on into the left one: keep up to just before it.
+  return sharp(input).extract({ left: best.left, top: 0, width: best.right - best.left, height }).png().toBuffer();
+}
+
 let made = 0;
 for (const [world, layers] of Object.entries(OWNER_LAYERS)) {
   for (const [file, { name, cropTop = 0 }] of Object.entries(layers)) {
@@ -136,6 +178,7 @@ for (const [world, layers] of Object.entries(OWNER_LAYERS)) {
       const keep = Math.round(height * 0.4);
       picture = await sharp(picture).extract({ left: 0, top: height - keep, width, height: keep }).resize({ height: FRONT_HEIGHT }).png().toBuffer();
     }
+    picture = await bestJoin(await solidify(picture));
     const { width } = await sharp(picture).metadata();
     await sharp(await seamless(picture, Math.round(width * SEAM))).png({ compressionLevel: 9 }).toFile(join(ART_OUT, world, `${name}.png`));
     made += 1;

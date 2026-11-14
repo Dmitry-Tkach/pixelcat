@@ -17,7 +17,7 @@ export const ADVENTURE_ART = {
     'pillar-cap', 'pillar-middle', 'pillar-base', 'minigun',
     'bullet-explosive', 'bullet-laser', 'ammo-standard', 'ammo-explosive', 'ammo-laser', 'ammo-freeze', 'ammo-fire',
     'bridge', 'leaves', 'silver-key', 'chest-silver-locked', 'chest-silver-open',
-    'layer-sky', // the backdrop's layers (data/adventure/backdrop.js), from the owner's pictures
+    'layer-sky', 'layer-middle', // the backdrop's layers (data/adventure/backdrop.js), from the owner's pictures
     // The automatic decoration (data/adventure/decor.js): grass, flowers and hanging vines.
     'decor-tuft-1', 'decor-tuft-2', 'decor-flowers-1', 'decor-flowers-2', 'decor-vine-1', 'decor-vine-2', 'decor-vine-3',
   ],
