@@ -10,6 +10,8 @@ import { AdventureBackdrop } from '../systems/adventure/AdventureBackdrop.js';
 import { BACKDROPS } from '../data/adventure/backdrop.js';
 import { DECOR } from '../data/adventure/decor.js';
 import { moodAt } from '../data/adventure/moods.js';
+import { WATER } from '../data/adventure/water.js';
+import { AdventureWater } from '../systems/adventure/AdventureWater.js';
 import { cellRandom, placeDecor } from '../systems/adventure/decorPlacement.js';
 import { TILE_VARIANTS, TILE_VARIANT_SHARE } from '../data/adventure/tileVariants.js';
 import { AMBIENCE } from '../data/adventure/ambience.js';
@@ -108,6 +110,9 @@ export class AdventureScene extends Phaser.Scene {
     this.buildBackground();
     this.buildTiles();
     this.buildDecor();
+    // Water in the bottomless gaps, if the level has it (data/adventure/water.js).
+    this.water = new AdventureWater(this, level.water, this.layout, this.worldH + FALL_OUT_BELOW);
+    this.splashed = false;
     this.buildLadders();
     this.buildScenery();
     this.buildObjects();
@@ -932,7 +937,21 @@ export class AdventureScene extends Phaser.Scene {
     this.cat.setVelocity(away * HURT.knockX, HURT.knockY);
   }
 
+  // Falling into the water: a splash as he reaches it, and he's lost a little way under, as if he'd
+  // fallen out of the level.
+  updateWater(ms) {
+    this.water.update(ms);
+    if (!this.water.any || !this.water.over(this.cat.x)) return;
+    const { body } = this.cat;
+    if (!this.splashed && body.bottom > this.water.surfaceY && body.velocity.y > 0) {
+      this.splashed = true;
+      this.water.splash(this.cat.x);
+    }
+    if (body.top > this.water.surfaceY + WATER.sinkPx) this.fellOut();
+  }
+
   fellOut() {
+    this.splashed = false;
     this.loseHeart();
     if (!this.playing) return;
     this.moves.endDash();
@@ -1087,6 +1106,7 @@ export class AdventureScene extends Phaser.Scene {
     }
     this.platforms.update(ms);
     this.updateLook(ms);
+    this.updateWater(ms);
     if (this.cat.body.top > this.worldH + FALL_OUT_BELOW) this.fellOut();
   }
 }

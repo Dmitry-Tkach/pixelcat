@@ -17,6 +17,7 @@ import { TILE, readAdventureMap } from '../src/systems/adventureMap.js';
 import { DECOR } from '../src/data/adventure/decor.js';
 import { BACKDROPS } from '../src/data/adventure/backdrop.js';
 import { placeDecor } from '../src/systems/adventure/decorPlacement.js';
+import { waterRuns } from '../src/systems/adventure/water.js';
 
 const [out, index = '0'] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const routes = process.argv.includes('--routes');
@@ -50,6 +51,13 @@ const decorPiece = async ({ picture, x, y, hang, flip }) => {
 for (const item of decor.filter((d) => d.hang)) comps.push(await decorPiece(item));
 for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) if (tiles[r][c] >= 0) comps.push({ input: tileImages[tiles[r][c]], left: c * CELL, top: r * CELL });
 for (const item of decor.filter((d) => !d.hang)) comps.push(await decorPiece(item));
+// The water in the bottomless gaps (data/adventure/water.js), from its surface down.
+if (level.water) {
+  for (const { from, to } of waterRuns(layout, level.water.row)) {
+    const w = (to - from + 1) * CELL, h = (rows - level.water.row) * CELL;
+    comps.push({ input: await sharp('public/assets/adventure/fx/water/water.png').resize(Math.round(w), Math.round(h), { fit: 'fill' }).png().toBuffer(), left: Math.round(from * CELL), top: Math.round(level.water.row * CELL - 2) });
+  }
+}
 const ladder = await sharp(art('ladder')).resize(CELL, CELL).toBuffer();
 for (const { col, row } of ladders) comps.push({ input: ladder, left: col * CELL, top: row * CELL });
 

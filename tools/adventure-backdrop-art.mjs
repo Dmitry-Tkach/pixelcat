@@ -1,5 +1,6 @@
 // The adventure's backdrops (data/adventure/backdrop.js):
-// 1. The light rays and the fog, drawn as SVG, into public/assets/adventure/fx/backdrop.
+// 1. The light rays and the fog, drawn as SVG, into public/assets/adventure/fx/backdrop, and the
+//    water's body and crest, into public/assets/adventure/fx/water.
 // 2. The owner's layer pictures for a world, from images/levels/<world>/<layer>.png (made with the
 //    prompts in prompts/forest-level), when they're there: shrunk to LAYER_HEIGHT, and their two
 //    sides blended so the picture repeats sideways without a seam, into that world's art. The
@@ -10,6 +11,7 @@ import { existsSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BACKDROP_FX } from '../src/data/adventure/backdrop.js';
+import { WATER_ART } from '../src/data/adventure/water.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const FX_OUT = join(ROOT, 'public', 'assets', 'adventure', 'fx', 'backdrop');
@@ -60,6 +62,33 @@ const fogSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${FOG.w}" height=
   <rect x="0" y="0" width="${FOG.w}" height="${FOG.h}" fill="url(#floor)"/>
   ${[-FOG.w, 0, FOG.w].map((shift) => puffs.map(([x, y, rx, ry]) => `<ellipse cx="${x + shift}" cy="${y}" rx="${rx}" ry="${ry}" fill="url(#puff)"/>`).join('')).join('')}
 </svg>`;
+
+// Water (data/adventure/water.js): its body, a wavy lighter surface fading down to deep teal, tall
+// enough that it never repeats downward; and its crest, a bright wavy line with sparkles. Both repeat
+// sideways: their waves are one whole wave every WAVE px, a whole number of them across.
+const WAVE = 64;
+const WATER = { w: 256, h: 420, crestH: 28 };
+const wavy = (y, amp, w = WATER.w) => {
+  let d = `M0 ${y}`;
+  for (let x = 0; x < w; x += WAVE) d += ` Q${x + WAVE / 4} ${y - amp} ${x + WAVE / 2} ${y} Q${x + WAVE * 0.75} ${y + amp} ${x + WAVE} ${y}`;
+  return d;
+};
+const waterSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${WATER.w}" height="${WATER.h}">
+  <defs><linearGradient id="deep" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#5fd4d0"/><stop offset="0.08" stop-color="#2fa6b8"/><stop offset="0.5" stop-color="#1c6e8c"/><stop offset="1" stop-color="#123f5e"/>
+  </linearGradient></defs>
+  <path d="${wavy(10, 5)} L${WATER.w} ${WATER.h} L0 ${WATER.h} Z" fill="url(#deep)"/>
+  <path d="${wavy(26, 3)}" stroke="#7fe3dc" stroke-width="3" fill="none" opacity="0.5"/>
+  <path d="${wavy(48, 2)}" stroke="#4fc0c8" stroke-width="2" fill="none" opacity="0.35"/>
+</svg>`;
+const crestSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${WATER.w}" height="${WATER.crestH}">
+  <path d="${wavy(12, 4)}" stroke="#ffffff" stroke-width="3" fill="none" stroke-linecap="round"/>
+  ${[30, 96, 150, 210].map((x, i) => `<circle cx="${x}" cy="${i % 2 ? 20 : 6}" r="2" fill="#ffffff" opacity="0.8"/>`).join('')}
+</svg>`;
+const WATER_OUT = join(ROOT, 'public', 'assets', 'adventure', 'fx', 'water');
+mkdirSync(WATER_OUT, { recursive: true });
+await sharp(Buffer.from(waterSvg)).png({ compressionLevel: 9 }).toFile(join(WATER_OUT, `${WATER_ART.body}.png`));
+await sharp(Buffer.from(crestSvg)).png({ compressionLevel: 9 }).toFile(join(WATER_OUT, `${WATER_ART.crest}.png`));
 
 mkdirSync(FX_OUT, { recursive: true });
 await sharp(Buffer.from(raysSvg)).png({ compressionLevel: 9 }).toFile(join(FX_OUT, `${BACKDROP_FX.rays}.png`));

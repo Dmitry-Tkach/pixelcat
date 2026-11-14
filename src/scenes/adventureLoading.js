@@ -6,6 +6,7 @@ import { ADVENTURE_ART, adventureKey, adventurePath } from '../data/adventure/in
 import { BOSS_ARENAS } from '../data/adventure/bossArenas.js';
 import { SHOT_ART, SHOT_PATH, shotKey } from '../systems/adventure/shotLook.js';
 import { BACKDROP_FX, BACKDROP_FX_PATH, backdropFxKey } from '../data/adventure/backdrop.js';
+import { WATER_ART, WATER_PATH, waterKey } from '../data/adventure/water.js';
 import { adventureHomePictures } from '../ui/adventureHome.js';
 import { adventureRoadmapPictures } from '../ui/adventureRoadmap.js';
 
@@ -36,6 +37,8 @@ export function loadAdventureArt(scene) {
   for (const [name, file] of Object.entries(SHOT_ART)) scene.load.image(shotKey(name), `${SHOT_PATH}/${file}.png`);
   // The backdrops' light rays and fog (data/adventure/backdrop.js).
   for (const [name, file] of Object.entries(BACKDROP_FX)) scene.load.image(backdropFxKey(name), `${BACKDROP_FX_PATH}/${file}.png`);
+  // The water in the gaps (data/adventure/water.js).
+  for (const [name, file] of Object.entries(WATER_ART)) scene.load.image(waterKey(name), `${WATER_PATH}/${file}.png`);
   scene.load.atlas(EXPLOSION_KEY, `${EXPLOSION_PATH}.png`, `${EXPLOSION_PATH}.json`);
   // The bosses: atlases of several pages, listed in one JSON.
   for (const kind of Object.keys(BOSSES)) {
