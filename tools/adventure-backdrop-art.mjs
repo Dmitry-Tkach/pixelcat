@@ -47,13 +47,15 @@ const raysSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${RAYS.w}" heigh
   </g>
 </svg>`;
 
-// Fog: soft drifting puffs of mist along the bottom, drawn twice across so the picture repeats.
+// Fog: soft drifting puffs of mist, drawn three times across so the picture repeats. It fades out
+// at its top and its bottom: Phaser repeats a picture up and down too, blending its top and bottom
+// rows, and a bright bottom row made a light line along the fog's top.
 const FOG = { w: 1024, h: 256 };
-const puffs = [[60, 170, 140, 60], [250, 150, 180, 70], [470, 180, 150, 55], [660, 140, 200, 80], [880, 175, 160, 60]];
+const puffs = [[60, 160, 140, 55], [250, 145, 180, 65], [470, 165, 150, 50], [660, 140, 200, 70], [880, 160, 160, 55]];
 const fogSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${FOG.w}" height="${FOG.h}">
   <defs>
     <radialGradient id="puff"><stop offset="0" stop-color="#fff" stop-opacity="0.9"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
-    <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity="0.8"/></linearGradient>
+    <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="0.75" stop-color="#fff" stop-opacity="0.7"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
   </defs>
   <rect x="0" y="0" width="${FOG.w}" height="${FOG.h}" fill="url(#floor)"/>
   ${[-FOG.w, 0, FOG.w].map((shift) => puffs.map(([x, y, rx, ry]) => `<ellipse cx="${x + shift}" cy="${y}" rx="${rx}" ry="${ry}" fill="url(#puff)"/>`).join('')).join('')}

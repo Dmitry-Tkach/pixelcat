@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 import { GAME } from '../../config/gameConfig.js';
 import { ROOM, backdropFxKey, layerRise } from '../../data/adventure/backdrop.js';
 
+const EDGE = 4; // px more each way than a layer needs, to keep its picture's join off screen
+
 // Draws an adventure world's backdrop (data/adventure/backdrop.js): its layers behind the level,
 // each repeating sideways and moving at its own speed with the camera, across and a little up and
 // down; soft light rays that breathe; fog drifting low; and leaves in front of the cat. They're all
@@ -13,10 +15,12 @@ export class AdventureBackdrop {
     this.backdrop = backdrop;
     this.startY = null; // where the camera was the first frame, for how far it has climbed
     const fixed = (object) => object.setScrollFactor(0);
-    this.layers = backdrop.layers.map((layer) => ({
-      ...layer,
-      sprite: fixed(scene.add.tileSprite(0, 0, 4, 4, art(layer.picture)).setOrigin(0, 0).setDepth(layer.depth)),
-    }));
+    this.layers = backdrop.layers.map((layer) => {
+      const sprite = fixed(scene.add.tileSprite(0, 0, 4, 4, art(layer.picture)).setOrigin(0, 0).setDepth(layer.depth));
+      if (layer.tint !== undefined) sprite.setTint(layer.tint);
+      if (layer.alpha !== undefined) sprite.setAlpha(layer.alpha);
+      return { ...layer, sprite };
+    });
     const { rays, fog, front } = backdrop;
     this.rays = rays && fixed(scene.add.image(0, 0, backdropFxKey('rays')).setOrigin(0.5, 0)
       .setDepth(rays.depth).setTint(rays.tint).setBlendMode(Phaser.BlendModes.ADD));
@@ -27,10 +31,11 @@ export class AdventureBackdrop {
   }
 
   // Sizes everything to the screen, as it is now: each layer as tall as the screen and ROOM more
-  // each way, its picture scaled to that height.
+  // each way (and EDGE px), its picture scaled to that height. Phaser repeats a picture up and down
+  // too, and its top and bottom rows blend where they meet: the extra px keep that line off screen.
   fit() {
     const { WIDTH, HEIGHT } = GAME;
-    const room = HEIGHT * ROOM;
+    const room = HEIGHT * ROOM + EDGE;
     for (const layer of this.layers) {
       const tall = HEIGHT + room * 2;
       layer.sprite.setSize(WIDTH, tall);
@@ -48,7 +53,7 @@ export class AdventureBackdrop {
       const { height } = this.front.texture.getSourceImage();
       this.front.setPosition(0, HEIGHT).setSize(WIDTH, height * (this.backdrop.front.scale ?? 1));
     }
-    this.room = room;
+    this.room = room - EDGE;
   }
 
   // Each frame, from where the camera is, and the time (ms) for the rays' breathing and the fog's

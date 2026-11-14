@@ -7,6 +7,7 @@
 //   drift: how far it moves across for each px the camera moves (0 still, 1 with the world).
 //   rise: how far it moves up and down for each px the camera climbs or drops, at most ROOM of
 //   the screen's height either way. depth: its order behind the level (tiles are at 2).
+//   tint, alpha: optional, to blend a picture into the others (as shadows in the mist).
 // rays: soft light rays from above, glowing (added light): their tint, how bright, how long one
 //   slow breath takes (they brighten and fade), and how far they sway. Drawn by
 //   tools/adventure-backdrop-art.mjs.
@@ -17,9 +18,11 @@
 export const BACKDROPS = {
   wood: {
     // The owner's painted sky (images/levels/forest/sky.png, its leaves cut off), with its misty
-    // trees and ruins: it's the far layer too. The middle and near layers are to come.
+    // trees and ruins: it's the far layer too. In front, the pack's flat trees, tinted and see-through
+    // so they're shadows in the mist, until the owner's middle and near layers come.
     layers: [
       { picture: 'layer-sky', drift: 0.08, rise: 0.03, depth: -10 },
+      { picture: 'back-near', drift: 0.25, rise: 0.06, depth: -9, tint: 0x9fe0d0, alpha: 0.55 },
     ],
     // Softer than they'd be alone: the sky has rays painted in.
     rays: { tint: 0xf2ffb8, alpha: 0.18, breatheMs: 5200, swayPx: 18, depth: -7 },
