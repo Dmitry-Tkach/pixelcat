@@ -8,6 +8,7 @@ import { CLAW, CLAW_SLASH, clawArea, crescentPath, overlaps } from './adventure/
 import { DASH_LOOK } from './adventure/dashLook.js';
 import { ShotEffects } from './adventure/ShotEffects.js';
 import { freezeEnemy, isFrozen } from './adventure/iceBlocks.js';
+import { BURNED_OUT, igniteEnemy } from './adventure/burning.js';
 
 // The battle cat's fighting moves in the adventure, from his sheet with the minigun:
 //   X      shoot: a tap fires one shot, holding it fires a burst, while he has rounds; with bare
@@ -61,6 +62,9 @@ export class AdventureMoves {
     this.keys = scene.input.keyboard.addKeys({ fire: 'X', dash: 'SHIFT', special: 'C', swap: 'Q' });
     this.bullets = scene.physics.add.group({ allowGravity: false });
     this.shotFx = new ShotEffects(scene); // how the shots look (adventure/shotLook.js)
+    // An enemy the fire has burned to its last hit point (adventure/burning.js) is knocked out.
+    scene.events.on(BURNED_OUT, (enemy) => this.onKnockOut(enemy));
+    scene.events.once('shutdown', () => scene.events.off(BURNED_OUT));
     scene.physics.add.collider(this.bullets, groundLayer, (bullet) => this.bulletStops(bullet));
     // Against a list of blocks, Phaser passes the block first and the bullet second, so the bullet is
     // whichever of the two is in the group.
@@ -319,8 +323,13 @@ export class AdventureMoves {
       return;
     }
     this.shotFx.hit(bullet.x, bullet.y, bullet.kind);
-    // Any other round shatters a frozen enemy.
-    if (isFrozen(enemy) || enemy.takeShot()) this.onKnockOut(enemy);
+    // Any other round shatters a frozen enemy. A fire round sets one it doesn't knock out alight.
+    if (isFrozen(enemy) || enemy.takeShot()) {
+      this.onKnockOut(enemy);
+    } else if (ammo.burn) {
+      igniteEnemy(enemy);
+      this.scene.audio.playSfx('ignite');
+    }
   }
 
   // A boss to fight (entities/AdventureBoss.js). He isn't one of the enemies: his shots, blasts and

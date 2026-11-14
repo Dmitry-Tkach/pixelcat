@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { FREEZE } from '../data/adventure/freeze.js';
 import { breakIce, isFrozen, updateIce } from '../systems/adventure/iceBlocks.js';
+import { putOut, updateBurn } from '../systems/adventure/burning.js';
 import { GUNNERS, gunnerAnimKey, gunnerKey, gunnerLayout } from '../data/adventure/gunners.js';
 import { ONE_WAY, TILE } from '../systems/adventureMap.js';
 
@@ -79,6 +80,7 @@ export class AdventureGunner extends Phaser.Physics.Arcade.Sprite {
   update(cat, ms) {
     if (this.dead) return;
     if (updateIce(this, ms)) return; // frozen by a freeze round, it stays still and doesn't fire
+    if (updateBurn(this, ms)) return; // on fire from a fire round, it panics and can't attack
     this.setVelocityX(0);
     this.cooldownMs = Math.max(0, this.cooldownMs - ms);
     if (this.shooting || !this.seesCat(cat)) return;
@@ -117,6 +119,7 @@ export class AdventureGunner extends Phaser.Physics.Arcade.Sprite {
   // The pack draws no knock-out for them, so it topples over and fades away.
   knockOut() {
     if (isFrozen(this)) breakIce(this, FREEZE.shards); // shattered
+    putOut(this);
     this.dead = true;
     this.shooting = false;
     this.body.enable = false;

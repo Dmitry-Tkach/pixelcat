@@ -5,7 +5,7 @@
 
 // The pictures, drawn by tools/adventure-shot-art.mjs into SHOT_PATH, by name.
 export const SHOT_ART = {
-  standard: 'shot-standard', explosive: 'shot-explosive', laser: 'shot-laser', freeze: 'shot-freeze',
+  standard: 'shot-standard', explosive: 'shot-explosive', laser: 'shot-laser', freeze: 'shot-freeze', fire: 'shot-fire',
   glow: 'shot-glow', casing: 'shot-casing', smoke: 'shot-smoke', ice: 'shot-ice', shard: 'shot-shard',
 };
 export const SHOT_PATH = 'assets/adventure/fx/shots';
@@ -20,6 +20,7 @@ export const ROUNDS = {
   standard: { picture: 'standard', w: 110, h: 28, head: 0.87, scale: 0.75, add: true, colour: 0xffd34d, casing: true },
   explosive: { picture: 'explosive', w: 72, h: 44, head: 0.72, scale: 0.8, add: false, colour: 0xff8a2a, casing: true, trail: { everyMs: 26, smoke: true } },
   laser: { picture: 'laser', w: 160, h: 26, head: 0.95, scale: 0.8, add: true, colour: 0x6dff6a, casing: false, trail: { everyMs: 32, glow: true } },
+  fire: { picture: 'fire', w: 100, h: 36, head: 0.92, scale: 0.75, add: false, colour: 0xff6a2a, casing: true, trail: { everyMs: 24, glow: true } },
   freeze: { picture: 'freeze', w: 96, h: 32, head: 0.86, scale: 0.75, add: false, colour: 0x8fe3ff, casing: true, trail: { everyMs: 30, glow: true } },
 };
 

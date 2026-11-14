@@ -1,6 +1,6 @@
 // The minigun's ammunition crates, drawn as SVG: a sturdy wooden crate with metal corners, and on
 // its front a metal badge of the round's colour with an icon: golden bullets for standard rounds,
-// a bomb with a lit fuse for explosive ones, a lightning bolt for the laser, a snowflake for freeze. tools/adventure-art.mjs
+// a bomb with a lit fuse for explosive ones, a lightning bolt for the laser, a snowflake for freeze, a flame for fire. tools/adventure-art.mjs
 // draws them into each world's art; with a folder, this file draws them side by side to look at.
 // Run on its own: node tools/ammo-crate-art.mjs <folder>
 import sharp from 'sharp';
@@ -20,6 +20,7 @@ const BADGES = {
   explosive: { light: '#ffb36b', dark: '#d2541c', icon: bomb },
   laser: { light: '#a8ff9c', dark: '#2fa84a', icon: bolt },
   freeze: { light: '#e4f8ff', dark: '#3a9fd8', icon: snowflake },
+  fire: { light: '#ffcf6b', dark: '#d8341a', icon: flame },
 };
 
 // Three golden bullets standing side by side.
@@ -53,6 +54,14 @@ function snowflake() {
     <path d="M52 54 V30 M52 37 L45 31 M52 37 L59 31" stroke="${OUTLINE}" stroke-width="7" stroke-linecap="round" fill="none"/>
     <path d="M52 54 V30 M52 37 L45 31 M52 37 L59 31" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" fill="none"/></g>`;
   return [0, 60, 120, 180, 240, 300].map(arm).join('') + `<circle cx="52" cy="54" r="5" fill="#ffffff" stroke="${OUTLINE}" stroke-width="2.5"/>`;
+}
+
+// A flame: red outside, orange, then a yellow heart.
+function flame() {
+  return `
+    <path d="M52 78 Q32 76 34 58 Q36 46 46 40 Q44 50 50 52 Q48 38 58 28 Q58 42 66 50 Q72 58 68 68 Q64 78 52 78 Z" fill="#e8401c" stroke="${OUTLINE}" stroke-width="3.5" stroke-linejoin="round"/>
+    <path d="M52 74 Q41 72 42 62 Q43 55 49 51 Q49 58 54 59 Q53 50 59 44 Q60 54 64 59 Q66 66 62 70 Q58 75 52 74 Z" fill="#ff9a2a"/>
+    <path d="M52 72 Q46 70 47 64 Q48 60 52 58 Q53 63 56 63 Q59 67 57 70 Q55 72 52 72 Z" fill="#ffe066"/>`;
 }
 
 // The whole crate, as an SVG of CRATE_SIZE.

@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { FREEZE } from '../../data/adventure/freeze.js';
 import { ICE_BROKEN } from './iceBlocks.js';
+import { FLAMES } from './burning.js';
 import { ROUNDS, SHOT_LOOK, roundFit, shotKey } from './shotLook.js';
 
 // Draws how the minigun's shots look (their settings are in shotLook.js): each round's glowing
@@ -44,9 +45,18 @@ export class ShotEffects {
       lifespan: { min: 450, max: 800 }, speed: { min: 150, max: 380 }, angle: { min: 200, max: 340 },
       gravityY: 1100, rotate: { start: 0, end: 540 }, scale: { min: 0.7, max: 1.3 }, alpha: { start: 1, end: 0, ease: 'Quad.easeIn' },
     });
+    // Flames rising off a burning enemy (systems/adventure/burning.js).
+    this.flames = burst('fx-dot', {
+      lifespan: { min: 260, max: 480 }, speed: { min: 20, max: 70 }, angle: { min: 250, max: 290 },
+      gravityY: -260, scale: { start: 0.75, end: 0 }, blendMode: 'ADD', tint: [0xfff1a0, 0xffc531, 0xff6a2a, 0xe0321a],
+    });
     // Ice breaking off a frozen enemy (systems/adventure/iceBlocks.js): thawing, or shattered.
     scene.events.on(ICE_BROKEN, (x, y, count) => this.iceBreaks(x, y, count));
-    scene.events.once('shutdown', () => scene.events.off(ICE_BROKEN));
+    scene.events.on(FLAMES, (x, y) => this.flames.explode(1, x, y));
+    scene.events.once('shutdown', () => {
+      scene.events.off(ICE_BROKEN);
+      scene.events.off(FLAMES);
+    });
   }
 
   // Shards of ice fly; shattered, with a flash and a crash.

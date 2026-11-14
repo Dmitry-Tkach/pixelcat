@@ -78,6 +78,25 @@ const PICTURES = {
       <rect x="20" y="10.5" width="134" height="5" rx="2.5" fill="url(#core)"/>
       <circle cx="152" cy="13" r="5" fill="#ffffff"/>`,
   },
+  // A fire round: a tongue of flame lying on its side, pointed at the front, red outside, then
+  // orange and a yellow-white heart, its flames curling back and up behind it.
+  fire: {
+    w: 100, h: 36,
+    svg: `
+      <defs>
+        <linearGradient id="fade" x1="0" x2="1">
+          <stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="0.45" stop-color="#fff" stop-opacity="1"/>
+        </linearGradient>
+        <mask id="tail"><rect width="100" height="36" fill="url(#fade)"/></mask>
+        <filter id="soft"><feGaussianBlur stdDeviation="0.8"/></filter>
+      </defs>
+      <g mask="url(#tail)" filter="url(#soft)">
+        <path d="M96 20 Q86 30 66 30 Q46 31 30 26 Q40 25 44 22 Q28 22 8 14 Q30 14 44 13 Q36 8 30 3 Q48 6 62 9 Q84 9 96 20 Z" fill="#e0321a"/>
+        <path d="M94 20 Q84 27 68 27 Q54 27 44 24 Q52 22 54 20 Q40 18 28 14 Q46 14 56 13 Q52 10 48 7 Q60 9 68 11 Q84 12 94 20 Z" fill="#ff7a2a"/>
+        <path d="M92 20 Q84 25 72 24 Q62 24 56 21 Q64 19 66 17 Q76 15 92 20 Z" fill="#ffc531"/>
+        <path d="M90 20 Q84 22.5 76 22 Q71 21 70 19.5 Q78 17.5 90 20 Z" fill="#fff6c8"/>
+      </g>`,
+  },
   // A freeze round: a pale blue ice crystal, pointed, with a frosty glow and a misty tail.
   freeze: {
     w: 96, h: 32,

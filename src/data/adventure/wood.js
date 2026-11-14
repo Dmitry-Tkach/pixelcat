@@ -13,8 +13,8 @@
 //
 // Letters (see systems/adventureMap.js): # ground, = island, - bridge, H ladder, ^ spikes, o coin,
 // * crystal, + heart, k key, T chest, ? bonus block, B crate, X stone, C checkpoint, E portal,
-// @ start, w the minigun, a e z f ammunition crates (standard, explosive, laser, freeze), m rage mushroom,
-// enemies g goon, c cone head, v spiky, gunners 1 blaster, 2 ray gun, 3 rifle, and scenery
+// @ start, w the minigun, a e z f h ammunition crates (standard, explosive, laser, freeze, fire), m rage
+// mushroom, enemies g goon, c cone head, v spiky, gunners 1 blaster, 2 ray gun, 3 rifle, and scenery
 // R earth pillar (under a low island), b bush, p plant, s statue, > and / signs.
 import { mapBuilder } from './mapBuilder.js';
 
@@ -60,10 +60,10 @@ level.gap(70, 97)
   // The way back down from up there, marked in coins: onto the step, then the last island.
   .put(86, 18, 'o').put(87, 19, 'o').put(90, 22, 'o').put(90, 24, 'o');
 
-// ----- 5. The Great Root: a checkpoint and a heart, then a tower of islands zigzagging up, a goon
-// and a cone head on the way, under a rifle gunner. Its top ledge, off the route, has the key and a
+// ----- 5. The Great Root: a checkpoint, a heart and a crate of fire rounds, then a tower of islands
+// zigzagging up, a goon and a cone head on the way, under a rifle gunner. Its top ledge, off the route, has the key and a
 // crystal.
-level.put(100, 29, 'C').put(102, 29, '+').put(99, 29, 'b')
+level.put(100, 29, 'C').put(102, 29, '+').put(99, 29, 'b').put(103, 29, 'h')
   .island(104, 108, 26).ladder(104, 26, 29).put(107, 27, 'R').coins(105, 107, 25)
   .island(111, 116, 22).put(114, 21, 'g').arc(109, 110, 22, 2)
   .island(104, 109, 18).put(105, 17, 'e').coins(107, 109, 17)

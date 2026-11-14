@@ -25,7 +25,7 @@ const reachAcross = (up) => JUMP_REACH[up] ?? (up < 0 ? 8 : 0);
 export const VIEW = { ahead: 11, below: 9, up: 4 };
 
 const SOLID_OBJECTS = new Set(['box', 'stone', 'bonus']);
-const PICKUPS = new Set(['coin', 'gem', 'heart', 'rage', 'weapon', 'ammo-standard', 'ammo-explosive', 'ammo-laser', 'ammo-freeze', 'key', 'chest', 'silver-key', 'silver-chest', 'checkpoint']);
+const PICKUPS = new Set(['coin', 'gem', 'heart', 'rage', 'weapon', 'ammo-standard', 'ammo-explosive', 'ammo-laser', 'ammo-freeze', 'ammo-fire', 'key', 'chest', 'silver-key', 'silver-chest', 'checkpoint']);
 
 export function adventureRoutes(level) {
   const { rows, cols, tiles, ladders, objects } = readAdventureMap(level.map);

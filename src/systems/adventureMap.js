@@ -41,6 +41,7 @@ export const OBJECTS = {
   e: 'ammo-explosive',
   z: 'ammo-laser',
   f: 'ammo-freeze',
+  h: 'ammo-fire',
   k: 'key',
   T: 'chest',
   j: 'silver-key',

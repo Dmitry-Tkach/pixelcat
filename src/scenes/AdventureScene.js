@@ -4,6 +4,7 @@ import { ADVENTURE_HERO, ADVENTURE_LEVELS, PILLAR, adventureKey } from '../data/
 import { CHARACTERS, animKey } from '../data/characters.js';
 import { AMMO } from '../data/adventure/ammo.js';
 import { isFrozen } from '../systems/adventure/iceBlocks.js';
+import { spreadFire } from '../systems/adventure/burning.js';
 import { ROUNDS, shotKey } from '../systems/adventure/shotLook.js';
 import { FLASH, FLASH_KEY } from '../data/adventure/gunners.js';
 import { BOSS_FIGHTS } from '../data/adventure/bossFights.js';
@@ -120,6 +121,8 @@ export class AdventureScene extends Phaser.Scene {
     this.physics.add.collider(this.enemies, this.groundLayer);
     this.physics.add.collider(this.enemies, this.solids);
     this.physics.add.overlap(this.cat, this.enemies, (cat, enemy) => this.meetEnemy(enemy));
+    // A burning enemy sets alight any other it touches (systems/adventure/burning.js).
+    this.physics.add.overlap(this.enemies, this.enemies, (a, b) => spreadFire(a, b));
     // A frozen enemy is a block of ice he can stand on (systems/adventure/iceBlocks.js). Phaser only
     // counts standing on tiles and still bodies, so on top of the ice he's told he's standing, to jump.
     this.physics.add.collider(this.cat, this.enemies, (cat) => {
@@ -340,7 +343,8 @@ export class AdventureScene extends Phaser.Scene {
         case 'ammo-standard':
         case 'ammo-explosive':
         case 'ammo-laser':
-        case 'ammo-freeze': {
+        case 'ammo-freeze':
+        case 'ammo-fire': {
           const texture = { rage: 'mushroom', weapon: 'minigun' }[object.type] ?? object.type;
           const item = this.physics.add.staticImage(x, middle, this.art(texture)).setDepth(4);
           item.kind = object.type;

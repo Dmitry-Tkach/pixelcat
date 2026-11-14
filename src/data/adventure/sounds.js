@@ -44,4 +44,16 @@ export const ADVENTURE_SOUNDS = {
     { wave: 'triangle', from: 2400, to: 1200, duration: 0.18, gain: 0.14 },
     { wave: 'triangle', at: 0.05, from: 3100, to: 1800, duration: 0.15, gain: 0.1 },
   ],
+  // Fire rounds: a whoosh of flame catching, and a crackle.
+  ammoFire: [
+    { kind: 'noise', filter: 'bandpass', cutoff: 600, sweepTo: 2400, q: 0.8, duration: 0.3, gain: 0.45, attack: 0.03 },
+    { kind: 'noise', filter: 'highpass', at: 0.18, cutoff: 3500, duration: 0.25, gain: 0.12 },
+    { wave: 'triangle', at: 0.2, from: 659, duration: 0.1, gain: 0.14 },
+    { wave: 'triangle', at: 0.28, from: 988, duration: 0.14, gain: 0.14 },
+  ],
+  // An enemy catching fire: a low "whoomp".
+  ignite: [
+    { kind: 'noise', filter: 'lowpass', cutoff: 500, sweepTo: 1800, duration: 0.22, gain: 0.4, attack: 0.02 },
+    { wave: 'sine', from: 140, to: 220, duration: 0.18, gain: 0.25 },
+  ],
 };

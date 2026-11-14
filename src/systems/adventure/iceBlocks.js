@@ -16,6 +16,7 @@ export const isFrozen = (enemy) => (enemy.frozenMs ?? 0) > 0;
 export function freezeEnemy(enemy) {
   if (enemy.dead) return;
   enemy.frozenMs = FREEZE.ms;
+  enemy.burnMs = 0; // the ice puts out any fire (adventure/burning.js)
   enemy.attacking = false;
   enemy.shooting = false;
   enemy.setVelocityX(0);
