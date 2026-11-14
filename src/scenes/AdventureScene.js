@@ -10,6 +10,8 @@ import { AdventureBackdrop } from '../systems/adventure/AdventureBackdrop.js';
 import { BACKDROPS } from '../data/adventure/backdrop.js';
 import { DECOR } from '../data/adventure/decor.js';
 import { placeDecor } from '../systems/adventure/decorPlacement.js';
+import { AMBIENCE } from '../data/adventure/ambience.js';
+import { AdventureAmbience } from '../systems/adventure/AdventureAmbience.js';
 import { FLASH, FLASH_KEY } from '../data/adventure/gunners.js';
 import { BOSS_FIGHTS } from '../data/adventure/bossFights.js';
 import { AdventureBoss } from '../entities/AdventureBoss.js';
@@ -228,9 +230,13 @@ export class AdventureScene extends Phaser.Scene {
   // The plants the level grows by itself: grass and flowers on the tops, vines under the islands
   // (data/adventure/decor.js, placed by systems/adventure/decorPlacement.js).
   buildDecor() {
-    for (const { picture, x, y, hang, depth, flip } of placeDecor(this.layout, DECOR[this.level.world])) {
-      this.add.image(x, y, this.art(picture)).setOrigin(0.5, hang ? 0 : 1).setDepth(depth).setFlipX(flip);
-    }
+    this.decor = placeDecor(this.layout, DECOR[this.level.world]).map(({ picture, x, y, hang, depth, flip }) => {
+      const image = this.add.image(x, y, this.art(picture)).setOrigin(0.5, hang ? 0 : 1).setDepth(depth).setFlipX(flip);
+      image.hang = hang;
+      return image;
+    });
+    // Its moving life: fireflies, falling leaves, and the decoration swaying (data/adventure/ambience.js).
+    this.ambience = new AdventureAmbience(this, AMBIENCE[this.level.world], this.decor);
   }
 
   buildLadders() {
@@ -1036,6 +1042,7 @@ export class AdventureScene extends Phaser.Scene {
   update(time, delta) {
     const cam = this.cameras.main;
     this.backdrop.update(cam, time);
+    this.ambience.update(time);
     if (!this.playing) return;
     const ms = Math.min(delta, 50);
     this.controls.update(time);
