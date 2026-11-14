@@ -1,17 +1,20 @@
 // Stand-ins for the forest's gates (data/adventure/gates.js), drawn as SVG, into the wood world's
 // art: the round stone start gate and its swirl, the checkpoint's flag pole and its two flags, and
 // the portal's arch, swirl and flame post. They're in the art's cartoon style, with a thick dark
-// outline. When the owner's gates sheet comes (prompts/forest-level/08-gates.md), its cut pieces
-// take these names instead, and the fractions in gates.js are set to match them.
+// outline. When the owner's gates sheet is there (images/levels/forest/gates.png, from
+// prompts/forest-level/08-gates.md), it's cut into these pictures instead (tools/adventure-gates-cut.mjs),
+// and what it measures is printed, for the fractions in gates.js.
 // Run: node tools/adventure-gates-art.mjs [folder for a review picture] (part of npm run assets).
 import sharp from 'sharp';
-import { mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
+import { cutGates } from './adventure-gates-cut.mjs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = join(ROOT, 'public', 'assets', 'adventure', 'wood');
 const REVIEW = process.argv[2];
+const SHEET = join(ROOT, 'images', 'levels', 'forest', 'gates.png');
 const OUTLINE = '#1f2a1c';
 const STONE = ['#a3ab98', '#8e9886', '#7b8573'];
 const MOSS = ['#8fd13a', '#5fae2e'];
@@ -82,16 +85,23 @@ const PICTURES = {
 };
 
 mkdirSync(OUT, { recursive: true });
-for (const [name, { w, h, svg }] of Object.entries(PICTURES)) {
-  await sharp(Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">${svg}</svg>`)).png({ compressionLevel: 9 }).toFile(join(OUT, `${name}.png`));
+if (existsSync(SHEET)) {
+  const measured = await cutGates(SHEET, OUT);
+  console.log('The forest\'s gates, cut from the owner\'s sheet into public/assets/adventure/wood. For gates.js:');
+  console.log(JSON.stringify(measured));
+} else {
+  for (const [name, { w, h, svg }] of Object.entries(PICTURES)) {
+    await sharp(Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">${svg}</svg>`)).png({ compressionLevel: 9 }).toFile(join(OUT, `${name}.png`));
+  }
+  console.log(`The forest's ${Object.keys(PICTURES).length} gate stand-ins, in public/assets/adventure/wood`);
 }
-console.log(`The forest's ${Object.keys(PICTURES).length} gate stand-ins, in public/assets/adventure/wood`);
 
 if (REVIEW) {
   mkdirSync(REVIEW, { recursive: true });
   let x = 20;
   const pieces = [];
-  for (const [name, { w, h }] of Object.entries(PICTURES)) {
+  for (const name of Object.keys(PICTURES)) {
+    const { width: w, height: h } = await sharp(join(OUT, `${name}.png`)).metadata();
     pieces.push({ input: join(OUT, `${name}.png`), left: x, top: 360 - h });
     x += w + 30;
   }

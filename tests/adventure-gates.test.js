@@ -49,7 +49,11 @@ describe('the portal\'s flame posts', () => {
   it('are left out together if one side has no ground, or a block in the way', () => {
     const edge = map(['..........', '....E.....', '#####.....']);
     expect(portalPosts(edge, portalIn(edge), rules)).toEqual([]);
-    const block = map(['..........', '....EX....', '##########']);
+    // A block on the square where the right post would stand.
+    const blockCol = Math.floor((4 * TILE + TILE / 2 + rules.postGap) / TILE);
+    const row = [...'....E.....'];
+    row[blockCol] = 'X';
+    const block = map(['..........', row.join(''), '##########']);
     expect(portalPosts(block, portalIn(block), rules)).toEqual([]);
   });
 
