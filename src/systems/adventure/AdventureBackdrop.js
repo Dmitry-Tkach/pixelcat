@@ -68,6 +68,18 @@ export class AdventureBackdrop {
     this.room = room - EDGE;
   }
 
+  // A mood's light and colour (data/adventure/moods.js): the layers tinted (over their own tint),
+  // and the rays and fog brighter or fainter.
+  setMood(mood) {
+    const [mr, mg, mb] = [(mood.backdrop >> 16) & 255, (mood.backdrop >> 8) & 255, mood.backdrop & 255];
+    for (const { sprite, tint = 0xffffff } of this.layers) {
+      const r = ((tint >> 16) & 255) * mr / 255, g = ((tint >> 8) & 255) * mg / 255, b = (tint & 255) * mb / 255;
+      sprite.setTint((Math.round(r) << 16) | (Math.round(g) << 8) | Math.round(b));
+    }
+    this.moodRays = mood.rays;
+    if (this.fog) this.fog.setAlpha(Math.min(1, this.backdrop.fog.alpha * mood.fog));
+  }
+
   // Each frame, from where the camera is, and the time (ms) for the rays' breathing and the fog's
   // drift.
   update(cam, time) {
@@ -87,7 +99,7 @@ export class AdventureBackdrop {
     const { rays, fog, front } = this.backdrop;
     if (this.rays) {
       const breath = Math.sin((time / rays.breatheMs) * Math.PI * 2);
-      this.rays.setAlpha(rays.alpha * (0.75 + 0.25 * breath)).setX(GAME.WIDTH / 2 + breath * rays.swayPx);
+      this.rays.setAlpha(Math.min(1, rays.alpha * (this.moodRays ?? 1) * (0.75 + 0.25 * breath))).setX(GAME.WIDTH / 2 + breath * rays.swayPx);
     }
     if (this.fog) this.fog.tilePositionX = (cam.scrollX * fog.drift + (time / 1000) * fog.speed) / this.fog.tileScaleX;
     if (this.front) this.front.tilePositionX = cam.scrollX * front.drift;

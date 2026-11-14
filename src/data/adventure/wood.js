@@ -92,5 +92,7 @@ export const WOOD_LEVEL = {
   world: 'wood',
   cat: { speed: 380 },
   hearts: 3,
+  // Its moods (data/adventure/moods.js): Thorn Hollow dark and misty, the Canopy bright and warm.
+  moods: [{ from: 70, to: 97, mood: 'hollow' }, { from: 120, to: 159, mood: 'canopy' }],
   map: level.rows(),
 };

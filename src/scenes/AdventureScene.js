@@ -9,6 +9,7 @@ import { AdventureAmmoBelt } from '../ui/AdventureAmmoBelt.js';
 import { AdventureBackdrop } from '../systems/adventure/AdventureBackdrop.js';
 import { BACKDROPS } from '../data/adventure/backdrop.js';
 import { DECOR } from '../data/adventure/decor.js';
+import { moodAt } from '../data/adventure/moods.js';
 import { placeDecor } from '../systems/adventure/decorPlacement.js';
 import { AMBIENCE } from '../data/adventure/ambience.js';
 import { AdventureAmbience } from '../systems/adventure/AdventureAmbience.js';
@@ -39,6 +40,7 @@ const CLIMB_UP = { below: 50, depth: 1.9, riseFrames: 2 };
 const HURT = { invulnerableMs: 1300, knockX: 330, knockY: -640, blinkMs: 90 };
 const PENALTY = { speedMultiplier: 0.6, durationMs: 600 };
 const FALL_OUT_BELOW = 160; // below the bottom of the map, the cat has fallen out
+const MOOD_WASH_DEPTH = 90; // the mood's colour over the screen: over the level, under the HUD (100)
 const CAMERA = { lerp: 0.12, deadzoneW: 120, deadzoneH: 70 };
 // Where the camera looks, from the cat, so the player sees where he's going and where he'd land:
 //   below: normally a little below him, as what's beneath is what's dangerous
@@ -214,6 +216,15 @@ export class AdventureScene extends Phaser.Scene {
   // The world's backdrop: its layers, light rays, fog and leaves in front (data/adventure/backdrop.js).
   buildBackground() {
     this.backdrop = new AdventureBackdrop(this, BACKDROPS[this.level.world] ?? BACKDROPS.wood, this.art);
+    // The mood's see-through colour over the whole screen, under the HUD (data/adventure/moods.js).
+    this.moodWash = this.add.rectangle(0, 0, GAME.WIDTH, GAME.HEIGHT, 0x000000, 0).setOrigin(0).setScrollFactor(0).setDepth(MOOD_WASH_DEPTH);
+  }
+
+  // The light and colour where the cat is, fading between the level's moods.
+  updateMood() {
+    const mood = moodAt(this.cat.x / TILE, this.level.moods);
+    this.backdrop.setMood(mood);
+    this.moodWash.setFillStyle(mood.wash, mood.washAlpha);
   }
 
   buildTiles() {
@@ -516,6 +527,7 @@ export class AdventureScene extends Phaser.Scene {
 
   fitToScreen() {
     this.backdrop.fit();
+    this.moodWash.setSize(GAME.WIDTH, GAME.HEIGHT);
     this.hint.setX(GAME.WIDTH / 2);
     this.menuButton.layout();
     this.bossBar?.layout();
@@ -1042,6 +1054,7 @@ export class AdventureScene extends Phaser.Scene {
   update(time, delta) {
     const cam = this.cameras.main;
     this.backdrop.update(cam, time);
+    if (this.cat) this.updateMood();
     this.ambience.update(time);
     if (!this.playing) return;
     const ms = Math.min(delta, 50);
