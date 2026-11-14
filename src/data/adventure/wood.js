@@ -94,7 +94,7 @@ export const WOOD_LEVEL = {
   hearts: 3,
   // Water in its bottomless gaps, its surface a row under the forest floor (data/adventure/water.js).
   water: { row: FLOOR + 1 },
-  // Its moods (data/adventure/moods.js): Thorn Hollow dark and misty, the Canopy bright and warm.
-  moods: [{ from: 70, to: 97, mood: 'hollow' }, { from: 120, to: 159, mood: 'canopy' }],
+  // No moods (data/adventure/moods.js): the owner didn't like the light changing from one part of
+  // the level to the next, so it's the same all through.
   map: level.rows(),
 };
