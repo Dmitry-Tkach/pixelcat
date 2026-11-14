@@ -17,6 +17,7 @@ export const ADVENTURE_ART = {
     'pillar-cap', 'pillar-middle', 'pillar-base', 'minigun',
     'bullet-explosive', 'bullet-laser', 'ammo-standard', 'ammo-explosive', 'ammo-laser', 'ammo-freeze', 'ammo-fire',
     'bridge', 'leaves', 'silver-key', 'chest-silver-locked', 'chest-silver-open',
+    'layer-sky', // the backdrop's layers (data/adventure/backdrop.js), from the owner's pictures
   ],
 };
 

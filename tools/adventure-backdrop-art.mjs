@@ -16,9 +16,15 @@ const FX_OUT = join(ROOT, 'public', 'assets', 'adventure', 'fx', 'backdrop');
 const LEVEL_ART = join(ROOT, 'images', 'levels');
 const ART_OUT = join(ROOT, 'public', 'assets', 'adventure');
 
-// The owner's layers by world: the file in images/levels/<world>, and the name it's given in the
-// world's art (data/adventure/index.js lists them once they're in).
-const OWNER_LAYERS = { wood: { sky: 'layer-sky', far: 'layer-far', middle: 'layer-middle', near: 'layer-near', foreground: 'layer-front' } };
+// The owner's layers by world: the file in images/levels/<world>, the name it's given in the world's
+// art (data/adventure/index.js lists them once they're in), and cropTop: the share of the picture
+// cut off its top first (the sky's big close-up leaves, which looked wrong on the slowest layer).
+const OWNER_LAYERS = {
+  wood: {
+    sky: { name: 'layer-sky', cropTop: 0.22 }, far: { name: 'layer-far' }, middle: { name: 'layer-middle' },
+    near: { name: 'layer-near' }, foreground: { name: 'layer-front' },
+  },
+};
 const SOURCE_FOLDER = { wood: 'forest' };
 const LAYER_HEIGHT = 820; // the screen's height and a little room to move up and down
 const FRONT_HEIGHT = 300; // the leaves in front, cut to the bottom of the picture, this tall
@@ -85,11 +91,14 @@ async function seamless(input, band) {
 
 let made = 0;
 for (const [world, layers] of Object.entries(OWNER_LAYERS)) {
-  for (const [file, name] of Object.entries(layers)) {
+  for (const [file, { name, cropTop = 0 }] of Object.entries(layers)) {
     const source = join(LEVEL_ART, SOURCE_FOLDER[world], `${file}.png`);
     if (!existsSync(source)) continue;
     const front = file === 'foreground';
-    let picture = await sharp(source).resize({ height: front ? undefined : LAYER_HEIGHT }).png().toBuffer();
+    const whole = await sharp(source).metadata();
+    const top = Math.round(whole.height * cropTop);
+    const cropped = await sharp(source).extract({ left: 0, top, width: whole.width, height: whole.height - top }).png().toBuffer();
+    let picture = await sharp(cropped).resize({ height: front ? undefined : LAYER_HEIGHT }).png().toBuffer();
     if (front) {
       // The leaves: only the bottom of the picture, where they are.
       const { width, height } = await sharp(picture).metadata();

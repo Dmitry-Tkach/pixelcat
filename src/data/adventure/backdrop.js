@@ -16,11 +16,13 @@
 //   than the world (drift above 1), so they feel close. null for none yet.
 export const BACKDROPS = {
   wood: {
+    // The owner's painted sky (images/levels/forest/sky.png, its leaves cut off), with its misty
+    // trees and ruins: it's the far layer too. The middle and near layers are to come.
     layers: [
-      { picture: 'back-far', drift: 0.12, rise: 0.03, depth: -10 },
-      { picture: 'back-near', drift: 0.3, rise: 0.08, depth: -9 },
+      { picture: 'layer-sky', drift: 0.08, rise: 0.03, depth: -10 },
     ],
-    rays: { tint: 0xf2ffb8, alpha: 0.32, breatheMs: 5200, swayPx: 18, depth: -7 },
+    // Softer than they'd be alone: the sky has rays painted in.
+    rays: { tint: 0xf2ffb8, alpha: 0.18, breatheMs: 5200, swayPx: 18, depth: -7 },
     fog: { tint: 0xd9f6ea, alpha: 0.4, height: 0.3, speed: 14, drift: 0.5, depth: -8 },
     front: null,
   },
