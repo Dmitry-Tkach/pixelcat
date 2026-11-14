@@ -74,6 +74,7 @@ const WOOD = {
 
 rmSync(OUT, { recursive: true, force: true });
 const out = join(OUT, 'wood');
+const FADED_EDGE = 0.8; // an edge column this much fainter than its neighbour is cut off (see trimFadedEdges)
 mkdirSync(out, { recursive: true });
 // Things that stand on the ground. Some pack images leave empty rows under the drawing, which would
 // float it above the grass, so those rows are cut off: the picture's bottom is where it stands.
@@ -185,9 +186,24 @@ await sharp({ create: { width: TILE * TILESET.length, height: TILE, channels: 4,
   }))))
   .png({ compressionLevel: 9 }).toFile(join(out, 'tiles.png'));
 
-// The two background layers, at the game's height.
+// The two background layers, at the game's height. Shrinking one leaves its last column faded
+// (nearly see-through), and repeated side by side, that column showed as a thin light line over a
+// bright sky behind it: faded edge columns are cut off.
 for (const [name, layer] of [['back-far', '00'], ['back-near', '01']]) {
-  await sharp(wood('Background', `Layer ${layer}`)).resize({ height: 720 }).png({ compressionLevel: 9 }).toFile(join(out, `${name}.png`));
+  const shrunk = await sharp(wood('Background', `Layer ${layer}`)).resize({ height: 720 }).png().toBuffer();
+  await (await trimFadedEdges(shrunk)).png({ compressionLevel: 9 }).toFile(join(out, `${name}.png`));
+}
+
+// A picture with its faded edge columns cut off: a left or right column whose average opacity is
+// under FADED_EDGE of the column next to it, inward.
+async function trimFadedEdges(input) {
+  const { data, info } = await sharp(input).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { width, height } = info;
+  const opacity = (x) => { let sum = 0; for (let y = 0; y < height; y++) sum += data[(y * width + x) * 4 + 3]; return sum / height; };
+  let left = 0, right = width - 1;
+  while (left < 3 && opacity(left) < opacity(left + 1) * FADED_EDGE) left += 1;
+  while (right > width - 4 && opacity(right) < opacity(right - 1) * FADED_EDGE) right -= 1;
+  return sharp(input).extract({ left, top: 0, width: right - left + 1, height });
 }
 // The enemies and gunners, from the gangsta cats pack: each one's animations as a Phaser atlas (a
 // grid of frames and a JSON list of where each frame is), keeping every step-th frame of the pack's.
