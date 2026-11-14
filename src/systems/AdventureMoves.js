@@ -6,6 +6,7 @@ import { CHARACTERS, animKey, frameKey } from '../data/characters.js';
 import { ONE_WAY, TILE } from './adventureMap.js';
 import { CLAW, CLAW_SLASH, clawArea, crescentPath, overlaps } from './adventure/clawSwipe.js';
 import { DASH_LOOK } from './adventure/dashLook.js';
+import { ShotEffects } from './adventure/ShotEffects.js';
 
 // The battle cat's fighting moves in the adventure, from his sheet with the minigun:
 //   X      shoot: a tap fires one shot, holding it fires a burst, while he has rounds; with bare
@@ -58,6 +59,7 @@ export class AdventureMoves {
     this.ammo = 'standard';
     this.keys = scene.input.keyboard.addKeys({ fire: 'X', dash: 'SHIFT', special: 'C', swap: 'Q' });
     this.bullets = scene.physics.add.group({ allowGravity: false });
+    this.shotFx = new ShotEffects(scene); // how the shots look (adventure/shotLook.js)
     scene.physics.add.collider(this.bullets, groundLayer, (bullet) => this.bulletStops(bullet));
     // Against a list of blocks, Phaser passes the block first and the bullet second, so the bullet is
     // whichever of the two is in the group.
@@ -158,7 +160,7 @@ export class AdventureMoves {
     this.emptyHintMs = Math.max(0, this.emptyHintMs - ms);
     this.updateSwipe(ms);
     this.updateRage(ms);
-    this.updateBullets();
+    this.updateBullets(ms);
     if (this.beam) this.updateBeam(ms);
     if (this.cat.onGround) this.airDashUsed = false;
     if (this.isDashing) this.updateDash(ms);
@@ -225,8 +227,9 @@ export class AdventureMoves {
     const muzzle = this.muzzleAt();
     const bullet = this.bullets.create(muzzle.x, muzzle.y, this.art(ammo.bullet));
     this.showMuzzleFlash();
-    bullet.setFlipX(dir < 0).setDepth(BULLET.depth);
-    bullet.body.setSize(BULLET.w, BULLET.h);
+    this.shotFx.muzzle(muzzle.x, muzzle.y, dir, kind);
+    bullet.setDepth(BULLET.depth);
+    this.shotFx.styleBullet(bullet, kind, dir, BULLET);
     bullet.setVelocityX(dir * ammo.speed);
     bullet.startX = bullet.x;
     bullet.ammo = ammo;
@@ -274,13 +277,14 @@ export class AdventureMoves {
     this.muzzleFlash = flash;
   }
 
-  updateBullets() {
+  updateBullets(ms) {
     if (this.muzzleFlash?.active) {
       const { x, y } = this.muzzleAt();
       this.muzzleFlash.setPosition(x, y).setScale(this.facing * GUN.flashScale, GUN.flashScale);
     }
     for (const bullet of this.bullets.getChildren().slice()) {
       if (Math.abs(bullet.x - bullet.startX) > bullet.ammo.range) bullet.destroy();
+      else this.shotFx.trail(bullet, bullet.kind, ms);
     }
   }
 
@@ -288,6 +292,7 @@ export class AdventureMoves {
   bulletStops(bullet) {
     if (!bullet.active) return;
     if (bullet.ammo.blast) this.explode(bullet.x, bullet.y, bullet.ammo.blast);
+    else this.shotFx.hit(bullet.x, bullet.y, bullet.kind, { wall: true });
     bullet.destroy();
   }
 
@@ -304,7 +309,7 @@ export class AdventureMoves {
       this.explode(bullet.x, bullet.y, ammo.blast);
       return;
     }
-    this.scene.effects.impact(bullet.x, bullet.y, 0.6);
+    this.shotFx.hit(bullet.x, bullet.y, bullet.kind);
     if (enemy.takeShot()) this.onKnockOut(enemy);
   }
 
@@ -330,6 +335,7 @@ export class AdventureMoves {
       this.explode(bullet.x, bullet.y, bullet.ammo.blast);
       return;
     }
+    this.shotFx.hit(bullet.x, bullet.y, bullet.kind);
     this.boss.takeHit(bullet.kind, bullet.x, bullet.y);
   }
 
@@ -344,6 +350,7 @@ export class AdventureMoves {
   explode(x, y, radius) {
     const blast = this.scene.add.sprite(x, y, EXPLOSION_KEY, 'explosion-0').setDepth(BULLET.depth + 1);
     blast.play(EXPLOSION_KEY).once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => blast.destroy());
+    this.shotFx.blast(x, y);
     this.scene.audio.playSfx('boom');
     this.scene.cameras.main.shake(BLAST_SHAKE.ms, BLAST_SHAKE.strength);
     for (const enemy of this.enemies.getChildren().slice()) {

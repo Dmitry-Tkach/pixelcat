@@ -4,6 +4,7 @@ import { ENEMIES, enemyAnimKey, enemyFrameCount, enemyKey, enemyPath } from '../
 import { FLASH, FLASH_KEY, FLASH_PATH, GUNNERS, flashFrameCount, gunnerAnimKey, gunnerFrameCount, gunnerKey, gunnerPath } from '../data/adventure/gunners.js';
 import { ADVENTURE_ART, adventureKey, adventurePath } from '../data/adventure/index.js';
 import { BOSS_ARENAS } from '../data/adventure/bossArenas.js';
+import { SHOT_ART, SHOT_PATH, shotKey } from '../systems/adventure/shotLook.js';
 import { adventureHomePictures } from '../ui/adventureHome.js';
 import { adventureRoadmapPictures } from '../ui/adventureRoadmap.js';
 
@@ -30,6 +31,8 @@ export function loadAdventureArt(scene) {
     scene.load.atlas(gunnerKey(kind), `${gunnerPath(kind)}.png`, `${gunnerPath(kind)}.json`);
   }
   scene.load.atlas(FLASH_KEY, `${FLASH_PATH}.png`, `${FLASH_PATH}.json`);
+  // The minigun's shots and their effects (systems/adventure/shotLook.js).
+  for (const [name, file] of Object.entries(SHOT_ART)) scene.load.image(shotKey(name), `${SHOT_PATH}/${file}.png`);
   scene.load.atlas(EXPLOSION_KEY, `${EXPLOSION_PATH}.png`, `${EXPLOSION_PATH}.json`);
   // The bosses: atlases of several pages, listed in one JSON.
   for (const kind of Object.keys(BOSSES)) {
