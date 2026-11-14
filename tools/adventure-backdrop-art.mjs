@@ -2,8 +2,8 @@
 // 1. The light rays and the fog, drawn as SVG, into public/assets/adventure/fx/backdrop, and the
 //    water's body and crest, into public/assets/adventure/fx/water.
 // 2. The owner's layer pictures for a world, from images/levels/<world>/<layer>.png (made with the
-//    prompts in prompts/forest-level), when they're there: shrunk to LAYER_HEIGHT, and their two
-//    sides blended so the picture repeats sideways without a seam, into that world's art. The
+//    prompts in prompts/forest-level), when they're there: kept at their full size (shrinking them
+//    blurred them), cut where they join themselves best, and their two sides blended so the picture repeats sideways without a seam, into that world's art. The
 //    owner's pictures are left alone.
 // Run: node tools/adventure-backdrop-art.mjs (part of npm run assets).
 import sharp from 'sharp';
@@ -28,7 +28,6 @@ const OWNER_LAYERS = {
   },
 };
 const SOURCE_FOLDER = { wood: 'forest' };
-const LAYER_HEIGHT = 820; // the screen's height and a little room to move up and down
 const FRONT_HEIGHT = 300; // the leaves in front, cut to the bottom of the picture, this tall
 const SEAM = 0.04; // the share of a picture's width blended across its join
 const JOIN_SEARCH = 0.22; // how far in from each side (a share of the width) the best join is looked for
@@ -171,7 +170,7 @@ for (const [world, layers] of Object.entries(OWNER_LAYERS)) {
     const whole = await sharp(source).metadata();
     const top = Math.round(whole.height * cropTop);
     const cropped = await sharp(source).extract({ left: 0, top, width: whole.width, height: whole.height - top }).png().toBuffer();
-    let picture = await sharp(cropped).resize({ height: front ? undefined : LAYER_HEIGHT }).png().toBuffer();
+    let picture = cropped;
     if (front) {
       // The leaves: only the bottom of the picture, where they are.
       const { width, height } = await sharp(picture).metadata();
