@@ -7,21 +7,23 @@
 export const SHOT_ART = {
   standard: 'shot-standard', explosive: 'shot-explosive', laser: 'shot-laser', freeze: 'shot-freeze', fire: 'shot-fire',
   glow: 'shot-glow', casing: 'shot-casing', smoke: 'shot-smoke', ice: 'shot-ice', shard: 'shot-shard',
+  shellStandard: 'shell-standard', shellExplosive: 'shell-explosive', shellLaser: 'shell-laser',
+  shellFreeze: 'shell-freeze', shellFire: 'shell-fire',
 };
 export const SHOT_PATH = 'assets/adventure/fx/shots';
 export const shotKey = (name) => `adventure-${SHOT_ART[name]}`;
 
-// Each round: its picture, its size and size on screen (scale), where its head is across the picture
+// Each round: its picture, its icon on the ammo belt (ui/AdventureAmmoBelt.js), its size and size on screen (scale), where its head is across the picture
 // (head, 0 to 1: the hitbox sits there, and it leaves the muzzle there), and whether it's drawn
 // glowing (ADD: light added to what's behind). colour: its glow, sparks and flash. casing: whether
 // the minigun throws out a shell case. trail: something left behind it every `everyMs`: `glow`, a
 // fading glow of its colour; `smoke`, a puff of smoke and an ember.
 export const ROUNDS = {
-  standard: { picture: 'standard', w: 110, h: 28, head: 0.87, scale: 0.75, add: true, colour: 0xffd34d, casing: true },
-  explosive: { picture: 'explosive', w: 72, h: 44, head: 0.72, scale: 0.8, add: false, colour: 0xff8a2a, casing: true, trail: { everyMs: 26, smoke: true } },
-  laser: { picture: 'laser', w: 160, h: 26, head: 0.95, scale: 0.8, add: true, colour: 0x6dff6a, casing: false, trail: { everyMs: 32, glow: true } },
-  fire: { picture: 'fire', w: 100, h: 36, head: 0.92, scale: 0.75, add: false, colour: 0xff6a2a, casing: true, trail: { everyMs: 24, glow: true } },
-  freeze: { picture: 'freeze', w: 96, h: 32, head: 0.86, scale: 0.75, add: false, colour: 0x8fe3ff, casing: true, trail: { everyMs: 30, glow: true } },
+  standard: { picture: 'standard', icon: 'shellStandard', w: 110, h: 28, head: 0.87, scale: 0.75, add: true, colour: 0xffd34d, casing: true },
+  explosive: { picture: 'explosive', icon: 'shellExplosive', w: 72, h: 44, head: 0.72, scale: 0.8, add: false, colour: 0xff8a2a, casing: true, trail: { everyMs: 26, smoke: true } },
+  laser: { picture: 'laser', icon: 'shellLaser', w: 160, h: 26, head: 0.95, scale: 0.8, add: true, colour: 0x6dff6a, casing: false, trail: { everyMs: 32, glow: true } },
+  fire: { picture: 'fire', icon: 'shellFire', w: 100, h: 36, head: 0.92, scale: 0.75, add: false, colour: 0xff6a2a, casing: true, trail: { everyMs: 24, glow: true } },
+  freeze: { picture: 'freeze', icon: 'shellFreeze', w: 96, h: 32, head: 0.86, scale: 0.75, add: false, colour: 0x8fe3ff, casing: true, trail: { everyMs: 30, glow: true } },
 };
 
 // muzzle: the glow at the barrel's end each shot, its size and how long it lasts. casing: the shell

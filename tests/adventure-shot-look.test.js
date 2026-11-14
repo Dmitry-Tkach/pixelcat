@@ -9,6 +9,7 @@ describe('how the shots look', () => {
     for (const kind of Object.keys(AMMO)) {
       expect(ROUNDS[kind], kind).toBeDefined();
       expect(SHOT_ART[ROUNDS[kind].picture], kind).toBeDefined();
+      expect(SHOT_ART[ROUNDS[kind].icon], `${kind}'s belt icon`).toBeDefined();
     }
   });
 

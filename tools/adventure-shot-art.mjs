@@ -15,6 +15,41 @@ const OUT = join(ROOT, 'public', 'assets', 'adventure', 'fx', 'shots');
 const REVIEW = process.argv[2];
 const REVIEW_BACKGROUND = '#4f7f4c'; // the forest's green, behind the review picture
 
+const OUTLINE = '#2b1a10'; // the thick dark outline the pack's art has
+
+// A cartoon shell for the belt's icons, standing up and tilted 45 degrees to the right: a case with a
+// rim (caseLight to caseDark), an optional coloured band, and a pointed tip (tip: its light and
+// dark). crystal: the tip as a faceted ice crystal. flames: flames licking up round the tip. glow: a
+// soft glow of that colour behind the tip. extra: more drawing over the tip, in its frame.
+function shell({ caseLight, caseDark, band, tip, crystal = false, flames = false, glow, extra = '' }) {
+  const tipPath = crystal
+    ? `<path d="M22 30 L26 14 L32 6 L38 14 L42 30 Z" fill="url(#tip)" stroke="${OUTLINE}" stroke-width="3.5" stroke-linejoin="round"/>
+       <path d="M26 14 L32 30 L38 14 M32 6 L32 30" stroke="#ffffff" stroke-width="1.6" stroke-opacity="0.85" fill="none"/>`
+    : `<path d="M22 30 Q22 14 32 5 Q42 14 42 30 Z" fill="url(#tip)" stroke="${OUTLINE}" stroke-width="3.5" stroke-linejoin="round"/>
+       <path d="M27 24 Q27 15 31 10" stroke="#ffffff" stroke-width="2.5" stroke-opacity="0.7" fill="none" stroke-linecap="round"/>`;
+  const fire = flames
+    ? `<path d="M15 36 Q6 22 14 8 Q16 18 21 20 Q18 6 28 -4 Q30 8 34 10 Q38 -2 46 -6 Q44 8 46 14 Q52 8 56 6 Q56 22 49 36 Z" fill="#e8401c" stroke="${OUTLINE}" stroke-width="3" stroke-linejoin="round"/>
+       <path d="M19 35 Q13 25 18 15 Q21 22 25 23 Q23 12 30 4 Q33 14 37 15 Q40 6 45 3 Q44 13 46 18 Q50 14 52 13 Q52 26 46 35 Z" fill="#ff9a2a"/>
+       <path d="M24 34 Q21 27 25 21 Q28 26 31 26 Q31 18 35 13 Q38 21 42 23 Q44 29 41 34 Z" fill="#ffe066"/>`
+    : '';
+  return `
+    <defs>
+      <linearGradient id="case" x1="0" x2="1"><stop offset="0" stop-color="${caseLight}"/><stop offset="1" stop-color="${caseDark}"/></linearGradient>
+      <linearGradient id="tip" x1="0" x2="1"><stop offset="0" stop-color="${tip[0]}"/><stop offset="1" stop-color="${tip[1]}"/></linearGradient>
+      <radialGradient id="glow"><stop offset="0" stop-color="${glow ?? '#fff'}" stop-opacity="0.85"/><stop offset="1" stop-color="${glow ?? '#fff'}" stop-opacity="0"/></radialGradient>
+    </defs>
+    <g transform="translate(32 34) scale(0.86) rotate(40) translate(-32 -32)">
+      ${glow ? '<circle cx="32" cy="16" r="16" fill="url(#glow)"/>' : ''}
+      ${fire}
+      <rect x="21" y="29" width="22" height="28" rx="3" fill="url(#case)" stroke="${OUTLINE}" stroke-width="3.5"/>
+      <rect x="19" y="53" width="26" height="7" rx="2" fill="${caseDark}" stroke="${OUTLINE}" stroke-width="3"/>
+      ${band ? `<rect x="21" y="37" width="22" height="5" fill="${band}" stroke="${OUTLINE}" stroke-width="2"/>` : ''}
+      <path d="M25 33 V50" stroke="#ffffff" stroke-width="2.5" stroke-opacity="0.55" stroke-linecap="round"/>
+      ${tipPath}
+      ${extra}
+    </g>`;
+}
+
 // Each picture: its size and its SVG drawing.
 const PICTURES = {
   // A golden tracer: a long tail fading in behind a white-hot head.
@@ -140,6 +175,34 @@ const PICTURES = {
     w: 18, h: 18,
     svg: `<path d="M3 15 L8 2 L16 8 Z" fill="#d9f5ff" stroke="#1d5a86" stroke-width="1.5" stroke-linejoin="round"/>
       <path d="M8 4 L10 9" stroke="#ffffff" stroke-width="1.2"/>`,
+  },
+  // The ammo belt's icons (ui/AdventureAmmoBelt.js): each kind of round as a cartoon shell, tilted
+  // up to the right, with the thick dark outline the rest of the art has.
+  shellStandard: { w: 64, h: 64, svg: shell({ caseLight: '#ffe48a', caseDark: '#c98a1b', tip: ['#fff1a0', '#f0b21c'] }) },
+  shellLaser: {
+    w: 64, h: 64,
+    svg: shell({ caseLight: '#8e98a6', caseDark: '#4a5260', band: '#6dff6a', tip: ['#eaffea', '#2fd04a'],
+      glow: '#6dff6a', extra: '<path d="M33 16 L28 26 L33 26 L29 35" stroke="#ffffff" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' }),
+  },
+  shellFreeze: {
+    w: 64, h: 64,
+    svg: shell({ caseLight: '#d9f5ff', caseDark: '#5aa6d6', band: '#ffffff', tip: ['#ffffff', '#6fc6f2'], crystal: true, glow: '#bfefff' }),
+  },
+  shellFire: {
+    w: 64, h: 64,
+    svg: shell({ caseLight: '#ff9a6b', caseDark: '#9c2a12', band: '#ffd34d', tip: ['#fff1a0', '#ff5a1f'], flames: true }),
+  },
+  // The explosive kind: a bomb with a lit fuse.
+  shellExplosive: {
+    w: 64, h: 64,
+    svg: `
+      <defs><radialGradient id="bomb" cx="0.35" cy="0.35" r="0.7"><stop offset="0" stop-color="#6a7180"/><stop offset="1" stop-color="#1f2229"/></radialGradient></defs>
+      <path d="M38 18 Q44 8 52 9" stroke="${OUTLINE}" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+      <path d="M38 18 Q44 8 52 9" stroke="#c9a46b" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M52 9 l3 -6 l1.5 5.5 l5.5 -2.5 l-3.5 5 l5.5 2.5 l-6 1 l1 5.5 l-4.5 -4.5 z" fill="#ffe066" stroke="#ff7a1a" stroke-width="1.5" stroke-linejoin="round"/>
+      <rect x="30" y="15" width="12" height="9" rx="2" fill="#5a5f6b" stroke="${OUTLINE}" stroke-width="3" transform="rotate(30 36 19.5)"/>
+      <circle cx="29" cy="38" r="20" fill="url(#bomb)" stroke="${OUTLINE}" stroke-width="4"/>
+      <path d="M17 32 Q20 23 29 22" stroke="#c3cad6" stroke-width="4" fill="none" stroke-linecap="round"/>`,
   },
   // A soft round glow, white, tinted by the game: for the muzzle, hits and blasts.
   glow: {

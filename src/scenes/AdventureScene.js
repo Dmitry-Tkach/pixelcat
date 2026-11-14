@@ -463,7 +463,7 @@ export class AdventureScene extends Phaser.Scene {
     this.beamPips = fixed(this.add.graphics());
     this.drawBeamPips();
     // The minigun's ammo belt, once he has it: every kind he carries, the one he's firing lit up.
-    this.ammoBelt = new AdventureAmmoBelt(this, this.art);
+    this.ammoBelt = new AdventureAmmoBelt(this);
     this.hint = fixed(this.add.text(GAME.WIDTH / 2, 150, '', { ...HUD_STYLE, fontSize: '30px', align: 'center' }).setOrigin(0.5));
     // The game menu's button, in the top right corner (ui/adventureGameMenu.js). Esc and P open it too.
     this.menuButton = addMenuButton(this, () => this.togglePause());
