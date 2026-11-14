@@ -6,6 +6,8 @@ import { AMMO } from '../data/adventure/ammo.js';
 import { isFrozen } from '../systems/adventure/iceBlocks.js';
 import { spreadFire } from '../systems/adventure/burning.js';
 import { AdventureAmmoBelt } from '../ui/AdventureAmmoBelt.js';
+import { AdventureBackdrop } from '../systems/adventure/AdventureBackdrop.js';
+import { BACKDROPS } from '../data/adventure/backdrop.js';
 import { FLASH, FLASH_KEY } from '../data/adventure/gunners.js';
 import { BOSS_FIGHTS } from '../data/adventure/bossFights.js';
 import { AdventureBoss } from '../entities/AdventureBoss.js';
@@ -43,7 +45,6 @@ const CAMERA = { lerp: 0.12, deadzoneW: 120, deadzoneH: 70 };
 //   ahead: this far in front of him, the way he runs or faces
 //   stillMs: how long he stands by an edge before the camera peeks over. easeMs: how quickly it turns.
 const LOOK = { below: 110, above: 120, peek: 250, ride: 180, ahead: 160, runningFrom: 120, stillMs: 350, easeMs: 300, edgeCells: 2 };
-const BACKGROUND_DRIFT = { far: 0.12, near: 0.3 };
 const SPIKE_HIT = { w: 52, h: 20 };
 const BONUS_COINS = 3;
 const CHEST_COINS = 5;
@@ -205,10 +206,9 @@ export class AdventureScene extends Phaser.Scene {
 
   // ----- Building the level -----
 
+  // The world's backdrop: its layers, light rays, fog and leaves in front (data/adventure/backdrop.js).
   buildBackground() {
-    const layer = (name, depth) => this.add.tileSprite(0, 0, GAME.WIDTH, GAME.HEIGHT, this.art(name)).setOrigin(0).setScrollFactor(0).setDepth(depth);
-    this.backFar = layer('back-far', -10);
-    this.backNear = layer('back-near', -9);
+    this.backdrop = new AdventureBackdrop(this, BACKDROPS[this.level.world] ?? BACKDROPS.wood, this.art);
   }
 
   buildTiles() {
@@ -498,8 +498,7 @@ export class AdventureScene extends Phaser.Scene {
   }
 
   fitToScreen() {
-    this.backFar.setSize(GAME.WIDTH, GAME.HEIGHT);
-    this.backNear.setSize(GAME.WIDTH, GAME.HEIGHT);
+    this.backdrop.fit();
     this.hint.setX(GAME.WIDTH / 2);
     this.menuButton.layout();
     this.bossBar?.layout();
@@ -1025,8 +1024,7 @@ export class AdventureScene extends Phaser.Scene {
 
   update(time, delta) {
     const cam = this.cameras.main;
-    this.backFar.tilePositionX = cam.scrollX * BACKGROUND_DRIFT.far;
-    this.backNear.tilePositionX = cam.scrollX * BACKGROUND_DRIFT.near;
+    this.backdrop.update(cam, time);
     if (!this.playing) return;
     const ms = Math.min(delta, 50);
     this.controls.update(time);
