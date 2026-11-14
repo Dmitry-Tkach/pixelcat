@@ -83,7 +83,7 @@ level.island(117, 122, 10).put(118, 9, 'C').put(120, 9, 'z')
   .put(130, 29, 'g').put(142, 29, 'c').put(126, 29, '+').coins(136, 140, 28);
 
 // ----- 7. The Portal Tree: one last jump to the portal, past a goon.
-level.island(151, 157, 6).put(152, 5, 's').put(154, 5, 'g').put(156, 5, 'E').put(158, 5, 'X').arc(148, 150, 6, 1)
+level.island(151, 157, 6).put(152, 5, 's').put(154, 5, 'g').put(155, 5, 'E').put(158, 5, 'X').arc(148, 150, 6, 1)
   .put(158, 29, 'b');
 
 export const WOOD_LEVEL = {

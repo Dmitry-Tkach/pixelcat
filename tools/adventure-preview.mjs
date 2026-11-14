@@ -18,6 +18,8 @@ import { DECOR } from '../src/data/adventure/decor.js';
 import { BACKDROPS } from '../src/data/adventure/backdrop.js';
 import { placeDecor } from '../src/systems/adventure/decorPlacement.js';
 import { waterRuns } from '../src/systems/adventure/water.js';
+import { GATES } from '../src/data/adventure/gates.js';
+import { portalPosts } from '../src/systems/adventure/gatePlacement.js';
 
 const [out, index = '0'] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const routes = process.argv.includes('--routes');
@@ -67,6 +69,39 @@ const ICON = {
   bonus: 'bonus', box: 'box', stone: 'stone', spike: 'spike', chest: 'chest-locked', checkpoint: 'lantern', portal: 'portal',
   'silver-key': 'silver-key', 'silver-chest': 'chest-silver-locked', leaves: 'leaves',
 };
+// The gates (data/adventure/gates.js), each put together into one picture at its size in the game:
+// a gate with its swirl in its hole, and the flag post with its flag raised.
+const gates = GATES[level.world];
+const tall = async (name, height) => sharp(art(name)).resize({ height: Math.round(height * SCALE) }).png().toBuffer();
+const size = async (input) => sharp(input).metadata();
+async function gateWithSwirl({ hole, height }, frameName, swirlName) {
+  const frame = await tall(frameName, height);
+  const { width: w, height: h } = await size(frame);
+  const across = Math.round(hole.size * w);
+  const swirl = await sharp(art(swirlName)).resize(across, across).toBuffer();
+  const left = Math.round(hole.x * w - across / 2), top = Math.round(hole.y * h - across / 2);
+  return sharp({ create: { width: w, height: h, channels: 4, background: '#0000' } })
+    .composite([{ input: swirl, left: Math.max(0, left), top: Math.max(0, top) }, { input: frame, left: 0, top: 0 }]).png().toBuffer();
+}
+async function flagPost({ height, up, pole, flag }) {
+  const poleImage = await tall(pole, height);
+  const { width: w, height: h, } = await size(poleImage);
+  const flagImage = await sharp(art(up)).resize({ width: Math.round((await size(art(up))).width * h / (await size(art(pole))).height) }).toBuffer();
+  const fw = (await size(flagImage)).width, fx = Math.round(flag.x * w);
+  const half = Math.ceil(Math.max(w / 2, fx + fw - w / 2)), poleLeft = Math.round(half - w / 2);
+  return sharp({ create: { width: half * 2, height: h, channels: 4, background: '#0000' } })
+    .composite([{ input: poleImage, left: poleLeft, top: 0 }, { input: flagImage, left: poleLeft + fx, top: Math.round(flag.upY * h) }]).png().toBuffer();
+}
+const GATE_PICTURES = gates && {
+  start: await gateWithSwirl(gates.start, gates.start.ring, gates.start.swirl),
+  checkpoint: await flagPost(gates.checkpoint),
+  portal: await gateWithSwirl(gates.portal, gates.portal.arch, gates.portal.swirl),
+  post: await tall(gates.portal.post, gates.portal.postHeight),
+};
+const placeAt = async (input, x, row) => {
+  const { width, height } = await size(input);
+  comps.push({ input, left: Math.max(0, Math.round(x * SCALE - width / 2)), top: Math.max(0, Math.round((row + 1) * CELL - height)) });
+};
 const place = async (input, col, row, bottom = false) => {
   const { width, height } = await sharp(input).metadata();
   const left = Math.round(col * CELL + CELL / 2 - width / 2);
@@ -74,7 +109,10 @@ const place = async (input, col, row, bottom = false) => {
   comps.push({ input, left: Math.max(0, left), top: Math.max(0, top) });
 };
 for (const o of objects) {
-  if (o.type === 'enemy') await place(await atlasFrame('enemies', o.kind, 'idle-0', enemyLayout(o.kind).frameW / SCALE * SCALE), o.col, o.row, true);
+  if (GATE_PICTURES?.[o.type]) {
+    await placeAt(GATE_PICTURES[o.type], o.col * TILE + TILE / 2, o.row);
+    if (o.type === 'portal') for (const x of portalPosts(layout, o, gates.portal)) await placeAt(GATE_PICTURES.post, x, o.row);
+  } else if (o.type === 'enemy') await place(await atlasFrame('enemies', o.kind, 'idle-0', enemyLayout(o.kind).frameW / SCALE * SCALE), o.col, o.row, true);
   else if (o.type === 'gunner') await place(await atlasFrame('gunners', o.kind, 'idle-0', gunnerLayout(o.kind).frameW), o.col, o.row, true);
   else if (o.type === 'start') await place(await sharp({ create: { width: CELL, height: CELL * 1.5, channels: 4, background: '#3a7bff' } }).png().toBuffer(), o.col, o.row, true);
   else if (ICON[o.type]) await place(await image(art(ICON[o.type])), o.col, o.row, ['spike', 'chest', 'silver-chest', 'checkpoint', 'portal'].includes(o.type));

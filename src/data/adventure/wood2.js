@@ -67,7 +67,7 @@ level.mover(50, 31, { across: 6 })
 level.island(30, 35, 17).put(33, 16, 'c')
   .put(38, 14, '%').put(39, 14, '%').put(40, 14, '%')
   .mover(43, 11, { across: 6 }).put(47, 7, '*').coins(44, 50, 9)
-  .island(54, 62, 11).put(55, 10, 's').put(57, 10, 'U').put(59, 10, 'g').put(61, 10, 'E').put(63, 10, 'X')
+  .island(54, 62, 11).put(55, 10, 's').put(57, 10, 'U').put(59, 10, 'g').put(60, 10, 'E').put(63, 10, 'X')
   .island(30, 34, 6).put(32, 5, '2');
 
 export const WOOD_CANOPY_LEVEL = {

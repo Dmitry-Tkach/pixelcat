@@ -13,13 +13,15 @@ export const ADVENTURE_ART = {
   wood: [
     'tiles', 'back-far', 'back-near', 'ladder', 'spike', 'bonus', 'bonus-used', 'box', 'stone', 'roots',
     'coin-1', 'coin-2', 'coin-3', 'coin-4', 'coin-5', 'coin-6', 'gem', 'key', 'chest-locked', 'chest-open',
-    'heart', 'portal', 'bush-1', 'plant-1', 'statue', 'sign-right', 'sign-up', 'lantern', 'mushroom', 'bullet', 'enemy-bullet',
+    'heart', 'bush-1', 'plant-1', 'statue', 'sign-right', 'sign-up', 'mushroom', 'bullet', 'enemy-bullet',
     'pillar-cap', 'pillar-middle', 'pillar-base', 'minigun',
     'bullet-explosive', 'bullet-laser', 'ammo-standard', 'ammo-explosive', 'ammo-laser', 'ammo-freeze', 'ammo-fire',
     'bridge', 'leaves', 'silver-key', 'chest-silver-locked', 'chest-silver-open',
     'layer-sky', 'layer-middle', // the backdrop's layers (data/adventure/backdrop.js), from the owner's pictures
     // The automatic decoration (data/adventure/decor.js): grass, flowers and hanging vines.
     'decor-tuft-1', 'decor-tuft-2', 'decor-flowers-1', 'decor-flowers-2', 'decor-vine-1', 'decor-vine-2', 'decor-vine-3',
+    // The gates (data/adventure/gates.js): the start gate, the checkpoint flags and the portal's arch.
+    'gate-ring', 'gate-swirl', 'flag-pole', 'flag-down', 'flag-up', 'portal-arch', 'portal-swirl', 'portal-post',
   ],
 };
 

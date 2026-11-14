@@ -16,6 +16,8 @@ import { cellRandom, placeDecor } from '../systems/adventure/decorPlacement.js';
 import { TILE_VARIANTS, TILE_VARIANT_SHARE } from '../data/adventure/tileVariants.js';
 import { AMBIENCE } from '../data/adventure/ambience.js';
 import { AdventureAmbience } from '../systems/adventure/AdventureAmbience.js';
+import { GATES } from '../data/adventure/gates.js';
+import { AdventureGates } from '../systems/adventure/AdventureGates.js';
 import { FLASH, FLASH_KEY } from '../data/adventure/gunners.js';
 import { BOSS_FIGHTS } from '../data/adventure/bossFights.js';
 import { AdventureBoss } from '../entities/AdventureBoss.js';
@@ -115,6 +117,8 @@ export class AdventureScene extends Phaser.Scene {
     this.splashed = false;
     this.buildLadders();
     this.buildScenery();
+    // The start gate, the checkpoint flags and the portal's arch (data/adventure/gates.js).
+    this.gates = new AdventureGates(this, GATES[level.world], this.layout);
     this.buildObjects();
 
     const start = this.layout.objects.find((o) => o.type === 'start');
@@ -123,13 +127,17 @@ export class AdventureScene extends Phaser.Scene {
     this.cat.setScale(this.cat.scaleX * ADVENTURE_HERO.scale);
     this.cat.moveMode = 'free';
     this.cat.startRunning();
+    this.gates.open(this.cat);
     this.cat.body.setMaxVelocityY(MAX_FALL_SPEED);
     this.physics.add.collider(this.cat, this.groundLayer, null, (cat, tile) => this.landsOn(tile), this);
     this.physics.add.collider(this.cat, this.solids, (cat, block) => this.bumpInto(block));
     this.physics.add.overlap(this.cat, this.pickups, (cat, item) => this.collect(item));
     this.physics.add.overlap(this.cat, this.spikes, (cat, spike) => this.hurt(spike.x));
     this.physics.add.overlap(this.cat, this.lanterns, (cat, lantern) => this.reachCheckpoint(lantern));
-    this.physics.add.overlap(this.cat, this.portalZone, () => this.complete());
+    this.physics.add.overlap(this.cat, this.portalZone, () => {
+      if (this.playing) this.gates.enter(this.cat);
+      this.complete();
+    });
     this.physics.add.overlap(this.cat, this.chests, (cat, chest) => this.openChest(chest));
     this.physics.add.collider(this.enemies, this.groundLayer);
     this.physics.add.collider(this.enemies, this.solids);
@@ -409,9 +417,11 @@ export class AdventureScene extends Phaser.Scene {
           this.spikes.push(zone);
           break;
         }
+        case 'start':
+          this.gates.buildStart(x, y);
+          break;
         case 'checkpoint': {
-          const lantern = this.physics.add.staticImage(x, y + 4, this.art('lantern')).setOrigin(0.5, 1).setDepth(3);
-          lantern.refreshBody();
+          const lantern = this.gates.buildCheckpoint(x, y);
           lantern.respawn = { x, y };
           this.lanterns.push(lantern);
           break;
@@ -440,8 +450,7 @@ export class AdventureScene extends Phaser.Scene {
           break;
         }
         case 'portal': {
-          const portal = this.add.image(x, y + 6, this.art('portal')).setOrigin(0.5, 1).setDepth(3);
-          this.tweens.add({ targets: portal, alpha: 0.8, duration: 900, yoyo: true, repeat: -1 });
+          this.gates.buildPortal(x, y, object);
           this.portalZone = this.add.zone(x, y - 60, 70, 110);
           this.physics.add.existing(this.portalZone, true);
           break;
@@ -918,6 +927,7 @@ export class AdventureScene extends Phaser.Scene {
   reachCheckpoint(lantern) {
     if (lantern.lit) return;
     lantern.lit = true;
+    this.gates.raise(lantern);
     this.respawnAt = lantern.respawn;
     this.audio.playSfx('checkpoint');
     this.effects.sparkle(lantern.x, lantern.y - 50);
