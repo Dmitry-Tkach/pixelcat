@@ -95,6 +95,7 @@ function sleepWhenAway(game, audio) {
   });
   window.addEventListener('focus', () => {
     game.loop.wake();
+    game.loop.resetDelta(); // its clock starts again from now, so nothing tries to catch up
     if (!document.hidden) audio.ctx?.resume().catch(() => {});
   });
 }
