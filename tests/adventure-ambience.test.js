@@ -5,7 +5,9 @@ import { BACKDROPS } from '../src/data/adventure/backdrop.js';
 describe('the moving life', () => {
   it('has sensible ranges for every world', () => {
     for (const [world, { fireflies, leaves, sway }] of Object.entries(AMBIENCE)) {
-      for (const [low, high] of [fireflies.lifeMs, fireflies.size, leaves.lifeMs, leaves.fall, leaves.across, leaves.size, sway.periodMs]) {
+      const ranges = [fireflies.lifeMs, fireflies.size, leaves.lifeMs, leaves.fall, leaves.across, leaves.size];
+      if (sway) ranges.push(sway.periodMs);
+      for (const [low, high] of ranges) {
         expect(low, world).toBeLessThanOrEqual(high);
       }
       expect(fireflies.everyMs, world).toBeGreaterThanOrEqual(100); // not so many they cost much

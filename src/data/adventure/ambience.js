@@ -10,10 +10,12 @@
 //   the cat (depth).
 // sway: the decoration (data/adventure/decor.js) moving in a breeze: vines swing from where they
 //   hang, plants lean from their roots; the most they turn (degrees), and how long one sway takes.
+//   null for still. Turning a whole picture looked stiff and unnatural to the owner, so it's off;
+//   a real sway would need the plants drawn in bending frames.
 export const AMBIENCE = {
   wood: {
     fireflies: { everyMs: 320, lifeMs: [2600, 4200], drift: 22, size: [0.22, 0.38], colours: [0xeaff8a, 0xc8ff6a, 0xfff6a0], depth: -6 },
     leaves: { everyMs: 900, lifeMs: [5000, 7500], fall: [40, 70], across: [-45, -10], size: [0.7, 1.1], colours: [0x8fd14a, 0x6cbf2e, 0xd8c040], depth: 4 },
-    sway: { vineDegrees: 5, plantDegrees: 3, periodMs: [2600, 3800] },
+    sway: null,
   },
 };
