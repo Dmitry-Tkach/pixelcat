@@ -5,7 +5,7 @@ import { CHARACTERS, animKey } from '../data/characters.js';
 import { AMMO } from '../data/adventure/ammo.js';
 import { isFrozen } from '../systems/adventure/iceBlocks.js';
 import { spreadFire } from '../systems/adventure/burning.js';
-import { ROUNDS, shotKey } from '../systems/adventure/shotLook.js';
+import { AdventureAmmoBelt } from '../ui/AdventureAmmoBelt.js';
 import { FLASH, FLASH_KEY } from '../data/adventure/gunners.js';
 import { BOSS_FIGHTS } from '../data/adventure/bossFights.js';
 import { AdventureBoss } from '../entities/AdventureBoss.js';
@@ -63,7 +63,6 @@ const END_SCREEN_MS = 1100;
 const DROP = { fromY: TILE, ms: 700 }; // a pickup the arena drops falls from here, this long
 const STARS = 3; // a level's stars are its crystals, up to this many
 const BEAM_PIPS = { x: 98, y: 128, gap: 26, r: 8 };
-const AMMO_HUD = { x: 44, y: 166, textGap: 34, iconWidth: 44 }; // iconWidth: the round's picture across
 // An earth pillar starts this far up inside the island it holds, and stands this far into the ground.
 const PILLAR_FIT = { underIsland: 6, intoGround: 6, depth: 1 };
 const HUD_STYLE = { fontFamily: 'Fredoka, sans-serif', fontSize: '26px', fontStyle: '600', color: '#ffffff', stroke: '#1e2a4a', strokeThickness: 6 };
@@ -463,9 +462,8 @@ export class AdventureScene extends Phaser.Scene {
     fixed(this.add.text(24, 128, 'BEAM', { ...HUD_STYLE, fontSize: '20px' }).setOrigin(0, 0.5));
     this.beamPips = fixed(this.add.graphics());
     this.drawBeamPips();
-    // The minigun's rounds, once he has it: the kind he's firing and how many are left.
-    this.ammoIcon = fixed(this.add.image(AMMO_HUD.x, AMMO_HUD.y, this.art('bullet'))).setVisible(false);
-    this.ammoText = fixed(this.add.text(AMMO_HUD.x + AMMO_HUD.textGap, AMMO_HUD.y, '', { ...HUD_STYLE, fontSize: '22px' }).setOrigin(0, 0.5)).setVisible(false);
+    // The minigun's ammo belt, once he has it: every kind he carries, the one he's firing lit up.
+    this.ammoBelt = new AdventureAmmoBelt(this, this.art);
     this.hint = fixed(this.add.text(GAME.WIDTH / 2, 150, '', { ...HUD_STYLE, fontSize: '30px', align: 'center' }).setOrigin(0.5));
     // The game menu's button, in the top right corner (ui/adventureGameMenu.js). Esc and P open it too.
     this.menuButton = addMenuButton(this, () => this.togglePause());
@@ -485,13 +483,7 @@ export class AdventureScene extends Phaser.Scene {
     this.keyIcon.setAlpha(this.hasKey ? 1 : 0.3);
     this.silverKeyIcon.setAlpha(this.hasSilverKey ? 1 : 0.3);
     this.drawBeamPips();
-    const { armed, ammo, rounds } = this.moves;
-    const ammoDef = AMMO[ammo];
-    const others = Object.keys(AMMO).filter((kind) => kind !== ammo && rounds[kind] > 0).length;
-    const round = ROUNDS[ammo];
-    this.ammoIcon.setVisible(armed).setTexture(shotKey(round.picture)).setScale(AMMO_HUD.iconWidth / round.w);
-    this.ammoText.setVisible(armed).setColor(rounds[ammo] > 0 ? ammoDef.colour : '#ff6b6b')
-      .setText(`${rounds[ammo]}${others ? '  Q: swap' : ''}`);
+    this.ammoBelt.update(this.moves);
   }
 
   drawBeamPips() {

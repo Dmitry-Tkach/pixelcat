@@ -9,6 +9,7 @@ import { DASH_LOOK } from './adventure/dashLook.js';
 import { ShotEffects } from './adventure/ShotEffects.js';
 import { freezeEnemy, isFrozen } from './adventure/iceBlocks.js';
 import { BURNED_OUT, igniteEnemy } from './adventure/burning.js';
+import { BELT_ORDER, MAX_SLOT_KEYS, heldKinds, kindAfterEmpty, kindForSlot } from './adventure/ammoBelt.js';
 
 // The battle cat's fighting moves in the adventure, from his sheet with the minigun:
 //   X      shoot: a tap fires one shot, holding it fires a burst, while he has rounds; with bare
@@ -60,6 +61,9 @@ export class AdventureMoves {
     this.rounds = Object.fromEntries(Object.keys(AMMO).map((kind) => [kind, 0]));
     this.ammo = 'standard';
     this.keys = scene.input.keyboard.addKeys({ fire: 'X', dash: 'SHIFT', special: 'C', swap: 'Q' });
+    // Keys 1, 2, 3... pick a kind of round straight from the belt (adventure/ammoBelt.js).
+    const numbers = ['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE'];
+    this.slotKeys = numbers.slice(0, Math.min(BELT_ORDER.length, MAX_SLOT_KEYS)).map((name) => scene.input.keyboard.addKey(name));
     this.bullets = scene.physics.add.group({ allowGravity: false });
     this.shotFx = new ShotEffects(scene); // how the shots look (adventure/shotLook.js)
     // An enemy the fire has burned to its last hit point (adventure/burning.js) is knocked out.
@@ -121,7 +125,9 @@ export class AdventureMoves {
   addAmmo(kind) {
     this.rounds[kind] += AMMO[kind].rounds;
     this.ammo = kind;
-    this.onAmmo?.(`+${AMMO[kind].rounds} ${kind} rounds${this.armed ? '' : ' for the minigun'}`);
+    // With more than one kind on the belt, how to swap between them.
+    const swap = this.armed && heldKinds(this.rounds).length > 1 ? `\nQ or 1-${BELT_ORDER.length} to swap` : '';
+    this.onAmmo?.(`+${AMMO[kind].rounds} ${kind} rounds${this.armed ? '' : ' for the minigun'}${swap}`);
   }
 
   // The next kind after this one that he has rounds for, or null if he has none at all.
@@ -140,6 +146,17 @@ export class AdventureMoves {
     if (!next || next === this.ammo) return;
     this.ammo = next;
     this.onAmmo?.(`${next} rounds`);
+  }
+
+  // A number key: that kind of round, if he has any.
+  pickAmmo(kind) {
+    if (!kind || kind === this.ammo) return;
+    if (this.rounds[kind] <= 0) {
+      this.onAmmo?.(`No ${kind} rounds`);
+      return;
+    }
+    this.ammo = kind;
+    this.onAmmo?.(`${kind} rounds`);
   }
 
   get chargeNeeded() {
@@ -180,6 +197,9 @@ export class AdventureMoves {
     }
     if (Phaser.Input.Keyboard.JustDown(dash)) this.startDash();
     if (Phaser.Input.Keyboard.JustDown(this.keys.swap) && this.armed) this.swapAmmo();
+    this.slotKeys.forEach((key, i) => {
+      if (Phaser.Input.Keyboard.JustDown(key) && this.armed) this.pickAmmo(kindForSlot(i + 1));
+    });
     this.updateShooting(ms, fire);
   }
 
@@ -214,7 +234,7 @@ export class AdventureMoves {
   fireBullet(cooldownMs) {
     this.fireCooldownMs = cooldownMs;
     if (this.rounds[this.ammo] <= 0) {
-      const next = this.nextAmmo();
+      const next = kindAfterEmpty(this.rounds, this.ammo);
       if (!next) {
         this.scene.audio.playSfx('click');
         if (this.emptyHintMs === 0) {
@@ -241,8 +261,8 @@ export class AdventureMoves {
     bullet.kind = kind; // its ammo's name, which is also what a boss's damage is listed by
     bullet.hit = new Set(); // the enemies a piercing bolt has gone through
     this.scene.audio.playSfx('shot');
-    // Out of this kind: on to the next he has.
-    if (this.rounds[kind] === 0) this.ammo = this.nextAmmo() ?? kind;
+    // Out of this kind: back to standard rounds, or on to the next he has.
+    if (this.rounds[kind] === 0) this.ammo = kindAfterEmpty(this.rounds, kind) ?? kind;
     this.onAmmo?.(null);
   }
 
