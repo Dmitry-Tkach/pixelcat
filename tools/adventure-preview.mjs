@@ -41,7 +41,7 @@ for (const { col, row } of ladders) comps.push({ input: ladder, left: col * CELL
 
 const ICON = {
   coin: 'coin-1', gem: 'gem', heart: 'heart', key: 'key', rage: 'mushroom', weapon: 'minigun',
-  'ammo-standard': 'ammo-standard', 'ammo-explosive': 'ammo-explosive', 'ammo-laser': 'ammo-laser',
+  'ammo-standard': 'ammo-standard', 'ammo-explosive': 'ammo-explosive', 'ammo-laser': 'ammo-laser', 'ammo-freeze': 'ammo-freeze',
   bonus: 'bonus', box: 'box', stone: 'stone', spike: 'spike', chest: 'chest-locked', checkpoint: 'lantern', portal: 'portal',
   'silver-key': 'silver-key', 'silver-chest': 'chest-silver-locked', leaves: 'leaves',
 };

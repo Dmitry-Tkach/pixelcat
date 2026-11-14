@@ -13,7 +13,7 @@
 //
 // Letters (see systems/adventureMap.js): # ground, = island, - bridge, H ladder, ^ spikes, o coin,
 // * crystal, + heart, k key, T chest, ? bonus block, B crate, X stone, C checkpoint, E portal,
-// @ start, w the minigun, a e z ammunition crates (standard, explosive, laser), m rage mushroom,
+// @ start, w the minigun, a e z f ammunition crates (standard, explosive, laser, freeze), m rage mushroom,
 // enemies g goon, c cone head, v spiky, gunners 1 blaster, 2 ray gun, 3 rifle, and scenery
 // R earth pillar (under a low island), b bush, p plant, s statue, > and / signs.
 import { mapBuilder } from './mapBuilder.js';
@@ -47,11 +47,11 @@ level.put(53, 29, 'B').ground(54, 69, 26)
   .put(56, 25, 'C').coins(57, 59, 24).put(60, 25, 'g').put(68, 25, 'b')
   .island(62, 67, 20).ladder(62, 20, 25).put(65, 19, '1').put(67, 19, 'a');
 
-// ----- 4. Thorn Hollow: no floor at all, crossed on islands and a bridge. A spiky enemy holds the
-// narrow middle island, a cone head the last, and a ray gun fires down from above. Above the spiky
+// ----- 4. Thorn Hollow: no floor at all, crossed on islands and a bridge. A crate of freeze rounds
+// on the first island, for the spiky enemy who holds the narrow middle island (he can't be stomped), a cone head the last, and a ray gun fires down from above. Above the spiky
 // one, a step leads up to the gunner's island, with a rage mushroom and a crystal.
 level.gap(70, 97)
-  .island(72, 75, 27).arc(70, 71, 26, 1)
+  .island(72, 75, 27).arc(70, 71, 26, 1).put(74, 26, 'f')
   .bridge(78, 81, 27).coins(78, 81, 25)
   .island(84, 87, 24).put(86, 23, 'v')
   .island(91, 94, 27).put(93, 26, 'c').coins(95, 96, 26)

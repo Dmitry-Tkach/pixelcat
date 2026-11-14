@@ -6,13 +6,15 @@
 //   bullet: its image. speed: px a second. range: how far it flies, about to the screen's edge
 //   ahead of him (it shows about 13 tiles, 830px, in front of him) or, for the laser, past it.
 //   everyMs: the time between shots in a burst (a tap has its own cooldown, see AdventureMoves).
-//   pierce: it flies on through enemies, hitting each once. blast: it bursts where it hits, knocking
+//   pierce: it flies on through enemies, hitting each once. freeze: it doesn't hurt, but freezes the
+//   enemy it hits into a block of ice (data/adventure/freeze.js), which any other round shatters. blast: it bursts where it hits, knocking
 //   out every enemy within this many px. rounds: how many a crate gives. colour: the HUD's count.
 //   sound: what picking up its crate sounds like (data/adventure/sounds.js).
 export const AMMO = {
   standard: { bullet: 'bullet', speed: 1150, range: 900, everyMs: 120, rounds: 40, crate: 'ammo-standard', colour: '#ffe066', sound: 'ammoStandard' },
   explosive: { bullet: 'bullet-explosive', speed: 850, range: 800, everyMs: 300, blast: 90, rounds: 12, crate: 'ammo-explosive', colour: '#ff9a3c', sound: 'ammoExplosive' },
   laser: { bullet: 'bullet-laser', speed: 1700, range: 1200, everyMs: 140, pierce: true, rounds: 20, crate: 'ammo-laser', colour: '#7dff6a', sound: 'ammoLaser' },
+  freeze: { bullet: 'bullet', speed: 1000, range: 850, everyMs: 220, freeze: true, rounds: 15, crate: 'ammo-freeze', colour: '#8fe3ff', sound: 'ammoFreeze' },
 };
 // The rounds the minigun comes with when he finds it.
 export const LOADED = { standard: 60 };

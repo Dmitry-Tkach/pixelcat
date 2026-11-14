@@ -7,6 +7,7 @@ import { ONE_WAY, TILE } from './adventureMap.js';
 import { CLAW, CLAW_SLASH, clawArea, crescentPath, overlaps } from './adventure/clawSwipe.js';
 import { DASH_LOOK } from './adventure/dashLook.js';
 import { ShotEffects } from './adventure/ShotEffects.js';
+import { freezeEnemy, isFrozen } from './adventure/iceBlocks.js';
 
 // The battle cat's fighting moves in the adventure, from his sheet with the minigun:
 //   X      shoot: a tap fires one shot, holding it fires a burst, while he has rounds; with bare
@@ -299,6 +300,14 @@ export class AdventureMoves {
   shotHits(bullet, enemy) {
     if (enemy.dead || !bullet.active) return;
     const { ammo } = bullet;
+    // A freeze round doesn't hurt: it freezes (adventure/iceBlocks.js), or makes the ice last again.
+    if (ammo.freeze) {
+      bullet.destroy();
+      this.shotFx.hit(bullet.x, bullet.y, bullet.kind);
+      this.scene.audio.playSfx('freeze');
+      freezeEnemy(enemy);
+      return;
+    }
     if (ammo.pierce) {
       if (bullet.hit.has(enemy)) return;
       bullet.hit.add(enemy);
@@ -310,7 +319,8 @@ export class AdventureMoves {
       return;
     }
     this.shotFx.hit(bullet.x, bullet.y, bullet.kind);
-    if (enemy.takeShot()) this.onKnockOut(enemy);
+    // Any other round shatters a frozen enemy.
+    if (isFrozen(enemy) || enemy.takeShot()) this.onKnockOut(enemy);
   }
 
   // A boss to fight (entities/AdventureBoss.js). He isn't one of the enemies: his shots, blasts and

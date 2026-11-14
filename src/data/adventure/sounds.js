@@ -26,4 +26,22 @@ export const ADVENTURE_SOUNDS = {
     { wave: 'triangle', at: 0.22, from: 1760, duration: 0.18, gain: 0.2 },
     { wave: 'triangle', at: 0.26, from: 2637, duration: 0.14, gain: 0.1 },
   ],
+  // Freeze rounds: a crystal chime running up, with a little crackle of frost.
+  ammoFreeze: [
+    { wave: 'sine', from: 1568, duration: 0.09, gain: 0.18 },
+    { wave: 'sine', at: 0.06, from: 2093, duration: 0.09, gain: 0.16 },
+    { wave: 'sine', at: 0.12, from: 2637, duration: 0.2, gain: 0.16 },
+    { kind: 'noise', filter: 'highpass', cutoff: 6000, duration: 0.3, gain: 0.1, attack: 0.04 },
+  ],
+  // An enemy frozen: a crackle of ice forming, and a cold low note.
+  freeze: [
+    { kind: 'noise', filter: 'bandpass', cutoff: 4500, sweepTo: 2500, q: 2, duration: 0.25, gain: 0.3 },
+    { wave: 'sine', from: 900, to: 600, duration: 0.3, gain: 0.14 },
+  ],
+  // Ice shattering: a bright glassy crash.
+  shatter: [
+    { kind: 'noise', filter: 'highpass', cutoff: 3000, sweepTo: 7000, duration: 0.28, gain: 0.45 },
+    { wave: 'triangle', from: 2400, to: 1200, duration: 0.18, gain: 0.14 },
+    { wave: 'triangle', at: 0.05, from: 3100, to: 1800, duration: 0.15, gain: 0.1 },
+  ],
 };

@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { ENEMIES, enemyAnimKey, enemyKey, enemyLayout } from '../data/adventure/enemies.js';
 import { TILE } from '../systems/adventureMap.js';
+import { FREEZE } from '../data/adventure/freeze.js';
+import { breakIce, isFrozen, updateIce } from '../systems/adventure/iceBlocks.js';
 
 // patrolTiles: how far it walks each way from where it starts. sees: how close the cat must be,
 // in front of it, for it to swipe; reach: how close for the swipe to land. Both in px from its
@@ -81,6 +83,7 @@ export class AdventureEnemy extends Phaser.Physics.Arcade.Sprite {
 
   update(cat, ms) {
     if (this.dead) return;
+    if (updateIce(this, ms)) return; // frozen by a freeze round, it stays still
     this.cooldownMs = Math.max(0, this.cooldownMs - ms);
     if (this.attacking) {
       this.setVelocityX(0);
@@ -162,6 +165,7 @@ export class AdventureEnemy extends Phaser.Physics.Arcade.Sprite {
   }
 
   knockOut() {
+    if (isFrozen(this)) breakIce(this, FREEZE.shards); // shattered
     this.dead = true;
     this.attacking = false;
     this.body.enable = false;

@@ -1,9 +1,11 @@
 import Phaser from 'phaser';
+import { FREEZE } from '../../data/adventure/freeze.js';
+import { ICE_BROKEN } from './iceBlocks.js';
 import { ROUNDS, SHOT_LOOK, roundFit, shotKey } from './shotLook.js';
 
 // Draws how the minigun's shots look (their settings are in shotLook.js): each round's glowing
 // picture, the glow at the muzzle and the shell cases thrown out, trails, the sparks where a round
-// hits, and the explosive round's bigger blast. Its particle emitters are made once, for the level,
+// hits, the explosive round's bigger blast, and ice breaking off a frozen enemy. Its particle emitters are made once, for the level,
 // and each effect bursts from them, so firing fast doesn't make new objects.
 export class ShotEffects {
   constructor(scene) {
@@ -38,6 +40,21 @@ export class ShotEffects {
       scale: { start: trail.smokeSize[0], end: trail.smokeSize[1] * 2 }, alpha: { start: 0.55, end: 0 },
       rotate: { min: 0, max: 360 }, tint: trail.smokeTint,
     }, depth - 1);
+    this.shards = burst(shotKey('shard'), {
+      lifespan: { min: 450, max: 800 }, speed: { min: 150, max: 380 }, angle: { min: 200, max: 340 },
+      gravityY: 1100, rotate: { start: 0, end: 540 }, scale: { min: 0.7, max: 1.3 }, alpha: { start: 1, end: 0, ease: 'Quad.easeIn' },
+    });
+    // Ice breaking off a frozen enemy (systems/adventure/iceBlocks.js): thawing, or shattered.
+    scene.events.on(ICE_BROKEN, (x, y, count) => this.iceBreaks(x, y, count));
+    scene.events.once('shutdown', () => scene.events.off(ICE_BROKEN));
+  }
+
+  // Shards of ice fly; shattered, with a flash and a crash.
+  iceBreaks(x, y, count) {
+    this.shards.explode(count, x, y);
+    if (count < FREEZE.shards) return;
+    this.flash(x, y, ROUNDS.freeze.colour, SHOT_LOOK.hit.flashSize * 1.6, SHOT_LOOK.hit.flashMs * 1.5);
+    this.scene.audio.playSfx('shatter');
   }
 
   // Shell cases fly up and back, over his shoulder, whichever way he faces.

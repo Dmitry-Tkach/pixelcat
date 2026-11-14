@@ -3,6 +3,8 @@ import { GAME, MOVEMENT } from '../config/gameConfig.js';
 import { ADVENTURE_HERO, ADVENTURE_LEVELS, PILLAR, adventureKey } from '../data/adventure/index.js';
 import { CHARACTERS, animKey } from '../data/characters.js';
 import { AMMO } from '../data/adventure/ammo.js';
+import { isFrozen } from '../systems/adventure/iceBlocks.js';
+import { ROUNDS, shotKey } from '../systems/adventure/shotLook.js';
 import { FLASH, FLASH_KEY } from '../data/adventure/gunners.js';
 import { BOSS_FIGHTS } from '../data/adventure/bossFights.js';
 import { AdventureBoss } from '../entities/AdventureBoss.js';
@@ -60,7 +62,7 @@ const END_SCREEN_MS = 1100;
 const DROP = { fromY: TILE, ms: 700 }; // a pickup the arena drops falls from here, this long
 const STARS = 3; // a level's stars are its crystals, up to this many
 const BEAM_PIPS = { x: 98, y: 128, gap: 26, r: 8 };
-const AMMO_HUD = { x: 44, y: 166, textGap: 34 };
+const AMMO_HUD = { x: 44, y: 166, textGap: 34, iconWidth: 44 }; // iconWidth: the round's picture across
 // An earth pillar starts this far up inside the island it holds, and stands this far into the ground.
 const PILLAR_FIT = { underIsland: 6, intoGround: 6, depth: 1 };
 const HUD_STYLE = { fontFamily: 'Fredoka, sans-serif', fontSize: '26px', fontStyle: '600', color: '#ffffff', stroke: '#1e2a4a', strokeThickness: 6 };
@@ -118,6 +120,11 @@ export class AdventureScene extends Phaser.Scene {
     this.physics.add.collider(this.enemies, this.groundLayer);
     this.physics.add.collider(this.enemies, this.solids);
     this.physics.add.overlap(this.cat, this.enemies, (cat, enemy) => this.meetEnemy(enemy));
+    // A frozen enemy is a block of ice he can stand on (systems/adventure/iceBlocks.js). Phaser only
+    // counts standing on tiles and still bodies, so on top of the ice he's told he's standing, to jump.
+    this.physics.add.collider(this.cat, this.enemies, (cat) => {
+      if (cat.body.touching.down) cat.body.blocked.down = true;
+    }, (cat, enemy) => isFrozen(enemy) && !this.climbing && !this.pullingUp);
     // The gunners' bullets fly through islands, but not the ground, and hurt the cat.
     this.enemyBullets = this.physics.add.group({ allowGravity: false });
     this.physics.add.collider(this.enemyBullets, this.groundLayer, (bullet) => bullet.destroy(), (bullet, tile) => !ONE_WAY.has(tile.index));
@@ -332,7 +339,8 @@ export class AdventureScene extends Phaser.Scene {
         case 'weapon':
         case 'ammo-standard':
         case 'ammo-explosive':
-        case 'ammo-laser': {
+        case 'ammo-laser':
+        case 'ammo-freeze': {
           const texture = { rage: 'mushroom', weapon: 'minigun' }[object.type] ?? object.type;
           const item = this.physics.add.staticImage(x, middle, this.art(texture)).setDepth(4);
           item.kind = object.type;
@@ -476,7 +484,8 @@ export class AdventureScene extends Phaser.Scene {
     const { armed, ammo, rounds } = this.moves;
     const ammoDef = AMMO[ammo];
     const others = Object.keys(AMMO).filter((kind) => kind !== ammo && rounds[kind] > 0).length;
-    this.ammoIcon.setVisible(armed).setTexture(this.art(ammoDef.bullet));
+    const round = ROUNDS[ammo];
+    this.ammoIcon.setVisible(armed).setTexture(shotKey(round.picture)).setScale(AMMO_HUD.iconWidth / round.w);
     this.ammoText.setVisible(armed).setColor(rounds[ammo] > 0 ? ammoDef.colour : '#ff6b6b')
       .setText(`${rounds[ammo]}${others ? '  Q: swap' : ''}`);
   }
@@ -758,6 +767,11 @@ export class AdventureScene extends Phaser.Scene {
   // hurts him.
   meetEnemy(enemy) {
     if (enemy.dead || !this.playing || this.moves.isFiringSpecial) return;
+    // Frozen, it's harmless ice: a dash, a slide or the rage shatters it.
+    if (isFrozen(enemy)) {
+      if (this.moves.isRaging || this.moves.isDashing || this.cat.isSliding) this.knockOut(enemy);
+      return;
+    }
     const { body } = this.cat;
     const feetBefore = body.prev.y + body.height;
     const fromAbove = body.velocity.y > 0 && feetBefore <= enemy.body.top + STOMP.margin;

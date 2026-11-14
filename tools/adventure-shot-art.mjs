@@ -78,6 +78,50 @@ const PICTURES = {
       <rect x="20" y="10.5" width="134" height="5" rx="2.5" fill="url(#core)"/>
       <circle cx="152" cy="13" r="5" fill="#ffffff"/>`,
   },
+  // A freeze round: a pale blue ice crystal, pointed, with a frosty glow and a misty tail.
+  freeze: {
+    w: 96, h: 32,
+    svg: `
+      <defs>
+        <linearGradient id="mist" x1="0" x2="1">
+          <stop offset="0" stop-color="#bfefff" stop-opacity="0"/>
+          <stop offset="1" stop-color="#bfefff" stop-opacity="0.7"/>
+        </linearGradient>
+        <radialGradient id="frost"><stop offset="0" stop-color="#e8fbff" stop-opacity="0.9"/><stop offset="1" stop-color="#6fd0ff" stop-opacity="0"/></radialGradient>
+        <linearGradient id="crystal" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#ffffff"/><stop offset="0.5" stop-color="#bdeeff"/><stop offset="1" stop-color="#4fb6ec"/>
+        </linearGradient>
+        <filter id="soft"><feGaussianBlur stdDeviation="2"/></filter>
+      </defs>
+      <path d="M4 16 Q30 8 60 10 L60 22 Q30 24 4 16 Z" fill="url(#mist)" filter="url(#soft)"/>
+      <ellipse cx="74" cy="16" rx="20" ry="14" fill="url(#frost)"/>
+      <path d="M56 16 L66 7 L90 16 L66 25 Z" fill="url(#crystal)" stroke="#1d5a86" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M66 7 L70 16 L66 25 M70 16 L90 16" stroke="#ffffff" stroke-width="1.5" stroke-opacity="0.8" fill="none"/>`,
+  },
+  // A block of ice, see-through, with frosty edges and shine: stretched by the game over a frozen
+  // enemy.
+  ice: {
+    w: 100, h: 100,
+    svg: `
+      <defs>
+        <linearGradient id="ice" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#e9fbff" stop-opacity="0.75"/>
+          <stop offset="0.5" stop-color="#9fdcff" stop-opacity="0.45"/>
+          <stop offset="1" stop-color="#5ab7ec" stop-opacity="0.65"/>
+        </linearGradient>
+      </defs>
+      <rect x="3" y="3" width="94" height="94" rx="10" fill="url(#ice)" stroke="#1d5a86" stroke-width="4"/>
+      <rect x="9" y="9" width="82" height="82" rx="7" fill="none" stroke="#ffffff" stroke-opacity="0.6" stroke-width="3"/>
+      <path d="M18 30 L34 14 M18 46 L50 14" stroke="#ffffff" stroke-opacity="0.85" stroke-width="5" stroke-linecap="round"/>
+      <path d="M70 88 L88 70" stroke="#ffffff" stroke-opacity="0.5" stroke-width="4" stroke-linecap="round"/>
+      <path d="M3 22 Q12 26 20 20 Q30 28 40 22 Q52 30 62 22 Q74 28 84 20 Q92 26 97 22 L97 13 Q97 3 87 3 L13 3 Q3 3 3 13 Z" fill="#ffffff" fill-opacity="0.55"/>`,
+  },
+  // A shard of ice, for when a block shatters.
+  shard: {
+    w: 18, h: 18,
+    svg: `<path d="M3 15 L8 2 L16 8 Z" fill="#d9f5ff" stroke="#1d5a86" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M8 4 L10 9" stroke="#ffffff" stroke-width="1.2"/>`,
+  },
   // A soft round glow, white, tinted by the game: for the muzzle, hits and blasts.
   glow: {
     w: 64, h: 64,
@@ -118,7 +162,8 @@ if (REVIEW) {
     return { input, w: PICTURES[name].w * 2, h: PICTURES[name].h * 2 };
   }));
   let x = 20;
-  const composite = pieces.map(({ input, w, h }) => { const piece = { input, left: x, top: Math.round(70 - h / 2) }; x += w + 30; return piece; });
-  await sharp({ create: { width: x, height: 140, channels: 3, background: REVIEW_BACKGROUND } })
+  const height = Math.max(...pieces.map((p) => p.h)) + 40;
+  const composite = pieces.map(({ input, w, h }) => { const piece = { input, left: x, top: Math.round((height - h) / 2) }; x += w + 30; return piece; });
+  await sharp({ create: { width: x, height, channels: 3, background: REVIEW_BACKGROUND } })
     .composite(composite).png().toFile(join(REVIEW, 'shots.png'));
 }
