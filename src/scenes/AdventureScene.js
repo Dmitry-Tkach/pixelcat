@@ -10,7 +10,8 @@ import { AdventureBackdrop } from '../systems/adventure/AdventureBackdrop.js';
 import { BACKDROPS } from '../data/adventure/backdrop.js';
 import { DECOR } from '../data/adventure/decor.js';
 import { moodAt } from '../data/adventure/moods.js';
-import { placeDecor } from '../systems/adventure/decorPlacement.js';
+import { cellRandom, placeDecor } from '../systems/adventure/decorPlacement.js';
+import { TILE_VARIANTS, TILE_VARIANT_SHARE } from '../data/adventure/tileVariants.js';
 import { AMBIENCE } from '../data/adventure/ambience.js';
 import { AdventureAmbience } from '../systems/adventure/AdventureAmbience.js';
 import { FLASH, FLASH_KEY } from '../data/adventure/gunners.js';
@@ -235,6 +236,13 @@ export class AdventureScene extends Phaser.Scene {
     // Islands and bridges are only solid on top: the cat jumps up through them and lands on them.
     this.groundLayer.forEachTile((tile) => {
       if (ONE_WAY.has(tile.index)) tile.setCollision(false, false, true, false, false);
+    });
+    // Now and then a variant's picture for the plain soil and ground (data/adventure/tileVariants.js),
+    // after the collisions are set: the game still treats it as the plain tile.
+    this.groundLayer.forEachTile((tile) => {
+      const variants = TILE_VARIANTS[tile.index];
+      if (!variants || cellRandom(tile.x, tile.y, 9) >= TILE_VARIANT_SHARE) return;
+      tile.index = variants[Math.floor(cellRandom(tile.x, tile.y, 10) * variants.length)];
     });
   }
 

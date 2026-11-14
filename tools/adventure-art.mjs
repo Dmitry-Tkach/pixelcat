@@ -186,6 +186,33 @@ await sharp({ create: { width: TILE * TILESET.length, height: TILE, channels: 4,
   }))))
   .png({ compressionLevel: 9 }).toFile(join(out, 'tiles.png'));
 
+// Variants of the plainest tiles, appended to the strip after the ten above (data/adventure/
+// tileVariants.js says which stands in for which): the soil with pebbles, a buried root or a darker
+// patch, and the ground's top with a pebble or two in its earth. Each is the tile with a little
+// drawn over it, inside its edges, so it still joins its neighbours. The level picks them now and
+// then, so the ground doesn't look like one tile repeated.
+const SOIL = { pebble: '#4d4535', shine: '#615843', dark: '#241f17', root: '#2a2219', rootLight: '#4a3a28' };
+const pebble = (x, y, rx, ry) => `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${SOIL.pebble}" stroke="${SOIL.dark}" stroke-width="2"/>
+  <ellipse cx="${x - rx * 0.3}" cy="${y - ry * 0.35}" rx="${rx * 0.4}" ry="${ry * 0.3}" fill="${SOIL.shine}"/>`;
+const VARIANTS = [
+  ['soil', pebble(18, 22, 7, 5) + pebble(42, 44, 9, 6) + pebble(30, 50, 4, 3)],
+  ['soil', `<path d="M8 20 Q24 30 34 26 Q46 22 56 34" stroke="${SOIL.root}" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <path d="M8 20 Q24 30 34 26 Q46 22 56 34" stroke="${SOIL.rootLight}" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M34 26 Q36 38 30 46" stroke="${SOIL.root}" stroke-width="4" fill="none" stroke-linecap="round"/>`],
+  ['soil', `<ellipse cx="32" cy="34" rx="20" ry="13" fill="${SOIL.dark}" opacity="0.45"/>` + pebble(24, 30, 4, 3)],
+  ['ground-top', pebble(20, 44, 6, 4) + pebble(44, 52, 4, 3)],
+  ['ground-top', pebble(38, 42, 8, 5)],
+];
+const variantTiles = await Promise.all(VARIANTS.map(async ([name, svg]) => {
+  const base = await sharp(join(out, `${name}.png`)).resize(TILE, TILE, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer();
+  return sharp(base).composite([{ input: Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${TILE}" height="${TILE}">${svg}</svg>`) }]).png().toBuffer();
+}));
+const plain = join(out, 'tiles.png');
+const strip = await sharp(plain).toBuffer();
+await sharp({ create: { width: TILE * (TILESET.length + VARIANTS.length), height: TILE, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+  .composite([{ input: strip, left: 0, top: 0 }, ...variantTiles.map((input, i) => ({ input, left: (TILESET.length + i) * TILE, top: 0 }))])
+  .png({ compressionLevel: 9 }).toFile(plain);
+
 // The two background layers, at the game's height. Shrinking one leaves its last column faded
 // (nearly see-through), and repeated side by side, that column showed as a thin light line over a
 // bright sky behind it: faded edge columns are cut off.

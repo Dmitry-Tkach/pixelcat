@@ -38,7 +38,7 @@ const atlasFrame = async (folder, kind, frame, w) => {
 
 const comps = [];
 const strip = 'public/assets/adventure/' + level.world + '/tiles.png';
-const tileImages = await Promise.all(Array.from({ length: 10 }, (_, i) => sharp(strip).extract({ left: i * TILE, top: 0, width: TILE, height: TILE }).resize(CELL, CELL).toBuffer()));
+const tileImages = await Promise.all(Array.from({ length: 15 }, (_, i) => sharp(strip).extract({ left: i * TILE, top: 0, width: TILE, height: TILE }).resize(CELL, CELL).toBuffer()));
 // The automatic decoration (data/adventure/decor.js): vines behind the tiles, plants in front.
 const decor = placeDecor(layout, DECOR[level.world]);
 const decorPiece = async ({ picture, x, y, hang, flip }) => {
