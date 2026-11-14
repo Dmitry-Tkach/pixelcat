@@ -13,11 +13,24 @@ import { ScreenFx } from './ui/ScreenFx.js';
 
 const FONT_WAIT_MS = 1200;
 
+// How the game asks the browser to draw, to spare the computer's graphics and keep it cool.
+// antialiasGL: smoothing every edge by drawing it several times over (MSAA). The art already has
+// smooth edges, so it's off. powerPreference: 'high-performance' asks for the strong graphics card
+// on a computer with two (a MacBook Pro's Radeon), rather than the one inside the processor, which
+// heats the processor with it.
+const RENDER = { antialiasGL: false, powerPreference: 'high-performance' };
+// Whether the game stops, drawing nothing and silent, while its window isn't the one in use.
+const SLEEP_WHEN_AWAY = true;
+
 // Fast in-game tests load the page with ?simulate. Production builds remove this entirely.
 export const simulate = import.meta.env.DEV && new URLSearchParams(location.search).has('simulate');
 
 // For checking any level while developing: open the page with ?unlockAll.
 export const unlockAll = import.meta.env.DEV && new URLSearchParams(location.search).has('unlockAll');
+
+// For feeling a lower frame rate while developing: ?fpsLimit=30 draws the game 30 times a second
+// instead of the screen's 60. The physics still steps 60 times a second, so it plays the same.
+const fpsLimit = import.meta.env.DEV ? Number(new URLSearchParams(location.search).get('fpsLimit')) || 0 : 0;
 
 const windowAspect = () => window.innerWidth / Math.max(1, window.innerHeight);
 
@@ -30,11 +43,12 @@ export function startGame(scenes, setUp = () => {}) {
     const game = new Phaser.Game({
       type: simulate ? Phaser.CANVAS : Phaser.AUTO,
       // Animation-frame timers pause on background pages, and tests run several pages at once.
-      fps: simulate ? { forceSetTimeOut: true } : undefined,
+      fps: simulate ? { forceSetTimeOut: true } : fpsLimit ? { limit: fpsLimit } : undefined,
       parent: 'game',
       width: size.width,
       height: size.height,
       backgroundColor: '#7CCDF8',
+      render: RENDER,
       scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH,
@@ -61,6 +75,7 @@ export function startGame(scenes, setUp = () => {}) {
         game.scale.setGameSize(width, height);
       });
     }
+    if (SLEEP_WHEN_AWAY && !simulate) sleepWhenAway(game, audio);
     game.registry.set('overlay', overlay);
     game.registry.set('audio', audio);
     game.registry.set('screenFx', new ScreenFx({ instant: simulate }));
@@ -72,4 +87,19 @@ export function startGame(scenes, setUp = () => {}) {
   const fontReady = document.fonts?.load('600 24px Fredoka') ?? Promise.resolve();
   const timeout = new Promise((resolve) => setTimeout(resolve, FONT_WAIT_MS));
   Promise.race([fontReady, timeout]).catch(() => {}).finally(start);
+}
+
+// When another window is in use (another app, or another browser window), the game stops: nothing
+// moves or is drawn, and the sound pauses. It goes on where it was when its window is used again.
+// (A hidden tab already stops by itself.)
+function sleepWhenAway(game, audio) {
+  window.addEventListener('blur', () => {
+    game.loop.sleep();
+    audio.ctx?.suspend().catch(() => {});
+  });
+  window.addEventListener('focus', () => {
+    game.loop.wake();
+    game.loop.resetDelta(); // its clock starts again from now, so nothing tries to catch up
+    if (!document.hidden) audio.ctx?.resume().catch(() => {});
+  });
 }
