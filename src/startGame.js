@@ -28,6 +28,10 @@ export const simulate = import.meta.env.DEV && new URLSearchParams(location.sear
 // For checking any level while developing: open the page with ?unlockAll.
 export const unlockAll = import.meta.env.DEV && new URLSearchParams(location.search).has('unlockAll');
 
+// For feeling a lower frame rate while developing: ?fpsLimit=30 draws the game 30 times a second
+// instead of the screen's 60. The physics still steps 60 times a second, so it plays the same.
+const fpsLimit = import.meta.env.DEV ? Number(new URLSearchParams(location.search).get('fpsLimit')) || 0 : 0;
+
 const windowAspect = () => window.innerWidth / Math.max(1, window.innerHeight);
 
 // `scenes`: the page's scenes, the first one starting. `setUp(game)`: puts the page's own things,
@@ -39,7 +43,7 @@ export function startGame(scenes, setUp = () => {}) {
     const game = new Phaser.Game({
       type: simulate ? Phaser.CANVAS : Phaser.AUTO,
       // Animation-frame timers pause on background pages, and tests run several pages at once.
-      fps: simulate ? { forceSetTimeOut: true } : undefined,
+      fps: simulate ? { forceSetTimeOut: true } : fpsLimit ? { limit: fpsLimit } : undefined,
       parent: 'game',
       width: size.width,
       height: size.height,
