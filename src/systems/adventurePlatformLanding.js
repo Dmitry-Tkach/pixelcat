@@ -10,8 +10,10 @@
 export const LAND_MARGIN = 18; // his feet can be this far into one and still land on it from above
 export const RISING_SLACK = 5; // px a second: rising slower than the platform than this still lands
 
+// Rising means rising faster than a log going up. On a log going down he isn't asked to fall faster
+// than it: the game carries him down with it, so his own speed can be slower, and he'd sink through.
 export function landsFromAbove({ bottom, prevBottom, top, prevTop = top, vy, platformVy = 0 }, margin = LAND_MARGIN) {
-  if (vy < platformVy - RISING_SLACK) return false;
+  if (vy < Math.min(platformVy, 0) - RISING_SLACK) return false;
   return bottom <= top + margin || prevBottom <= prevTop + margin;
 }
 
