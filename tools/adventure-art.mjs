@@ -3,6 +3,7 @@
 // Tiles are drawn at 128px and used at 64px, so the battle cat is about two tiles tall.
 // Run: npm run assets (or node tools/adventure-art.mjs)
 import sharp from 'sharp';
+import { CRATE_KINDS, crateSvg } from './ammo-crate-art.mjs';
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -152,17 +153,13 @@ for (const [name, [file, scale]] of Object.entries(WOOD)) {
 
 // The minigun's other ammunition (see data/adventure/ammo.js): an orange explosive round, recoloured
 // from the pack's red one, which the gunners fire; a long green laser bolt; and a crate of each, a
-// small wooden box with its round on it, and one for standard rounds.
+// wooden crate with its round's badge on it, and one for standard rounds.
 const BULLETS = join(WORLDS, 'characters', 'gangsta-cats', 'Png', 'Bullets');
 await sharp(join(BULLETS, 'Artboard 1 copy 2.png')).modulate({ hue: 32, brightness: 1.15 }).resize({ width: 54 }).png({ compressionLevel: 9 }).toFile(join(out, 'bullet-explosive.png'));
 await sharp(join(BULLETS, 'Artboard 1 copy.png')).resize(72, 34, { fit: 'fill' }).png({ compressionLevel: 9 }).toFile(join(out, 'bullet-laser.png'));
-for (const [kind, bullet] of [['standard', 'bullet'], ['explosive', 'bullet-explosive'], ['laser', 'bullet-laser']]) {
-  const box = await sharp(join(out, 'box.png')).resize(48, 48).toBuffer();
-  const round = await sharp(join(out, `${bullet}.png`)).resize({ width: 44 }).toBuffer();
-  const { height } = await sharp(round).metadata();
-  await sharp({ create: { width: 52, height: 52, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
-    .composite([{ input: box, left: 2, top: 4 }, { input: round, left: 4, top: Math.round(28 - height / 2) }])
-    .png({ compressionLevel: 9 }).toFile(join(out, `ammo-${kind}.png`));
+// The crates themselves are drawn by tools/ammo-crate-art.mjs: a wooden crate with the round's badge.
+for (const kind of CRATE_KINDS) {
+  await sharp(Buffer.from(crateSvg(kind))).png({ compressionLevel: 9 }).toFile(join(out, `ammo-${kind}.png`));
 }
 
 // The earth pillar that holds an island up, in three parts, so the scene can build one of any height

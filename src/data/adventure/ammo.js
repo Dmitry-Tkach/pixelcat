@@ -8,10 +8,11 @@
 //   everyMs: the time between shots in a burst (a tap has its own cooldown, see AdventureMoves).
 //   pierce: it flies on through enemies, hitting each once. blast: it bursts where it hits, knocking
 //   out every enemy within this many px. rounds: how many a crate gives. colour: the HUD's count.
+//   sound: what picking up its crate sounds like (data/adventure/sounds.js).
 export const AMMO = {
-  standard: { bullet: 'bullet', speed: 1150, range: 900, everyMs: 120, rounds: 40, crate: 'ammo-standard', colour: '#ffe066' },
-  explosive: { bullet: 'bullet-explosive', speed: 850, range: 800, everyMs: 300, blast: 90, rounds: 12, crate: 'ammo-explosive', colour: '#ff9a3c' },
-  laser: { bullet: 'bullet-laser', speed: 1700, range: 1200, everyMs: 140, pierce: true, rounds: 20, crate: 'ammo-laser', colour: '#7dff6a' },
+  standard: { bullet: 'bullet', speed: 1150, range: 900, everyMs: 120, rounds: 40, crate: 'ammo-standard', colour: '#ffe066', sound: 'ammoStandard' },
+  explosive: { bullet: 'bullet-explosive', speed: 850, range: 800, everyMs: 300, blast: 90, rounds: 12, crate: 'ammo-explosive', colour: '#ff9a3c', sound: 'ammoExplosive' },
+  laser: { bullet: 'bullet-laser', speed: 1700, range: 1200, everyMs: 140, pierce: true, rounds: 20, crate: 'ammo-laser', colour: '#7dff6a', sound: 'ammoLaser' },
 };
 // The rounds the minigun comes with when he finds it.
 export const LOADED = { standard: 60 };

@@ -687,8 +687,9 @@ export class AdventureScene extends Phaser.Scene {
       this.hearts = Math.min(this.level.hearts, this.hearts + 1);
       this.audio.playSfx('pawPickup');
     } else if (item.kind.startsWith('ammo-')) {
-      this.moves.addAmmo(item.kind.slice('ammo-'.length));
-      this.audio.playSfx('pawPickup');
+      const kind = item.kind.slice('ammo-'.length);
+      this.moves.addAmmo(kind);
+      this.audio.playSfx(AMMO[kind].sound); // each crate sounds like what's in it
     } else if (item.kind === 'weapon') {
       this.cat.changeCharacter(ADVENTURE_HERO.armed);
       this.moves.arm();
