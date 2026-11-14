@@ -3,9 +3,13 @@
 // noise: filter, cutoff, sweepTo, q, duration, gain, optional at
 // To use a new effect, add it here and call audio.playSfx('name').
 
+import { ADVENTURE_SOUNDS } from './adventure/sounds.js';
+
 const note = (from, at, duration, gain, wave = 'triangle') => ({ from, at, duration, gain, wave });
 
 export const SOUNDS = {
+  ...ADVENTURE_SOUNDS, // the adventure's own (data/adventure/sounds.js)
+
   click: [{ wave: 'sine', from: 660, to: 880, duration: 0.06, gain: 0.25 }],
 
   jump: [{ wave: 'triangle', from: 300, to: 780, duration: 0.17, gain: 0.4 }],
