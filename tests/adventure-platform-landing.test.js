@@ -16,6 +16,16 @@ describe('landing on a moving log or leaves', () => {
     expect(landsFromAbove({ bottom: top + 30, prevBottom: top - 4, top: top - 2, prevTop: top, vy: 900, platformVy: -110 })).toBe(true);
   });
 
+  it('stays on a log going down when he falls slower than it', () => {
+    // Carried down with it, he only falls by his own weight from a standstill: slower than the log.
+    // He had dropped through when this counted as rising.
+    expect(landsFromAbove({ bottom: top + 3, prevBottom: top, top: top + 2, prevTop: top, vy: 12, platformVy: 110 })).toBe(true);
+  });
+
+  it('still jumps up through a log going down', () => {
+    expect(landsFromAbove({ bottom: top + 40, prevBottom: top + 60, top, vy: -600, platformVy: 110 })).toBe(false);
+  });
+
   it('stands on it while riding', () => {
     expect(landsFromAbove({ bottom: top, prevBottom: top, top, vy: 0 })).toBe(true);
   });

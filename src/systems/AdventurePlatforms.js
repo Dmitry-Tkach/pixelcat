@@ -72,21 +72,24 @@ export class AdventurePlatforms {
   }
 
   // Each log on towards the end it's heading for, then a pause, then back. The log he's riding carries
-  // him by as far as it moved this frame, across, and down when it goes down, rather than leaving him
-  // to fall a little behind it every step. (Going up, it pushes him up itself.)
+  // him across by as far as it moved this frame, and keeps his feet on its top.
   // "This frame" is from where it was when the frame began (Phaser's prevFrame), not its last physics
   // step (deltaX): a slow computer takes two steps in some frames, a fast screen none in some, and
   // carrying him by one step's worth made him drift along the log, backwards or forwards.
+  // Up and down, his feet are put on its top and he's given its speed, rather than carried by how far
+  // it moved: carried down while he also fell by his own weight, he moved down twice, sank into the
+  // log further than Phaser separates in one step (on a slow computer), and dropped through.
   update(ms) {
     const dt = ms / 1000;
     const log = this.riding, body = this.cat.body;
-    if (log && staysOn({
+    if (log && this.canLand() && staysOn({
       left: body.left, right: body.right, bottom: body.bottom, vy: body.velocity.y,
       top: log.body.top, logLeft: log.body.left, logRight: log.body.right, platformVy: log.body.velocity.y,
     })) {
       const { position, prevFrame } = log.body;
       this.cat.x += position.x - prevFrame.x;
-      if (position.y > prevFrame.y) this.cat.y += position.y - prevFrame.y;
+      this.cat.y += log.body.top - body.bottom;
+      body.velocity.y = log.body.velocity.y;
     } else {
       this.riding = null;
     }
@@ -106,7 +109,7 @@ export class AdventurePlatforms {
           const snapX = target.x - log.body.position.x;
           const snapY = target.y + LOG.plankTop - log.body.position.y;
           this.cat.x += snapX;
-          if (snapY > 0) this.cat.y += snapY;
+          this.cat.y += snapY;
         }
         log.body.reset(target.x, target.y);
         log.heading = 1 - log.heading;
