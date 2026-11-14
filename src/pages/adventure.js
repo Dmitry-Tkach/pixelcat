@@ -3,6 +3,7 @@ import { AdventureBootScene } from '../scenes/AdventureBootScene.js';
 import { AdventureMenuScene } from '../scenes/AdventureMenuScene.js';
 import { AdventureScene } from '../scenes/AdventureScene.js';
 import { startGame, unlockAll } from '../startGame.js';
+import { setUpAdventurePerfPanel } from '../ui/adventurePerfPanel.js';
 import { Progress } from '../systems/Progress.js';
 
 // The adventure's page, adventure.html: "Adventure Paws", with only the adventure's scenes, art and
@@ -14,4 +15,6 @@ startGame([AdventureBootScene, AdventureMenuScene, AdventureScene], (game) => {
     key: 'cat-escape-adventure',
     unlockAll,
   }));
+  // While developing, P shows what makes a level heavy (ui/adventurePerfPanel.js).
+  if (import.meta.env.DEV) setUpAdventurePerfPanel(game, { shown: new URLSearchParams(location.search).has('perf') });
 });
