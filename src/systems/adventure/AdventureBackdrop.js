@@ -47,11 +47,13 @@ export class AdventureBackdrop {
     const { WIDTH, HEIGHT } = GAME;
     const room = HEIGHT * ROOM + EDGE;
     for (const layer of this.layers) {
-      const tall = HEIGHT + room * 2;
+      // A layer that rises gets room above and below; one that doesn't is just the screen's height.
+      const still = !layer.rise;
+      const tall = still ? HEIGHT : HEIGHT + room * 2;
       layer.sprite.setSize(WIDTH, tall);
       const scale = tall / layer.sprite.texture.getSourceImage().height;
       layer.sprite.setTileScale(scale, scale);
-      layer.baseY = -room;
+      layer.baseY = still ? 0 : -room;
     }
     if (this.rays) this.rays.setPosition(WIDTH / 2, 0).setDisplaySize(WIDTH * 1.2, HEIGHT);
     if (this.fog) this.fog.setPosition(0, HEIGHT).setSize(WIDTH, HEIGHT * this.backdrop.fog.height);
