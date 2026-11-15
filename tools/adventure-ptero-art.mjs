@@ -4,6 +4,10 @@
 // from the sheet's edges inwards (so the bird's own pale belly, inside its outline, stays), and each
 // cell is saved at the size the bird is shown in the game. Frames: fly 0-5; screech 0-2 and dive 0-2;
 // hit 0-1, fall 0-1 and glide 0-1 (data/adventure/birds.js, PTERO_FRAMES).
+// A second look, green (images/levels/forest/pterodactyl-v2.png), is the same drawing recoloured,
+// frame for frame in the same places, but its background is a messy haze that can't be cleared. So
+// it takes the first sheet's clean shape (a little inside it, ERODE px, so no haze shows at the
+// edge) and the second's colours, and is saved as ptero2-<frame>.
 // Run: node tools/adventure-ptero-art.mjs [folder for a review picture] (part of npm run assets).
 import sharp from 'sharp';
 import { existsSync, mkdirSync } from 'node:fs';
@@ -13,6 +17,8 @@ import { PTERO_ART, PTERO_FRAMES } from '../src/data/adventure/birds.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SHEET = join(ROOT, 'images', 'levels', 'forest', 'pterodactyl.png');
+const GREEN = join(ROOT, 'images', 'levels', 'forest', 'pterodactyl-v2.png');
+const ERODE = 2;
 const OUT = join(ROOT, 'public', 'assets', 'adventure', 'wood');
 const REVIEW = process.argv[2];
 const COLS = 6, ROWS = 3;
@@ -83,20 +89,39 @@ function clearSpecks(pixels, w, h) {
 const cw = W / COLS, ch = H / ROWS;
 const cell = PTERO_ART.cell;
 const saved = [];
-for (const [name, { row, col }] of Object.entries(PTERO_FRAMES)) {
-  const left = Math.round(col * cw), top = Math.round(row * ch);
-  const w = Math.round((col + 1) * cw) - left, h = Math.round((row + 1) * ch) - top;
-  const piece = Buffer.alloc(w * h * 4);
-  for (let y = 0; y < h; y++) data.copy(piece, y * w * 4, ((top + y) * W + left) * 4, ((top + y) * W + left + w) * 4);
-  clearSpecks(piece, w, h);
-  await sharp(piece, { raw: { width: w, height: h, channels: 4 } }).resize(cell, cell, { fit: 'fill' }).png({ compressionLevel: 9 }).toFile(join(OUT, `ptero-${name}.png`));
-  saved.push(name);
+// Cuts every frame from a sheet's pixels (RGBA, W x H), saved as <prefix>-<frame>.
+async function cutFrames(pixels, prefix) {
+  for (const [name, { row, col }] of Object.entries(PTERO_FRAMES)) {
+    const left = Math.round(col * cw), top = Math.round(row * ch);
+    const w = Math.round((col + 1) * cw) - left, h = Math.round((row + 1) * ch) - top;
+    const piece = Buffer.alloc(w * h * 4);
+    for (let y = 0; y < h; y++) pixels.copy(piece, y * w * 4, ((top + y) * W + left) * 4, ((top + y) * W + left + w) * 4);
+    clearSpecks(piece, w, h);
+    await sharp(piece, { raw: { width: w, height: h, channels: 4 } }).resize(cell, cell, { fit: 'fill' }).png({ compressionLevel: 9 }).toFile(join(OUT, `${prefix}-${name}.png`));
+    saved.push(`${prefix}-${name}`);
+  }
+}
+await cutFrames(data, 'ptero');
+if (existsSync(GREEN)) {
+  const green = await sharp(GREEN).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  if (green.info.width !== W || green.info.height !== H) throw new Error('pterodactyl-v2.png must be the same size as pterodactyl.png');
+  const pixels = Buffer.from(green.data);
+  for (let p = 0; p < W * H; p++) {
+    const x = p % W, y = (p / W) | 0;
+    let inside = data[p * 4 + 3] > 0;
+    for (let d = 1; d <= ERODE && inside; d++) {
+      inside = !((x >= d && clear[p - d]) || (x + d < W && clear[p + d]) || (y >= d && clear[p - d * W]) || (y + d < H && clear[p + d * W]));
+    }
+    pixels[p * 4 + 3] = inside ? data[p * 4 + 3] : 0;
+  }
+  await cutFrames(pixels, 'ptero2');
 }
 console.log(`Pterodactyl: ${saved.length} frames, ${cell} px square`);
 
 if (REVIEW) {
   mkdirSync(REVIEW, { recursive: true });
-  const comps = await Promise.all(saved.map(async (name, i) => ({ input: await sharp(join(OUT, `ptero-${name}.png`)).toBuffer(), left: (i % COLS) * (cell + 10) + 10, top: Math.floor(i / COLS) * (cell + 10) + 10 })));
-  await sharp({ create: { width: COLS * (cell + 10) + 10, height: ROWS * (cell + 10) + 10, channels: 4, background: '#3f8f9a' } }).composite(comps).png().toFile(join(REVIEW, 'ptero.png'));
+  const comps = await Promise.all(saved.map(async (name, i) => ({ input: await sharp(join(OUT, `${name}.png`)).toBuffer(), left: (i % COLS) * (cell + 10) + 10, top: Math.floor(i / COLS) * (cell + 10) + 10 })));
+  const rows = Math.ceil(saved.length / COLS);
+  await sharp({ create: { width: COLS * (cell + 10) + 10, height: rows * (cell + 10) + 10, channels: 4, background: '#3f8f9a' } }).composite(comps).png().toFile(join(REVIEW, 'ptero.png'));
   console.log(`Review picture: ${join(REVIEW, 'ptero.png')}`);
 }

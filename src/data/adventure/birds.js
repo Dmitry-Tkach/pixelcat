@@ -2,23 +2,20 @@ import { TILE } from '../../systems/adventureMap.js';
 
 // The adventure's flying enemies: the pterodactyl (entities/AdventureBird.js). A level lists its
 // birds beside its map, with mapBuilder's bird(kind, col, row, options):
-//   diver   it waits at its home cell (col, row), bobbing, until the cat passes column `wake`. Then,
-//           while he's on solid ground within its reach (not riding a wheel's seat, not in the air:
-//           a hit there would throw him into the river), it screeches and flashes (warnMs), its aim
-//           locked on where he was, and dives at that spot in a straight line, then climbs back
-//           home and rests before it can dive again.
+//   diver   it waits at its home cell (col, row), bobbing (or, with `patrol`, flying slowly to and
+//           fro that many cells each way), until the cat passes column `wake`. Then, while he's on
+//           solid ground within its reach (or, with `riders`, on a wheel's seat too: not in the air),
+//           it screeches and flashes (warnMs), its aim locked on where he was, and dives at that
+//           spot in a straight line, then climbs back home and rests before it can dive again.
+// Any bird can take { look: 'green' } (PTERO_LOOKS) to wear the green pterodactyl.
 //   hover   it flies slowly up and down over its home cell, `loop` cells each way, and never dives:
 //           an obstacle to time, a step to bounce off, or, frozen, a block of ice to stand on.
-//   orbit   it circles round its home cell (a water wheel's hub), `radius` cells out, just outside
-//           the seats, once every `periodMs`, starting `phase` of a turn round (0 at the top) and
-//           going `dir` (1 clockwise): it crosses the jumps on and off the wheel, so they're timed
-//           round it. It never dives.
 // Either one hurts by touch, is knocked out by one round, a stomp, a dash, a slide or the claw, and
 // freezes in the air (a block of ice to stand on, hanging where it was). Its hit doesn't knock the
 // cat sideways (softHit): over a wheel or the river, that would cost him a second heart.
 // Plain numbers and code, no Phaser, so the dive's aim can be tested.
 
-export const BIRD_KINDS = ['diver', 'hover', 'orbit'];
+export const BIRD_KINDS = ['diver', 'hover'];
 
 export const BIRD = {
   hp: 1,
@@ -38,14 +35,17 @@ export const BIRD = {
   restMs: 2000, // at home, before it can warn again
   // The hover.
   hover: { loop: 1.5, periodMs: 3200 }, // loop: cells up and down from home; periodMs: once up and back
-  orbit: { radius: 5.5, periodMs: 9000, dir: 1, phase: 0 }, // the defaults for an orbit
+  patrolMs: 5000, // a patrolling diver: once to and fro
+  homeSpeed: 260, // px a second at most, flying back onto its beat
 };
 
-// Where an orbiting bird is, `ms` into its flight round `center` (px).
-export function orbitAt(center, ms, options = {}) {
-  const { radius, periodMs, dir, phase } = { ...BIRD.orbit, ...options };
-  const angle = -Math.PI / 2 + 2 * Math.PI * (phase + (dir * ms) / periodMs);
-  return { x: center.x + Math.cos(angle) * radius * TILE, y: center.y + Math.sin(angle) * radius * TILE };
+// Where a diver waits, `ms` into its waiting: its home, bobbing, and, with `patrol` (cells), flying
+// to and fro that far each way.
+export function waitingAt(home, ms, patrol = 0, { bob, patrolMs } = BIRD) {
+  return {
+    x: home.x + Math.sin((2 * Math.PI * ms) / patrolMs) * patrol * TILE,
+    y: home.y + Math.sin((2 * Math.PI * ms) / bob.ms) * bob.px,
+  };
 }
 
 // Its home, in px: the middle of its cell.
@@ -80,4 +80,7 @@ export const PTERO_FRAMES = {
   ...run('fly', 0, 0, 6), ...run('screech', 1, 0, 3), ...run('dive', 1, 3, 3),
   ...run('hit', 2, 0, 2), ...run('fall', 2, 2, 2), ...run('glide', 2, 4, 2),
 };
-export const PTERO_KEYS = Object.keys(PTERO_FRAMES).map((name) => `ptero-${name}`);
+// Its looks: the orange one (ptero-<frame>), and a green one (ptero2-<frame>, from a second sheet
+// the owner drew). A bird picks its look with { look: 'green' }.
+export const PTERO_LOOKS = { orange: 'ptero', green: 'ptero2' };
+export const PTERO_KEYS = Object.values(PTERO_LOOKS).flatMap((prefix) => Object.keys(PTERO_FRAMES).map((name) => `${prefix}-${name}`));

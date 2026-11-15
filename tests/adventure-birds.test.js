@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BIRD, BIRD_KINDS, birdHome, diveAt, hoverY, inReach, orbitAt } from '../src/data/adventure/birds.js';
+import { BIRD, BIRD_KINDS, birdHome, diveAt, hoverY, inReach, waitingAt } from '../src/data/adventure/birds.js';
 import { ADVENTURE_LEVELS } from '../src/data/adventure/index.js';
 import { mapBuilder } from '../src/data/adventure/mapBuilder.js';
 import { TILE, readAdventureMap } from '../src/systems/adventureMap.js';
@@ -33,14 +33,12 @@ describe('pterodactyls', () => {
     expect(hoverY(y0, BIRD.hover.periodMs / 4)).toBeCloseTo(y0 - BIRD.hover.loop * TILE);
   });
 
-  it('circle round their home, starting where their phase says, the way they turn', () => {
-    const center = { x: 1000, y: 1000 };
-    const top = orbitAt(center, 0, { radius: 5, periodMs: 8000, dir: 1, phase: 0 });
-    expect(top.x).toBeCloseTo(1000);
-    expect(top.y).toBeCloseTo(1000 - 5 * TILE);
-    expect(orbitAt(center, 2000, { radius: 5, periodMs: 8000, dir: 1 }).x).toBeCloseTo(1000 + 5 * TILE); // a quarter turn clockwise
-    expect(orbitAt(center, 2000, { radius: 5, periodMs: 8000, dir: -1 }).x).toBeCloseTo(1000 - 5 * TILE);
-    expect(orbitAt(center, 0, { radius: 5, periodMs: 8000, phase: 0.5 }).y).toBeCloseTo(1000 + 5 * TILE);
+  it('wait bobbing at home, or flying to and fro on their beat', () => {
+    const home = { x: 1000, y: 500 };
+    expect(waitingAt(home, 0).x).toBeCloseTo(1000);
+    expect(waitingAt(home, BIRD.patrolMs / 4, 2).x).toBeCloseTo(1000 + 2 * TILE);
+    expect(waitingAt(home, BIRD.patrolMs / 4, 0).x).toBeCloseTo(1000);
+    expect(Math.abs(waitingAt(home, BIRD.bob.ms / 4).y - 500)).toBeCloseTo(BIRD.bob.px);
   });
 
   it('are listed by the map builder', () => {

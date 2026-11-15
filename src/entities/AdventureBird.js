@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { BIRD, PTERO_FRAMES, birdHome, diveAt, hoverY, inReach, orbitAt } from '../data/adventure/birds.js';
+import { BIRD, PTERO_FRAMES, PTERO_LOOKS, birdHome, diveAt, hoverY, inReach, waitingAt } from '../data/adventure/birds.js';
 import { FREEZE } from '../data/adventure/freeze.js';
 import { breakIce, isFrozen, updateIce } from '../systems/adventure/iceBlocks.js';
 import { putOut, updateBurn } from '../systems/adventure/burning.js';
@@ -8,7 +8,7 @@ import { TILE } from '../systems/adventureMap.js';
 // The pterodactyl (data/adventure/birds.js for how it behaves and its numbers). It's in the scene's
 // enemy group, like the walkers and gunners, so rounds, stomps, the dash, freezing and fire all work
 // on it as on them; it has no gravity, so frozen it hangs in the air, a block to stand on.
-// canTarget(): whether the cat may be dived at now (on solid ground, not riding a wheel).
+// canTarget(riders): whether the cat may be dived at now: on solid ground, or, if riders, on a seat.
 //
 // Its frames are the owner's (data/adventure/birds.js, PTERO_FRAMES). Without them, it's drawn in
 // code: an orange-red body, red-brown wings up, down or folded, a yellow beak and crest.
@@ -17,13 +17,14 @@ const SHOT_FLASH_MS = 70;
 const WARN_FLASH = { tint: 0xfff27a, everyMs: 90 };
 
 export class AdventureBird extends Phaser.Physics.Arcade.Sprite {
-  constructor(scene, { kind, col, row, wake, ...flight }, canTarget) {
+  constructor(scene, { kind, col, row, wake, patrol = 0, riders = false, look = 'orange' }, canTarget) {
     makeStandIn(scene);
     const home = birdHome({ col, row });
     super(scene, home.x, home.y, STAND_IN.key, 'up');
     // The owner's frames, by name, if they're there; else null, and the stand-in's frames.
-    this.drawn = scene.textures.exists(scene.art('ptero-fly-0'))
-      ? Object.fromEntries(Object.keys(PTERO_FRAMES).map((name) => [name, scene.art(`ptero-${name}`)]))
+    const prefix = PTERO_LOOKS[look] ?? PTERO_LOOKS.orange;
+    this.drawn = scene.textures.exists(scene.art(`${prefix}-fly-0`))
+      ? Object.fromEntries(Object.keys(PTERO_FRAMES).map((name) => [name, scene.art(`${prefix}-${name}`)]))
       : null;
     if (this.drawn) this.setTexture(this.drawn['fly-0']); // before its body is sized, so it's centred on it
     this.kind = kind;
@@ -37,12 +38,9 @@ export class AdventureBird extends Phaser.Physics.Arcade.Sprite {
     this.setDepth(5.5);
     this.hp = BIRD.hp;
     this.dead = false;
-    this.flight = flight; // an orbit's radius, period, direction and phase
-    this.state = kind === 'diver' ? 'asleep' : kind;
-    if (kind === 'orbit') {
-      const at = orbitAt(home, 0, flight);
-      this.setPosition(at.x, at.y);
-    }
+    this.patrol = patrol;
+    this.riders = riders;
+    this.state = kind === 'hover' ? 'hover' : 'asleep';
     this.ms = 0; // in its current state
     this.clock = 0; // for its bob, its hover and its flap
     this.face(-1);
@@ -78,14 +76,6 @@ export class AdventureBird extends Phaser.Physics.Arcade.Sprite {
         this.flap('glide');
         break;
       }
-      case 'orbit': {
-        const at = orbitAt(this.home, this.clock + ms, this.flight);
-        const vx = ((at.x - this.x) * 1000) / Math.max(1, ms);
-        this.setVelocity(vx, ((at.y - this.y) * 1000) / Math.max(1, ms));
-        this.face(Math.sign(vx) || this.direction);
-        this.flap('fly');
-        break;
-      }
       case 'asleep':
         this.bobHome(ms);
         if (this.wakeX === null || body.center.x >= this.wakeX) this.enter('waiting');
@@ -93,7 +83,7 @@ export class AdventureBird extends Phaser.Physics.Arcade.Sprite {
       case 'waiting':
         this.bobHome(ms);
         this.face(toCat);
-        if (this.ms >= BIRD.firstAfterMs && this.canTarget() && inReach(this.x, this.y, body.center.x, body.center.y)) {
+        if (this.ms >= BIRD.firstAfterMs && this.canTarget(this.riders) && inReach(this.x, this.y, body.center.x, body.center.y)) {
           this.aim = diveAt(this.x, this.y, body.center.x, body.center.y);
           this.face(this.aim.dir);
           this.enter('warning');
@@ -146,10 +136,17 @@ export class AdventureBird extends Phaser.Physics.Arcade.Sprite {
     this.ms = ms;
   }
 
-  // At home: a gentle bob, flapping.
+  // Waiting: a gentle bob at home, or flying to and fro on its beat, flapping. It flies onto its
+  // beat no faster than homeSpeed, so coming back from a dive it doesn't jump.
   bobHome(ms) {
-    const y = this.home.y + Math.sin((2 * Math.PI * this.clock) / BIRD.bob.ms) * BIRD.bob.px;
-    this.setVelocity(((this.home.x - this.x) * 1000) / Math.max(1, ms), ((y - this.y) * 1000) / Math.max(1, ms));
+    const at = waitingAt(this.home, this.clock, this.patrol);
+    let vx = ((at.x - this.x) * 1000) / Math.max(1, ms), vy = ((at.y - this.y) * 1000) / Math.max(1, ms);
+    const speed = Math.hypot(vx, vy);
+    if (speed > BIRD.homeSpeed) {
+      vx *= BIRD.homeSpeed / speed;
+      vy *= BIRD.homeSpeed / speed;
+    }
+    this.setVelocity(vx, vy);
     this.flap('fly');
   }
 

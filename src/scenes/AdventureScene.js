@@ -174,9 +174,10 @@ export class AdventureScene extends Phaser.Scene {
       canLand: () => !this.climbing && !this.pullingUp,
     });
     this.traps.addColliders(this.cat, this.enemies, () => !this.climbing && !this.pullingUp);
-    // Pterodactyls (data/adventure/birds.js): they dive only at him on solid ground, never on a seat.
+    // Pterodactyls (data/adventure/birds.js): they dive at him on solid ground, or, for one that
+    // takes riders, on a wheel's seat too; never in the air or climbing.
     for (const bird of this.level.birds ?? []) {
-      this.enemies.add(new AdventureBird(this, bird, () => this.cat.onGround && !this.platforms.riding && !this.climbing));
+      this.enemies.add(new AdventureBird(this, bird, (riders) => this.cat.onGround && !this.climbing && (riders || !this.platforms.riding)));
       this.enemies.getChildren().at(-1).ready();
       this.totals.enemies += 1;
     }
