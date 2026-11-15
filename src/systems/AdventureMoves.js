@@ -352,6 +352,14 @@ export class AdventureMoves {
     }
   }
 
+  // A freeze round into a small trap (adventure/trapIce.js, through AdventureTraps): it's spent there,
+  // with its icy flash.
+  freezeLands(bullet) {
+    this.shotFx.hit(bullet.x, bullet.y, bullet.kind);
+    this.scene.audio.playSfx('freeze');
+    bullet.destroy();
+  }
+
   // A boss to fight (entities/AdventureBoss.js). He isn't one of the enemies: his shots, blasts and
   // bolt don't knock him out, but hurt him by his own damage table, through boss.takeHit.
   setBoss(boss) {

@@ -5,6 +5,8 @@ import {
   circleHitsRect, crusherAngry, crusherContact, crusherCrushes, crusherStart, crusherStep, floorRow, guardianBall,
   guardianFireColumn, guardianFirePhase, guardianGeometry, guardianPhase, guardianSolid, guardianSwing, landsOnCap, maceAngle, maceHook, rectsTouch, swingPoint,
 } from './trapLogic.js';
+import { canFreezeTrap, frozenBallBlock } from '../../data/adventure/freeze.js';
+import { freezeTrap, updateTrapIce } from './trapIce.js';
 
 // Builds a level's moving traps (data/adventure/traps.js) and moves them each frame, while play is
 // on: the swinging mace, the stone crusher, the dart idol and the bounce mushroom. The rules are in
@@ -13,11 +15,14 @@ import {
 // The crusher and the idol are solid: he can stand on them (addColliders). The crusher carries him
 // as it moves, as a moving log does, and hurts only by falling on him; waiting or lifting, it's
 // stone he bumps his head on.
+// A freeze round freezes a mace, a crusher or an idol for a while (adventure/trapIce.js): it stops
+// still and can't hurt, and a frozen mace's ball is ice he can stand on (iceBodies).
 const SOUNDS = { slam: 'smash', dart: 'shot', bounce: 'bounce', pour: 'ignite' };
 const SHADOW_KEY = 'trap-shadow'; // a soft dark ellipse, drawn once
 const TRAIL_HISTORY = 8; // frames of the ball's places kept, for its fading copies
 const ENEMY_NEAR = 300; // px across: enemies further than this from a mace's ball aren't checked
 const HEARD_WITHIN = 900; // px from the camera's middle: further off, a trap makes no sound
+const SHOT_HALF = 12; // px: half a round's size, when checking whether it hits a trap
 
 export class AdventureTraps {
   // traps: the level's list. hurt(fromX): the cat is hit, from that side. knockOut(enemy): an enemy
@@ -38,6 +43,8 @@ export class AdventureTraps {
     this.riding = null; // the crusher he's standing on
     this.crusherBodies = scene.physics.add.group({ allowGravity: false, immovable: true });
     this.idolBodies = scene.physics.add.staticGroup();
+    this.iceBodies = scene.physics.add.staticGroup(); // frozen maces' balls, to stand on
+    this.shotList = null; // the cat's rounds in flight (watchShots)
     if (!rules) return;
     for (const trap of traps) {
       const x = trap.col * TILE + TILE / 2, feet = (trap.row + 1) * TILE;
@@ -326,7 +333,10 @@ export class AdventureTraps {
     const stoneTop = top + r.body.top * image.height;
     const stone = this.scene.add.zone((from + to) / 2, (stoneTop + feet) / 2, to - from, feet - stoneTop);
     this.idolBodies.add(stone);
-    this.idols.push({ image, facing, mouth: { x: mouthX, y: top + r.mouth.y * image.height }, ms: offset % r.everyMs, rules: r });
+    this.idols.push({
+      image, facing, mouth: { x: mouthX, y: top + r.mouth.y * image.height }, ms: offset % r.everyMs, rules: r,
+      stone: { left: from, right: to, top: stoneTop, bottom: feet },
+    });
   }
 
   buildMushroom(x, feet) {
@@ -358,9 +368,62 @@ export class AdventureTraps {
         });
       }
       // Under it, he bumps his head on it, unless it's coming down on him (then it hurts instead).
-      if (contact === 'beneath') return !crusherCrushes(body, block, image.crusher.state);
+      // Frozen, it's still stone, even mid-fall.
+      if (contact === 'beneath') return Boolean(image.crusher.frozen) || !crusherCrushes(body, block, image.crusher.state);
       return true;
     });
+    // A frozen mace's ball: he lands on top, and jumps up through it, as on an island.
+    this.scene.physics.add.collider(cat, this.iceBodies, null, (cat_, ledge) => canLand() && landsFromAbove({
+      bottom: cat.body.bottom, prevBottom: cat.body.prev.y + cat.body.height, top: ledge.body.top, vy: cat.body.velocity.y,
+    }));
+  }
+
+  // The cat's rounds in flight: list() gives them, landed(round) spends one that froze a trap.
+  watchShots(list, landed) {
+    this.shotList = list;
+    this.shotLanded = landed;
+  }
+
+  // A freeze round that reaches a small trap freezes it, and is spent.
+  freezeShots() {
+    if (!this.shotList) return;
+    for (const shot of this.shotList().slice()) {
+      if (!shot.active || !shot.ammo?.freeze) continue;
+      const at = { left: shot.x - SHOT_HALF, right: shot.x + SHOT_HALF, top: shot.y - SHOT_HALF, bottom: shot.y + SHOT_HALF };
+      const hit = this.freezableTraps().find(({ rect }) => rectsTouch(rect, at));
+      if (!hit) continue;
+      this.freeze(hit);
+      this.shotLanded(shot);
+    }
+  }
+
+  // The traps a freeze round can freeze, each with where its ice goes.
+  freezableTraps() {
+    const list = [];
+    if (canFreezeTrap('mace')) for (const mace of this.maces) list.push({ kind: 'mace', trap: mace, rect: this.maceBlock(mace) });
+    if (canFreezeTrap('crusher')) for (const crusher of this.crushers) list.push({ kind: 'crusher', trap: crusher, rect: this.crusherRect(crusher) });
+    if (canFreezeTrap('idol')) for (const idol of this.idols) list.push({ kind: 'idol', trap: idol, rect: idol.stone });
+    return list;
+  }
+
+  // The ice round a mace's ball, where it is now.
+  maceBlock(mace) {
+    return frozenBallBlock(swingPoint(mace.hook, mace.reach, mace.angle), mace.rules.ballHeight);
+  }
+
+  freeze({ kind, trap, rect }) {
+    const { depth } = trap.rules;
+    if (kind === 'mace') {
+      for (const ghost of trap.ghosts) ghost.setAlpha(0);
+      const looks = trap.swing.list;
+      if (trap.frozen) return freezeTrap(this.scene, trap, { looks, rect, depth: depth + 0.1 });
+      // His ledge of ice: one-way, like an island (addColliders).
+      const ledge = this.scene.add.zone((rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2, rect.right - rect.left, rect.bottom - rect.top);
+      this.iceBodies.add(ledge);
+      freezeTrap(this.scene, trap, { looks, rect, depth: depth + 0.1, onThaw: () => ledge.destroy() });
+    } else {
+      freezeTrap(this.scene, trap, { looks: [trap.image], rect, depth: depth + 0.1 });
+    }
   }
 
   near(x, y, within) {
@@ -376,7 +439,9 @@ export class AdventureTraps {
   update(ms, cat) {
     const { body } = cat;
     const catRect = { left: body.left, top: body.top, right: body.right, bottom: body.bottom };
+    this.freezeShots();
     for (const mace of this.maces) {
+      if (updateTrapIce(this.scene, mace, ms, this.maceBlock(mace))) continue; // frozen: still, and harmless
       mace.ms += ms;
       const angle = maceAngle(mace.ms, mace.rules);
       mace.swing.setRotation(angle);
@@ -396,6 +461,10 @@ export class AdventureTraps {
 
   updateCrusher(crusher, ms, catRect, cat) {
     const { image, rules: r } = crusher;
+    if (updateTrapIce(this.scene, crusher, ms, this.crusherRect(crusher))) {
+      crusher.vy = 0; // frozen where it is: stone to stand on, and it can't fall on him
+      return;
+    }
     const was = crusher.state.phase;
     const wasDrop = crusher.state.drop;
     crusher.state = crusherStep(crusher.state, ms, r, crusher.fall);
@@ -426,6 +495,7 @@ export class AdventureTraps {
 
   updateIdol(idol, ms) {
     const { image, rules: r } = idol;
+    if (updateTrapIce(this.scene, idol, ms, idol.stone)) return; // frozen: it doesn't shoot
     idol.ms += ms;
     const warning = idol.ms >= r.everyMs - r.warnMs;
     if (warning !== idol.warning) {

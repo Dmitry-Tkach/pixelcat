@@ -15,3 +15,20 @@ export function iceAfter(msLeft, ms, { ms: total, crackMs } = FREEZE) {
   const left = Math.max(0, Math.min(total, msLeft) - ms);
   return { left, cracking: left > 0 && left <= crackMs, thawed: msLeft > 0 && left === 0 };
 }
+
+// Freezing a small trap with a freeze round (systems/adventure/trapIce.js): a mace stops mid-swing,
+// a crusher stops where it is, a dart idol stops shooting. Frozen, it can't hurt, and a mace's ball
+// is a block of ice the cat can stand on. The guardian is too big to freeze, and a mushroom isn't a
+// danger. It cracks and shakes, then thaws, the way an enemy's ice does (FREEZE's look).
+//   kinds: the traps a freeze round freezes. ms: how long the ice lasts. crackMs: how long before
+//   thawing it cracks and shakes. pad: px the ice is bigger than the trap each way. ballShare: half
+//   a mace ball's ice block, as a share of the ball's height.
+export const TRAP_FREEZE = { kinds: ['mace', 'crusher', 'idol'], ms: 5000, crackMs: 1000, pad: 8, ballShare: 0.4 };
+
+export const canFreezeTrap = (kind) => TRAP_FREEZE.kinds.includes(kind);
+
+// The block of ice round a frozen mace's ball (its middle at `ball`), which the cat can stand on.
+export function frozenBallBlock(ball, ballHeight, { ballShare } = TRAP_FREEZE) {
+  const half = ballHeight * ballShare;
+  return { left: ball.x - half, right: ball.x + half, top: ball.y - half, bottom: ball.y + half };
+}
