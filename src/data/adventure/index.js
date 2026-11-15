@@ -2,6 +2,7 @@
 // the free world packs by tools/adventure-art.mjs, into public/assets/adventure/<world>.
 import { WOOD_LEVEL } from './wood.js';
 import { WOOD_MILL_LEVEL } from './wood2.js';
+import { MILL_ART } from './millArt.js';
 
 export const ADVENTURE_LEVELS = [
   { ...WOOD_LEVEL, music: { track: 'village', bpm: 112 }, sky: '#8fd18f' },
@@ -27,6 +28,8 @@ export const ADVENTURE_ART = {
     'trap-mushroom', 'trap-mushroom-squashed',
     // The stone guardian, the level 1 finale's giant (data/adventure/traps.js, guardian).
     'guardian-body', 'guardian-awake', 'guardian-arm-left', 'guardian-arm-right', 'guardian-ball', 'guardian-chain',
+    // Mill Falls (level 2): the water wheel, waterfalls and props (data/adventure/millArt.js).
+    ...MILL_ART,
   ],
 };
 

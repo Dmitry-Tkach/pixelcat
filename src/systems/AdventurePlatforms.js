@@ -3,6 +3,7 @@ import { TILE } from './adventureMap.js';
 import { landsFromAbove, staysOn } from './adventurePlatformLanding.js';
 import { seatPlace, wheelWith } from './adventure/wheels.js';
 import { drawWheel } from './adventure/wheelLook.js';
+import { MILL_SEAT } from '../data/adventure/millArt.js';
 
 // Platforms that move or fall, in an adventure level:
 //   moving logs (the level's `movers`) glide to and fro along their path, pausing at each end. The
@@ -53,14 +54,19 @@ export class AdventurePlatforms {
       const seats = Array.from({ length: wheel.seats }, (_, i) => {
         const at = seatPlace(wheel, i, 0);
         const width = wheel.seatWidth * TILE;
-        const seat = scene.add.tileSprite(at.x - width / 2, at.y - LOG.plankTop, width, TILE, art('bridge')).setOrigin(0, 0).setDepth(LOG.depth);
+        // The owner's seat picture, when it's there and the seat is its width; else bridge planks.
+        const drawn = width === MILL_SEAT.width && scene.textures.exists(art('mill-seat'));
+        const top = drawn ? MILL_SEAT.top : LOG.plankTop;
+        const seat = drawn
+          ? scene.add.image(at.x - width / 2, at.y - top, art('mill-seat')).setOrigin(0, 0).setDepth(LOG.depth)
+          : scene.add.tileSprite(at.x - width / 2, at.y - top, width, TILE, art('bridge')).setOrigin(0, 0).setDepth(LOG.depth);
         this.logs.add(seat);
-        seat.body.setSize(width, LOG.plankHeight).setOffset(0, LOG.plankTop);
+        seat.body.setSize(width, LOG.plankHeight).setOffset(0, top);
         seat.body.setAllowGravity(false).setImmovable(true).setFriction(0, 0);
         seat.seatIndex = i;
         return seat;
       });
-      return { wheel, seats, look: drawWheel(scene, wheel), ms: 0 };
+      return { wheel, seats, look: drawWheel(scene, wheel, art, scene.level), ms: 0 };
     });
     scene.physics.add.collider(cat, this.logs, (cat_, log) => {
       if (cat.body.blocked.down || cat.body.touching.down) this.riding = log;

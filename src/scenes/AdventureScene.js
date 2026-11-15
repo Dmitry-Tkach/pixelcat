@@ -20,6 +20,7 @@ import { GATES } from '../data/adventure/gates.js';
 import { AdventureGates } from '../systems/adventure/AdventureGates.js';
 import { TRAPS } from '../data/adventure/traps.js';
 import { AdventureTraps } from '../systems/adventure/AdventureTraps.js';
+import { AdventureScenery } from '../systems/adventure/AdventureScenery.js';
 import { devPlace } from '../systems/adventure/devPlaces.js';
 import { AdventureCameraShots } from '../systems/adventure/AdventureCameraShots.js';
 import { FLASH, FLASH_KEY } from '../data/adventure/gunners.js';
@@ -118,6 +119,7 @@ export class AdventureScene extends Phaser.Scene {
     this.buildDecor();
     // Water in the bottomless gaps, if the level has it (data/adventure/water.js).
     this.water = new AdventureWater(this, level.water, this.layout, this.worldH + FALL_OUT_BELOW);
+    this.scenery = new AdventureScenery(this, level, this.art); // waterfalls, caves, covers (Mill Falls)
     this.splashed = false;
     this.buildLadders();
     this.buildScenery();
@@ -1136,6 +1138,7 @@ export class AdventureScene extends Phaser.Scene {
       this.bossBar.update(ms, this.boss.brain.healthShare);
     }
     this.platforms.update(ms);
+    this.scenery.update(ms, this.cat);
     this.traps.update(ms, this.cat);
     this.updateLook(ms);
     this.updateWater(ms);

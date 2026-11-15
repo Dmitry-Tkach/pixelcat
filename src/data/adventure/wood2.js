@@ -42,8 +42,7 @@ level.ground(31, 42, 39) // the dip, three cells down
 // ----- 3. The Waterfall Wheel: the painting's big wheel, over the river. From the cliff onto a
 // seat, round, and off onto the far bank. A bonus: from the top seat, a jump straight up reaches a
 // branch high in the leaves, with a crystal and the silver key (a coin just above the seat hints at
-// it). (It's in plain view for now: leaves drawn in front would make it a secret.) Then a bridge,
-// with a cone head on it.
+// it), hidden behind leaves that fade as he climbs in. Then a bridge, with a cone head on it.
 level.put(47, 27, 'C').put(52, 27, '/')
   .gap(55, 70)
   .wheel(62, 30, { dir: 1 })
@@ -110,6 +109,24 @@ export const WOOD_MILL_LEVEL = {
   movers: level.movers(),
   wheels: level.wheels(),
   traps: level.traps(),
+  // Its set dressing (systems/adventure/AdventureScenery.js): waterfalls behind the wheels, a veil of
+  // water over the cave, the cave's dark inside, leaves hiding the branch over the big wheel, and
+  // stakes in the river.
+  waterfalls: [
+    { col: 62, top: 9, bottom: FLOOR + 1 },
+    { col: 101, top: 11, bottom: FLOOR + 1 },
+    { col: 165, top: 10, bottom: FLOOR + 1 },
+    { col: 186, top: 23, bottom: 34, veil: true },
+  ],
+  caves: [{ cols: [186, 190], rows: [30, 33] }],
+  props: [
+    { picture: 'mill-leaves', col: 62, row: 21, front: true }, // over the branch with the crystal and key
+    { picture: 'mill-cave', col: 188, row: 33, width: 340 },
+    { picture: 'mill-lantern', col: 189, row: 30, hang: true },
+    { picture: 'mill-stakes', col: 127, row: FLOOR + 1, inWater: true },
+    { picture: 'mill-stakes', col: 147, row: FLOOR + 1, inWater: true },
+    { picture: 'mill-stakes', col: 96, row: FLOOR + 1, inWater: true },
+  ],
   // Places to start at while developing, with /adventure.html?at=<name> (systems/adventure/devPlaces.js).
   places: {
     bigWheel: { col: 47, row: 27 },

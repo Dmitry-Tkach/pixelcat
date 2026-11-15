@@ -23,6 +23,8 @@ import { portalPosts } from '../src/systems/adventure/gatePlacement.js';
 import { TRAPS } from '../src/data/adventure/traps.js';
 import { floorRow, guardianBall, guardianFireColumn, guardianGeometry, maceHook } from '../src/systems/adventure/trapLogic.js';
 import { seatPlace, wheelHub, wheelWith } from '../src/systems/adventure/wheels.js';
+import { MILL_SEAT, MILL_STAND, MILL_WHEEL, standScale } from '../src/data/adventure/millArt.js';
+import { existsSync } from 'node:fs';
 
 const [out, index = '0'] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const routes = process.argv.includes('--routes');
@@ -43,6 +45,44 @@ const atlasFrame = async (folder, kind, frame, w) => {
 };
 
 const comps = [];
+// Behind the tiles: waterfalls, caves' dark insides, and the wheels' stands and wheels (Mill Falls).
+const scaled = async (file, factor) => {
+  const { width } = await sharp(file).metadata();
+  return sharp(file).resize({ width: Math.max(1, Math.round(width * factor * SCALE)) }).toBuffer();
+};
+const at = async (input, x, y, ox, oy) => {
+  const { width, height } = await sharp(input).metadata();
+  return { input, left: Math.max(0, Math.round(x * SCALE - width * ox)), top: Math.max(0, Math.round(y * SCALE - height * oy)) };
+};
+const millArt = existsSync(art('mill-wheel'));
+const fronts = [];
+if (millArt) {
+  for (const { col, top, bottom, veil } of level.waterfalls ?? []) {
+    const x = col * TILE + TILE / 2;
+    const lip = await scaled(art('fall-top'), 1);
+    const lipH = (await sharp(lip).metadata()).height / SCALE;
+    const flowW = Math.round((await sharp(art(veil ? 'fall-veil' : 'fall-middle')).metadata()).width * SCALE);
+    const flowH = Math.max(1, Math.round((bottom * TILE - (top * TILE + lipH * 0.8)) * SCALE));
+    const flow = await sharp(art(veil ? 'fall-veil' : 'fall-middle')).resize(flowW, flowH, { fit: 'fill' }).ensureAlpha(veil ? 0.85 : 1).toBuffer();
+    const pieces = [await at(flow, x, top * TILE + lipH * 0.8, 0.5, 0), await at(lip, x, top * TILE, 0.5, 0), await at(await scaled(art('fall-splash'), 1), x, bottom * TILE + 10, 0.5, 1)];
+    (veil ? fronts : comps).push(...pieces);
+  }
+  for (const { cols: [c0, c1], rows: [r0, r1] } of level.caves ?? []) {
+    const w = (c1 - c0 + 1) * CELL, h = (r1 - r0 + 1) * CELL;
+    comps.push({ input: Buffer.from(`<svg width="${w}" height="${h}"><rect width="${w}" height="${h}" fill="#0f1a12" fill-opacity="0.88"/></svg>`), left: c0 * CELL, top: r0 * CELL });
+  }
+  for (const options of level.wheels ?? []) {
+    const wheel = wheelWith(options);
+    const hub = wheelHub(wheel);
+    const ground = floorRow(tiles, wheel.col, wheel.row + 1);
+    const floorY = (Math.min(ground ?? Infinity, level.water?.row ?? Infinity, rows) + 0.5) * TILE;
+    const scale = standScale(wheel.radius, floorY - hub.y);
+    const { width: sw, height: sh } = await sharp(art('mill-stand')).metadata();
+    const stand = await sharp(art('mill-stand')).resize(Math.round(sw * scale.x * SCALE), Math.round(sh * scale.y * SCALE), { fit: 'fill' }).toBuffer();
+    comps.push(await at(stand, hub.x, hub.y, MILL_STAND.axle.x, MILL_STAND.axle.y));
+    comps.push(await at(await scaled(art('mill-wheel'), (wheel.radius * TILE) / MILL_WHEEL.rimRadius), hub.x, hub.y, 0.5, 0.5));
+  }
+}
 const strip = 'public/assets/adventure/' + level.world + '/tiles.png';
 const tileImages = await Promise.all(Array.from({ length: 15 }, (_, i) => sharp(strip).extract({ left: i * TILE, top: 0, width: TILE, height: TILE }).resize(CELL, CELL).toBuffer()));
 // The automatic decoration (data/adventure/decor.js): vines behind the tiles, plants in front.
@@ -217,7 +257,7 @@ for (const { col, row, width = 3, across = 0, up = 0 } of level.movers ?? []) {
   comps.push({ input: Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${cols * CELL}" height="${rows * CELL}"><path d="M${x0} ${y0} L${x1} ${y1}" stroke="#ffe066" stroke-width="2" stroke-dasharray="4 3"/><circle cx="${x1}" cy="${y1}" r="3" fill="#ffe066"/></svg>`), left: 0, top: 0 });
 }
 // Water wheels: the rim, spokes to the seats, and each seat where it starts, its top on the rim.
-for (const options of level.wheels ?? []) {
+for (const options of millArt ? [] : level.wheels ?? []) {
   const wheel = wheelWith(options);
   const hub = wheelHub(wheel);
   const seats = Array.from({ length: wheel.seats }, (_, i) => seatPlace(wheel, i, 0));
@@ -229,6 +269,23 @@ for (const options of level.wheels ?? []) {
       comps.push({ input: plank, left: Math.round((x / TILE - wheel.seatWidth / 2 + w) * CELL), top: Math.round((y / TILE) * CELL) });
     }
   }
+}
+// The wheels' seats, where each starts (Mill Falls' art), and the props, then what's in front.
+if (millArt) {
+  const seat = await scaled(art('mill-seat'), 1);
+  for (const options of level.wheels ?? []) {
+    const wheel = wheelWith(options);
+    for (let i = 0; i < wheel.seats; i++) {
+      const { x, y } = seatPlace(wheel, i, 0);
+      comps.push(await at(seat, x, y - MILL_SEAT.top, 0.5, 0));
+    }
+  }
+  for (const { picture, col, row, hang, front, width } of level.props ?? []) {
+    const { width: own } = await sharp(art(picture)).metadata();
+    const piece = await at(await scaled(art(picture), width ? width / own : 1), col * TILE + TILE / 2, hang ? row * TILE : (row + 1) * TILE, 0.5, hang ? 0 : 1);
+    (front ? fronts : comps).push(piece);
+  }
+  comps.push(...fronts);
 }
 
 if (routes) {
