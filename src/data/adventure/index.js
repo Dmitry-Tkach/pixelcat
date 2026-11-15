@@ -2,12 +2,14 @@
 // the free world packs by tools/adventure-art.mjs, into public/assets/adventure/<world>.
 import { WOOD_LEVEL } from './wood.js';
 import { WOOD_MILL_LEVEL } from './wood2.js';
+import { WOOD_HEART_LEVEL } from './wood3.js';
 import { MILL_ART } from './millArt.js';
 import { PTERO_KEYS } from './birds.js';
 
 export const ADVENTURE_LEVELS = [
   { ...WOOD_LEVEL, music: { track: 'village', bpm: 112 }, sky: '#8fd18f' },
   { ...WOOD_MILL_LEVEL, music: { track: 'village', bpm: 122 }, sky: '#9fdc9a' },
+  { ...WOOD_HEART_LEVEL, music: { track: 'chase', bpm: 126 }, sky: '#7fc98a' },
 ];
 
 // Every image a world uses, by its name in public/assets/adventure/<world>.

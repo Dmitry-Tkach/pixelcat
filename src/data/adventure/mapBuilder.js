@@ -12,6 +12,7 @@
 //   wheel(col, row, options)  a water wheel, its hub at (col, row), with seats round it that stay level
 //                          (systems/adventure/wheels.js for the options). wheels() lists them.
 //   bird(kind, col, row, options)  a pterodactyl, 'diver' or 'hover' (data/adventure/birds.js). birds() lists them.
+//   hollow(from, to, top, bottom)  clears the ground in just those rows: a cave in the rock
 //   fill(from, to, top, bottom)  solid ground in just those rows, over a hollow (a cave's roof)
 //   trap(kind, col, row, options)  a moving trap: a mace, crusher, idol or mushroom (see
 //                          data/adventure/traps.js for each kind's options). traps() lists them.
@@ -55,9 +56,13 @@ export function mapBuilder(cols, rows) {
       span(from, to, (c) => place(c, row - Math.round(rise * (1 - ((c - mid) / half) ** 2)), 'o'));
       return builder;
     },
-    mover(col, row, { across = 0, up = 0, width = 3, speed } = {}) {
+    mover(col, row, { across = 0, up = 0, width = 3, speed, arrow, parks } = {}) {
       inside(col, row);
-      movers.push({ col, row, width, across, up, ...(speed ? { speed } : {}) });
+      movers.push({ col, row, width, across, up, ...(speed ? { speed } : {}), ...(arrow ? { arrow } : {}), ...(parks ? { parks } : {}) });
+      return builder;
+    },
+    hollow(from, to, top, bottom) {
+      span(from, to, (c) => { for (let r = top; r <= bottom; r++) { inside(c, r); if (grid[r][c] === '#') grid[r][c] = '.'; } });
       return builder;
     },
     fill(from, to, top, bottom) {

@@ -45,7 +45,7 @@ export class AdventurePlatforms {
     // Moving logs: a strip of bridge planks, as wide as it is, with a body on its planks.
     this.logs = scene.physics.add.group({ allowGravity: false, immovable: true });
     this.stones = [];
-    for (const { col, row, width = 3, across = 0, up = 0, speed = LOG.speed, arrow = false } of movers) {
+    for (const { col, row, width = 3, across = 0, up = 0, speed = LOG.speed, arrow = false, parks = false } of movers) {
       const look = arrow ? stoneTextures(scene, width) : null;
       const log = arrow
         ? scene.add.image(col * TILE, row * TILE, look.stone).setOrigin(0, 0).setDepth(LOG.depth)
@@ -57,12 +57,13 @@ export class AdventurePlatforms {
       log.ends = [{ x: col * TILE, y: row * TILE }, { x: (col + across) * TILE, y: (row - up) * TILE }];
       log.heading = 1; // towards ends[1]
       log.speed = speed;
+      log.parks = parks;
       if (arrow) {
         log.mark = scene.add.image(0, 0, look.mark).setDepth(LOG.depth + 0.05);
         Object.assign(log, { reverseMs: 0, frost: 0, frostMs: 0, rules: { depth: LOG.depth + 0.1 } });
         this.stones.push(log);
       }
-      log.waitMs = LOG.pauseMs;
+      log.waitMs = parks ? Infinity : LOG.pauseMs; // a parking stone waits to be called
     }
     // Water wheels: the wheel drawn behind, and its seats, logs as wide as seatWidth.
     this.wheels = wheels.map((options) => {
@@ -90,6 +91,7 @@ export class AdventurePlatforms {
       if (!(cat.body.blocked.down || cat.body.touching.down)) return;
       this.riding = log;
       if (log.rotten === 'still') this.breakSeat(log);
+      if (log.parks && log.waitMs === Infinity) log.waitMs = ARROW_STONE.setOffMs; // landed on: it goes
     }, fromAbove);
 
     // Crumbling leaves: one picture a cell, with a body, grouped into ledges by the cells they share.
@@ -164,7 +166,7 @@ export class AdventurePlatforms {
         }
         log.body.reset(target.x, target.y);
         log.heading = 1 - log.heading;
-        log.waitMs = LOG.pauseMs;
+        log.waitMs = log.parks ? Infinity : LOG.pauseMs;
         continue;
       }
       log.body.setVelocity((dx / distance) * log.speed, (dy / distance) * log.speed);
@@ -188,9 +190,10 @@ export class AdventurePlatforms {
     return { left: body.left, right: body.right, top: body.top, bottom: body.top + ARROW_STONE.slab.height };
   }
 
-  // A round turned it: it heads back the other way at once, its arrow flashing.
+  // A round turned it: it heads back the other way at once, its arrow flashing. A parked one, its
+  // arrow already pointing the way back, just sets off.
   reverseStone(stone) {
-    stone.heading = 1 - stone.heading;
+    if (stone.waitMs !== Infinity) stone.heading = 1 - stone.heading;
     stone.waitMs = 0;
     stone.reverseMs = ARROW_STONE.reverseCooldownMs;
     stone.mark.setTintFill(0xffffff);
@@ -260,7 +263,7 @@ export class AdventurePlatforms {
     if (!this.shotList) return;
     for (const shot of this.shotList().slice()) {
       if (!shot.active) continue;
-      const stone = this.stones.find((s) => hitsStone(this.stoneBox(s), shot.x, shot.y));
+      const stone = this.stones.find((s) => s !== this.riding && hitsStone(this.stoneBox(s), shot.x, shot.y));
       if (stone) {
         this.shotLanded(shot);
         if (shot.ammo?.freeze) this.frostWheel(stone);

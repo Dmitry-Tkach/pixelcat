@@ -2,7 +2,10 @@
 // like a moving log, with a green arrow on its face showing which way it's going next. Green means
 // shoot it, as with a water wheel's hub: a round into a stone (or just above it, where a cat on a
 // ledge level with it shoots) turns it back the other way; three freeze rounds stop it for a while.
-// A level marks a moving log as one with { arrow: true } (mapBuilder's mover).
+// A level marks a moving log as one with { arrow: true } (mapBuilder's mover). With { parks: true }
+// it waits at each end of its track until it's shot (calling it) or the cat lands on it, then goes;
+// without, it goes to and fro on its own. The stone he's riding can't be turned by his own rounds
+// (every round he fired would turn it): he turns stones from a ledge, or from another stone.
 // Until the owner draws them, the stone and its arrow are drawn in code.
 import { TILE } from '../adventureMap.js';
 
@@ -12,6 +15,7 @@ export const ARROW_STONE = {
   slab: { top: 10, height: 44, colour: 0x8d8f86, light: 0xb4b6aa, dark: 0x55574f, moss: 0x7fb24a, radius: 10 },
   mark: { w: 46, h: 30, colour: 0x7dff6a, edge: 0x1f5a1a, glow: 0xb8ffb0 },
   flashMs: 180, // the arrow flashes white as it turns
+  setOffMs: 250, // a parked stone he lands on sets off this soon after
 };
 
 // The way an arrow points, in radians (0 right, a quarter turn down), for a stone heading from

@@ -7,7 +7,7 @@ export const ADVENTURE_ROADMAP = [
   // 1. Forest Ruins: the World Tree's roots.
   { id: 'wood-1', world: 'Forest Ruins', title: 'Into the Roots', level: 'wood-1' },
   { id: 'wood-2', world: 'Forest Ruins', title: 'Mill Falls', level: 'wood-2' },
-  { id: 'wood-3', world: 'Forest Ruins', title: 'Heart of the Tree' },
+  { id: 'wood-3', world: 'Forest Ruins', title: 'Heart of the Tree', level: 'wood-3' },
   // 2. Rustic Village: an autumn wood, the seasons turning.
   { id: 'autumn-1', world: 'Rustic Village', title: 'Golden Leaves' },
   { id: 'autumn-2', world: 'Rustic Village', title: 'The Woodcutter\'s Path' },
