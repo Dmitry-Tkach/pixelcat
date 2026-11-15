@@ -1,3 +1,4 @@
+import { ARROW_STONE, arrowAngle, hitsStone } from '../src/systems/adventure/arrowStones.js';
 import { describe, expect, it } from 'vitest';
 import { ADVENTURE_LEVELS } from '../src/data/adventure/index.js';
 import { mapBuilder } from '../src/data/adventure/mapBuilder.js';
@@ -90,5 +91,22 @@ describe('water wheels', () => {
     expect(check([1, 3])).toEqual([]);
     expect(check([4])[0]).toMatch(/doesn't have/);
     expect(check([0, 1, 2, 3])[0]).toMatch(/no good seat/);
+  });
+});
+
+
+describe('arrow stones', () => {
+  it('point the way they go next', () => {
+    expect(arrowAngle({ x: 0, y: 0 }, { x: 100, y: 0 })).toBeCloseTo(0);
+    expect(arrowAngle({ x: 0, y: 0 }, { x: -100, y: 0 })).toBeCloseTo(Math.PI);
+    expect(arrowAngle({ x: 0, y: 100 }, { x: 0, y: 0 })).toBeCloseTo(-Math.PI / 2); // going up
+  });
+
+  it('are hit on the stone, and just above it, where a cat level with it shoots', () => {
+    const rect = { left: 0, right: 192, top: 500, bottom: 544 };
+    expect(hitsStone(rect, 100, 520)).toBe(true);
+    expect(hitsStone(rect, 100, 500 - 21)).toBe(true); // his gun, standing level with it
+    expect(hitsStone(rect, 100, 500 - ARROW_STONE.reach - 1)).toBe(false);
+    expect(hitsStone(rect, 250, 520)).toBe(false);
   });
 });

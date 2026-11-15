@@ -158,6 +158,14 @@ export function checkAdventureLevel(level) {
   if (level.boss && count('portal') !== 0) errors.push('a boss arena ends when he is beaten, so it has no portal');
   if (!level.boss && count('portal') !== 1) errors.push('the map needs exactly one portal, E');
   if (level.boss && (tiles[map.length - 1]?.[level.boss.col] ?? -1) < 0) errors.push(`the boss in column ${level.boss.col} has no floor under him`);
+  // A level's own bosses: each on his arena's floor (floor: its surface row), inside the arena, with
+  // his door, if any, inside the map.
+  for (const [i, { kind, col, floor, arena, door }] of (level.bosses ?? []).entries()) {
+    const name = `boss ${i + 1} (${kind})`;
+    if (!arena || col < arena.left || col > arena.right) errors.push(`${name} stands outside his arena`);
+    if ((tiles[floor]?.[col] ?? -1) < 0 || (tiles[floor - 1]?.[col] ?? -1) >= 0) errors.push(`${name} has no floor at row ${floor}, column ${col}`);
+    if (door && (door.col < 0 || door.col >= map[0].length || door.rows[0] < 0 || door.rows[1] >= map.length)) errors.push(`${name}'s door is off the map`);
+  }
   if (count('chest') > 0 && count('key') < count('chest')) errors.push('each chest needs a key');
   if (count('silver-chest') > 0 && count('silver-key') < count('silver-chest')) errors.push('each silver chest needs a silver key');
   // A moving log's path mustn't run into the ground.

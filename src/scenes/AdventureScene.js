@@ -49,6 +49,8 @@ const CLIMB = { speed: 250, sideSpeed: 110, snap: 0.25, reach: 26, standStill: 6
 // he hoists himself up over the first riseFrames frames; the rest show him on top.
 const CLIMB_UP = { below: 50, depth: 1.9, riseFrames: 2 };
 const HURT = { invulnerableMs: 1300, knockX: 330, knockY: -640, blinkMs: 90 };
+// A level's boss wakes once the cat stands this many cells inside his arena (updateBossFights).
+const BOSS_WAKE_CELLS = 3;
 const PENALTY = { speedMultiplier: 0.6, durationMs: 600 };
 const FALL_OUT_BELOW = 160; // below the bottom of the map, the cat has fallen out
 const MOOD_WASH_DEPTH = 90; // the mood's colour over the screen: over the level, under the HUD (100)
@@ -199,7 +201,12 @@ export class AdventureScene extends Phaser.Scene {
     // A round into a water wheel's hub reverses it, or freezes it (systems/AdventurePlatforms.js).
     this.platforms.watchShots(() => this.moves.bullets.getChildren(), (bullet) => (bullet.ammo.freeze ? this.moves.freezeLands(bullet) : this.moves.bulletStops(bullet)));
 
-    if (level.boss) this.buildBoss();
+    // Bosses: a test arena's one boss fights at once, and beating him finishes it. A level's own
+    // bosses (level.bosses, data/adventure/bossArenas.js) wait in their arenas until the cat walks
+    // in, and beating one opens his door; the portal finishes the level.
+    this.bossFights = [];
+    if (level.boss) this.startBoss(this.buildBoss(level.boss, true));
+    for (const def of level.bosses ?? []) this.buildBoss(def, false);
 
     this.hearts = level.hearts;
     this.coins = 0;
@@ -491,15 +498,20 @@ export class AdventureScene extends Phaser.Scene {
     }
   }
 
-  // The level's boss, standing on the floor at his column, with his health bar. Beating him finishes
-  // the level. His shock waves stop at the arena's walls, its first and last open columns.
-  buildBoss() {
-    const { kind, col, arena } = this.level.boss;
-    // The floor: the top of the ground at the bottom of his column, under any islands.
+  // A boss, standing on his arena's floor at his column (def.floor, the floor's surface row; a test
+  // arena's is the top of the ground at the bottom of his column). endsLevel: beating him finishes
+  // the level; otherwise it opens his door (def.door: { col, rows: [top, bottom] }, stone blocks in
+  // the way until then). His shock waves stop at the arena's walls, its first and last open columns.
+  buildBoss(def, endsLevel) {
+    const { kind, col, arena } = def;
     const { tiles } = this.layout;
-    let row = this.layout.rows - 1;
-    while (row > 0 && tiles[row - 1][col] >= 0) row -= 1;
-    this.boss = new AdventureBoss(this, {
+    let row = def.floor;
+    if (row === undefined) {
+      row = this.layout.rows - 1;
+      while (row > 0 && tiles[row - 1][col] >= 0) row -= 1;
+    }
+    const fight = { def, endsLevel, started: false, beaten: false, door: this.buildDoor(def.door) };
+    fight.boss = new AdventureBoss(this, {
       kind,
       x: col * TILE + TILE / 2,
       feetY: row * TILE,
@@ -509,10 +521,10 @@ export class AdventureScene extends Phaser.Scene {
       shots: { list: () => this.moves.bullets.getChildren(), stop: (bullet) => this.moves.bulletStops(bullet) },
       onHurtCat: (fromX) => this.hurt(fromX),
       onShake: () => this.bossArena.shake(),
-      onDefeated: () => this.complete(),
+      onDefeated: () => (endsLevel ? this.complete() : this.bossBeaten(fight)),
     });
-    this.bossArena = new AdventureBossArena({
-      boss: this.boss,
+    fight.arena = new AdventureBossArena({
+      boss: fight.boss,
       cat: this.cat,
       left: arena.left * TILE,
       right: (arena.right + 1) * TILE,
@@ -520,11 +532,61 @@ export class AdventureScene extends Phaser.Scene {
       dropPickup: (pickup, x) => this.dropPickup(pickup, x),
       roundsLeft: () => (this.moves.armed ? Object.values(this.moves.rounds).reduce((sum, n) => sum + n, 0) : Infinity),
     });
+    this.bossFights.push(fight);
+    return fight;
+  }
+
+  // The fight begins: he's the boss the scene updates, the cat's rounds and touch reach him, and
+  // his health bar shows.
+  startBoss(fight) {
+    fight.started = true;
+    this.boss = fight.boss;
+    this.bossArena = fight.arena;
     this.moves.setBoss(this.boss);
     this.physics.add.overlap(this.cat, this.boss.sprite, () => this.meetBoss());
     this.toldAboutHead = false;
-    this.bossBar = new AdventureBossBar(this, { name: this.boss.name, marks: BOSS_FIGHTS[kind].phases.slice(1).map((phase) => phase.from) });
+    this.bossBar?.hide();
+    this.bossBar = new AdventureBossBar(this, { name: this.boss.name, marks: BOSS_FIGHTS[fight.def.kind].phases.slice(1).map((phase) => phase.from) });
+    if (fight.def.hint) this.showHint(fight.def.hint, 3200);
     this.boss.start();
+  }
+
+  // A level's boss starts once the cat is standing inside his arena, a little way in.
+  updateBossFights() {
+    for (const fight of this.bossFights) {
+      if (fight.started || !this.cat.onGround) continue;
+      const { left, right } = fight.def.arena;
+      const x = this.cat.x / TILE;
+      if (x >= left + BOSS_WAKE_CELLS && x <= right) this.startBoss(fight);
+    }
+  }
+
+  // His door: stone blocks across the way out of his arena, solid to the cat, the enemies and the
+  // rounds, until he's beaten.
+  buildDoor(door) {
+    if (!door) return [];
+    const blocks = [];
+    for (let r = door.rows[0]; r <= door.rows[1]; r++) {
+      const block = this.physics.add.staticImage(door.col * TILE + TILE / 2, r * TILE + TILE / 2, this.art('stone')).setDepth(3);
+      block.setDisplaySize(TILE, TILE).refreshBody();
+      blocks.push(block);
+      this.solids.push(block);
+    }
+    return blocks;
+  }
+
+  // Beaten: his door crumbles, and the way on is open.
+  bossBeaten(fight) {
+    fight.beaten = true;
+    this.bossBar?.hide();
+    this.audio.playSfx('smash');
+    this.cameras.main.shake(300, 0.006);
+    for (const block of fight.door) {
+      this.solids.splice(this.solids.indexOf(block), 1);
+      this.effects.dust(block.x, block.y + TILE / 2, 6);
+      this.tweens.add({ targets: block, alpha: 0, y: block.y + 20, duration: 500, onComplete: () => block.destroy() });
+    }
+    this.showHint(`You beat ${fight.boss.name}!\nThe way on is open`, 3000);
   }
 
   buildHud() {
@@ -1030,7 +1092,7 @@ export class AdventureScene extends Phaser.Scene {
     // part of it.
     if (!this.level.test) this.registry.get('adventureProgress')?.record(this.level.id, Math.min(STARS, this.gems), this.coins);
     this.bossBar?.hide();
-    const title = this.boss ? `You beat ${this.boss.name}!` : 'Level complete!';
+    const title = this.level.boss && this.boss ? `You beat ${this.boss.name}!` : 'Level complete!';
     this.time.delayedCall(END_SCREEN_MS, () => this.showEnd(title, true));
   }
 
@@ -1147,6 +1209,7 @@ export class AdventureScene extends Phaser.Scene {
     this.moves.update(ms, { canAct: !this.climbing && !this.pullingUp && !this.shots.playing });
     for (const enemy of this.enemies.getChildren()) enemy.update(this.cat, ms);
     this.updateEnemyBullets();
+    this.updateBossFights();
     if (this.boss) {
       this.boss.update(ms);
       this.bossArena.update(ms);

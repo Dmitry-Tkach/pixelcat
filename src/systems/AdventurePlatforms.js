@@ -5,6 +5,7 @@ import { BROKEN_SEAT, HUB, hitsHub, reversed, seatPlace, wheelHub, wheelWith } f
 import { TRAP_FREEZE, frostAfterHit } from '../data/adventure/freeze.js';
 import { freezeTrap, updateTrapIce } from './adventure/trapIce.js';
 import { drawWheel } from './adventure/wheelLook.js';
+import { ARROW_STONE, arrowAngle, hitsStone, stoneTextures } from './adventure/arrowStones.js';
 import { MILL_SEAT } from '../data/adventure/millArt.js';
 
 // Platforms that move or fall, in an adventure level:
@@ -14,6 +15,8 @@ import { MILL_SEAT } from '../data/adventure/millArt.js';
 //   level. A seat is ridden like a log: it's one, moving round a circle instead of to and fro. A
 //   round into a wheel's green hub turns it the other way; three freeze rounds stop it for a while,
 //   its seats still steps (watchShots).
+//   arrow stones (a log with { arrow: true }, adventure/arrowStones.js) are logs of stone with a green
+//   arrow showing which way they go next: a round turns one back; three freeze rounds stop it.
 //   crumbling leaves (map letter %) shake when he lands, fall soon after, and grow back. Leaves side
 //   by side are one ledge, and go together.
 // The scene calls update every frame. `canLand()` says whether the cat may land on one now (not
@@ -41,8 +44,12 @@ export class AdventurePlatforms {
 
     // Moving logs: a strip of bridge planks, as wide as it is, with a body on its planks.
     this.logs = scene.physics.add.group({ allowGravity: false, immovable: true });
-    for (const { col, row, width = 3, across = 0, up = 0, speed = LOG.speed } of movers) {
-      const log = scene.add.tileSprite(col * TILE, row * TILE, width * TILE, TILE, art('bridge')).setOrigin(0, 0).setDepth(LOG.depth);
+    this.stones = [];
+    for (const { col, row, width = 3, across = 0, up = 0, speed = LOG.speed, arrow = false } of movers) {
+      const look = arrow ? stoneTextures(scene, width) : null;
+      const log = arrow
+        ? scene.add.image(col * TILE, row * TILE, look.stone).setOrigin(0, 0).setDepth(LOG.depth)
+        : scene.add.tileSprite(col * TILE, row * TILE, width * TILE, TILE, art('bridge')).setOrigin(0, 0).setDepth(LOG.depth);
       this.logs.add(log);
       log.body.setSize(width * TILE, LOG.plankHeight).setOffset(0, LOG.plankTop);
       // The game carries him along itself (see update), so Phaser doesn't too.
@@ -50,6 +57,11 @@ export class AdventurePlatforms {
       log.ends = [{ x: col * TILE, y: row * TILE }, { x: (col + across) * TILE, y: (row - up) * TILE }];
       log.heading = 1; // towards ends[1]
       log.speed = speed;
+      if (arrow) {
+        log.mark = scene.add.image(0, 0, look.mark).setDepth(LOG.depth + 0.05);
+        Object.assign(log, { reverseMs: 0, frost: 0, frostMs: 0, rules: { depth: LOG.depth + 0.1 } });
+        this.stones.push(log);
+      }
       log.waitMs = LOG.pauseMs;
     }
     // Water wheels: the wheel drawn behind, and its seats, logs as wide as seatWidth.
@@ -129,6 +141,10 @@ export class AdventurePlatforms {
     this.turnWheels(ms);
     for (const log of this.logs.getChildren()) {
       if (log.seatIndex !== undefined) continue; // a wheel's seat (turnWheels)
+      if (log.mark && updateTrapIce(this.scene, log, ms, this.stoneBox(log))) {
+        log.body.setVelocity(0, 0); // a frozen arrow stone: still
+        continue;
+      }
       if (log.waitMs > 0) {
         log.waitMs -= ms;
         log.body.setVelocity(0, 0);
@@ -153,6 +169,33 @@ export class AdventurePlatforms {
       }
       log.body.setVelocity((dx / distance) * log.speed, (dy / distance) * log.speed);
     }
+    this.showArrows();
+  }
+
+  // Each arrow stone's arrow, on its face, pointing the way it's going next.
+  showArrows() {
+    for (const stone of this.stones) {
+      const from = stone.ends[1 - stone.heading], to = stone.ends[stone.heading];
+      const { body } = stone;
+      stone.mark.setPosition(body.center.x, body.top + ARROW_STONE.slab.height / 2 - 2)
+        .setRotation(arrowAngle(from, to));
+    }
+  }
+
+  // Where a stone's ice goes: its slab.
+  stoneBox(stone) {
+    const { body } = stone;
+    return { left: body.left, right: body.right, top: body.top, bottom: body.top + ARROW_STONE.slab.height };
+  }
+
+  // A round turned it: it heads back the other way at once, its arrow flashing.
+  reverseStone(stone) {
+    stone.heading = 1 - stone.heading;
+    stone.waitMs = 0;
+    stone.reverseMs = ARROW_STONE.reverseCooldownMs;
+    stone.mark.setTintFill(0xffffff);
+    this.scene.time.delayedCall(ARROW_STONE.flashMs, () => stone.mark.clearTint());
+    this.scene.audio.playSfx('creak');
   }
 
   // Each wheel turns, and each seat is sent on towards where it'll be next frame, by its speed: the
@@ -205,8 +248,9 @@ export class AdventurePlatforms {
   }
 
   // Rounds into a hub: a freeze round frosts it (three freeze it); any other turns it the other way.
+  // And rounds into an arrow stone: a freeze round frosts it; any other turns it back.
   shootHubs(ms) {
-    for (const w of this.wheels) {
+    for (const w of [...this.wheels, ...this.stones]) {
       w.reverseMs = Math.max(0, w.reverseMs - ms);
       if (w.frost && !w.frozen && (w.frostMs -= ms) <= 0) {
         w.frost = 0;
@@ -216,6 +260,13 @@ export class AdventurePlatforms {
     if (!this.shotList) return;
     for (const shot of this.shotList().slice()) {
       if (!shot.active) continue;
+      const stone = this.stones.find((s) => hitsStone(this.stoneBox(s), shot.x, shot.y));
+      if (stone) {
+        this.shotLanded(shot);
+        if (shot.ammo?.freeze) this.frostWheel(stone);
+        else if (!stone.frozen && stone.reverseMs === 0) this.reverseStone(stone);
+        continue;
+      }
       const w = this.wheels.find((wheel) => hitsHub(wheel.wheel, shot.x, shot.y));
       if (!w) continue;
       this.shotLanded(shot);
@@ -233,9 +284,11 @@ export class AdventurePlatforms {
     this.scene.cameras.main.shake(120, 0.003);
   }
 
-  // What turns icy on a frosted or frozen wheel: its picture and its seats.
+  // What turns icy on a frosted or frozen wheel (its picture and its seats) or arrow stone (it and
+  // its arrow).
   iceLooks(w) {
-    return [w.look, ...w.seats].filter((look) => typeof look.setTint === 'function');
+    const looks = w.mark ? [w, w.mark] : [w.look, ...w.seats];
+    return looks.filter((look) => typeof look.setTint === 'function');
   }
 
   frostWheel(w) {
@@ -248,7 +301,7 @@ export class AdventurePlatforms {
         return;
       }
     }
-    freezeTrap(this.scene, w, { looks: this.iceLooks(w), rect: this.hubBox(w), depth: w.rules.depth });
+    freezeTrap(this.scene, w, { looks: this.iceLooks(w), rect: w.mark ? this.stoneBox(w) : this.hubBox(w), depth: w.rules.depth });
   }
 
   // The ice over a frozen wheel's hub.
