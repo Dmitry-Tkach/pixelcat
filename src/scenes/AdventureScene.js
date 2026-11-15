@@ -123,7 +123,7 @@ export class AdventureScene extends Phaser.Scene {
     this.gates = new AdventureGates(this, GATES[level.world], this.layout);
     this.buildObjects();
     // The moving traps: maces, crushers, dart idols and bounce mushrooms (data/adventure/traps.js).
-    this.traps = new AdventureTraps(this, TRAPS[level.world], level.traps ?? [], this.layout, (fromX) => this.hurt(fromX));
+    this.traps = new AdventureTraps(this, TRAPS[level.world], level.traps ?? [], this.layout, (fromX) => this.hurt(fromX), (enemy) => this.knockOut(enemy));
 
     const start = this.layout.objects.find((o) => o.type === 'start');
     this.respawnAt = this.cellFeet(start);

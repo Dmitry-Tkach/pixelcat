@@ -37,14 +37,13 @@ level.put(2, 29, '@').put(4, 29, '>').put(8, 29, 'b')
   .trap('crusher', 24, 22).coins(23, 25, 28) // the first crusher: time the run under it for the coins
   .put(26, 29, 'B').put(27, 29, 'B').put(27, 28, 'B').coins(26, 27, 26);
 
-// ----- 2. Up the Roots: the first ladder, islands, a ? block, and the minigun, then a cone head to
-// try it on, and the first dart idol, shooting back along the floor.
+// ----- 2. Up the Roots: the first ladder, islands, a ? block, and the minigun, then the first
+// gunner to try it on: he shoots back. He stands out of sight of the Mace Ledge's checkpoint.
 level.island(30, 36, 25).ladder(31, 25, 29).put(34, 26, 'R')
   .coins(32, 35, 24)
   .island(39, 44, 22).put(41, 18, '?').put(43, 21, 'w').put(39, 21, '/')
   .arc(37, 38, 22, 1)
-  .put(46, 29, 'c').coins(47, 49, 28)
-  .trap('idol', 51, 29, { facing: -1 }); // beside the crate step, not hiding it, met apart from the cone head
+  .put(47, 29, '1').coins(47, 49, 28);
 
 // ----- 3. The Mace Ledge: the level's star. A raised ledge with a checkpoint and a crate of rounds,
 // then three maces in a row: two on long chains from a root roof too high to reach (so there's no way
@@ -76,8 +75,9 @@ level.gap(70, 97)
   // The way back down from up there, marked in coins: onto the step, then the last island.
   .put(86, 18, 'o').put(87, 19, 'o').put(90, 22, 'o').put(90, 24, 'o');
 
-// ----- 5. The Great Root: a checkpoint, a heart and a crate of fire rounds, then a tower of islands
-// zigzagging up, a goon and a cone head on the way, under a rifle gunner. The root's trunk, a wall
+// ----- 5. The Great Root: a checkpoint, a heart and a crate of fire rounds, and the first dart idol,
+// alone on the floor, its darts reaching the foot of the ladder: time the climb. Then a tower of
+// islands zigzagging up, a goon and a cone head on the way, under a rifle gunner. The root's trunk, a wall
 // from the canopy to the floor, means the climb is the only way on. Its top ledge, off the route,
 // has the key and a crystal.
 level.put(100, 29, 'C').put(102, 29, '+').put(99, 29, 'b').put(103, 29, 'h')
@@ -88,7 +88,7 @@ level.put(100, 29, 'C').put(102, 29, '+').put(99, 29, 'b').put(103, 29, 'h')
   .island(103, 108, 10).put(104, 9, '3').put(106, 9, 'k').put(108, 9, '*').put(102, 9, 'X')
   // The way down from the top ledge, and on up to the canopy, marked in coins.
   .put(109, 11, 'o').put(110, 12, 'o').put(116, 12, 'o').put(116, 11, 'o')
-  .put(110, 29, 'g')
+  .put(110, 29, 'g').trap('idol', 113, 29, { facing: -1 })
   .ground(117, 118, 11); // the trunk, under the canopy's first island: the floor below can't skip the climb
 
 // ----- 6. The Canopy: high islands with the level's longest jumps. A laser crate to start, a cone

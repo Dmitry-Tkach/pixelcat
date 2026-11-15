@@ -15,15 +15,18 @@ import {
 const SOUNDS = { slam: 'smash', dart: 'shot', bounce: 'bounce' };
 const SHADOW_KEY = 'trap-shadow'; // a soft dark ellipse, drawn once
 const TRAIL_HISTORY = 8; // frames of the ball's places kept, for its fading copies
+const ENEMY_NEAR = 300; // px across: enemies further than this from a mace's ball aren't checked
 const HEARD_WITHIN = 900; // px from the camera's middle: further off, a trap makes no sound
 
 export class AdventureTraps {
-  // traps: the level's list. hurt(fromX): the cat is hit, from that side.
-  constructor(scene, rules, traps, layout, hurt) {
+  // traps: the level's list. hurt(fromX): the cat is hit, from that side. knockOut(enemy): an enemy
+  // is knocked out by a trap.
+  constructor(scene, rules, traps, layout, hurt, knockOut) {
     this.scene = scene;
     this.rules = rules;
     this.layout = layout;
     this.hurt = hurt;
+    this.knockOut = knockOut;
     this.maces = [];
     this.crushers = [];
     this.idols = [];
@@ -77,6 +80,16 @@ export class AdventureTraps {
       swing, hook, chain, groundY, shadow, ghosts, crate, history: [], angle: 0, turning: 0,
       reach: chain + r.ballMiddle * r.ballHeight, ms: trap.phaseMs ?? offset, rules: { ...r, periodMs: trap.periodMs ?? r.periodMs, swingDeg: trap.swingDeg ?? r.swingDeg },
     });
+  }
+
+  // An enemy the ball swings into is knocked out, as if the cat had done it: he can lure them in.
+  maceHitsEnemies(ball, reach) {
+    if (!this.enemies) return;
+    for (const enemy of this.enemies.getChildren()) {
+      if (enemy.dead || !enemy.body || Math.abs(enemy.x - ball.x) > ENEMY_NEAR) continue;
+      const { body } = enemy;
+      if (circleHitsRect(ball, reach, { left: body.left, top: body.top, right: body.right, bottom: body.bottom })) this.knockOut(enemy);
+    }
   }
 
   makeShadowTexture() {
@@ -194,6 +207,7 @@ export class AdventureTraps {
   // may land now (not while climbing or pulling himself up). Phaser only counts standing on tiles and
   // still bodies, so on a crusher he's told he's standing, to jump.
   addColliders(cat, enemies, canLand) {
+    this.enemies = enemies;
     this.scene.physics.add.collider(cat, this.idolBodies);
     this.scene.physics.add.collider(enemies, this.idolBodies);
     this.scene.physics.add.collider(cat, this.crusherBodies, (cat_, image) => {
@@ -235,7 +249,9 @@ export class AdventureTraps {
       mace.swing.setRotation(angle);
       this.updateMaceLook(mace, angle, ms, cat);
       const ball = swingPoint(mace.hook, mace.reach, angle);
-      if (circleHitsRect(ball, mace.rules.hitShare * mace.rules.ballHeight, catRect)) this.hurt(ball.x);
+      const reach = mace.rules.hitShare * mace.rules.ballHeight;
+      if (circleHitsRect(ball, reach, catRect)) this.hurt(ball.x);
+      this.maceHitsEnemies(ball, reach);
     }
     for (const crusher of this.crushers) this.updateCrusher(crusher, ms, catRect, cat);
     for (const idol of this.idols) this.updateIdol(idol, ms);
