@@ -137,12 +137,12 @@ export const WOOD_LEVEL = {
   // the level to the next, so it's the same all through.
   map: level.rows(),
   traps: level.traps(),
-  // The camera's moments (systems/adventure/AdventureCameraShots.js): it shows the Mace Ledge's maces
-  // as the cat steps onto it, and the guardian, who wakes on camera, from the checkpoint before him;
-  // and it frames the guardian whole, from his head to the path, while the cat is near him.
+  // The camera's moments (systems/adventure/AdventureCameraShots.js): one shot only, at the end. It
+  // shows the guardian, who wakes on camera, from the checkpoint before him; and it frames him whole,
+  // from his head to the path, while the cat is near him. (The owner asked for no other shots: the
+  // Mace Ledge had one, taken out.)
   camera: {
     shots: [
-      { when: { cols: [54, 56], rows: [24, 25] }, look: { col: 61, row: 22.5 }, panMs: 1400, holdMs: 2600 },
       { when: { cols: [148, 150], rows: [17, 17] }, look: { col: 162, row: 16.35 }, panMs: 1900, holdMs: 3200 },
     ],
     zones: [{ cols: [151, COLS - 1], rows: [12, 23], middleRow: 16.35 }],
