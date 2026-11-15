@@ -644,7 +644,8 @@ export class AdventureScene extends Phaser.Scene {
   }
 
   jump(key) {
-    if (!this.playing || this.pullingUp || this.moves.isFiringSpecial || this.shots.playing) return;
+    if (this.shots.playing) return this.shots.skip(); // a camera shot: jump skips it
+    if (!this.playing || this.pullingUp || this.moves.isFiringSpecial) return;
     if (this.climbing) {
       if (key === 'space') {
         this.stopClimbing();
@@ -662,7 +663,8 @@ export class AdventureScene extends Phaser.Scene {
   }
 
   slide(key) {
-    if (!this.playing || this.climbing || this.pullingUp || this.moves.isFiringSpecial || this.shots.playing) return;
+    if (this.shots.playing) return this.shots.skip(); // a camera shot: slide skips it
+    if (!this.playing || this.climbing || this.pullingUp || this.moves.isFiringSpecial) return;
     // Down while standing at the top of a ladder climbs down it. Running past one, Down slides, so a
     // ladder through the middle of an island doesn't catch the cat.
     const standing = Math.abs(this.cat.moveVelocity) < CLIMB.standStill;

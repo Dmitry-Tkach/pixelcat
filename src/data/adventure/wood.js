@@ -1,11 +1,15 @@
 // The first adventure level: the Wood world (World Tree Roots), for the battle cat. From the forest
 // floor, up through the roots and across a thorny hollow, up the trunk of a great root to the canopy,
-// and over the treetops to the portal.
+// and down to the stone guardian before the portal.
 //
-// It's designed as a series of sections, each teaching one thing safely before testing it, with the
-// stakes rising: (1) running, jumping and the first enemy; (2) ladders and islands, and the minigun;
-// (3) the first gunner; (4) a bottomless hollow, with an optional higher route; (5) a climb up a
-// tower of islands under fire; (6) the canopy's long jumps; (7) the guarded portal. A checkpoint
+// Its star is the mace, built up as the best platformers build up one idea: one mace alone on safe
+// floor (2), two in a wave under a roof, with a stone to jump between them (3), one across a climb (5),
+// one beside a gunner (6), and the stone guardian swinging two, with fire (7). Around it, each other
+// thing is taught safely before it's tested, with the stakes rising: (1) running, jumping, the
+// mushroom, the first goon and crusher; (2) ladders, islands, the minigun, the first gunner;
+// (3) the Mace Ledge; (4) a bottomless hollow, with an optional higher route; (5) a climb up a tower
+// of islands under fire, the first dart idol at its foot; (6) the canopy's jumps; (7) the guardian.
+// Camera shots show the Mace Ledge and the guardian before the action. A checkpoint
 // starts each of the hardest parts, every coin, crystal and pickup can be reached, and no edge is
 // a blind drop: from every edge, somewhere to land is in view, and coins mark the way down from the
 // high places. Tests check the routes (systems/adventureRoutes.js). To see the level as a picture, run
@@ -43,21 +47,24 @@ level.island(30, 36, 25).ladder(31, 25, 29).put(34, 26, 'R')
   .coins(32, 35, 24)
   .island(39, 44, 22).put(41, 18, '?').put(43, 21, 'w').put(39, 21, '/')
   .arc(37, 38, 22, 1)
-  .put(47, 29, '1').coins(47, 49, 28);
+  .put(47, 29, '1').coins(47, 49, 28)
+  // The first mace, alone, over the safe floor under the minigun's island: met before the wave.
+  .trap('mace', 42, 23, { hanging: true, chain: 300, swingDeg: 30 });
 
 // ----- 3. The Mace Ledge: the level's star. A raised ledge with a checkpoint and a crate of rounds,
-// then three maces in a row: two on long chains from a root roof too high to reach (so there's no way
-// over them), and one on a gallows at the ledge's end, which smashes a stack of crates as the player
-// arrives. They swing as a wave, each a little behind the one before (MACE_WAVE), so they never touch.
-// Through them by rhythm: run, wait, slide.
+// then two maces in a row on long chains from a root roof too high to reach (so there's no way over
+// them); the second smashes a stack of crates as the player arrives. They swing as a wave, the second
+// a little behind the first (MACE_WAVE), so they never touch. (A third, on a gallows at the ledge's
+// end, made it too hard: the owner had it taken out.)
+// A stone among them stops a slide, so it's not one slide through: run, wait, slide, jump.
 const MACE_WAVE = { periodMs: 3200, lagMs: 360 };
 level.put(53, 29, 'B').ground(54, 69, 26)
   .put(54, 25, 'a').put(55, 25, 'C').put(68, 25, 'b')
   .island(57, 64, 19) // the roof: seven cells above the ledge, out of reach
   .trap('mace', 59, 20, { hanging: true, chain: 237, swingDeg: 30, periodMs: MACE_WAVE.periodMs, phaseMs: 0 })
-  .trap('mace', 62, 20, { hanging: true, chain: 237, swingDeg: 30, periodMs: MACE_WAVE.periodMs, phaseMs: -MACE_WAVE.lagMs })
-  .trap('mace', 67, 25, { facing: -1, crate: true, periodMs: MACE_WAVE.periodMs, phaseMs: -2 * MACE_WAVE.lagMs })
-  .arc(60, 61, 23, 1).arc(64, 65, 23, 1); // coins between the swings, for the brave
+  .trap('mace', 62, 20, { hanging: true, chain: 237, swingDeg: 30, periodMs: MACE_WAVE.periodMs, phaseMs: -MACE_WAVE.lagMs, crate: true })
+  .put(61, 25, 'X') // a stone where the two hanging maces' swings meet: a slide stops at it, so jump it in time
+  .arc(60, 61, 23, 1).arc(64, 65, 23, 1); // coins among the swings, for the brave
 
 // ----- 4. Thorn Hollow: no floor at all, crossed on islands and a bridge. A crate of freeze rounds
 // on the first island, for the spiky enemy who holds the narrow middle island (he can't be stomped),
@@ -85,18 +92,20 @@ level.put(100, 29, 'C').put(102, 29, '+').put(99, 29, 'b').put(103, 29, 'h')
   .island(111, 116, 22).put(114, 21, 'g').arc(109, 110, 22, 2)
   .island(104, 109, 18).put(105, 17, 'e').coins(107, 109, 17)
   .island(110, 115, 14).put(113, 13, 'c')
+  .trap('mace', 112, 15, { hanging: true, chain: 300, swingDeg: 30 }) // swinging across the climb
   .island(103, 108, 10).put(104, 9, '3').put(106, 9, 'k').put(108, 9, '*').put(102, 9, 'X')
   // The way down from the top ledge, and on up to the canopy, marked in coins.
   .put(109, 11, 'o').put(110, 12, 'o').put(116, 12, 'o').put(116, 11, 'o')
   .put(110, 29, 'g').trap('idol', 113, 29, { facing: -1 })
   .ground(117, 118, 11); // the trunk, under the canopy's first island: the floor below can't skip the climb
 
-// ----- 6. The Canopy: high islands with the level's longest jumps. A laser crate to start, a cone
-// head, and a blaster at the far end of the chest's island. A ladder climbs back up from the floor
+// ----- 6. The Canopy: high islands and wide jumps. A laser crate to start, a cone head, and a
+// blaster at the far end of the chest's island, with a mace on a gallows swinging over the chest. A ladder climbs back up from the floor
 // below for whoever falls, past spikes.
 level.island(117, 122, 10).put(118, 9, 'C').put(120, 9, 'z')
   .island(127, 131, 8).put(129, 7, 'c').arc(123, 126, 9, 2)
-  .island(133, 142, 11).ladder(134, 11, 29).put(142, 10, '1').put(137, 10, 'T').arc(132, 132, 9, 0).put(133, 10, 'o')
+  .island(133, 142, 11).ladder(134, 11, 29).put(142, 10, '1').put(137, 10, 'T')
+  .trap('mace', 139, 10, { facing: -1 }) // beside the gunner, over the chest.arc(132, 132, 9, 0).put(133, 10, 'o')
   .coins(141, 142, 8)
   .put(130, 29, 'g').put(138, 29, 'c').put(126, 29, '+').coins(136, 140, 28);
 
@@ -112,7 +121,8 @@ level.gap(142, COLS - 1).put(141, 29, 'X') // the floor ends at a stone: water f
   .island(152, COLS - 1, 22)
   .put(160, 17, 'X').put(161, 17, 'X').put(162, 17, 'X').put(163, 17, 'X') // his platform, five cells up: his solid body fills it
   .trap('guardian', 162, 16)
-  .coins(161, 162, 20) // safe under him
+  .coins(161, 162, 20) // under him
+  .put(162, 21, 'X') // a stone under his fire: a slide stops at it, so the middle must be crossed in time
   .put(175, 21, 'E');
 
 export const WOOD_LEVEL = {
@@ -132,7 +142,7 @@ export const WOOD_LEVEL = {
   // and it frames the guardian whole, from his head to the path, while the cat is near him.
   camera: {
     shots: [
-      { when: { cols: [54, 56], rows: [24, 25] }, look: { col: 62.5, row: 22.5 }, panMs: 1400, holdMs: 2600 },
+      { when: { cols: [54, 56], rows: [24, 25] }, look: { col: 61, row: 22.5 }, panMs: 1400, holdMs: 2600 },
       { when: { cols: [148, 150], rows: [17, 17] }, look: { col: 162, row: 16.35 }, panMs: 1900, holdMs: 3200 },
     ],
     zones: [{ cols: [151, COLS - 1], rows: [12, 23], middleRow: 16.35 }],
