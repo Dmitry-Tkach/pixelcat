@@ -7,6 +7,7 @@ import {
 } from './trapLogic.js';
 import { TRAP_FREEZE, canFreezeTrap, frostAfterHit, frozenBallBlock } from '../../data/adventure/freeze.js';
 import { freezeTrap, updateTrapIce } from './trapIce.js';
+import { SPORE_BUD, budAfter, budTexture } from './sporeBuds.js';
 
 // Builds a level's moving traps (data/adventure/traps.js) and moves them each frame, while play is
 // on: the swinging mace, the stone crusher, the dart idol and the bounce mushroom. The rules are in
@@ -52,7 +53,7 @@ export class AdventureTraps {
       if (trap.kind === 'mace') this.buildMace(trap, x, feet, offset);
       if (trap.kind === 'crusher') this.buildCrusher(trap, x, offset);
       if (trap.kind === 'idol') this.buildIdol(trap, x, feet, offset);
-      if (trap.kind === 'mushroom') this.buildMushroom(x, feet);
+      if (trap.kind === 'mushroom') this.buildMushroom(x, feet, trap.bud);
       if (trap.kind === 'guardian') this.buildGuardian(trap);
     }
   }
@@ -340,11 +341,55 @@ export class AdventureTraps {
     });
   }
 
-  buildMushroom(x, feet) {
+  // bud: a spore bud (adventure/sporeBuds.js), closed until a round opens it for a while.
+  buildMushroom(x, feet, bud = false) {
     const r = this.rules.mushroom;
     const image = this.scene.add.image(x, feet + r.sink, this.art(r.calm)).setOrigin(0.5, 1).setDepth(r.depth);
     // He lands on the cap's top, a little under the picture's top edge (its round dome).
-    this.mushrooms.push({ image, cap: { x, top: image.y - image.height * r.capTop, half: (image.width * r.capShare) / 2 }, squashMs: 0, rules: r });
+    const mushroom = { image, cap: { x, top: image.y - image.height * r.capTop, half: (image.width * r.capShare) / 2 }, squashMs: 0, rules: r };
+    if (bud) {
+      Object.assign(mushroom, { bud: true, openLeft: 0, feet, x });
+      image.setVisible(false);
+      mushroom.budImage = this.scene.add.image(x, feet + r.sink, budTexture(this.scene)).setOrigin(0.5, 1).setDepth(r.depth);
+    }
+    this.mushrooms.push(mushroom);
+  }
+
+  // Where a closed bud is hit.
+  budRect(mushroom) {
+    const { w, h } = SPORE_BUD.body;
+    return { left: mushroom.x - w / 2, right: mushroom.x + w / 2, top: mushroom.feet - h, bottom: mushroom.feet };
+  }
+
+  // A round into a bud opens it, or keeps it open longer.
+  openBud(mushroom) {
+    const wasOpen = mushroom.openLeft > 0;
+    mushroom.openLeft = SPORE_BUD.openMs;
+    mushroom.image.setVisible(true).setX(mushroom.x).setTexture(this.art(mushroom.rules.calm));
+    mushroom.budImage.setVisible(false);
+    if (!wasOpen) {
+      mushroom.image.setScale(0.3);
+      this.scene.tweens.add({ targets: mushroom.image, scale: 1, duration: 220, ease: 'Back.easeOut' });
+      this.sound('bounce', mushroom.x, mushroom.feet);
+    }
+  }
+
+  // Each frame, a bud: counting its open time down, shuddering near the end, closing; closed, it
+  // glows gently. Returns whether it's open (a mushroom to bounce on).
+  updateBud(mushroom, ms) {
+    const { left, open, warning, closed } = budAfter(mushroom.openLeft, ms);
+    mushroom.openLeft = left;
+    if (closed) {
+      mushroom.image.setVisible(false);
+      mushroom.budImage.setVisible(true);
+    }
+    if (open) {
+      mushroom.image.setX(mushroom.x + (warning ? Phaser.Math.FloatBetween(-SPORE_BUD.shudderPx, SPORE_BUD.shudderPx) : 0));
+      return true;
+    }
+    const pulse = 0.5 + 0.5 * Math.sin((this.scene.time.now * 2 * Math.PI) / SPORE_BUD.pulseMs);
+    mushroom.budImage.setTint(Phaser.Display.Color.GetColor(200 + 55 * pulse, 255, 200 + 55 * pulse));
+    return false;
   }
 
   // The cat stands on the crushers and idols, and enemies walk into the idols. canLand(): whether he
@@ -386,11 +431,18 @@ export class AdventureTraps {
   }
 
   // A freeze round that reaches a small trap frosts it, freezing it once it has had enough, and is
-  // spent. Into one already frozen, it makes the ice last again.
+  // spent. Into one already frozen, it makes the ice last again. Any round into a spore bud opens it.
   freezeShots() {
     if (!this.shotList) return;
     for (const shot of this.shotList().slice()) {
-      if (!shot.active || !shot.ammo?.freeze) continue;
+      if (!shot.active) continue;
+      const bud = this.mushrooms.find((m) => m.bud && m.openLeft === 0 && rectsTouch(this.budRect(m), { left: shot.x - SHOT_HALF, right: shot.x + SHOT_HALF, top: shot.y - SHOT_HALF, bottom: shot.y + SHOT_HALF }));
+      if (bud) {
+        this.openBud(bud);
+        this.shotLanded(shot);
+        continue;
+      }
+      if (!shot.ammo?.freeze) continue;
       const at = { left: shot.x - SHOT_HALF, right: shot.x + SHOT_HALF, top: shot.y - SHOT_HALF, bottom: shot.y + SHOT_HALF };
       const hit = this.freezableTraps().find(({ rect, hitRect = rect }) => rectsTouch(hitRect, at));
       if (!hit) continue;
@@ -570,6 +622,7 @@ export class AdventureTraps {
   }
 
   updateMushroom(mushroom, ms, cat) {
+    if (mushroom.bud && !this.updateBud(mushroom, ms)) return; // a closed bud: nothing to bounce on
     const { image, cap, rules: r } = mushroom;
     if (mushroom.squashMs > 0) {
       mushroom.squashMs -= ms;

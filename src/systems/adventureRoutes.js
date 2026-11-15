@@ -47,7 +47,8 @@ export function mushroomReach(world) {
 const SOLID_OBJECTS = new Set(['box', 'stone', 'bonus']);
 const PICKUPS = new Set(['coin', 'gem', 'heart', 'rage', 'weapon', 'ammo-standard', 'ammo-explosive', 'ammo-laser', 'ammo-freeze', 'ammo-fire', 'key', 'chest', 'silver-key', 'silver-chest', 'checkpoint']);
 
-export function adventureRoutes(level) {
+// closed: cell rectangles ({ cols, rows }) to treat as solid, to check one path of a level on its own.
+export function adventureRoutes(level, { closed = [] } = {}) {
   const { rows, cols, tiles, ladders, objects } = readAdventureMap(level.map);
   const key = (c, r) => `${c},${r}`;
   const blocks = new Set(objects.filter((o) => SOLID_OBJECTS.has(o.type)).map((o) => key(o.col, o.row)));
@@ -59,11 +60,12 @@ export function adventureRoutes(level) {
     }
   }
   const spikes = new Set(objects.filter((o) => o.type === 'spike').map((o) => key(o.col, o.row)));
-  const ladderCells = new Set(ladders.map((l) => key(l.col, l.row)));
+  const isClosed = (c, r) => closed.some(({ cols: [c0, c1], rows: [r0, r1] }) => c >= c0 && c <= c1 && r >= r0 && r <= r1);
+  const ladderCells = new Set(ladders.filter((l) => !isClosed(l.col, l.row)).map((l) => key(l.col, l.row)));
   const inside = (c, r) => c >= 0 && c < cols && r >= 0 && r < rows;
   const isGround = (c, r) => inside(c, r) && level.map[r][c] === '#';
   // What he can't pass through: the ground and blocks. Islands and bridges he jumps up through.
-  const solid = (c, r) => isGround(c, r) || blocks.has(key(c, r));
+  const solid = (c, r) => isGround(c, r) || blocks.has(key(c, r)) || isClosed(c, r);
   const logs = new Set([
     ...(level.movers ?? []).flatMap((mover) => [...moverCells(mover)]),
     ...(level.wheels ?? []).flatMap((wheel) => [...wheelCells(wheel)]),

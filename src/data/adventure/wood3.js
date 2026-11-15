@@ -1,8 +1,8 @@
 // The third adventure level: Heart of the Tree, the Wood world's boss level, from the owner's idea
-// (images/levels/forest/levelel3-example): two paths to one portal, a boss at the end of each. The
-// jungle path above, to a stone giant, is still to come: for now its way up is closed, and the only
-// way on is down, into the caves under the tree, to the troll. Each path is long, longer than levels
-// 1 and 2, since a run plays only one of them.
+// (images/levels/forest/levelel3-example): two paths to one portal, a boss at the end of each: the
+// jungle path above, to a stone giant, and the caves below, to the troll. Each path is long, longer
+// than levels 1 and 2, since a run plays only one of them. The stone giant is still to come (his art
+// first): for now his arena is open.
 //
 // The caves' star is the arrow stone (systems/adventure/arrowStones.js): a moving stone platform with
 // a green arrow showing which way it goes next. Green means shoot it, as level 2 taught with the
@@ -35,7 +35,7 @@ const level = mapBuilder(COLS, ROWS).ground(0, COLS - 1, SURFACE)
 level.put(2, 33, '@').put(4, 33, '>').put(7, 33, 'b')
   .put(8, 33, 'w').coins(10, 13, 31).put(15, 33, 'a')
   .put(19, 33, 'g').put(22, 33, 'p')
-  .put(27, 33, '/') // the jungle path, to come
+  .put(27, 33, '/') // up: the jungle path
   .hollow(30, 47, SURFACE, ROWS - 1) // the cave mouth
   .fill(30, 32, 38, ROWS - 1).fill(33, 35, 41, ROWS - 1).fill(36, 39, 44, ROWS - 1).fill(40, 47, CAVE, ROWS - 1)
   .coins(31, 31, 36).coins(34, 34, 39).coins(37, 37, 42);
@@ -93,8 +93,73 @@ level.put(193, 46, 'C').put(195, 46, 'e')
 // ----- The Heart of the Tree: a ladder up from past his door to the portal.
 level.hollow(224, 226, SURFACE, CAVE - 1)
   .island(224, 226, SURFACE).ladder(225, SURFACE, 46)
-  .fill(222, 223, SURFACE - 6, SURFACE - 1) // a rock wall: the way back over the caves is the jungle's, to come
   .put(229, 33, 'b').put(234, 33, 'E');
+
+// ===== The jungle path: up the ladder by the signpost, across the cave mouth on branches, and on over
+// the rock above the caves, in the trees. Its star is the spore bud (systems/adventure/sporeBuds.js):
+// a closed green bud that a round opens into a bounce mushroom for a few seconds. Built up:
+// (J1) a bounce mushroom to play with, then the first bud, the only way over a trunk; (J2) thorn pits,
+// crumbling leaves and a dart idol, a crystal on an arch a bud reaches; (J3) a breather in old ruins:
+// maces swinging under arches, a rifle gunner, a heart; (J4) buds in a chain, high over a floor of
+// thorns, a pterodactyl over the gap, a crystal on the chain and a secret one out of sight above.
+// Then the stone giant's arena, and on to the Heart of the Tree.
+const thorns = (from, to) => { // a thorn pit in the rock: two cells deep, spikes at its bottom
+  level.hollow(from, to, SURFACE, SURFACE + 1);
+  for (let c = from; c <= to; c++) level.put(c, SURFACE + 1, '^');
+};
+
+// ----- J0. Up from the fork, and across the cave mouth on branches.
+level.island(25, 29, 26).ladder(28, 26, 33)
+  .island(32, 35, 25).island(38, 41, 24).island(44, 47, 26)
+  .island(41, 45, 30) // a low branch over the cave mouth: somewhere to land, in view from the edge
+  .coins(33, 34, 23).coins(39, 40, 22).coins(45, 46, 24);
+
+// ----- J1. Vine Gate: a bounce mushroom to a ledge, to play with; then a trunk too high to climb,
+// and the first spore bud, closed, by it: shoot it, and bounce.
+level.trap('mushroom', 52, 33).island(51, 54, 25).coins(52, 53, 24).coins(52, 52, 29)
+  .trap('mushroom', 60, 33, { bud: true }).island(59, 62, 25).coins(60, 61, 24)
+  .fill(64, 65, 22, SURFACE - 1).coins(64, 65, 20) // the trunk
+  .island(67, 69, 27); // a step down from it
+
+// ----- J2. Broken Aqueduct: a checkpoint, thorn pits, crumbling leaves over the widest, and a dart
+// idol firing across the landing. A crystal on an arch, reached from a bud.
+level.put(67, 33, 'C');
+thorns(72, 74);
+thorns(80, 82);
+thorns(86, 92);
+level.put(88, 33, '%').put(89, 33, '%').put(90, 33, '%')
+  .coins(73, 73, 31).coins(81, 81, 31).coins(88, 90, 31)
+  .trap('idol', 99, 33, { facing: -1 })
+  .trap('mushroom', 102, 33, { bud: true }).island(103, 106, 25).put(104, 24, '*');
+
+// ----- J3. Bell Ruins: a checkpoint, two maces swinging under ruined arches over firm ground, a heart,
+// and a rifle gunner on a ruined tower.
+level.put(110, 33, 'C')
+  .island(118, 122, 27).trap('mace', 120, 28, { hanging: true, chain: 237, swingDeg: 30 })
+  .island(130, 134, 27).trap('mace', 132, 28, { hanging: true, chain: 237, swingDeg: 30, phaseMs: 1600 })
+  .put(126, 33, '+').coins(119, 121, 31).coins(131, 133, 31)
+  .island(138, 141, 26).put(139, 25, '3');
+
+// ----- J4. Spore Lift: a checkpoint, then a tall trunk, crossed by two buds in a chain: one on the
+// ground to a branch, one on the branch to a branch above, by the trunk's top. Beyond it, a floor of thorns: high branches
+// over it, crumbling leaves over the widest gap with a pterodactyl hovering by them; a bud to a crystal
+// above; and, out of sight over the last branch, a secret crystal one odd coin hints at.
+level.put(145, 33, 'C')
+  .trap('mushroom', 149, 33, { bud: true }).island(148, 151, 25).trap('mushroom', 150, 24, { bud: true })
+  .island(148, 151, 17) // the second bud throws him straight up to this branch, by the trunk's top
+  .fill(152, 153, 19, SURFACE - 1).coins(152, 153, 17); // the tall trunk
+thorns(154, 185);
+level.island(157, 160, 19).trap('mushroom', 159, 18, { bud: true }).island(160, 163, 10).put(161, 9, '*')
+  .put(163, 19, '%').put(164, 19, '%')
+  .bird('hover', 166, 16)
+  .island(168, 171, 22).coins(169, 169, 17).island(170, 173, 13).put(172, 12, '*') // the secret, above
+  .trap('mushroom', 169, 21, { bud: true })
+  .island(176, 179, 21) // a branch under the secret's right edge, so the way down is in view
+  .island(175, 178, 26).island(181, 184, 30).coins(176, 177, 24).coins(182, 183, 28);
+
+// ----- The stone giant's arena: a checkpoint and a crate of explosive rounds, then open ground (he's
+// still to come), and on to the Heart of the Tree.
+level.put(187, 33, 'C').put(189, 33, 'e');
 
 export const WOOD_HEART_LEVEL = {
   id: 'wood-3',
@@ -107,6 +172,13 @@ export const WOOD_HEART_LEVEL = {
   map: level.rows(),
   movers: level.movers(),
   traps: level.traps(),
+  birds: level.birds(),
+  // The two paths: where each begins (cells), for the tests to check each on its own reaches the
+  // portal with three crystals (the other's entrance closed).
+  paths: {
+    jungle: { cols: [25, 29], rows: [26, 31] }, // the ladder up by the signpost, and the branch at its top
+    cave: { cols: [30, 47], rows: [SURFACE, CAVE_TOP - 1] }, // the cave mouth
+  },
   // The bosses (AdventureScene buildBoss): each waits in his arena until the cat walks in.
   bosses: [
     {
@@ -124,6 +196,9 @@ export const WOOD_HEART_LEVEL = {
   props: [50, 66, 82, 104, 118, 133, 150, 176, 196, 210].map((col) => ({ picture: 'mill-lantern', col, row: CAVE_TOP, hang: true })),
   waterfalls: [{ col: 180, top: CAVE, bottom: 56, veil: true }],
   places: {
+    jungle: { col: 67, row: 33 },
+    ruins: { col: 110, row: 33 },
+    sporeLift: { col: 145, row: 33 },
     lake: { col: 63, row: 46 },
     tunnel: { col: 112, row: 46 },
     secondLake: { col: 139, row: 46 },
