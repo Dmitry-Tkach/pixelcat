@@ -9,7 +9,7 @@
 // mushroom, the first goon and crusher; (2) ladders, islands, the minigun, the first gunner;
 // (3) the Mace Ledge; (4) a bottomless hollow, with an optional higher route; (5) a climb up a tower
 // of islands under fire, the first dart idol at its foot; (6) the canopy's jumps; (7) the guardian.
-// Camera shots show the Mace Ledge and the guardian before the action. A checkpoint
+// One camera shot shows the guardian before his fight. A checkpoint
 // starts each of the hardest parts, every coin, crystal and pickup can be reached, and no edge is
 // a blind drop: from every edge, somewhere to land is in view, and coins mark the way down from the
 // high places. Tests check the routes (systems/adventureRoutes.js). To see the level as a picture, run
@@ -105,7 +105,8 @@ level.put(100, 29, 'C').put(102, 29, '+').put(99, 29, 'b').put(103, 29, 'h')
 level.island(117, 122, 10).put(118, 9, 'C').put(120, 9, 'z')
   .island(127, 131, 8).put(129, 7, 'c').arc(123, 126, 9, 2)
   .island(133, 142, 11).ladder(134, 11, 29).put(142, 10, '1').put(137, 10, 'T')
-  .trap('mace', 139, 10, { facing: -1 }) // beside the gunner, over the chest.arc(132, 132, 9, 0).put(133, 10, 'o')
+  .arc(132, 132, 9, 0).put(133, 10, 'o')
+  .trap('mace', 139, 10, { facing: -1 }) // beside the gunner, over the chest
   .coins(141, 142, 8)
   .put(130, 29, 'g').put(138, 29, 'c').put(126, 29, '+').coins(136, 140, 28);
 
