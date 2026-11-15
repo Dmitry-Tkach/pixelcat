@@ -177,12 +177,12 @@ export class AdventurePlatforms {
     }
   }
 
-  // A rotten seat he's landed on: it rocks and creaks, then breaks and falls into the river, and a
-  // new one grows back in its place, still rotten.
+  // A rotten seat he's landed on: it rocks and creaks, then breaks and falls into the river, gone
+  // for good.
   breakSeat(seat) {
     seat.rotten = 'shaking';
     this.scene.audio.playSfx('creak');
-    const { wobbleDeg, shakeMs, fallMs, fallPx, backMs } = BROKEN_SEAT;
+    const { wobbleDeg, shakeMs, fallMs, fallPx } = BROKEN_SEAT;
     this.scene.tweens.add({ targets: seat, angle: { from: -wobbleDeg, to: wobbleDeg }, duration: 70, yoyo: true, repeat: Math.floor(shakeMs / 140) });
     this.scene.time.delayedCall(shakeMs, () => {
       seat.rotten = 'fallen';
@@ -194,20 +194,8 @@ export class AdventurePlatforms {
       seat.body.enable = false;
       if (this.riding === seat) this.riding = null;
       this.scene.audio.playSfx('collapse');
-      this.scene.tweens.add({ targets: seat, y: seat.y + fallPx, angle: 25, alpha: 0, duration: fallMs, ease: 'Quad.easeIn' });
-      this.scene.time.delayedCall(backMs, () => this.regrowSeat(seat));
+      this.scene.tweens.add({ targets: seat, y: seat.y + fallPx, angle: 25, alpha: 0, duration: fallMs, ease: 'Quad.easeIn', onComplete: () => seat.setVisible(false) });
     });
-  }
-
-  regrowSeat(seat) {
-    const w = this.wheels.find((wheel) => wheel.seats.includes(seat));
-    const at = seatPlace(w.wheel, seat.seatIndex, w.ms);
-    this.scene.tweens.killTweensOf(seat);
-    seat.setAngle(0).setAlpha(0).setPosition(at.x - seat.body.width / 2, at.y - seat.top);
-    seat.body.enable = true;
-    seat.body.reset(seat.x, seat.y);
-    seat.rotten = 'still';
-    this.scene.tweens.add({ targets: seat, alpha: 1, duration: 300 });
   }
 
   // The cat's rounds in flight: list() gives them, landed(round) spends one that hit a hub.

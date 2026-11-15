@@ -15,6 +15,9 @@ import { TILE } from '../systems/adventureMap.js';
 const STAND_IN = { key: 'adventure-ptero-standin', w: 128, h: 80 };
 const SHOT_FLASH_MS = 70;
 const WARN_FLASH = { tint: 0xfff27a, everyMs: 90 };
+// It turns to face the cat only once he's this far (px) to its other side, so it doesn't flip to and
+// fro while he's right under it.
+const TURN_PX = 48;
 
 export class AdventureBird extends Phaser.Physics.Arcade.Sprite {
   // flock: every bird in the level, so divers take turns.
@@ -70,11 +73,11 @@ export class AdventureBird extends Phaser.Physics.Arcade.Sprite {
     this.ms += ms;
     this.clock += ms;
     const { body } = cat;
-    const toCat = Math.sign(body.center.x - this.x) || this.direction;
+    const dx = body.center.x - this.x;
+    const toCat = Math.abs(dx) > TURN_PX ? Math.sign(dx) : this.direction;
     switch (this.state) {
       case 'hover': {
-        const y = hoverY(this.home.y, this.clock);
-        this.setVelocity(0, ((y - this.y) * 1000) / Math.max(1, ms));
+        this.place(this.home.x, hoverY(this.home.y, this.clock));
         this.face(toCat);
         this.flap('glide');
         break;
@@ -159,18 +162,22 @@ export class AdventureBird extends Phaser.Physics.Arcade.Sprite {
     this.ms = ms;
   }
 
-  // Waiting: a gentle bob at home, or flying to and fro on its beat, flapping. It flies onto its
+  // Waiting: a gentle bob at home, or flying to and fro on its beat, flapping. It moves onto its
   // beat no faster than homeSpeed, so coming back from a dive it doesn't jump.
   bobHome(ms) {
     const at = waitingAt(this.home, this.clock, this.patrol);
-    let vx = ((at.x - this.x) * 1000) / Math.max(1, ms), vy = ((at.y - this.y) * 1000) / Math.max(1, ms);
-    const speed = Math.hypot(vx, vy);
-    if (speed > BIRD.homeSpeed) {
-      vx *= BIRD.homeSpeed / speed;
-      vy *= BIRD.homeSpeed / speed;
-    }
-    this.setVelocity(vx, vy);
+    const dx = at.x - this.x, dy = at.y - this.y, d = Math.hypot(dx, dy);
+    const step = Math.min(1, (BIRD.homeSpeed * ms) / 1000 / Math.max(d, 1e-6));
+    this.place(this.x + dx * step, this.y + dy * step);
     this.flap('fly');
+  }
+
+  // Puts it exactly there, standing still. A path it follows (its bob, its beat, its hover) is set
+  // as a place each frame, not as a speed: the physics doesn't always step once a frame (none in
+  // some, two in others on a slow computer), and a speed meant for one step overshot, then pulled
+  // back, so it jerked.
+  place(x, y) {
+    this.body.reset(x, y);
   }
 
   flap(how) {
