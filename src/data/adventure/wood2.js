@@ -7,8 +7,9 @@
 // small wheel in a dry dip, the only way up a cliff, where a fall costs nothing; (3) the big
 // waterfall wheel over the river, with a secret above it; (4) a wheel a dart idol fires across;
 // (5) a breather from wheels: hanging crushers and spikes, and a crusher to freeze into a step;
-// (6) two wheels turning opposite ways, and a jump between them, then a small one up to the cliff;
-// (7) the portal cliff, a moving log up to the portal, and a cave under the cliff for the silver
+// (6) two wheels at different speeds, under a gunner's fire, and a jump between them needing
+// timing, then a small one up to the cliff; (7) the portal cliff, and a last small wheel up to the
+// portal, so the level begins and ends with a little wheel; a cave under the cliff for the silver
 // chest. A checkpoint starts each hard part. Tests check the routes and blind drops, as for every
 // level: they count a wheel's whole ring as somewhere to stand, as he can wait for a seat.
 // To see it: node tools/adventure-preview.mjs <out.png> 1 --routes
@@ -45,7 +46,7 @@ level.ground(31, 42, 39) // the dip, three cells down
 // it), hidden behind leaves that fade as he climbs in. Then a bridge, with a cone head on it.
 level.put(47, 27, 'C').put(52, 27, '/')
   .gap(55, 70)
-  .wheel(62, 30, { dir: 1 })
+  .wheel(62, 30, { dir: 1 }).arc(68, 70, 28, 1) // coins from its right-hand seat to the far bank
   .put(62, 23, 'o').island(61, 63, 21).put(62, 20, '*').put(61, 20, 'j')
   .ground(71, 82, CLIFF).put(77, 27, 'c').coins(72, 75, 26)
   .gap(83, 88).bridge(83, 88, CLIFF).coins(84, 85, 26).put(86, 27, 'c');
@@ -75,26 +76,29 @@ level.put(120, 27, 'C').put(122, 27, 'g')
   .put(141, 23, '%').put(142, 23, '%')
   .island(146, 149, 26).coins(146, 149, 24);
 
-// ----- 6. Twin Wheels: the test. Two wheels side by side, turning the same way, so where they meet
-// one's seats go up as the other's come down: the jump across needs timing. A blaster on the portal
-// cliff fires at him as he rides. Then a small wheel lifts him to the cliff.
+// ----- 6. Twin Wheels: the test. Two wheels side by side, the second faster and with fewer seats,
+// so where their seats meet changes every turn: he watches, and picks his moment (coins mark the
+// crossing). A blaster on a rock in the waterfall between them fires at him on the wheels' upper
+// halves, never at the crossing; the rock is also a higher way across, for whoever fights him.
+// Then a small wheel lifts him to the cliff.
 level.ground(150, 153, CLIFF).put(151, 27, 'C')
   .gap(154, 185)
   .wheel(159, 30, { dir: 1 })
-  .wheel(172, 30, { dir: 1 })
+  .wheel(172, 30, { dir: 1, seats: 4, periodMs: 11000 })
+  .island(165, 167, 22).put(166, 21, '1').coins(165, 166, 29)
   .wheel(181, 27, { ...LITTLE, dir: 1 });
 
-// ----- 7. Portal Cliff: up on the cliff, the blaster and a goon, a crusher over the path, and a
-// moving log lifting him to the portal. Under the cliff, at the river, a cave with the silver chest
+// ----- 7. Portal Cliff: a checkpoint on the cliff, a goon, a crusher over the path, and a last small
+// wheel lifting him to the portal. Under the cliff, at the river, a cave with the silver chest
 // and a crystal, four cells high with a ledge in front, reached by dropping off the small wheel's
 // lowest seat. (The owner's waterfall will hide it.)
 level.ground(186, COLS - 1, 23)
   .gap(186, 190).ground(186, 190, 34).fill(186, 190, 23, 29) // the cave: four cells high, under the cliff
   .ground(184, 185, 34) // a ledge in front of it, to catch a short drop
   .put(184, 33, 'o').put(187, 33, 'o').put(189, 33, 'U').put(190, 33, '*')
-  .put(191, 22, '1').put(193, 22, 'g')
-  .trap('crusher', 195, 15) // the last hazard before the lift
-  .mover(199, 22, { up: 6 })
+  .put(188, 22, 'C').put(190, 22, 'g')
+  .trap('crusher', 193, 15) // the last hazard before the wheel
+  .wheel(199, 18, { ...LITTLE, dir: 1 })
   .island(203, 209, 16).put(206, 15, 'E'); // room each side for the portal's flame posts
 
 export const WOOD_MILL_LEVEL = {
@@ -113,6 +117,7 @@ export const WOOD_MILL_LEVEL = {
   // water over the cave, the cave's dark inside, leaves hiding the branch over the big wheel, and
   // stakes in the river.
   waterfalls: [
+    { col: 24, top: 14, bottom: FLOOR + 1 }, // on the first screen, into the narrow gap: the mill starts at once
     { col: 62, top: 9, bottom: FLOOR + 1 },
     { col: 101, top: 11, bottom: FLOOR + 1 },
     { col: 165, top: 10, bottom: FLOOR + 1 },
@@ -130,6 +135,7 @@ export const WOOD_MILL_LEVEL = {
   // Places to start at while developing, with /adventure.html?at=<name> (systems/adventure/devPlaces.js).
   places: {
     bigWheel: { col: 47, row: 27 },
+    portal: { col: 188, row: 22 },
     idol: { col: 90, row: 27 },
     crushers: { col: 120, row: 27 },
     twins: { col: 151, row: 27 },
