@@ -34,10 +34,14 @@ level.put(2, 35, '@').put(4, 35, '>').put(7, 35, 'B')
   .put(27, 35, 'b');
 
 // ----- 2. The Little Wheel: a small wheel turning in a dry dip, under a cliff too high to jump. Its
-// top seat is the only way up. A fall lands in the dip, and he climbs out to try again.
+// top seat is the only way up. A fall lands in the dip, and he climbs out to try again. A step in
+// the dip, level with the hub, teaches the hub: shoot it, and the wheel turns the other way.
 const LITTLE = { radius: 3, seats: 4, periodMs: 10000 };
 level.ground(31, 42, 39) // the dip, three cells down
   .wheel(38, 34, LITTLE)
+  // A step in the dip, level with the hub: from it he can shoot the hub, and see the wheel turn
+  // back, where a mistake costs nothing. (It's too low to reach the cliff from.)
+  .ground(31, 33, 34)
   .coins(37, 39, 29) // over the top seat
   .ground(43, 54, CLIFF);
 
@@ -53,13 +57,15 @@ level.put(47, 27, 'C').put(52, 27, '/')
   .gap(83, 88).bridge(83, 88, CLIFF).coins(84, 85, 26).put(86, 27, 'c');
 
 // ----- 4. Idol Ruins: a wheel turning the other way, and a dart idol on a rock in the river firing
-// across its lower seats, which he rides through: jump the darts, first freeze the idol (three
-// rounds, as taught in level 1) from the crate by the checkpoint, or, riding a side seat, shoot the
-// wheel's green hub, which turns it the other way, up and over the top, above the darts. Then a mace on a gallows, alone,
-// as in level 1, and a heart.
+// across its lower seats, which he rides through. Three answers: jump the darts; freeze the idol
+// (three rounds, as taught in level 1, from the crate by the checkpoint) from a low ledge left of
+// the wheel, out of the darts' reach and under the hub; or, riding an upper left seat, shoot the
+// wheel's green hub, which turns it the other way, up and over the top, above the darts. Then a
+// mace on a gallows, alone, as in level 1, and a heart.
 level.ground(89, 93, CLIFF).put(90, 27, 'C').put(92, 27, 'f')
   .gap(94, 108)
   .wheel(101, 30, { dir: -1 })
+  .island(94, 95, 33) // the low ledge to freeze the idol from
   .island(107, 108, 33).trap('idol', 108, 32, { facing: -1 })
   .ground(109, 124, CLIFF)
   .trap('mace', 114, 27).put(117, 27, '+');
@@ -93,7 +99,7 @@ level.ground(150, 153, CLIFF).put(151, 27, 'C').put(153, 27, 'f')
   .wheel(181, 27, { ...LITTLE, dir: 1 });
 
 // ----- 7. Portal Cliff: a checkpoint on the cliff, a goon, a crusher over the path, and a last small
-// wheel lifting him to the portal. Under the cliff, at the river, a cave with the silver chest
+// wheel lifting him to the portal, under a ray gun's fire. Under the cliff, at the river, a cave with the silver chest
 // and a crystal, four cells high with a ledge in front, reached by dropping off the small wheel's
 // lowest seat. (The owner's waterfall will hide it.)
 level.ground(186, COLS - 1, 23)
@@ -103,7 +109,8 @@ level.ground(186, COLS - 1, 23)
   .put(188, 22, 'C').put(190, 22, 'g')
   .trap('crusher', 193, 15) // the last hazard before the wheel
   .wheel(199, 18, { ...LITTLE, dir: 1 })
-  .island(203, 209, 16).put(206, 15, 'E'); // room each side for the portal's flame posts
+  .island(204, 209, 16).put(206, 15, 'E') // clear of the wheel's seats, with room for the portal's flame posts
+  .put(209, 15, '2'); // a ray gun firing on the last wheel's top as he climbs: shoot back from the top seat
 
 export const WOOD_MILL_LEVEL = {
   id: 'wood-2',
@@ -111,6 +118,7 @@ export const WOOD_MILL_LEVEL = {
   world: 'wood',
   cat: { speed: 380 },
   hearts: 3,
+  hint: 'Mill Falls\nRide the wheels: shoot a green hub to turn it back',
   // Water in the river's gaps, its surface a row under the bank (data/adventure/water.js).
   water: { row: FLOOR + 1 },
   map: level.rows(),
