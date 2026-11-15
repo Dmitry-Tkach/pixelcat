@@ -157,7 +157,7 @@ export const WOOD_MILL_LEVEL = {
   ],
   caves: [{ cols: [186, 190], rows: [30, 33] }],
   // Two harmless pterodactyls take off from the river bank as he runs past: they live here.
-  flybys: [{ col: 15, row: 33, wake: 11, dir: 1 }, { col: 21, row: 34, wake: 16, dir: 1 }],
+  flybys: [{ col: 15, row: 33, wake: 11, dir: 1, look: 'orange' }, { col: 21, row: 34, wake: 16, dir: 1, look: 'green' }],
   props: [
     { picture: 'mill-leaves', col: 62, row: 21, front: true }, // over the branch with the crystal and key
     { picture: 'mill-cave', col: 188, row: 33, width: 340 },

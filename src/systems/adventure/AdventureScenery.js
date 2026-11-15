@@ -1,6 +1,7 @@
 import { TILE } from '../adventureMap.js';
 import { WATERFALL } from '../../data/adventure/millArt.js';
 import { makeStandIn } from '../../entities/AdventureBird.js';
+import { PTERO_LOOKS } from '../../data/adventure/birds.js';
 
 // A level's set dressing that isn't on its map (Mill Falls' art, data/adventure/millArt.js):
 //   waterfalls: { col, top, bottom, veil }: water pouring from a mossy lip at row `top` down to row
@@ -10,8 +11,9 @@ import { makeStandIn } from '../../entities/AdventureBird.js';
 //     (or, hang, hanging from its top), in the middle of column col. front: in front of the cat, as a
 //     cover. width: shown this wide (px), if not its own size.
 //   caves: { cols: [from, to], rows: [from, to] }: the dark inside of a cave in a cliff.
-//   flybys: { col, row, wake, dir }: a harmless pterodactyl that takes off from (col, row) as the cat
-//     passes column `wake`, and flies away up and to `dir` (-1 left, 1 right): birds live here.
+//   flybys: { col, row, wake, dir, look }: a harmless pterodactyl that takes off from (col, row) as
+//     the cat passes column `wake`, and flies away up and to `dir` (-1 left, 1 right): birds live
+//     here. look: 'orange' or 'green' (data/adventure/birds.js, PTERO_LOOKS).
 // A cover (a veil, or a prop in front) fades while the cat is behind it, so he can see himself, and
 // whoever looks closely finds what it hides.
 const DEPTH = { behind: 1.6, front: 7, cave: 1.55, prop: 2.1, inWater: 1.97 };
@@ -68,8 +70,9 @@ export class AdventureScenery {
     const dir = flyby.dir ?? -1;
     const x = flyby.col * TILE + TILE / 2, y = flyby.row * TILE + TILE / 2;
     // The owner's pterodactyl, flapping through its fly frames; without it, the stand-in drawn in code.
-    const drawn = scene.textures.exists(this.art('ptero-fly-0'));
-    const bird = (drawn ? scene.add.image(x, y, this.art('ptero-fly-0')) : scene.add.image(x, y, makeStandIn(scene), 'up'))
+    const prefix = PTERO_LOOKS[flyby.look] ?? PTERO_LOOKS.orange;
+    const drawn = scene.textures.exists(this.art(`${prefix}-fly-0`));
+    const bird = (drawn ? scene.add.image(x, y, this.art(`${prefix}-fly-0`)) : scene.add.image(x, y, makeStandIn(scene), 'up'))
       .setScale(FLYBY.scale).setDepth(FLYBY.depth).setFlipX(dir > 0);
     let frame = 0;
     const flap = scene.time.addEvent({
@@ -77,7 +80,7 @@ export class AdventureScenery {
       loop: true,
       callback: () => {
         frame += 1;
-        if (drawn) bird.setTexture(this.art(`ptero-fly-${frame % 6}`));
+        if (drawn) bird.setTexture(this.art(`${prefix}-fly-${frame % 6}`));
         else bird.setFrame(frame % 2 ? 'down' : 'up');
       },
     });
