@@ -3,15 +3,23 @@ import { TILE } from '../adventureMap.js';
 // Water wheels, the star of level 2 (Mill Falls): a big wheel turning on its hub, with seats round
 // its rim that stay level, like a ferris wheel's. The cat lands on a seat, rides it round and up, and
 // jumps off. A level lists its wheels beside its map (mapBuilder's wheel()):
-//   { col, row, radius, seats, periodMs, dir, seatWidth }
+//   { col, row, radius, seats, periodMs, dir, seatWidth, broken }
 //   col, row: the hub, in the middle of column col, on the top edge of row row. radius: cells from
 //   the hub to a seat's top. seats: how many, evenly round. periodMs: one turn. dir: 1 turns
-//   clockwise (a seat at the top moves right), -1 the other way. seatWidth: cells.
+//   clockwise (a seat at the top moves right), -1 the other way. seatWidth: cells. broken: the
+//   seats (by number, 0 starting at the top) that are rotten: they look like the others, but when
+//   he lands on one it shakes and creaks, breaks and falls into the river, and grows back later
+//   (BROKEN_SEAT). A wheel must keep at least one good seat.
 // Plain code, no Phaser: where each seat is at any moment, and which cells its seats pass through,
 // for the route checker (systems/adventureRoutes.js), which counts the whole ring as somewhere to
 // stand, as it does a moving log's path: he can wait for a seat.
 
-export const WHEEL = { radius: 4, seats: 6, periodMs: 14000, dir: 1, seatWidth: 3 };
+export const WHEEL = { radius: 4, seats: 6, periodMs: 14000, dir: 1, seatWidth: 3, broken: [] };
+
+// A rotten seat: shakeMs from his landing to its breaking (time to jump to the next seat),
+// wobbleDeg how far it rocks while it shakes, fallMs how long it takes to fall away, backMs until a
+// new seat is back in its place.
+export const BROKEN_SEAT = { shakeMs: 550, wobbleDeg: 5, fallMs: 450, fallPx: 260, backMs: 4500 };
 
 export const wheelWith = (wheel) => ({ ...WHEEL, ...wheel });
 
@@ -63,6 +71,9 @@ export function wheelProblems(level) {
   const errors = [];
   const { map } = level;
   for (const [i, wheel] of (level.wheels ?? []).entries()) {
+    const { seats, broken } = wheelWith(wheel);
+    if (broken.some((seat) => !Number.isInteger(seat) || seat < 0 || seat >= seats)) errors.push(`wheel ${i + 1} has a broken seat it doesn't have`);
+    if (new Set(broken).size >= seats) errors.push(`wheel ${i + 1} has no good seat`);
     for (const cell of wheelCells(wheel)) {
       const [c, r] = cell.split(',').map(Number);
       if (r < 0 || r >= map.length || c < 0 || c >= map[0].length) {

@@ -34,11 +34,13 @@ level.put(2, 35, '@').put(4, 35, '>').put(7, 35, 'B')
   .put(27, 35, 'b');
 
 // ----- 2. The Little Wheel: a small wheel turning in a dry dip, under a cliff too high to jump. Its
-// top seat is the only way up. A fall lands in the dip, and he climbs out to try again. A step in
+// top seat is the only way up. A fall lands in the dip, and he climbs out to try again. One of its
+// seats is rotten: it looks like the rest, but breaks under him (systems/adventure/wheels.js), so
+// rotten seats are met first here, safely; they come back on the wheels over the river. A step in
 // the dip, level with the hub, teaches the hub: shoot it, and the wheel turns the other way.
 const LITTLE = { radius: 3, seats: 4, periodMs: 10000 };
 level.ground(31, 42, 39) // the dip, three cells down
-  .wheel(38, 34, LITTLE)
+  .wheel(38, 34, { ...LITTLE, broken: [1] }) // one rotten seat, met first where a fall costs nothing
   // A step in the dip, level with the hub: from it he can shoot the hub, and see the wheel turn
   // back, where a mistake costs nothing. (It's too low to reach the cliff from.)
   .ground(31, 33, 34)
@@ -51,7 +53,7 @@ level.ground(31, 42, 39) // the dip, three cells down
 // it), hidden behind leaves that fade as he climbs in. Then a bridge, with a cone head on it.
 level.put(47, 27, 'C').put(52, 27, '/')
   .gap(55, 70)
-  .wheel(62, 30, { dir: 1 }).arc(68, 70, 28, 1) // coins from its right-hand seat to the far bank
+  .wheel(62, 30, { dir: 1, broken: [1, 4] }).arc(68, 70, 28, 1) // coins from its right-hand seat to the far bank
   .put(62, 23, 'o').island(61, 63, 21).put(62, 20, '*').put(61, 20, 'j')
   .ground(71, 82, CLIFF).put(77, 27, 'c').coins(72, 75, 26)
   .gap(83, 88).bridge(83, 88, CLIFF).coins(84, 85, 26).put(86, 27, 'v'); // a spiky: no stomping him on a narrow bridge
@@ -64,7 +66,7 @@ level.put(47, 27, 'C').put(52, 27, '/')
 // mace on a gallows, alone, as in level 1, and a heart.
 level.ground(89, 93, CLIFF).put(90, 27, 'C').put(92, 27, 'f')
   .gap(94, 108)
-  .wheel(101, 30, { dir: -1 })
+  .wheel(101, 30, { dir: -1, broken: [3] })
   .island(94, 95, 33) // the low ledge to freeze the idol from
   .island(107, 108, 33).trap('idol', 108, 32, { facing: -1 })
   .ground(109, 124, CLIFF)
@@ -94,7 +96,7 @@ level.put(120, 27, 'C').put(119, 27, 'g') // he patrols into the mace's swing: l
 // Then a small wheel lifts him to the cliff.
 level.ground(150, 153, CLIFF).put(151, 27, 'C').put(152, 27, '+').put(153, 27, 'f')
   .gap(154, 185)
-  .wheel(159, 30, { dir: 1 })
+  .wheel(159, 30, { dir: 1, broken: [2] })
   .wheel(172, 30, { dir: -1, seats: 4, periodMs: 11000 })
   .island(165, 166, 33).trap('idol', 166, 32, { facing: 1 }) // its darts cross the second wheel's low seats
   .island(165, 167, 22).put(166, 21, '1').coins(165, 166, 29)

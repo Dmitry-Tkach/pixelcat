@@ -83,4 +83,12 @@ describe('water wheels', () => {
     const top = { ...wheel, dir: -1 };
     expect(seatPlace(top, 0, 500).x).toBeLessThan(seatPlace(top, 0, 0).x);
   });
+
+  it('finds rotten seats it does not have, and a wheel with no good seat', () => {
+    const map = mapBuilder(30, 20).ground(0, 29, 18).rows();
+    const check = (broken) => wheelProblems({ map, wheels: [{ col: 10, row: 10, radius: 4, seats: 4, broken }] });
+    expect(check([1, 3])).toEqual([]);
+    expect(check([4])[0]).toMatch(/doesn't have/);
+    expect(check([0, 1, 2, 3])[0]).toMatch(/no good seat/);
+  });
 });

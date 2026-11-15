@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { TILE } from './adventureMap.js';
 import { landsFromAbove, staysOn } from './adventurePlatformLanding.js';
-import { HUB, hitsHub, reversed, seatPlace, wheelHub, wheelWith } from './adventure/wheels.js';
+import { BROKEN_SEAT, HUB, hitsHub, reversed, seatPlace, wheelHub, wheelWith } from './adventure/wheels.js';
 import { TRAP_FREEZE, frostAfterHit } from '../data/adventure/freeze.js';
 import { freezeTrap, updateTrapIce } from './adventure/trapIce.js';
 import { drawWheel } from './adventure/wheelLook.js';
@@ -68,12 +68,16 @@ export class AdventurePlatforms {
         seat.body.setSize(width, LOG.plankHeight).setOffset(0, top);
         seat.body.setAllowGravity(false).setImmovable(true).setFriction(0, 0);
         seat.seatIndex = i;
+        seat.top = top;
+        if (wheel.broken.includes(i)) seat.rotten = 'still'; // looks like the others (BROKEN_SEAT)
         return seat;
       });
       return { wheel, seats, look: drawWheel(scene, wheel, art, scene.level), ms: 0, rules: { depth: 2.55 }, reverseMs: 0, frost: 0, frostMs: 0 };
     });
     scene.physics.add.collider(cat, this.logs, (cat_, log) => {
-      if (cat.body.blocked.down || cat.body.touching.down) this.riding = log;
+      if (!(cat.body.blocked.down || cat.body.touching.down)) return;
+      this.riding = log;
+      if (log.rotten === 'still') this.breakSeat(log);
     }, fromAbove);
 
     // Crumbling leaves: one picture a cell, with a body, grouped into ledges by the cells they share.
@@ -111,7 +115,7 @@ export class AdventurePlatforms {
   update(ms) {
     const dt = ms / 1000;
     const log = this.riding, body = this.cat.body;
-    if (log && this.canLand() && staysOn({
+    if (log && log.body.enable && this.canLand() && staysOn({
       left: body.left, right: body.right, bottom: body.bottom, vy: body.velocity.y,
       top: log.body.top, logLeft: log.body.left, logRight: log.body.right, platformVy: log.body.velocity.y,
     })) {
@@ -165,11 +169,39 @@ export class AdventurePlatforms {
       w.ms += ms;
       w.look.setRotation((w.wheel.dir * 2 * Math.PI * w.ms) / w.wheel.periodMs);
       for (const seat of w.seats) {
+        if (seat.rotten === 'fallen') continue; // broken off: a new one grows back (breakSeat)
         const at = seatPlace(w.wheel, seat.seatIndex, w.ms + ms);
         const { position, width } = seat.body;
         seat.body.setVelocity(((at.x - width / 2 - position.x) * 1000) / ms, ((at.y - position.y) * 1000) / ms);
       }
     }
+  }
+
+  // A rotten seat he's landed on: it rocks and creaks, then breaks and falls into the river, and a
+  // new one grows back in its place, still rotten.
+  breakSeat(seat) {
+    seat.rotten = 'shaking';
+    this.scene.audio.playSfx('creak');
+    const { wobbleDeg, shakeMs, fallMs, fallPx, backMs } = BROKEN_SEAT;
+    this.scene.tweens.add({ targets: seat, angle: { from: -wobbleDeg, to: wobbleDeg }, duration: 70, yoyo: true, repeat: Math.floor(shakeMs / 140) });
+    this.scene.time.delayedCall(shakeMs, () => {
+      seat.rotten = 'fallen';
+      seat.setAngle(0);
+      seat.disableBody(false, false);
+      if (this.riding === seat) this.riding = null;
+      this.scene.audio.playSfx('collapse');
+      this.scene.tweens.add({ targets: seat, y: seat.y + fallPx, angle: 25, alpha: 0, duration: fallMs, ease: 'Quad.easeIn' });
+      this.scene.time.delayedCall(backMs, () => this.regrowSeat(seat));
+    });
+  }
+
+  regrowSeat(seat) {
+    const w = this.wheels.find((wheel) => wheel.seats.includes(seat));
+    const at = seatPlace(w.wheel, seat.seatIndex, w.ms);
+    seat.setAngle(0).setAlpha(0);
+    seat.enableBody(true, at.x - seat.body.width / 2, at.y - seat.top, true, true);
+    seat.rotten = 'still';
+    this.scene.tweens.add({ targets: seat, alpha: 1, duration: 300 });
   }
 
   // The cat's rounds in flight: list() gives them, landed(round) spends one that hit a hub.
