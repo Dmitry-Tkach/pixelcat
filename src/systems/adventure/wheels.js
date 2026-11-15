@@ -77,3 +77,23 @@ export function wheelProblems(level) {
   }
   return errors;
 }
+
+// The green hub is a target (systems/AdventurePlatforms.js): a round hitting it turns the wheel the
+// other way; three freeze rounds stop it for a while (data/adventure/freeze.js, TRAP_FREEZE).
+//   hubShare: the hub's radius, as a share of the wheel's (a round within it hits it).
+//   reverseCooldownMs: after a reverse, how long before another round can reverse it again, so a
+//   burst doesn't flip it back and forth.
+export const HUB = { hubShare: 0.35, reverseCooldownMs: 700 };
+
+// Whether a round at (x, y) hits the hub.
+export function hitsHub(wheel, x, y) {
+  const w = wheelWith(wheel);
+  const hub = wheelHub(w);
+  return Math.hypot(x - hub.x, y - hub.y) <= w.radius * TILE * HUB.hubShare;
+}
+
+// The wheel turned the other way, its seats where they are: its direction flipped, and its clock
+// (ms, how long it has turned) flipped with it, so every seat's angle stays the same.
+export function reversed({ dir, ms }) {
+  return { dir: -dir, ms: -ms };
+}

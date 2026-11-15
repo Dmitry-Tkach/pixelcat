@@ -186,6 +186,8 @@ export class AdventureScene extends Phaser.Scene {
     });
     // A freeze round freezes a small trap (systems/adventure/trapIce.js).
     this.traps.watchShots(() => this.moves.bullets.getChildren(), (bullet) => this.moves.freezeLands(bullet));
+    // A round into a water wheel's hub reverses it, or freezes it (systems/AdventurePlatforms.js).
+    this.platforms.watchShots(() => this.moves.bullets.getChildren(), (bullet) => (bullet.ammo.freeze ? this.moves.freezeLands(bullet) : this.moves.bulletStops(bullet)));
 
     if (level.boss) this.buildBoss();
 

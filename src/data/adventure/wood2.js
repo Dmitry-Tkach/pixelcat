@@ -11,7 +11,8 @@
 // timing, then a small one up to the cliff; (7) the portal cliff, and a last small wheel up to the
 // portal, so the level begins and ends with a little wheel; a cave under the cliff for the silver
 // chest. A checkpoint starts each hard part. Tests check the routes and blind drops, as for every
-// level: they count a wheel's whole ring as somewhere to stand, as he can wait for a seat.
+// level: they count a wheel's whole ring as somewhere to stand, as he can wait for a seat. A wheel's
+// green hub is a target: a round turns the wheel the other way, three freeze rounds stop it.
 // To see it: node tools/adventure-preview.mjs <out.png> 1 --routes
 //
 // Letters as in wood.js; also % crumbling leaves, j the silver key, U the silver chest.
@@ -52,8 +53,9 @@ level.put(47, 27, 'C').put(52, 27, '/')
   .gap(83, 88).bridge(83, 88, CLIFF).coins(84, 85, 26).put(86, 27, 'c');
 
 // ----- 4. Idol Ruins: a wheel turning the other way, and a dart idol on a rock in the river firing
-// across its lower seats, which he rides through: jump the darts, or first freeze the idol (three
-// rounds, as taught in level 1) from the crate by the checkpoint. Then a mace on a gallows, alone,
+// across its lower seats, which he rides through: jump the darts, first freeze the idol (three
+// rounds, as taught in level 1) from the crate by the checkpoint, or, riding a side seat, shoot the
+// wheel's green hub, which turns it the other way, up and over the top, above the darts. Then a mace on a gallows, alone,
 // as in level 1, and a heart.
 level.ground(89, 93, CLIFF).put(90, 27, 'C').put(92, 27, 'f')
   .gap(94, 108)
@@ -79,9 +81,11 @@ level.put(120, 27, 'C').put(122, 27, 'g')
 // ----- 6. Twin Wheels: the test. Two wheels side by side, the second faster and with fewer seats,
 // so where their seats meet changes every turn: he watches, and picks his moment (coins mark the
 // crossing). A blaster on a rock in the waterfall between them fires at him on the wheels' upper
-// halves, never at the crossing; the rock is also a higher way across, for whoever fights him.
+// halves, never at the crossing; the rock is also a higher way across, for whoever fights him. A
+// crate of freeze rounds by the checkpoint: three into a hub stop that wheel for a while, its seats
+// still steps.
 // Then a small wheel lifts him to the cliff.
-level.ground(150, 153, CLIFF).put(151, 27, 'C')
+level.ground(150, 153, CLIFF).put(151, 27, 'C').put(153, 27, 'f')
   .gap(154, 185)
   .wheel(159, 30, { dir: 1 })
   .wheel(172, 30, { dir: 1, seats: 4, periodMs: 11000 })

@@ -3,7 +3,7 @@ import { ADVENTURE_LEVELS } from '../src/data/adventure/index.js';
 import { mapBuilder } from '../src/data/adventure/mapBuilder.js';
 import { TILE } from '../src/systems/adventureMap.js';
 import { adventureRoutes } from '../src/systems/adventureRoutes.js';
-import { WHEEL, seatAngle, seatPlace, seatSpeed, wheelCells, wheelHub, wheelProblems, wheelWith } from '../src/systems/adventure/wheels.js';
+import { HUB, WHEEL, hitsHub, reversed, seatAngle, seatPlace, seatSpeed, wheelCells, wheelHub, wheelProblems, wheelWith } from '../src/systems/adventure/wheels.js';
 
 describe('water wheels', () => {
   const wheel = { col: 10, row: 10, radius: 4, seats: 6, periodMs: 12000, dir: 1 };
@@ -60,5 +60,27 @@ describe('water wheels', () => {
       }
     }
     expect(wheelWith({}).radius).toBe(WHEEL.radius);
+  });
+
+  it('is hit in its hub, not on its rim', () => {
+    const hub = wheelHub(wheel);
+    expect(hitsHub(wheel, hub.x + 10, hub.y - 10)).toBe(true);
+    expect(hitsHub(wheel, hub.x + 4 * TILE * HUB.hubShare + 1, hub.y)).toBe(false);
+    expect(hitsHub(wheel, hub.x, hub.y - 4 * TILE)).toBe(false);
+  });
+
+  it('turns the other way with every seat staying where it is', () => {
+    const ms = 3456;
+    const turned = reversed({ dir: 1, ms });
+    expect(turned.dir).toBe(-1);
+    for (let i = 0; i < 6; i++) {
+      const before = seatPlace(wheel, i, ms);
+      const after = seatPlace({ ...wheel, dir: turned.dir }, i, turned.ms);
+      expect(after.x).toBeCloseTo(before.x);
+      expect(after.y).toBeCloseTo(before.y);
+    }
+    // And on from there, the other way: the top seat, a little later, has moved left, not right.
+    const top = { ...wheel, dir: -1 };
+    expect(seatPlace(top, 0, 500).x).toBeLessThan(seatPlace(top, 0, 0).x);
   });
 });

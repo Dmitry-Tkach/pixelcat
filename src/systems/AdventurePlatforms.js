@@ -1,7 +1,9 @@
 import Phaser from 'phaser';
 import { TILE } from './adventureMap.js';
 import { landsFromAbove, staysOn } from './adventurePlatformLanding.js';
-import { seatPlace, wheelWith } from './adventure/wheels.js';
+import { HUB, hitsHub, reversed, seatPlace, wheelHub, wheelWith } from './adventure/wheels.js';
+import { TRAP_FREEZE, frostAfterHit } from '../data/adventure/freeze.js';
+import { freezeTrap, updateTrapIce } from './adventure/trapIce.js';
 import { drawWheel } from './adventure/wheelLook.js';
 import { MILL_SEAT } from '../data/adventure/millArt.js';
 
@@ -9,7 +11,9 @@ import { MILL_SEAT } from '../data/adventure/millArt.js';
 //   moving logs (the level's `movers`) glide to and fro along their path, pausing at each end. The
 //   cat lands on them from above, rides them, and jumps up through them, as on an island.
 //   water wheels (the level's `wheels`, adventure/wheels.js) turn, carrying seats round that stay
-//   level. A seat is ridden like a log: it's one, moving round a circle instead of to and fro.
+//   level. A seat is ridden like a log: it's one, moving round a circle instead of to and fro. A
+//   round into a wheel's green hub turns it the other way; three freeze rounds stop it for a while,
+//   its seats still steps (watchShots).
 //   crumbling leaves (map letter %) shake when he lands, fall soon after, and grow back. Leaves side
 //   by side are one ledge, and go together.
 // The scene calls update every frame. `canLand()` says whether the cat may land on one now (not
@@ -66,7 +70,7 @@ export class AdventurePlatforms {
         seat.seatIndex = i;
         return seat;
       });
-      return { wheel, seats, look: drawWheel(scene, wheel, art, scene.level), ms: 0 };
+      return { wheel, seats, look: drawWheel(scene, wheel, art, scene.level), ms: 0, rules: { depth: 2.55 }, reverseMs: 0, frost: 0, frostMs: 0 };
     });
     scene.physics.add.collider(cat, this.logs, (cat_, log) => {
       if (cat.body.blocked.down || cat.body.touching.down) this.riding = log;
@@ -152,7 +156,12 @@ export class AdventurePlatforms {
   // than turning it by a step, keeps it on its circle however the frames fall.
   turnWheels(ms) {
     if (ms <= 0) return;
+    this.shootHubs(ms);
     for (const w of this.wheels) {
+      if (updateTrapIce(this.scene, w, ms, this.hubBox(w))) {
+        for (const seat of w.seats) seat.body.setVelocity(0, 0); // frozen: the seats are still steps
+        continue;
+      }
       w.ms += ms;
       w.look.setRotation((w.wheel.dir * 2 * Math.PI * w.ms) / w.wheel.periodMs);
       for (const seat of w.seats) {
@@ -161,6 +170,66 @@ export class AdventurePlatforms {
         seat.body.setVelocity(((at.x - width / 2 - position.x) * 1000) / ms, ((at.y - position.y) * 1000) / ms);
       }
     }
+  }
+
+  // The cat's rounds in flight: list() gives them, landed(round) spends one that hit a hub.
+  watchShots(list, landed) {
+    this.shotList = list;
+    this.shotLanded = landed;
+  }
+
+  // Rounds into a hub: a freeze round frosts it (three freeze it); any other turns it the other way.
+  shootHubs(ms) {
+    for (const w of this.wheels) {
+      w.reverseMs = Math.max(0, w.reverseMs - ms);
+      if (w.frost && !w.frozen && (w.frostMs -= ms) <= 0) {
+        w.frost = 0;
+        for (const look of this.iceLooks(w)) look.clearTint();
+      }
+    }
+    if (!this.shotList) return;
+    for (const shot of this.shotList().slice()) {
+      if (!shot.active) continue;
+      const w = this.wheels.find((wheel) => hitsHub(wheel.wheel, shot.x, shot.y));
+      if (!w) continue;
+      this.shotLanded(shot);
+      if (shot.ammo?.freeze) this.frostWheel(w);
+      else if (!w.frozen && w.reverseMs === 0) this.reverseWheel(w);
+    }
+  }
+
+  reverseWheel(w) {
+    const turned = reversed({ dir: w.wheel.dir, ms: w.ms });
+    w.wheel = { ...w.wheel, dir: turned.dir };
+    w.ms = turned.ms;
+    w.reverseMs = HUB.reverseCooldownMs;
+    this.scene.audio.playSfx('creak');
+    this.scene.cameras.main.shake(120, 0.003);
+  }
+
+  // What turns icy on a frosted or frozen wheel: its picture and its seats.
+  iceLooks(w) {
+    return [w.look, ...w.seats].filter((look) => typeof look.setTint === 'function');
+  }
+
+  frostWheel(w) {
+    if (!w.frozen) {
+      const { frost, freezes } = frostAfterHit(w.frost);
+      w.frost = frost;
+      w.frostMs = TRAP_FREEZE.frostFadeMs;
+      if (!freezes) {
+        for (const look of this.iceLooks(w)) look.setTint(TRAP_FREEZE.frostTints[frost - 1] ?? TRAP_FREEZE.frostTints.at(-1));
+        return;
+      }
+    }
+    freezeTrap(this.scene, w, { looks: this.iceLooks(w), rect: this.hubBox(w), depth: w.rules.depth });
+  }
+
+  // The ice over a frozen wheel's hub.
+  hubBox(w) {
+    const hub = wheelHub(w.wheel);
+    const r = w.wheel.radius * TILE * HUB.hubShare;
+    return { left: hub.x - r, right: hub.x + r, top: hub.y - r, bottom: hub.y + r };
   }
 
   // Leaves he's landed on shake, fall away, and grow back.
