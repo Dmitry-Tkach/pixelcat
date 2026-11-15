@@ -3,7 +3,7 @@
 // and down to the stone guardian before the portal.
 //
 // Its star is the mace, built up as the best platformers build up one idea: one mace alone on safe
-// floor (2), three in a wave under a roof, with a stone to jump among them (3), one across a climb (5),
+// floor (2), two in a wave under a roof, with a stone to jump between them (3), one across a climb (5),
 // one beside a gunner (6), and the stone guardian swinging two, with fire (7). Around it, each other
 // thing is taught safely before it's tested, with the stakes rising: (1) running, jumping, the
 // mushroom, the first goon and crusher; (2) ladders, islands, the minigun, the first gunner;
@@ -52,19 +52,19 @@ level.island(30, 36, 25).ladder(31, 25, 29).put(34, 26, 'R')
   .trap('mace', 42, 23, { hanging: true, chain: 300, swingDeg: 30 });
 
 // ----- 3. The Mace Ledge: the level's star. A raised ledge with a checkpoint and a crate of rounds,
-// then three maces in a row: two on long chains from a root roof too high to reach (so there's no way
-// over them), and one on a gallows at the ledge's end, which smashes a stack of crates as the player
-// arrives. They swing as a wave, each a little behind the one before (MACE_WAVE), so they never touch.
+// then two maces in a row on long chains from a root roof too high to reach (so there's no way over
+// them); the second smashes a stack of crates as the player arrives. They swing as a wave, the second
+// a little behind the first (MACE_WAVE), so they never touch. (A third, on a gallows at the ledge's
+// end, made it too hard: the owner had it taken out.)
 // A stone among them stops a slide, so it's not one slide through: run, wait, slide, jump.
 const MACE_WAVE = { periodMs: 3200, lagMs: 360 };
 level.put(53, 29, 'B').ground(54, 69, 26)
   .put(54, 25, 'a').put(55, 25, 'C').put(68, 25, 'b')
   .island(57, 64, 19) // the roof: seven cells above the ledge, out of reach
   .trap('mace', 59, 20, { hanging: true, chain: 237, swingDeg: 30, periodMs: MACE_WAVE.periodMs, phaseMs: 0 })
-  .trap('mace', 62, 20, { hanging: true, chain: 237, swingDeg: 30, periodMs: MACE_WAVE.periodMs, phaseMs: -MACE_WAVE.lagMs })
-  .trap('mace', 67, 25, { facing: -1, crate: true, periodMs: MACE_WAVE.periodMs, phaseMs: -2 * MACE_WAVE.lagMs })
+  .trap('mace', 62, 20, { hanging: true, chain: 237, swingDeg: 30, periodMs: MACE_WAVE.periodMs, phaseMs: -MACE_WAVE.lagMs, crate: true })
   .put(61, 25, 'X') // a stone where the two hanging maces' swings meet: a slide stops at it, so jump it in time
-  .arc(60, 61, 23, 1).arc(64, 65, 23, 1); // coins between the swings, for the brave
+  .arc(60, 61, 23, 1).arc(64, 65, 23, 1); // coins among the swings, for the brave
 
 // ----- 4. Thorn Hollow: no floor at all, crossed on islands and a bridge. A crate of freeze rounds
 // on the first island, for the spiky enemy who holds the narrow middle island (he can't be stomped),
@@ -142,7 +142,7 @@ export const WOOD_LEVEL = {
   // and it frames the guardian whole, from his head to the path, while the cat is near him.
   camera: {
     shots: [
-      { when: { cols: [54, 56], rows: [24, 25] }, look: { col: 62.5, row: 22.5 }, panMs: 1400, holdMs: 2600 },
+      { when: { cols: [54, 56], rows: [24, 25] }, look: { col: 61, row: 22.5 }, panMs: 1400, holdMs: 2600 },
       { when: { cols: [148, 150], rows: [17, 17] }, look: { col: 162, row: 16.35 }, panMs: 1900, holdMs: 3200 },
     ],
     zones: [{ cols: [151, COLS - 1], rows: [12, 23], middleRow: 16.35 }],
