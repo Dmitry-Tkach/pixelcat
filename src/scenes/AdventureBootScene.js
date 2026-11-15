@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { ADVENTURE_HERO } from '../data/adventure/index.js';
 import { bossTryOutArena, loadAdventureArt, makeAdventureAnims } from './adventureLoading.js';
+import { devPlace } from '../systems/adventure/devPlaces.js';
 import { loadCharacters, makeCharacterAnims } from './characterLoading.js';
 
 // The characters the adventure plays: its hero, with bare paws and with the minigun. Nobody from the
@@ -29,8 +30,8 @@ export class AdventureBootScene extends Phaser.Scene {
       this.scene.start('Adventure', { level: arena });
       return;
     }
-    if (import.meta.env.DEV && new URLSearchParams(location.search).has('adventure')) {
-      this.scene.start('Adventure', { levelIndex: 0 });
+    if (import.meta.env.DEV && (new URLSearchParams(location.search).has('adventure') || devPlace())) {
+      this.scene.start('Adventure', { levelIndex: devPlace()?.levelIndex ?? 0 });
       return;
     }
     this.scene.start('AdventureMenu', { screen: 'home' });

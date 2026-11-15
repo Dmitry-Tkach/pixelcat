@@ -20,6 +20,7 @@ import { GATES } from '../data/adventure/gates.js';
 import { AdventureGates } from '../systems/adventure/AdventureGates.js';
 import { TRAPS } from '../data/adventure/traps.js';
 import { AdventureTraps } from '../systems/adventure/AdventureTraps.js';
+import { devPlace } from '../systems/adventure/devPlaces.js';
 import { FLASH, FLASH_KEY } from '../data/adventure/gunners.js';
 import { BOSS_FIGHTS } from '../data/adventure/bossFights.js';
 import { AdventureBoss } from '../entities/AdventureBoss.js';
@@ -126,7 +127,9 @@ export class AdventureScene extends Phaser.Scene {
     this.traps = new AdventureTraps(this, TRAPS[level.world], level.traps ?? [], this.layout, (fromX) => this.hurt(fromX), (enemy) => this.knockOut(enemy));
 
     const start = this.layout.objects.find((o) => o.type === 'start');
-    this.respawnAt = this.cellFeet(start);
+    // While developing, ?at=<place> starts at a place the level names (systems/adventure/devPlaces.js).
+    const place = devPlace();
+    this.respawnAt = this.cellFeet(place?.levelIndex === this.levelIndex ? place.cell : start);
     this.cat = new Cat(this, this.respawnAt.x, level.cat.speed, { character: ADVENTURE_HERO.character, y: this.respawnAt.y - 80 });
     this.cat.setScale(this.cat.scaleX * ADVENTURE_HERO.scale);
     this.cat.moveMode = 'free';

@@ -127,4 +127,9 @@ export const WOOD_LEVEL = {
   // the level to the next, so it's the same all through.
   map: level.rows(),
   traps: level.traps(),
+  // Places to start at while developing, with /adventure.html?at=<name> (systems/adventure/devPlaces.js).
+  places: {
+    maces: { col: 55, row: 25 }, // the Mace Ledge's checkpoint
+    guardian: { col: 149, row: 17 }, // the checkpoint before the stone guardian
+  },
 };
