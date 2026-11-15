@@ -56,6 +56,11 @@ for (const [name, other, height] of [['trap-crusher', 'trap-crusher-angry', crus
   await save(other, scale);
 }
 await save('trap-dart', idol.dartWidth / piece['trap-dart'].w);
+// The stone guardian's chain and ball: the mace's, cut bigger, at his ball's height.
+const guardian = TRAPS.wood.guardian;
+const guardianScale = heightScale('trap-mace', guardian.ballHeight);
+await savePiece(piece['trap-mace'], join(OUT, `${guardian.ball}.png`), piece['trap-mace'].w * guardianScale, guardian.ballHeight);
+await savePiece(piece['trap-chain'], join(OUT, `${guardian.link}.png`), piece['trap-chain'].w * guardianScale, piece['trap-chain'].h * guardianScale);
 const g = piece['trap-gallows'];
 console.log(`The forest's ${NAMES.flat().length} trap pictures, cut into public/assets/adventure/wood. For traps.js, the gallows' hook and shape:`);
 console.log(JSON.stringify({ hook: hook(alphaOf(g), g.w, g.h), gallowsAspect: Math.round((g.w / g.h) * 1000) / 1000 }));

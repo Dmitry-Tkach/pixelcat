@@ -118,6 +118,55 @@ export function maceHook(trap, rules) {
   return { x: middle + facing * (rules.hook.x - 0.5) * width, y: (trap.row + 1) * TILE - height + rules.hook.y * height };
 }
 
+// The stone guardian's swing (radians, outward from hanging straight down) at a moment: resting
+// low, rising outward (eased), holding, then striking back down (speeding up), over periodMs.
+const ease = (t) => (1 - Math.cos(Math.PI * t)) / 2;
+export function guardianSwing(ms, { periodMs, swingDeg, swing }) {
+  const most = (swingDeg * Math.PI) / 180;
+  let t = (((ms % periodMs) + periodMs) % periodMs) / periodMs;
+  if (t < swing.rest) return 0;
+  t -= swing.rest;
+  if (t < swing.rise) return most * ease(t / swing.rise);
+  t -= swing.rise;
+  if (t < swing.hold) return most;
+  t -= swing.hold;
+  return most * (1 - (t / swing.strike) ** 2);
+}
+
+// Which part of its swing an arm is in at a moment: 'rest', 'rise', 'hold' or 'strike'.
+export function guardianPhase(ms, { periodMs, swing }) {
+  let t = (((ms % periodMs) + periodMs) % periodMs) / periodMs;
+  for (const phase of ['rest', 'rise', 'hold', 'strike']) {
+    if (t < swing[phase]) return phase;
+    t -= swing[phase];
+  }
+  return 'strike';
+}
+
+// Where the guardian and his arms are, from his trap ({ col, row, chain }): his middle x and feet y,
+// his body's top left, and each arm: its socket (where it turns), restTurn (the turn that hangs its
+// chain straight down), reach (from the socket to the ball's middle), and outward (+1 for the left
+// arm, whose swing goes left, -1 for the right).
+export function guardianGeometry(trap, r) {
+  const x = trap.col * TILE, feet = (trap.row + 1) * TILE + r.sink;
+  const left = x - r.bodySize.w / 2, top = feet - r.bodySize.h;
+  const chain = trap.chain ?? r.chain;
+  const arms = r.sockets.map((socket, i) => {
+    const { shoulder, chainEnd } = r.armJoints[i];
+    const vx = (chainEnd.x - shoulder.x) * r.armSize.w, vy = (chainEnd.y - shoulder.y) * r.armSize.h;
+    return {
+      socket: { x: left + socket.x * r.bodySize.w, y: top + socket.y * r.bodySize.h },
+      restTurn: Math.atan2(vx, vy), armLength: Math.hypot(vx, vy),
+      reach: Math.hypot(vx, vy) + chain + r.ballMiddle * r.ballHeight,
+      outward: i === 0 ? 1 : -1,
+    };
+  });
+  return { x, feet, left, top, chain, arms };
+}
+
+// The middle of an arm's ball, swung `swing` radians outward.
+export const guardianBall = (arm, swing) => swingPoint(arm.socket, arm.reach, arm.outward * swing);
+
 // What's wrong with a level's traps, as messages.
 export function trapProblems(level, layout) {
   const errors = [];
@@ -149,6 +198,24 @@ export function trapProblems(level, layout) {
         const spikes = floor * TILE - (hook.y + chain + r.ballMiddle * r.ballHeight + r.hitShare * r.ballHeight);
         if (spikes < MACE_SWING_LOW.min) errors.push(`${name} in column ${col} swings too low to slide under (${Math.round(spikes)} px up)`);
         if (spikes > MACE_SWING_LOW.max) errors.push(`${name} in column ${col} swings over a standing cat (${Math.round(spikes)} px up)`);
+      }
+    }
+    if (kind === 'guardian') {
+      // He stands on stone blocks (or ground), in open air, and each ball, hanging at rest, swings
+      // low enough to hit him standing on the path below but high enough for a slide.
+      const r = rules.guardian;
+      const half = r.platformCells / 2;
+      for (let c = col - half; c < col + half; c++) {
+        if (!['X', '#'].includes(map[row + 1]?.[c])) errors.push(`${name} in column ${col}: his platform needs stone (X) or ground at column ${c}, row ${row + 1}`);
+        if ((tiles[row]?.[c] ?? -1) >= 0) errors.push(`${name} in column ${col} stands inside the ground at column ${c}`);
+      }
+      for (const arm of guardianGeometry(trap, r).arms) {
+        const ball = guardianBall(arm, 0);
+        const floor = floorRow(tiles, Math.floor(ball.x / TILE), Math.floor(ball.y / TILE) + 1);
+        if (floor === null) continue;
+        const spikes = floor * TILE - (ball.y + r.hitShare * r.ballHeight);
+        if (spikes < MACE_SWING_LOW.min) errors.push(`${name} in column ${col}: a ball hangs too low to slide under (${Math.round(spikes)} px up)`);
+        if (spikes > MACE_SWING_LOW.max) errors.push(`${name} in column ${col}: a ball hangs over a standing cat (${Math.round(spikes)} px up)`);
       }
     }
     if (kind === 'crusher') {

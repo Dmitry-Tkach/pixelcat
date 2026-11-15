@@ -66,6 +66,13 @@ export const ADVENTURE_SOUNDS = {
     { wave: 'sawtooth', from: 430, to: 370, duration: 0.2, gain: 0.05, cutoff: 1400, attack: 0.03 },
     { kind: 'noise', filter: 'bandpass', cutoff: 2600, q: 6, duration: 0.16, gain: 0.07 },
   ],
+  // The stone guardian waking: a deep grinding roar, and stone cracking.
+  guardianRoar: [
+    { wave: 'sawtooth', from: 70, to: 48, duration: 1.1, gain: 0.32, cutoff: 420, attack: 0.15 },
+    { wave: 'sine', from: 55, to: 38, duration: 1.2, gain: 0.4, attack: 0.1 },
+    { kind: 'noise', filter: 'lowpass', cutoff: 700, sweepTo: 250, duration: 1, gain: 0.3, attack: 0.2 },
+    { kind: 'noise', filter: 'bandpass', at: 0.1, cutoff: 2200, q: 3, duration: 0.25, gain: 0.18 },
+  ],
   // Falling into water: a splash.
   splash: [
     { kind: 'noise', filter: 'lowpass', cutoff: 2600, sweepTo: 600, duration: 0.4, gain: 0.5, attack: 0.01 },

@@ -1,8 +1,8 @@
 import { ONE_WAY, TILE } from '../adventureMap.js';
 import { landsFromAbove, staysOn } from '../adventurePlatformLanding.js';
 import {
-  circleHitsRect, crusherAngry, crusherContact, crusherCrushes, crusherStart, crusherStep, floorRow, landsOnCap, maceAngle,
-  maceHook, rectsTouch, swingPoint,
+  circleHitsRect, crusherAngry, crusherContact, crusherCrushes, crusherStart, crusherStep, floorRow, guardianBall,
+  guardianGeometry, guardianPhase, guardianSwing, landsOnCap, maceAngle, maceHook, rectsTouch, swingPoint,
 } from './trapLogic.js';
 
 // Builds a level's moving traps (data/adventure/traps.js) and moves them each frame, while play is
@@ -32,6 +32,7 @@ export class AdventureTraps {
     this.idols = [];
     this.darts = [];
     this.mushrooms = [];
+    this.guardians = [];
     this.prevBottom = null;
     this.riding = null; // the crusher he's standing on
     this.crusherBodies = scene.physics.add.group({ allowGravity: false, immovable: true });
@@ -44,6 +45,7 @@ export class AdventureTraps {
       if (trap.kind === 'crusher') this.buildCrusher(trap, x, offset);
       if (trap.kind === 'idol') this.buildIdol(trap, x, feet, offset);
       if (trap.kind === 'mushroom') this.buildMushroom(x, feet);
+      if (trap.kind === 'guardian') this.buildGuardian(trap);
     }
   }
 
@@ -68,16 +70,14 @@ export class AdventureTraps {
     // The ground under it, for its shadow (and a crate).
     const hookCol = Math.floor(hook.x / TILE);
     const groundY = trap.hanging ? (floorRow(this.layout.tiles, hookCol, Math.floor(hook.y / TILE) + 1) ?? this.layout.rows) * TILE : feet;
-    this.makeShadowTexture();
-    const shadow = this.scene.add.image(hook.x, groundY, SHADOW_KEY).setDepth(r.shadow.depth).setAlpha(0);
-    const ghosts = Array.from({ length: r.trail.ghosts }, () => this.scene.add.image(0, 0, this.art(r.ball)).setDepth(r.depth + 0.04).setAlpha(0));
+    const look = this.makeBallLook(this.art(r.ball), hook.x, groundY, r.depth + 0.04, r);
     const crate = trap.crate ? Array.from({ length: r.crate.stack }, (_, i) => {
       const box = this.scene.add.image(hook.x, groundY, this.art(r.crate.picture)).setOrigin(0.5, 1).setDepth(r.depth + 0.03);
       return box.setY(groundY - i * box.height);
     }) : null;
     // A long chain swings slower and less wide: a level can give it its own periodMs and swingDeg.
     this.maces.push({
-      swing, hook, chain, groundY, shadow, ghosts, crate, history: [], angle: 0, turning: 0,
+      ...look, swing, hook, chain, crate, angle: 0, turning: 0,
       reach: chain + r.ballMiddle * r.ballHeight, ms: trap.phaseMs ?? offset, rules: { ...r, periodMs: trap.periodMs ?? r.periodMs, swingDeg: trap.swingDeg ?? r.swingDeg },
     });
   }
@@ -90,6 +90,33 @@ export class AdventureTraps {
       const { body } = enemy;
       if (circleHitsRect(ball, reach, { left: body.left, top: body.top, right: body.right, bottom: body.bottom })) this.knockOut(enemy);
     }
+  }
+
+  // A swinging ball's shadow and fading copies (the mace's, and the guardian's): look.shadow, a
+  // picture of SHADOW_KEY; look.ghosts, copies of the ball; look.history, where it's just been.
+  makeBallLook(ballKey, x, groundY, depth, { shadow, trail }) {
+    this.makeShadowTexture();
+    return {
+      groundY,
+      shadow: this.scene.add.image(x, groundY, SHADOW_KEY).setDepth(shadow.depth).setAlpha(0),
+      ghosts: Array.from({ length: trail.ghosts }, () => this.scene.add.image(0, 0, ballKey).setDepth(depth).setAlpha(0)),
+      history: [],
+    };
+  }
+
+  // The shadow under the ball, darker and tighter the lower it swings, and fading copies along where
+  // it just was, when it swings fast (speed: radians a ms). rotation: the ball's turn.
+  showBallLook(look, ball, rotation, speed, ballHeight, { shadow, trail }) {
+    const high = Math.min(1, Math.max(0, (look.groundY - (ball.y + ballHeight / 2)) / shadow.fadeOver));
+    look.shadow.setPosition(ball.x, look.groundY).setAlpha(shadow.alpha.low + (shadow.alpha.high - shadow.alpha.low) * high)
+      .setScale((shadow.width / 64) * (1 - 0.4 * high), 1 - 0.3 * high);
+    look.history.unshift({ x: ball.x, y: ball.y, rotation });
+    if (look.history.length > TRAIL_HISTORY) look.history.pop();
+    const fast = Math.max(0, Math.min(1, speed / trail.minSpeed - 0.5));
+    look.ghosts.forEach((ghost, i) => {
+      const at = look.history[Math.min(look.history.length - 1, (i + 1) * 2)];
+      ghost.setPosition(at.x, at.y).setRotation(at.rotation).setAlpha(fast * trail.alpha * (1 - i / trail.ghosts));
+    });
   }
 
   makeShadowTexture() {
@@ -107,19 +134,7 @@ export class AdventureTraps {
   updateMaceLook(mace, angle, ms, cat) {
     const r = mace.rules;
     const ball = swingPoint(mace.hook, mace.chain + r.ballHeight / 2, angle);
-    // The shadow: under the ball, darker and tighter the lower it swings.
-    const high = Math.min(1, Math.max(0, (mace.groundY - (ball.y + r.ballHeight / 2)) / r.shadow.fadeOver));
-    mace.shadow.setPosition(ball.x, mace.groundY).setAlpha(r.shadow.alpha.low + (r.shadow.alpha.high - r.shadow.alpha.low) * high)
-      .setScale((r.shadow.width / 64) * (1 - 0.4 * high), 1 - 0.3 * high);
-    // Fading copies along where the ball just was, when it swings fast.
-    const speed = ms > 0 ? Math.abs(angle - mace.angle) / ms : 0;
-    mace.history.unshift({ x: ball.x, y: ball.y, angle });
-    if (mace.history.length > TRAIL_HISTORY) mace.history.pop();
-    const fast = Math.min(1, speed / r.trail.minSpeed - 0.5);
-    mace.ghosts.forEach((ghost, i) => {
-      const at = mace.history[Math.min(mace.history.length - 1, (i + 1) * 2)];
-      ghost.setPosition(at.x, at.y).setRotation(at.angle).setAlpha(Math.max(0, fast) * r.trail.alpha * (1 - i / r.trail.ghosts));
-    });
+    this.showBallLook(mace, ball, angle, ms > 0 ? Math.abs(angle - mace.angle) / ms : 0, r.ballHeight, r);
     // The whoosh through the bottom of the swing, and the creak at each end, louder the nearer.
     const turning = Math.sign(angle - mace.angle);
     const near = 1 - Math.hypot(ball.x - cat.x, ball.y - cat.y) / r.sounds.heardWithin;
@@ -158,6 +173,68 @@ export class AdventureTraps {
     this.scene.effects.impact(x, y, 1.2);
     this.scene.cameras.main.shake(120, 0.005);
     this.scene.audio.playSfx('smash');
+  }
+
+  // The stone guardian (systems/adventure/trapLogic.js, guardianGeometry): his body asleep, his awake
+  // body over it, hidden until he wakes, and each arm in a container turning at its socket. In the
+  // arm's own picture, the chain runs on from the chain end in his fist, the way the arm points; the
+  // container's rest turn hangs it straight down.
+  buildGuardian(trap) {
+    const r = this.rules.guardian;
+    const geo = guardianGeometry(trap, r);
+    const body = this.scene.add.image(geo.x, geo.feet, this.art(r.body)).setOrigin(0.5, 1).setDepth(r.depth);
+    const awake = this.scene.add.image(geo.x, geo.feet, this.art(r.awake)).setOrigin(0.5, 1).setDepth(r.depth + 0.01).setAlpha(0);
+    const linkH = this.scene.textures.get(this.art(r.link)).getSourceImage().height;
+    const arms = geo.arms.map((arm, i) => {
+      const { shoulder, chainEnd } = r.armJoints[i];
+      const end = { x: (chainEnd.x - shoulder.x) * r.armSize.w, y: (chainEnd.y - shoulder.y) * r.armSize.h };
+      const along = { x: end.x / arm.armLength, y: end.y / arm.armLength };
+      const container = this.scene.add.container(arm.socket.x, arm.socket.y).setDepth(r.depth + 0.05).setRotation(arm.restTurn);
+      const at = (d, key, origin) => this.scene.add.image(end.x + along.x * d, end.y + along.y * d, this.art(key)).setOrigin(0.5, origin).setRotation(-arm.restTurn);
+      for (let d = 0; d < geo.chain; d += linkH * 0.9) container.add(at(d, r.link, 0));
+      container.add(at(geo.chain, r.ball, 0));
+      container.add(this.scene.add.image(0, 0, this.art(r.arms[i])).setOrigin(shoulder.x, shoulder.y));
+      const rest = guardianBall(arm, 0);
+      const ground = floorRow(this.layout.tiles, Math.floor(rest.x / TILE), Math.floor(rest.y / TILE) + 1);
+      const look = this.makeBallLook(this.art(r.ball), rest.x, (ground ?? this.layout.rows) * TILE, r.depth + 0.04, this.rules.mace);
+      // The second arm is half a swing behind the first: they strike in turn.
+      return { ...look, arm, container, ms: (i * r.periodMs) / 2, swing: 0, phase: 'rest' };
+    });
+    this.guardians.push({ body, awake, arms, woke: false, rules: r });
+  }
+
+  // He wakes the first time he's well in view: he lights up and roars, the ground shakes, and his
+  // arms start swinging.
+  updateGuardian(guardian, ms, cat, catRect) {
+    const { body, awake, rules: r } = guardian;
+    if (!guardian.woke) {
+      if (!this.inView(body, r.wakeInset)) return;
+      guardian.woke = true;
+      this.scene.tweens.add({ targets: awake, alpha: 1, duration: r.wakeMs });
+      this.scene.cameras.main.shake(500, 0.008);
+      this.scene.audio.playSfx(r.sounds.roar);
+      this.scene.effects.dust(body.x - body.width * 0.3, body.y, 8);
+      this.scene.effects.dust(body.x + body.width * 0.3, body.y, 8);
+    }
+    for (const a of guardian.arms) {
+      a.ms += ms;
+      const swing = guardianSwing(a.ms, r);
+      a.container.setRotation(a.arm.restTurn + a.arm.outward * swing);
+      const ball = guardianBall(a.arm, swing);
+      this.showBallLook(a, ball, a.arm.outward * swing, ms > 0 ? Math.abs(swing - a.swing) / ms : 0, r.ballHeight, this.rules.mace);
+      a.swing = swing;
+      // A creak as it starts to wind up, a whoosh as it strikes, louder the nearer he is.
+      const phase = guardianPhase(a.ms, r);
+      if (phase !== a.phase) {
+        const near = 1 - Math.hypot(ball.x - cat.x, ball.y - cat.y) / r.sounds.heardWithin;
+        if (near > 0.05 && phase === 'rise') this.scene.audio.playSfx(r.sounds.creak, near);
+        if (near > 0.05 && phase === 'strike') this.scene.audio.playSfx(r.sounds.whoosh, Math.min(1, near * 1.3));
+        a.phase = phase;
+      }
+      const reach = r.hitShare * r.ballHeight;
+      if (circleHitsRect(ball, reach, catRect)) this.hurt(ball.x);
+      this.maceHitsEnemies(ball, reach);
+    }
   }
 
   // Its body is the stone without its soft moss edges (hitInset), which he stands on and is blocked by.
@@ -257,6 +334,7 @@ export class AdventureTraps {
     for (const idol of this.idols) this.updateIdol(idol, ms);
     this.updateDarts(ms, catRect);
     for (const mushroom of this.mushrooms) this.updateMushroom(mushroom, ms, cat);
+    for (const guardian of this.guardians) this.updateGuardian(guardian, ms, cat, catRect);
     this.prevBottom = body.bottom;
   }
 

@@ -25,6 +25,8 @@ export const ADVENTURE_ART = {
     // The moving traps (data/adventure/traps.js): the mace, the crusher, the dart idol and the mushroom.
     'trap-gallows', 'trap-chain', 'trap-mace', 'trap-crusher', 'trap-crusher-angry', 'trap-idol', 'trap-idol-angry', 'trap-dart',
     'trap-mushroom', 'trap-mushroom-squashed',
+    // The stone guardian, the level 1 finale's giant (data/adventure/traps.js, guardian).
+    'guardian-body', 'guardian-awake', 'guardian-arm-left', 'guardian-arm-right', 'guardian-ball', 'guardian-chain',
   ],
 };
 

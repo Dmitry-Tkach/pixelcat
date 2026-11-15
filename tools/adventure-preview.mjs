@@ -21,7 +21,7 @@ import { waterRuns } from '../src/systems/adventure/water.js';
 import { GATES } from '../src/data/adventure/gates.js';
 import { portalPosts } from '../src/systems/adventure/gatePlacement.js';
 import { TRAPS } from '../src/data/adventure/traps.js';
-import { floorRow, maceHook } from '../src/systems/adventure/trapLogic.js';
+import { floorRow, guardianBall, guardianGeometry, maceHook } from '../src/systems/adventure/trapLogic.js';
 
 const [out, index = '0'] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const routes = process.argv.includes('--routes');
@@ -158,6 +158,34 @@ for (const trap of level.traps ?? []) {
     await dots(x + facing * r.height * 0.4, mouthY, x + facing * (r.height * 0.4 + r.dartRange), mouthY, '#ffe040');
   } else if (trap.kind === 'mushroom') {
     await placeAt(await image(art(r.calm)), x, trap.row);
+  } else if (trap.kind === 'guardian') {
+    // His body awake, and each arm turned to hang its chain straight down, with its chain and ball.
+    const geo = guardianGeometry(trap, r);
+    const body = await image(art(r.awake));
+    const { width: bw, height: bh } = await size(body);
+    comps.push({ input: body, left: Math.round(geo.x * SCALE - bw / 2), top: Math.round(geo.feet * SCALE - bh) });
+    for (const [i, arm] of geo.arms.entries()) {
+      const link = await image(art(r.link));
+      const { width: lw, height: lh } = await size(link);
+      const end = { x: arm.socket.x, y: arm.socket.y + arm.armLength };
+      for (let d = 0; d < geo.chain; d += (lh / SCALE) * 0.9) comps.push({ input: link, left: Math.round(end.x * SCALE - lw / 2), top: Math.round((end.y + d) * SCALE) });
+      const ball = await image(art(r.ball));
+      comps.push({ input: ball, left: Math.round(end.x * SCALE - (await size(ball)).width / 2), top: Math.round((end.y + geo.chain) * SCALE) });
+      // The arm, turned about its middle; then placed so its shoulder lands on the socket.
+      const pic = await image(art(r.arms[i]));
+      const { width: w, height: h } = await size(pic);
+      const turned = await sharp(pic).rotate((arm.restTurn * 180) / Math.PI, { background: '#0000' }).png().toBuffer();
+      const { width: tw, height: th } = await size(turned);
+      const { shoulder } = r.armJoints[i];
+      const px = (shoulder.x - 0.5) * w, py = (shoulder.y - 0.5) * h, c = Math.cos(arm.restTurn), sn = Math.sin(arm.restTurn);
+      const sx = tw / 2 + px * c - py * sn, sy = th / 2 + px * sn + py * c;
+      comps.push({ input: turned, left: Math.round(arm.socket.x * SCALE - sx), top: Math.round(arm.socket.y * SCALE - sy) });
+      // A dotted arc where the ball swings, out to its widest.
+      for (let a = 0; a <= r.swingDeg; a += 5) {
+        const at = guardianBall(arm, (a * Math.PI) / 180);
+        comps.push({ input: await sharp({ create: { width: 3, height: 3, channels: 4, background: '#ff4040' } }).png().toBuffer(), left: Math.round(at.x * SCALE), top: Math.round(at.y * SCALE) });
+      }
+    }
   }
 }
 // The boss, standing on the floor at his column, in his first idle frame.

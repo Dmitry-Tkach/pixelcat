@@ -18,7 +18,7 @@
 // R earth pillar (under a low island), b bush, p plant, s statue, > and / signs.
 import { mapBuilder } from './mapBuilder.js';
 
-const COLS = 160;
+const COLS = 180;
 const ROWS = 34;
 const FLOOR = 30; // the forest floor's surface row: the cat stands on row 29
 
@@ -100,12 +100,20 @@ level.island(117, 122, 10).put(118, 9, 'C').put(120, 9, 'z')
   .coins(141, 142, 8)
   .put(130, 29, 'g').put(138, 29, 'c').put(126, 29, '+').coins(136, 140, 28);
 
-// ----- 7. The Portal Tree: the finale, over water. Crumbling leaves that won't hold him for long,
-// at the height of a dart idol guarding the portal, so its darts fly across them: jump or slide
-// over a dart while the leaves fall. A goon by the portal.
-level.gap(142, 159).put(141, 29, 'X') // the floor ends at a stone: water from here to the end
-  .put(143, 7, '%').put(144, 7, '%').put(145, 7, '%').put(146, 7, '%').put(147, 7, '%')
-  .island(151, 158, 7).trap('idol', 152, 6, { facing: -1 }).put(154, 6, 'g').put(156, 6, 'E').put(159, 6, 'X').arc(148, 150, 7, 1);
+// ----- 7. The Guardian: the finale, over water. Down from the canopy on crumbling leaves and a step
+// with a checkpoint, to a long stone path. Over it, on a stone platform out of reach, stands a giant
+// stone guardian, who wakes and roars as he comes into view, and swings a mace on a chain in each
+// hand down onto the path, in turn: each arm winds up outward (the warning) and strikes back down.
+// Past his left mace, safe under his platform, past his right one, to the portal. The level's maces,
+// learnt alone, then as a wave, end on him.
+level.gap(142, COLS - 1).put(141, 29, 'X') // the floor ends at a stone: water from here to the end
+  .put(144, 14, '%').put(145, 14, '%').put(146, 14, '%')
+  .island(148, 150, 18).put(149, 17, 'C') // out of the maces' reach
+  .island(152, COLS - 1, 22)
+  .put(160, 15, 'X').put(161, 15, 'X').put(162, 15, 'X').put(163, 15, 'X') // his platform, seven cells up
+  .trap('guardian', 162, 14)
+  .coins(161, 162, 20) // safe under him
+  .put(175, 21, 'E');
 
 export const WOOD_LEVEL = {
   id: 'wood-1',

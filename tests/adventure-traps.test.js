@@ -5,13 +5,17 @@ import { ADVENTURE_ART, ADVENTURE_LEVELS, adventurePath } from '../src/data/adve
 import { mapBuilder } from '../src/data/adventure/mapBuilder.js';
 import {
   MACE_SWING_LOW, SLIDE_HEIGHT, STAND_HEIGHT, circleHitsRect, crusherAngry, crusherContact, crusherCrushes, crusherStart,
-  crusherStep, landsOnCap, maceAngle, maceHook, swingPoint, trapProblems,
+  crusherStep, guardianBall, guardianGeometry, guardianPhase, guardianSwing, landsOnCap, maceAngle, maceHook, swingPoint,
+  trapProblems,
 } from '../src/systems/adventure/trapLogic.js';
 import { TILE, checkAdventureLevel, readAdventureMap } from '../src/systems/adventureMap.js';
+import { adventureRoutes } from '../src/systems/adventureRoutes.js';
 
+const PICTURE_KEYS = ['gallows', 'link', 'ball', 'calm', 'angry', 'dart', 'squashed', 'body', 'awake', 'arms'];
 const pictures = (rules) => Object.values(rules).flatMap((kind) => Object.entries(kind)
-  .filter(([key, value]) => typeof value === 'string' && ['gallows', 'link', 'ball', 'calm', 'angry', 'dart', 'squashed'].includes(key))
-  .map(([, value]) => value));
+  .filter(([key]) => PICTURE_KEYS.includes(key))
+  .flatMap(([, value]) => value)
+  .filter((value) => typeof value === 'string'));
 
 // A small test level: ground along the bottom (row 9), an island at row 3, and the given traps.
 function testLevel(traps) {
@@ -174,5 +178,69 @@ describe('the trap checks', () => {
     const builder = mapBuilder(10, 5).ground(0, 9, 4).put(3, 3, 'o').trap('idol', 3, 3);
     const level = { world: 'wood', map: builder.rows(), traps: builder.traps() };
     expect(trapProblems(level, readAdventureMap(level.map))[0]).toMatch(/already has o/);
+  });
+});
+
+describe('the stone guardian', () => {
+  const r = TRAPS.wood.guardian;
+  const most = (r.swingDeg * Math.PI) / 180;
+
+  it('rests low, winds up outward, holds, and strikes back down, faster than it rose', () => {
+    const at = (share) => guardianSwing(share * r.periodMs, r);
+    expect(at(r.swing.rest / 2)).toBe(0);
+    expect(at(r.swing.rest + r.swing.rise / 2)).toBeGreaterThan(0);
+    expect(at(r.swing.rest + r.swing.rise + r.swing.hold / 2)).toBeCloseTo(most);
+    expect(at(0.999)).toBeLessThan(most * 0.05);
+    for (let t = 0; t < r.periodMs * 2; t += 37) {
+      const swing = guardianSwing(t, r);
+      expect(swing).toBeGreaterThanOrEqual(0);
+      expect(swing).toBeLessThanOrEqual(most + 1e-9);
+    }
+    expect(r.swing.strike).toBeLessThan(r.swing.rise);
+    expect(r.swing.rest + r.swing.rise + r.swing.hold + r.swing.strike).toBeCloseTo(1);
+  });
+
+  it('goes through its swing\'s parts in order', () => {
+    const phases = [];
+    for (let t = 0; t < r.periodMs; t += 20) {
+      const phase = guardianPhase(t, r);
+      if (phase !== phases.at(-1)) phases.push(phase);
+    }
+    expect(phases).toEqual(['rest', 'rise', 'hold', 'strike']);
+  });
+
+  it('hangs each ball straight under its arm\'s socket, and swings them out to either side', () => {
+    const { x, arms } = guardianGeometry({ col: 10, row: 7 }, r);
+    const [left, right] = arms;
+    expect(guardianBall(left, 0).x).toBeCloseTo(left.socket.x);
+    expect(guardianBall(right, 0).x).toBeCloseTo(right.socket.x);
+    expect(left.socket.x).toBeLessThan(x);
+    expect(right.socket.x).toBeGreaterThan(x);
+    expect(guardianBall(left, most).x).toBeLessThan(guardianBall(left, 0).x);
+    expect(guardianBall(right, most).x).toBeGreaterThan(guardianBall(right, 0).x);
+  });
+
+  // A path along row 15, and his platform of stones seven cells up.
+  const guardianLevel = (stones = [8, 9, 10, 11]) => {
+    const builder = mapBuilder(20, 16).ground(0, 19, 15);
+    for (const c of stones) builder.put(c, 8, 'X');
+    builder.trap('guardian', 10, 7);
+    const level = { world: 'wood', map: builder.rows(), traps: builder.traps() };
+    return trapProblems(level, readAdventureMap(level.map));
+  };
+
+  it('stands on his stone platform, his maces low enough to hit but not to stop a slide', () => {
+    expect(guardianLevel()).toEqual([]);
+  });
+
+  it('needs a whole platform under his feet', () => {
+    expect(guardianLevel([8, 9, 10]).join(' ')).toMatch(/his platform needs stone/);
+  });
+
+  it('stands out of reach in level 1, so there is no way over him', () => {
+    const level = ADVENTURE_LEVELS[0];
+    const guardian = level.traps.find((t) => t.kind === 'guardian');
+    const { reached } = adventureRoutes(level);
+    for (let c = guardian.col - 2; c < guardian.col + 2; c++) expect(reached.has(`${c},${guardian.row}`)).toBe(false);
   });
 });

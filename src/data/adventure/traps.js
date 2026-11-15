@@ -11,12 +11,17 @@
 //   idol      a stone head standing at (col, row) that shoots darts across the path; { facing: -1 }
 //             to shoot left. Its stone is solid: he can stand on its head, above its darts
 //   mushroom  a bouncy mushroom standing at (col, row): landing on it throws the cat up high
+//   guardian  a giant stone statue standing on a stone platform out of reach, his feet at row + 1,
+//             his middle on column col's left edge. He wakes as he comes into view, and swings a
+//             spiked mace on a chain in each hand down onto the path below, in turn: each arm
+//             winds up outward and strikes back down. Under his platform, between the maces, is safe.
+//             Options: chain (px, from his fist to the ball)
 // A trap that stands is on the ground or island under its cell, like an enemy.
 //
 // The pictures are cut from the owner's sheet (images/levels/forest/obstacles.png) by
 // tools/adventure-traps-art.mjs, at the heights below (px, as shown). Places inside a picture are
 // fractions of its width and height, from its top left.
-export const TRAP_KINDS = ['mace', 'crusher', 'idol', 'mushroom'];
+export const TRAP_KINDS = ['mace', 'crusher', 'idol', 'mushroom', 'guardian'];
 
 export const TRAPS = {
   wood: {
@@ -71,6 +76,32 @@ export const TRAPS = {
       capTop: 0.9, // where he lands on it: this share of its height above its foot
       capShare: 0.8, // the share of its width he can land on
       squashMs: 140, // how long it stays squashed
+    },
+    guardian: {
+      body: 'guardian-body', awake: 'guardian-awake', arms: ['guardian-arm-left', 'guardian-arm-right'],
+      ball: 'guardian-ball', link: 'guardian-chain',
+      height: 420, depth: 1.8, sink: 4,
+      // His pictures' sizes as shown (px), printed by tools/adventure-guardian-art.mjs.
+      bodySize: { w: 334, h: 420 }, armSize: { w: 156, h: 359 },
+      // Where each arm joins his body (its socket, as fractions of the body picture), and, on each
+      // arm's own picture, its shoulder (where it turns) and the end of the chain in its fist. Left
+      // arm first.
+      sockets: [{ x: 0.113, y: 0.395 }, { x: 0.885, y: 0.395 }],
+      armJoints: [
+        { shoulder: { x: 0.81, y: 0.128 }, chainEnd: { x: 0.439, y: 1 } },
+        { shoulder: { x: 0.19, y: 0.128 }, chainEnd: { x: 0.558, y: 1 } },
+      ],
+      ballHeight: 110, ballMiddle: 0.56, hitShare: 0.36,
+      chain: 199, // px from his fist to the ball's ring
+      swingDeg: 50, // how far each arm winds up, outward from hanging straight down
+      periodMs: 3600, // one swing of an arm; the other is half a swing behind
+      // Each swing's parts, as shares of periodMs: resting low (a slide passes under), rising
+      // outward (the warning), holding up there, and the strike back down, fast.
+      swing: { rest: 0.32, rise: 0.36, hold: 0.14, strike: 0.18 },
+      platformCells: 4, // stone blocks under his feet: col - 2 to col + 1
+      wakeInset: 120, // px inside the camera's view: once he's this far in view, he wakes
+      wakeMs: 600, // his eyes and runes lighting up
+      sounds: { roar: 'guardianRoar', whoosh: 'maceWhoosh', creak: 'maceCreak', heardWithin: 1100 },
     },
   },
 };
