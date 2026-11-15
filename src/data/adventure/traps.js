@@ -4,9 +4,10 @@
 //             { hanging: true }, from the underside of the island above (col, row). Options:
 //             facing (-1: the gallows' beam points left), chain (its length, px), periodMs
 //   crusher   a stone block waiting in the air at (col, row); its eyes glow, it slams down to the
-//             ground below and lifts slowly back
+//             ground below and lifts slowly back. It's solid: he can stand on it and ride it, and
+//             it hurts only by falling on him
 //   idol      a stone head standing at (col, row) that shoots darts across the path; { facing: -1 }
-//             to shoot left
+//             to shoot left. Its stone is solid: he can stand on its head, above its darts
 //   mushroom  a bouncy mushroom standing at (col, row): landing on it throws the cat up high
 // A trap that stands is on the ground or island under its cell, like an enemy.
 //
@@ -22,7 +23,7 @@ export const TRAPS = {
       gallowsHeight: 300, ballHeight: 84, depth: 1.8,
       hook: { x: 0.857, y: 0.354 }, // where the chain hangs from the gallows' beam (the ring)
       gallowsAspect: 0.861, // the gallows picture's width over its height
-      chain: 80, // px from the hook to the ball's ring (a level can give a hanging mace its own)
+      chain: 41, // px from the hook to the ball's ring: on the gallows, a slide passes under the spikes, a standing cat doesn't
       ballMiddle: 0.56, // where the ball's middle is, down its picture (its ring is on top)
       swingDeg: 65, // how far it swings each way from straight down
       periodMs: 2600, // one swing there and back
@@ -37,13 +38,14 @@ export const TRAPS = {
       fallAccel: 6000,
       downMs: 450, // resting on the ground after the slam
       riseSpeed: 160, // px a second, lifting slowly back
-      hitInset: 10, // px off each side of the picture that don't hurt (its soft moss edges)
+      hitInset: 10, // px off each side of the picture that don't hurt or block (its soft moss edges)
       shakeIfWithin: 700, // px from the camera's middle: the slam shakes the screen
     },
     idol: {
       calm: 'trap-idol', angry: 'trap-idol-angry', dart: 'trap-dart',
       height: 150, dartWidth: 56, sink: 4, depth: 1.9,
       mouth: { x: 0.9, y: 0.44 }, // where its darts come out (facing right)
+      body: { left: 0.22, right: 0.82, top: 0.08 }, // its solid stone (facing right), as fractions of its picture
       everyMs: 2600, // one dart this often
       warnMs: 500, // its eye glows before it shoots
       dartSpeed: 560, // px a second

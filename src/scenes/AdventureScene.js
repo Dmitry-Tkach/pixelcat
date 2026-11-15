@@ -165,6 +165,7 @@ export class AdventureScene extends Phaser.Scene {
       leaves: this.layout.objects.filter((o) => o.type === 'leaves'),
       canLand: () => !this.climbing && !this.pullingUp,
     });
+    this.traps.addColliders(this.cat, this.enemies, () => !this.climbing && !this.pullingUp);
     this.moves = new AdventureMoves(this, this.cat, {
       art: this.art,
       groundLayer: this.groundLayer,

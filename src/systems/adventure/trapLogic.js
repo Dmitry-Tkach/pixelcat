@@ -7,12 +7,18 @@ import { TRAPS, TRAP_KINDS } from '../../data/adventure/traps.js';
 // sensibly. No Phaser, so tests can check it; systems/adventure/AdventureTraps.js draws them.
 
 const STANDS = new Set(['idol', 'mushroom']);
+// The cat's height as shown (px): standing, and sliding (data/adventure/heroes.js: his run and slide
+// hitboxes, 113 and 73 px tall, shown at 0.8).
+export const STAND_HEIGHT = 90;
+export const SLIDE_HEIGHT = 58;
 // How much room a waiting crusher must leave above the ground it slams onto: a single jump lifts his
-// feet SINGLE_JUMP_HEIGHT, and his head is CAT_HEIGHT above them. A crusher hurts at a touch even
-// while it waits, so lower than this, a plain jump under it would be hurt.
-const CAT_HEIGHT = 113;
+// feet SINGLE_JUMP_HEIGHT, his head STAND_HEIGHT above them. Lower, a plain jump under it would bump
+// it, and be under it if it fell.
 const CRUSHER_MARGIN = 20;
-export const CRUSHER_CLEARANCE = Math.ceil(SINGLE_JUMP_HEIGHT + CAT_HEIGHT + CRUSHER_MARGIN);
+export const CRUSHER_CLEARANCE = Math.ceil(SINGLE_JUMP_HEIGHT + STAND_HEIGHT + CRUSHER_MARGIN);
+// Where the lowest point of a mace's spikes must swing, above the ground under it (px): high enough
+// for a slide to pass under, low enough to hit him standing, so it's dodged by sliding or timing.
+export const MACE_SWING_LOW = { min: SLIDE_HEIGHT + 12, max: STAND_HEIGHT - 6 };
 
 // The mace's angle (radians) at a moment: a pendulum swinging swingDeg each way. Positive is
 // clockwise on screen, so the ball goes left.
@@ -70,6 +76,25 @@ export const crusherStart = () => ({ phase: 'wait', ms: 0, drop: 0, speed: 0, sl
 // Is the crusher looking angry (eyes glowing)?
 export const crusherAngry = (phase) => phase === 'warn' || phase === 'fall' || phase === 'down';
 
+// How the cat meets a crusher, from their bodies ({ left, top, right, bottom }): 'top' if he's on or
+// above it (he can stand on it), 'beneath' if he's under it, 'side' otherwise. CONTACT_SLACK px of
+// overlap still counts as on top or beneath.
+const CONTACT_SLACK = 16;
+export function crusherContact(cat, block) {
+  if (cat.bottom <= block.top + CONTACT_SLACK) return 'top';
+  if (cat.top >= block.bottom - CONTACT_SLACK) return 'beneath';
+  return 'side';
+}
+
+// Does a crusher in this phase crush the cat beneath it? Only while it falls, or the moment it lands:
+// waiting or lifting, it's just stone to bump his head on.
+const LANDED_HURTS_MS = 150;
+export function crusherCrushes(cat, block, { phase, ms }) {
+  if (phase !== 'fall' && !(phase === 'down' && ms < LANDED_HURTS_MS)) return false;
+  const across = cat.right > block.left && cat.left < block.right;
+  return across && crusherContact(cat, block) !== 'top' && cat.top < block.bottom && cat.bottom > block.bottom - CONTACT_SLACK;
+}
+
 // Has the cat just landed on a mushroom's cap? Falling, his feet crossing the cap's top this step,
 // and over the cap.
 export function landsOnCap({ prevBottom, bottom, vy, x }, cap) {
@@ -111,13 +136,20 @@ export function trapProblems(level, layout) {
     if (kind === 'mace') {
       const r = rules.mace;
       if (trap.hanging && (tiles[row - 1]?.[col] ?? -1) < 0) errors.push(`${name} in column ${col} has no island above to hang from`);
-      // The ball, hanging straight down, must clear the ground under the hook.
+      // The ball, hanging straight down, must clear the ground under the hook, and its spikes swing
+      // low enough to hit him standing but high enough for a slide.
       const hook = maceHook(trap, r);
       const hookCol = Math.floor(hook.x / TILE);
-      const lowest = hook.y + (trap.chain ?? r.chain) + r.ballHeight;
+      const chain = trap.chain ?? r.chain;
+      const lowest = hook.y + chain + r.ballHeight;
       const floor = floorRow(tiles, hookCol, Math.floor(hook.y / TILE) + 1); // the first ground under the hook
       if (hookCol < 0 || hookCol >= cols) errors.push(`${name}'s chain hangs off the map`);
       else if (floor !== null && lowest > floor * TILE) errors.push(`${name} in column ${col} hangs into the ground`);
+      else if (floor !== null) {
+        const spikes = floor * TILE - (hook.y + chain + r.ballMiddle * r.ballHeight + r.hitShare * r.ballHeight);
+        if (spikes < MACE_SWING_LOW.min) errors.push(`${name} in column ${col} swings too low to slide under (${Math.round(spikes)} px up)`);
+        if (spikes > MACE_SWING_LOW.max) errors.push(`${name} in column ${col} swings over a standing cat (${Math.round(spikes)} px up)`);
+      }
     }
     if (kind === 'crusher') {
       const floor = floorRow(tiles, col, row);

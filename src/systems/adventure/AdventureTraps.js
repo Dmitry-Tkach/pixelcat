@@ -1,12 +1,17 @@
 import { ONE_WAY, TILE } from '../adventureMap.js';
+import { landsFromAbove, staysOn } from '../adventurePlatformLanding.js';
 import {
-  circleHitsRect, crusherAngry, crusherStart, crusherStep, floorRow, landsOnCap, maceAngle, maceHook, rectsTouch, swingPoint,
+  circleHitsRect, crusherAngry, crusherContact, crusherCrushes, crusherStart, crusherStep, floorRow, landsOnCap, maceAngle,
+  maceHook, rectsTouch, swingPoint,
 } from './trapLogic.js';
 
 // Builds a level's moving traps (data/adventure/traps.js) and moves them each frame, while play is
 // on: the swinging mace, the stone crusher, the dart idol and the bounce mushroom. The rules are in
 // systems/adventure/trapLogic.js. Each trap's timing is offset by its column, so two of a kind
 // don't move in step.
+// The crusher and the idol are solid: he can stand on them (addColliders). The crusher carries him
+// as it moves, as a moving log does, and hurts only by falling on him; waiting or lifting, it's
+// stone he bumps his head on.
 const SOUNDS = { slam: 'smash', dart: 'shot', bounce: 'bounce' };
 const HEARD_WITHIN = 900; // px from the camera's middle: further off, a trap makes no sound
 
@@ -23,6 +28,9 @@ export class AdventureTraps {
     this.darts = [];
     this.mushrooms = [];
     this.prevBottom = null;
+    this.riding = null; // the crusher he's standing on
+    this.crusherBodies = scene.physics.add.group({ allowGravity: false, immovable: true });
+    this.idolBodies = scene.physics.add.staticGroup();
     if (!rules) return;
     for (const trap of traps) {
       const x = trap.col * TILE + TILE / 2, feet = (trap.row + 1) * TILE;
@@ -56,13 +64,25 @@ export class AdventureTraps {
     this.maces.push({ swing, hook, reach: chain + r.ballMiddle * r.ballHeight, ms: offset, rules: { ...r, periodMs: trap.periodMs ?? r.periodMs } });
   }
 
+  // Its body is the stone without its soft moss edges (hitInset), which he stands on and is blocked by.
   buildCrusher(trap, x, offset) {
     const r = this.rules.crusher;
     const top = trap.row * TILE;
-    const image = this.scene.add.image(x, top, this.art(r.calm)).setOrigin(0.5, 0).setDepth(r.depth);
+    const image = this.crusherBodies.create(x, top, this.art(r.calm)).setDepth(r.depth);
+    image.setY(top + image.height / 2);
+    image.body.setSize(image.width - r.hitInset * 2, image.height - r.hitInset, false).setOffset(r.hitInset, r.hitInset);
+    image.body.setAllowGravity(false).setImmovable(true);
     const floor = floorRow(this.layout.tiles, trap.col, trap.row) * TILE;
     const state = { ...crusherStart(), ms: offset % r.waitMs };
-    this.crushers.push({ image, top, fall: floor - top - image.height, state, rules: r });
+    const crusher = { image, top, fall: floor - top - image.height, state, vy: 0, rules: r };
+    image.crusher = crusher;
+    this.crushers.push(crusher);
+  }
+
+  // Its stone, where he stands or is blocked (left, right, top), in px: from its picture's top left.
+  crusherRect({ image, rules: r }) {
+    const left = image.x - image.width / 2, top = image.y - image.height / 2;
+    return { left: left + r.hitInset, right: left + image.width - r.hitInset, top: top + r.hitInset, bottom: top + image.height };
   }
 
   buildIdol(trap, x, feet, offset) {
@@ -71,6 +91,12 @@ export class AdventureTraps {
     const image = this.scene.add.image(x, feet + r.sink, this.art(r.calm)).setOrigin(0.5, 1).setDepth(r.depth).setFlipX(facing < 0);
     const left = image.x - image.width / 2, top = image.y - image.height;
     const mouthX = left + (facing > 0 ? r.mouth.x : 1 - r.mouth.x) * image.width;
+    // Its stone is solid, from its head down to the ground (not its sink, or its grass).
+    const from = left + (facing > 0 ? r.body.left : 1 - r.body.right) * image.width;
+    const to = left + (facing > 0 ? r.body.right : 1 - r.body.left) * image.width;
+    const stoneTop = top + r.body.top * image.height;
+    const stone = this.scene.add.zone((from + to) / 2, (stoneTop + feet) / 2, to - from, feet - stoneTop);
+    this.idolBodies.add(stone);
     this.idols.push({ image, facing, mouth: { x: mouthX, y: top + r.mouth.y * image.height }, ms: offset % r.everyMs, rules: r });
   }
 
@@ -79,6 +105,32 @@ export class AdventureTraps {
     const image = this.scene.add.image(x, feet + r.sink, this.art(r.calm)).setOrigin(0.5, 1).setDepth(r.depth);
     // He lands on the cap's top, a little under the picture's top edge (its round dome).
     this.mushrooms.push({ image, cap: { x, top: image.y - image.height * r.capTop, half: (image.width * r.capShare) / 2 }, squashMs: 0, rules: r });
+  }
+
+  // The cat stands on the crushers and idols, and enemies walk into the idols. canLand(): whether he
+  // may land now (not while climbing or pulling himself up). Phaser only counts standing on tiles and
+  // still bodies, so on a crusher he's told he's standing, to jump.
+  addColliders(cat, enemies, canLand) {
+    this.scene.physics.add.collider(cat, this.idolBodies);
+    this.scene.physics.add.collider(enemies, this.idolBodies);
+    this.scene.physics.add.collider(cat, this.crusherBodies, (cat_, image) => {
+      if (cat.body.touching.down) {
+        cat.body.blocked.down = true;
+        this.riding = image.crusher;
+      }
+    }, (cat_, image) => {
+      const { body } = cat;
+      const block = this.crusherRect(image.crusher);
+      const contact = crusherContact(body, block);
+      if (contact === 'top') {
+        return canLand() && landsFromAbove({
+          bottom: body.bottom, prevBottom: body.prev.y + body.height, top: block.top, vy: body.velocity.y, platformVy: image.crusher.vy,
+        });
+      }
+      // Under it, he bumps his head on it, unless it's coming down on him (then it hurts instead).
+      if (contact === 'beneath') return !crusherCrushes(body, block, image.crusher.state);
+      return true;
+    });
   }
 
   near(x, y, within) {
@@ -101,30 +153,41 @@ export class AdventureTraps {
       const ball = swingPoint(mace.hook, mace.reach, angle);
       if (circleHitsRect(ball, mace.rules.hitShare * mace.rules.ballHeight, catRect)) this.hurt(ball.x);
     }
-    for (const crusher of this.crushers) this.updateCrusher(crusher, ms, catRect);
+    for (const crusher of this.crushers) this.updateCrusher(crusher, ms, catRect, cat);
     for (const idol of this.idols) this.updateIdol(idol, ms);
     this.updateDarts(ms, catRect);
     for (const mushroom of this.mushrooms) this.updateMushroom(mushroom, ms, cat);
     this.prevBottom = body.bottom;
   }
 
-  updateCrusher(crusher, ms, catRect) {
+  updateCrusher(crusher, ms, catRect, cat) {
     const { image, rules: r } = crusher;
     const was = crusher.state.phase;
+    const wasDrop = crusher.state.drop;
     crusher.state = crusherStep(crusher.state, ms, r, crusher.fall);
     const { phase, drop, slam } = crusher.state;
-    image.y = crusher.top + drop;
+    image.setY(crusher.top + drop + image.height / 2);
+    crusher.vy = ms > 0 ? ((drop - wasDrop) * 1000) / ms : 0;
+    const block = this.crusherRect(crusher);
+    // Riding it: his feet kept on its top as it moves, as on a moving log.
+    if (this.riding === crusher) {
+      const { body } = cat;
+      if (staysOn({ left: body.left, right: body.right, bottom: body.bottom, vy: body.velocity.y, top: block.top, logLeft: block.left, logRight: block.right, platformVy: crusher.vy })) {
+        cat.y += block.top - body.bottom;
+        body.velocity.y = crusher.vy;
+      } else {
+        this.riding = null;
+      }
+    }
     if (crusherAngry(phase) !== crusherAngry(was)) image.setTexture(this.art(crusherAngry(phase) ? r.angry : r.calm));
     if (slam) {
-      const bottom = image.y + image.height;
+      const bottom = image.y + image.height / 2;
       this.scene.effects.dust(image.x - image.width * 0.35, bottom, 5);
       this.scene.effects.dust(image.x + image.width * 0.35, bottom, 5);
       if (this.near(image.x, bottom, r.shakeIfWithin)) this.scene.cameras.main.shake(140, 0.006);
       this.sound('slam', image.x, bottom);
     }
-    const inset = r.hitInset;
-    const rect = { left: image.x - image.width / 2 + inset, right: image.x + image.width / 2 - inset, top: image.y + inset, bottom: image.y + image.height };
-    if (rectsTouch(rect, catRect)) this.hurt(image.x);
+    if (this.riding !== crusher && crusherCrushes(catRect, block, crusher.state)) this.hurt(image.x);
   }
 
   updateIdol(idol, ms) {

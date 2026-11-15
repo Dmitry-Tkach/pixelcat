@@ -61,7 +61,7 @@ level.mover(50, 31, { across: 6 })
   .island(40, 46, 31).put(43, 30, 'v').put(41, 30, 'z').put(45, 30, '+')
   .island(44, 49, 22).put(46, 21, '3')
   // A big mace on a long chain, hanging from the sniper's island, sweeps the spiky one's island.
-  .trap('mace', 46, 23, { hanging: true, chain: 400, periodMs: 4200 })
+  .trap('mace', 46, 23, { hanging: true, chain: 364, periodMs: 4200 })
   .put(34, 28, '%').put(35, 28, '%').put(36, 28, '%')
   .mover(28, 28, { up: 7 }).coins(29, 29, 25)
   .island(20, 26, 21).put(25, 20, 'C').put(22, 20, 'T').put(24, 20, 'g').put(19, 20, 'X');

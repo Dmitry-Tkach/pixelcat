@@ -4,7 +4,8 @@ import { TRAPS, TRAP_KINDS } from '../src/data/adventure/traps.js';
 import { ADVENTURE_ART, ADVENTURE_LEVELS, adventurePath } from '../src/data/adventure/index.js';
 import { mapBuilder } from '../src/data/adventure/mapBuilder.js';
 import {
-  circleHitsRect, crusherAngry, crusherStart, crusherStep, landsOnCap, maceAngle, maceHook, swingPoint, trapProblems,
+  MACE_SWING_LOW, SLIDE_HEIGHT, STAND_HEIGHT, circleHitsRect, crusherAngry, crusherContact, crusherCrushes, crusherStart,
+  crusherStep, landsOnCap, maceAngle, maceHook, swingPoint, trapProblems,
 } from '../src/systems/adventure/trapLogic.js';
 import { TILE, checkAdventureLevel, readAdventureMap } from '../src/systems/adventureMap.js';
 
@@ -98,6 +99,25 @@ describe('the crusher', () => {
     expect(s.drop).toBe(0);
   });
 
+  it('is stood on from above, bumped from below, and a wall at the sides', () => {
+    const block = { left: 100, right: 200, top: 300, bottom: 400 };
+    expect(crusherContact({ left: 120, right: 160, top: 210, bottom: 302 }, block)).toBe('top');
+    expect(crusherContact({ left: 120, right: 160, top: 395, bottom: 485 }, block)).toBe('beneath');
+    expect(crusherContact({ left: 60, right: 104, top: 320, bottom: 410 }, block)).toBe('side');
+  });
+
+  it('crushes him only falling or landing on him, not waiting, lifting or under his feet', () => {
+    const block = { left: 100, right: 200, top: 300, bottom: 400 };
+    const under = { left: 120, right: 160, top: 390, bottom: 480 };
+    expect(crusherCrushes(under, block, { phase: 'fall', ms: 50 })).toBe(true);
+    expect(crusherCrushes(under, block, { phase: 'down', ms: 50 })).toBe(true);
+    expect(crusherCrushes(under, block, { phase: 'down', ms: 400 })).toBe(false);
+    expect(crusherCrushes(under, block, { phase: 'wait', ms: 50 })).toBe(false);
+    expect(crusherCrushes(under, block, { phase: 'rise', ms: 50 })).toBe(false);
+    expect(crusherCrushes({ left: 120, right: 160, top: 210, bottom: 302 }, block, { phase: 'fall', ms: 50 })).toBe(false);
+    expect(crusherCrushes({ left: 220, right: 260, top: 390, bottom: 480 }, block, { phase: 'fall', ms: 50 })).toBe(false);
+  });
+
   it('looks angry from its warning until it starts lifting', () => {
     expect(['wait', 'warn', 'fall', 'down', 'rise'].map(crusherAngry)).toEqual([false, true, true, true, false]);
   });
@@ -122,7 +142,7 @@ describe('the trap checks', () => {
     const { problems } = testLevel([
       { kind: 'idol', col: 3, row: 8 },
       { kind: 'mushroom', col: 6, row: 8 },
-      { kind: 'mace', col: 12, row: 4, hanging: true, chain: 100 },
+      { kind: 'mace', col: 12, row: 4, hanging: true, chain: 172 },
       { kind: 'crusher', col: 20, row: 1 },
       { kind: 'mace', col: 24, row: 8 },
     ]);
@@ -137,6 +157,13 @@ describe('the trap checks', () => {
 
   it('find a crusher that waits so low a plain jump under it would touch it', () => {
     expect(testLevel([{ kind: 'crusher', col: 20, row: 4 }]).problems[0]).toMatch(/waits too low/);
+  });
+
+  it('want a mace a slide passes under but a standing cat doesn\'t', () => {
+    expect(MACE_SWING_LOW.min).toBeGreaterThan(SLIDE_HEIGHT);
+    expect(MACE_SWING_LOW.max).toBeLessThan(STAND_HEIGHT);
+    expect(testLevel([{ kind: 'mace', col: 12, row: 4, hanging: true, chain: 200 }]).problems[0]).toMatch(/too low to slide under/);
+    expect(testLevel([{ kind: 'mace', col: 12, row: 4, hanging: true, chain: 100 }]).problems[0]).toMatch(/over a standing cat/);
   });
 
   it('find a mace whose ball would hang into the ground', () => {
