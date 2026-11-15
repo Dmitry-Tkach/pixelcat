@@ -2,6 +2,7 @@
 // grid for the ground and islands, the ladders, and every object with its cell. Plain code, no
 // Phaser, so tests can check levels.
 import { trapProblems } from './adventure/trapLogic.js';
+import { wheelProblems } from './adventure/wheels.js';
 
 export const TILE = 64;
 // How deep into a tile the cat can sink in one physics step and still be pushed back out. Phaser's
@@ -175,6 +176,7 @@ export function checkAdventureLevel(level) {
   }
   // The moving traps must stand on something, hang from something, and clear the ground.
   errors.push(...trapProblems(level, readAdventureMap(map)));
+  errors.push(...wheelProblems(level));
   // A ladder's top must be on an island or the ground, so the cat has somewhere to step off.
   const byCol = new Map();
   for (const { col, row } of ladders) byCol.set(col, [...(byCol.get(col) ?? []), row]);

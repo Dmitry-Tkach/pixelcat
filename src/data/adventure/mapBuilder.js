@@ -9,6 +9,9 @@
 //   mover(col, row, { across, up, width, speed })  a moving log: it starts at (col, row), its left
 //                          end, and glides `across` cells sideways and `up` cells up (negative for
 //                          left or down), and back. movers() lists them for the level.
+//   wheel(col, row, options)  a water wheel, its hub at (col, row), with seats round it that stay level
+//                          (systems/adventure/wheels.js for the options). wheels() lists them.
+//   fill(from, to, top, bottom)  solid ground in just those rows, over a hollow (a cave's roof)
 //   trap(kind, col, row, options)  a moving trap: a mace, crusher, idol or mushroom (see
 //                          data/adventure/traps.js for each kind's options). traps() lists them.
 // Everything but ground and gaps must go in an empty cell, so pieces can't silently overwrite each other.
@@ -16,6 +19,7 @@ export function mapBuilder(cols, rows) {
   const grid = Array.from({ length: rows }, () => Array(cols).fill('.'));
   const movers = [];
   const traps = [];
+  const wheels = [];
   const inside = (c, r) => {
     if (!Number.isInteger(c) || !Number.isInteger(r) || c < 0 || c >= cols || r < 0 || r >= rows) throw new Error(`(${c}, ${r}) is outside the map`);
   };
@@ -54,6 +58,15 @@ export function mapBuilder(cols, rows) {
       movers.push({ col, row, width, across, up, ...(speed ? { speed } : {}) });
       return builder;
     },
+    fill(from, to, top, bottom) {
+      span(from, to, (c) => { for (let r = top; r <= bottom; r++) { inside(c, r); grid[r][c] = '#'; } });
+      return builder;
+    },
+    wheel(col, row, options = {}) {
+      inside(col, row);
+      wheels.push({ col, row, ...options });
+      return builder;
+    },
     trap(kind, col, row, options = {}) {
       inside(col, row);
       traps.push({ kind, col, row, ...options });
@@ -62,6 +75,7 @@ export function mapBuilder(cols, rows) {
     rows: () => grid.map((r) => r.join('')),
     movers: () => movers.map((m) => ({ ...m })),
     traps: () => traps.map((t) => ({ ...t })),
+    wheels: () => wheels.map((w) => ({ ...w })),
   };
   return builder;
 }

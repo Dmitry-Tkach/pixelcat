@@ -9,6 +9,7 @@
 //   from the physics in config/gameConfig.js), if no ground is in the way;
 //   climb any ladder he's at, up to the island at its top or down to its foot;
 //   ride a moving log: anywhere along its path counts as somewhere to stand, as he can wait for it;
+//   the same for a water wheel's seats, all the way round (systems/adventure/wheels.js);
 //   stand on crumbling leaves, which hold him long enough to jump on;
 //   bounce off a mushroom (data/adventure/traps.js), much higher than a jump (see mushroomReach).
 // Enemies and gunners don't block him: he can always knock them out or get past them.
@@ -16,6 +17,7 @@ import { MOVEMENT } from '../config/gameConfig.js';
 import { TRAPS } from '../data/adventure/traps.js';
 import { TILE, moverCells, readAdventureMap } from './adventureMap.js';
 import { guardianSolid } from './adventure/trapLogic.js';
+import { wheelCells } from './adventure/wheels.js';
 
 // How many cells across he can jump, with a double jump, for each number of cells up (or down, as
 // negative). He really reaches about 6 up and 8 across at full speed; these leave a margin, so a
@@ -62,7 +64,10 @@ export function adventureRoutes(level) {
   const isGround = (c, r) => inside(c, r) && level.map[r][c] === '#';
   // What he can't pass through: the ground and blocks. Islands and bridges he jumps up through.
   const solid = (c, r) => isGround(c, r) || blocks.has(key(c, r));
-  const logs = new Set((level.movers ?? []).flatMap((mover) => [...moverCells(mover)]));
+  const logs = new Set([
+    ...(level.movers ?? []).flatMap((mover) => [...moverCells(mover)]),
+    ...(level.wheels ?? []).flatMap((wheel) => [...wheelCells(wheel)]),
+  ]);
   const leaves = new Set(objects.filter((o) => o.type === 'leaves').map((o) => key(o.col, o.row)));
   const mushrooms = new Set((level.traps ?? []).filter((t) => t.kind === 'mushroom').map((t) => key(t.col, t.row)));
   const bounce = mushroomReach(level.world);

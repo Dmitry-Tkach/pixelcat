@@ -166,6 +166,7 @@ export class AdventureScene extends Phaser.Scene {
     this.platforms = new AdventurePlatforms(this, this.cat, {
       art: this.art,
       movers: level.movers,
+      wheels: level.wheels,
       leaves: this.layout.objects.filter((o) => o.type === 'leaves'),
       canLand: () => !this.climbing && !this.pullingUp,
     });

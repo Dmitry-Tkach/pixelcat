@@ -1,11 +1,11 @@
 // The adventure levels, for the battle cat, and the art each world needs. The art is prepared from
 // the free world packs by tools/adventure-art.mjs, into public/assets/adventure/<world>.
 import { WOOD_LEVEL } from './wood.js';
-import { WOOD_CANOPY_LEVEL } from './wood2.js';
+import { WOOD_MILL_LEVEL } from './wood2.js';
 
 export const ADVENTURE_LEVELS = [
   { ...WOOD_LEVEL, music: { track: 'village', bpm: 112 }, sky: '#8fd18f' },
-  { ...WOOD_CANOPY_LEVEL, music: { track: 'village', bpm: 122 }, sky: '#9fdc9a' },
+  { ...WOOD_MILL_LEVEL, music: { track: 'village', bpm: 122 }, sky: '#9fdc9a' },
 ];
 
 // Every image a world uses, by its name in public/assets/adventure/<world>.

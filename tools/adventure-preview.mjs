@@ -22,6 +22,7 @@ import { GATES } from '../src/data/adventure/gates.js';
 import { portalPosts } from '../src/systems/adventure/gatePlacement.js';
 import { TRAPS } from '../src/data/adventure/traps.js';
 import { floorRow, guardianBall, guardianFireColumn, guardianGeometry, maceHook } from '../src/systems/adventure/trapLogic.js';
+import { seatPlace, wheelHub, wheelWith } from '../src/systems/adventure/wheels.js';
 
 const [out, index = '0'] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const routes = process.argv.includes('--routes');
@@ -214,6 +215,20 @@ for (const { col, row, width = 3, across = 0, up = 0 } of level.movers ?? []) {
   for (let w = 0; w < width; w++) comps.push({ input: plank, left: (col + w) * CELL, top: row * CELL });
   const x0 = (col + width / 2) * CELL, y0 = (row + 0.5) * CELL, x1 = x0 + across * CELL, y1 = y0 - up * CELL;
   comps.push({ input: Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${cols * CELL}" height="${rows * CELL}"><path d="M${x0} ${y0} L${x1} ${y1}" stroke="#ffe066" stroke-width="2" stroke-dasharray="4 3"/><circle cx="${x1}" cy="${y1}" r="3" fill="#ffe066"/></svg>`), left: 0, top: 0 });
+}
+// Water wheels: the rim, spokes to the seats, and each seat where it starts, its top on the rim.
+for (const options of level.wheels ?? []) {
+  const wheel = wheelWith(options);
+  const hub = wheelHub(wheel);
+  const seats = Array.from({ length: wheel.seats }, (_, i) => seatPlace(wheel, i, 0));
+  const r = wheel.radius * TILE * SCALE, hx = hub.x * SCALE, hy = hub.y * SCALE;
+  const spokes = seats.map(({ x, y }) => `<path d="M${hx} ${hy} L${x * SCALE} ${y * SCALE}" stroke="#8a5a2b" stroke-width="3"/>`).join('');
+  comps.push({ input: Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${cols * CELL}" height="${rows * CELL}"><circle cx="${hx}" cy="${hy}" r="${r}" fill="none" stroke="#6b4423" stroke-width="4"/>${spokes}<circle cx="${hx}" cy="${hy}" r="8" fill="#8b8f86"/><circle cx="${hx}" cy="${hy}" r="3" fill="#7dff6a"/></svg>`), left: 0, top: 0 });
+  for (const { x, y } of seats) {
+    for (let w = 0; w < wheel.seatWidth; w++) {
+      comps.push({ input: plank, left: Math.round((x / TILE - wheel.seatWidth / 2 + w) * CELL), top: Math.round((y / TILE) * CELL) });
+    }
+  }
 }
 
 if (routes) {

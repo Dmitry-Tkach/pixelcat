@@ -1,10 +1,14 @@
 import Phaser from 'phaser';
 import { TILE } from './adventureMap.js';
 import { landsFromAbove, staysOn } from './adventurePlatformLanding.js';
+import { seatPlace, wheelWith } from './adventure/wheels.js';
+import { drawWheel } from './adventure/wheelLook.js';
 
 // Platforms that move or fall, in an adventure level:
 //   moving logs (the level's `movers`) glide to and fro along their path, pausing at each end. The
 //   cat lands on them from above, rides them, and jumps up through them, as on an island.
+//   water wheels (the level's `wheels`, adventure/wheels.js) turn, carrying seats round that stay
+//   level. A seat is ridden like a log: it's one, moving round a circle instead of to and fro.
 //   crumbling leaves (map letter %) shake when he lands, fall soon after, and grow back. Leaves side
 //   by side are one ledge, and go together.
 // The scene calls update every frame. `canLand()` says whether the cat may land on one now (not
@@ -18,7 +22,7 @@ const LOG = { speed: 110, pauseMs: 700, plankTop: 13, plankHeight: 22, depth: 2.
 const LEAVES = { shakeMs: 520, fallMs: 320, backMs: 3200, shake: 3, depth: 2.6 };
 
 export class AdventurePlatforms {
-  constructor(scene, cat, { art, movers = [], leaves = [], canLand }) {
+  constructor(scene, cat, { art, movers = [], wheels = [], leaves = [], canLand }) {
     this.scene = scene;
     this.cat = cat;
     this.canLand = canLand;
@@ -43,6 +47,21 @@ export class AdventurePlatforms {
       log.speed = speed;
       log.waitMs = LOG.pauseMs;
     }
+    // Water wheels: the wheel drawn behind, and its seats, logs as wide as seatWidth.
+    this.wheels = wheels.map((options) => {
+      const wheel = wheelWith(options);
+      const seats = Array.from({ length: wheel.seats }, (_, i) => {
+        const at = seatPlace(wheel, i, 0);
+        const width = wheel.seatWidth * TILE;
+        const seat = scene.add.tileSprite(at.x - width / 2, at.y - LOG.plankTop, width, TILE, art('bridge')).setOrigin(0, 0).setDepth(LOG.depth);
+        this.logs.add(seat);
+        seat.body.setSize(width, LOG.plankHeight).setOffset(0, LOG.plankTop);
+        seat.body.setAllowGravity(false).setImmovable(true).setFriction(0, 0);
+        seat.seatIndex = i;
+        return seat;
+      });
+      return { wheel, seats, look: drawWheel(scene, wheel), ms: 0 };
+    });
     scene.physics.add.collider(cat, this.logs, (cat_, log) => {
       if (cat.body.blocked.down || cat.body.touching.down) this.riding = log;
     }, fromAbove);
@@ -93,7 +112,9 @@ export class AdventurePlatforms {
     } else {
       this.riding = null;
     }
+    this.turnWheels(ms);
     for (const log of this.logs.getChildren()) {
+      if (log.seatIndex !== undefined) continue; // a wheel's seat (turnWheels)
       if (log.waitMs > 0) {
         log.waitMs -= ms;
         log.body.setVelocity(0, 0);
@@ -117,6 +138,22 @@ export class AdventurePlatforms {
         continue;
       }
       log.body.setVelocity((dx / distance) * log.speed, (dy / distance) * log.speed);
+    }
+  }
+
+  // Each wheel turns, and each seat is sent on towards where it'll be next frame, by its speed: the
+  // log riding above carries him by how far it really moved. Aiming at where it should be, rather
+  // than turning it by a step, keeps it on its circle however the frames fall.
+  turnWheels(ms) {
+    if (ms <= 0) return;
+    for (const w of this.wheels) {
+      w.ms += ms;
+      w.look.setRotation((w.wheel.dir * 2 * Math.PI * w.ms) / w.wheel.periodMs);
+      for (const seat of w.seats) {
+        const at = seatPlace(w.wheel, seat.seatIndex, w.ms + ms);
+        const { position, width } = seat.body;
+        seat.body.setVelocity(((at.x - width / 2 - position.x) * 1000) / ms, ((at.y - position.y) * 1000) / ms);
+      }
     }
   }
 
