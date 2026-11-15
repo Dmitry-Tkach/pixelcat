@@ -13,6 +13,9 @@
 // chest. A checkpoint starts each hard part. Tests check the routes and blind drops, as for every
 // level: they count a wheel's whole ring as somewhere to stand, as he can wait for a seat. A wheel's
 // green hub is a target: a round turns the wheel the other way, three freeze rounds stop it.
+// Pterodactyls live here (entities/AdventureBird.js): two take off harmlessly at the start, one dives
+// at him over the cliff before the big wheel (only ever on solid ground), and one flies up and down
+// over the canopy's last gap.
 // To see it: node tools/adventure-preview.mjs <out.png> 1 --routes
 //
 // Letters as in wood.js; also % crumbling leaves, j the silver key, U the silver chest.
@@ -52,6 +55,10 @@ level.ground(31, 42, 39) // the dip, three cells down
 // branch high in the leaves, with a crystal and the silver key (a coin just above the seat hints at
 // it), hidden behind leaves that fade as he climbs in. Then a bridge, with a cone head on it.
 level.put(47, 27, 'C').put(52, 27, '/')
+  // The first pterodactyl: over the cliff, on solid ground, alone. It wakes as he passes column 49
+  // (past the checkpoint), screeches and flashes, then dives: jump it, shoot it or stomp it. It
+  // never dives at him on the wheel (data/adventure/birds.js).
+  .bird('diver', 52, 23, { wake: 49 })
   .gap(55, 70)
   .wheel(62, 30, { dir: 1, broken: [1, 4] }).arc(68, 70, 28, 1) // coins from its right-hand seat to the far bank
   .put(62, 23, 'o').island(61, 63, 21).put(62, 20, '*').put(61, 20, 'j')
@@ -84,7 +91,10 @@ level.put(120, 27, 'C').put(119, 27, 'g') // he patrols into the mace's swing: l
   .coins(136, 137, 26).put(135, 21, 'o')
   .island(133, 139, 18).put(136, 17, '*')
   .put(141, 23, '%').put(142, 23, '%')
-  .island(146, 149, 26).coins(146, 149, 24);
+  .island(146, 149, 26).coins(146, 149, 24)
+  // A pterodactyl flying slowly up and down over the jump from the leaves to the island: time it,
+  // bounce off it, or freeze it and use the ice as a step.
+  .bird('hover', 144, 21);
 
 // ----- 6. Twin Wheels: the peak, where the level's tricks meet. Two wheels side by side, the second
 // turning the other way, and a dart idol on a rock between them firing across the second wheel's
@@ -129,6 +139,7 @@ export const WOOD_MILL_LEVEL = {
   movers: level.movers(),
   wheels: level.wheels(),
   traps: level.traps(),
+  birds: level.birds(),
   // Its set dressing (systems/adventure/AdventureScenery.js): waterfalls behind the wheels, a veil of
   // water over the cave, the cave's dark inside, leaves hiding the branch over the big wheel, and
   // stakes in the river.
@@ -140,6 +151,8 @@ export const WOOD_MILL_LEVEL = {
     { col: 186, top: 23, bottom: 34, veil: true },
   ],
   caves: [{ cols: [186, 190], rows: [30, 33] }],
+  // Two harmless pterodactyls take off from the river bank as he runs past: they live here.
+  flybys: [{ col: 15, row: 33, wake: 11, dir: 1 }, { col: 21, row: 34, wake: 16, dir: 1 }],
   props: [
     { picture: 'mill-leaves', col: 62, row: 21, front: true }, // over the branch with the crystal and key
     { picture: 'mill-cave', col: 188, row: 33, width: 340 },

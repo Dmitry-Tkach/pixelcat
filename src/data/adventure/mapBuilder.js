@@ -11,6 +11,7 @@
 //                          left or down), and back. movers() lists them for the level.
 //   wheel(col, row, options)  a water wheel, its hub at (col, row), with seats round it that stay level
 //                          (systems/adventure/wheels.js for the options). wheels() lists them.
+//   bird(kind, col, row, options)  a pterodactyl, 'diver' or 'hover' (data/adventure/birds.js). birds() lists them.
 //   fill(from, to, top, bottom)  solid ground in just those rows, over a hollow (a cave's roof)
 //   trap(kind, col, row, options)  a moving trap: a mace, crusher, idol or mushroom (see
 //                          data/adventure/traps.js for each kind's options). traps() lists them.
@@ -20,6 +21,7 @@ export function mapBuilder(cols, rows) {
   const movers = [];
   const traps = [];
   const wheels = [];
+  const birds = [];
   const inside = (c, r) => {
     if (!Number.isInteger(c) || !Number.isInteger(r) || c < 0 || c >= cols || r < 0 || r >= rows) throw new Error(`(${c}, ${r}) is outside the map`);
   };
@@ -62,6 +64,11 @@ export function mapBuilder(cols, rows) {
       span(from, to, (c) => { for (let r = top; r <= bottom; r++) { inside(c, r); grid[r][c] = '#'; } });
       return builder;
     },
+    bird(kind, col, row, options = {}) {
+      inside(col, row);
+      birds.push({ kind, col, row, ...options });
+      return builder;
+    },
     wheel(col, row, options = {}) {
       inside(col, row);
       wheels.push({ col, row, ...options });
@@ -76,6 +83,7 @@ export function mapBuilder(cols, rows) {
     movers: () => movers.map((m) => ({ ...m })),
     traps: () => traps.map((t) => ({ ...t })),
     wheels: () => wheels.map((w) => ({ ...w })),
+    birds: () => birds.map((b) => ({ ...b })),
   };
   return builder;
 }

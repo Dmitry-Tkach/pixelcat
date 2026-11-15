@@ -1,5 +1,6 @@
 import { TILE } from '../adventureMap.js';
 import { WATERFALL } from '../../data/adventure/millArt.js';
+import { makeStandIn } from '../../entities/AdventureBird.js';
 
 // A level's set dressing that isn't on its map (Mill Falls' art, data/adventure/millArt.js):
 //   waterfalls: { col, top, bottom, veil }: water pouring from a mossy lip at row `top` down to row
@@ -9,15 +10,20 @@ import { WATERFALL } from '../../data/adventure/millArt.js';
 //     (or, hang, hanging from its top), in the middle of column col. front: in front of the cat, as a
 //     cover. width: shown this wide (px), if not its own size.
 //   caves: { cols: [from, to], rows: [from, to] }: the dark inside of a cave in a cliff.
+//   flybys: { col, row, wake, dir }: a harmless pterodactyl that takes off from (col, row) as the cat
+//     passes column `wake`, and flies away up and to `dir` (-1 left, 1 right): birds live here.
 // A cover (a veil, or a prop in front) fades while the cat is behind it, so he can see himself, and
 // whoever looks closely finds what it hides.
 const DEPTH = { behind: 1.6, front: 7, cave: 1.55, prop: 2.1, inWater: 1.97 };
 const COVER = { alpha: 1, seen: 0.35, fadePerMs: 0.004 }; // seen: its alpha while he's behind it
 const VEIL_ALPHA = 0.85;
 const CAVE = { colour: 0x0f1a12, alpha: 0.88 };
+const FLYBY = { ms: 2600, across: 900, up: 700, scale: 0.8, flapMs: 110, depth: 1.5 }; // behind the level
 
 export class AdventureScenery {
   constructor(scene, level, art) {
+    this.scene = scene;
+    this.flybys = (level.flybys ?? []).map((flyby) => ({ ...flyby, gone: false }));
     this.covers = [];
     this.flows = [];
     const has = (name) => scene.textures.exists(art(name));
@@ -54,9 +60,24 @@ export class AdventureScenery {
     }
   }
 
+  // A harmless pterodactyl takes off and flies away, flapping, behind the level.
+  takeOff(flyby) {
+    flyby.gone = true;
+    const { scene } = this;
+    const dir = flyby.dir ?? -1;
+    const bird = scene.add.image(flyby.col * TILE + TILE / 2, flyby.row * TILE + TILE / 2, makeStandIn(scene), 'up')
+      .setScale(FLYBY.scale).setDepth(FLYBY.depth).setFlipX(dir > 0);
+    const flap = scene.time.addEvent({ delay: FLYBY.flapMs, loop: true, callback: () => bird.setFrame(bird.frame.name === 'up' ? 'down' : 'up') });
+    scene.tweens.add({
+      targets: bird, x: bird.x + dir * FLYBY.across, y: bird.y - FLYBY.up, duration: FLYBY.ms, ease: 'Sine.easeIn',
+      onComplete: () => { flap.remove(); bird.destroy(); },
+    });
+  }
+
   // Each frame: the water flows down, and covers fade while he's behind them.
   update(ms, cat) {
     for (const flow of this.flows) flow.tilePositionY -= (WATERFALL.speed * ms) / 1000;
+    for (const flyby of this.flybys) if (!flyby.gone && cat.x >= flyby.wake * TILE) this.takeOff(flyby);
     const { body } = cat;
     for (const cover of this.covers) {
       const { box } = cover;

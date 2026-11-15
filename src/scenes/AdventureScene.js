@@ -21,6 +21,7 @@ import { AdventureGates } from '../systems/adventure/AdventureGates.js';
 import { TRAPS } from '../data/adventure/traps.js';
 import { AdventureTraps } from '../systems/adventure/AdventureTraps.js';
 import { AdventureScenery } from '../systems/adventure/AdventureScenery.js';
+import { AdventureBird } from '../entities/AdventureBird.js';
 import { devPlace } from '../systems/adventure/devPlaces.js';
 import { AdventureCameraShots } from '../systems/adventure/AdventureCameraShots.js';
 import { FLASH, FLASH_KEY } from '../data/adventure/gunners.js';
@@ -173,6 +174,12 @@ export class AdventureScene extends Phaser.Scene {
       canLand: () => !this.climbing && !this.pullingUp,
     });
     this.traps.addColliders(this.cat, this.enemies, () => !this.climbing && !this.pullingUp);
+    // Pterodactyls (data/adventure/birds.js): they dive only at him on solid ground, never on a seat.
+    for (const bird of this.level.birds ?? []) {
+      this.enemies.add(new AdventureBird(this, bird, () => this.cat.onGround && !this.platforms.riding && !this.climbing));
+      this.enemies.getChildren().at(-1).ready();
+      this.totals.enemies += 1;
+    }
     this.moves = new AdventureMoves(this, this.cat, {
       art: this.art,
       groundLayer: this.groundLayer,
@@ -857,7 +864,7 @@ export class AdventureScene extends Phaser.Scene {
       this.knockOut(enemy);
       this.audio.playSfx('smash');
     } else {
-      this.hurt(enemy.x);
+      this.hurt(enemy.x, { soft: enemy.softHit });
     }
   }
 
@@ -959,7 +966,8 @@ export class AdventureScene extends Phaser.Scene {
     this.showHint('Checkpoint');
   }
 
-  hurt(fromX) {
+  // soft: no knock sideways (a bird's hit: over a wheel or the river, it would cost a second heart).
+  hurt(fromX, { soft = false } = {}) {
     if (this.hurtMs > 0 || !this.playing || this.moves.isFiringSpecial) return;
     this.moves.endDash();
     this.endPullUp();
@@ -968,6 +976,7 @@ export class AdventureScene extends Phaser.Scene {
     const away = this.cat.x < fromX ? -1 : 1;
     if (this.climbing) this.stopClimbing();
     this.cat.applyPenalty(PENALTY);
+    if (soft) return;
     this.cat.moveVelocity = away * HURT.knockX;
     this.cat.setVelocity(away * HURT.knockX, HURT.knockY);
   }
