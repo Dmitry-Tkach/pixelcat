@@ -9,9 +9,12 @@
 //   from the physics in config/gameConfig.js), if no ground is in the way;
 //   climb any ladder he's at, up to the island at its top or down to its foot;
 //   ride a moving log: anywhere along its path counts as somewhere to stand, as he can wait for it;
-//   stand on crumbling leaves, which hold him long enough to jump on.
+//   stand on crumbling leaves, which hold him long enough to jump on;
+//   bounce off a mushroom (data/adventure/traps.js), much higher than a jump (see mushroomReach).
 // Enemies and gunners don't block him: he can always knock them out or get past them.
-import { moverCells, readAdventureMap } from './adventureMap.js';
+import { MOVEMENT } from '../config/gameConfig.js';
+import { TRAPS } from '../data/adventure/traps.js';
+import { TILE, moverCells, readAdventureMap } from './adventureMap.js';
 
 // How many cells across he can jump, with a double jump, for each number of cells up (or down, as
 // negative). He really reaches about 6 up and 8 across at full speed; these leave a margin, so a
@@ -23,6 +26,20 @@ const reachAcross = (up) => JUMP_REACH[up] ?? (up < 0 ? 8 : 0);
 // What the camera shows of the way ahead, in cells, when he stands at an edge and it peeks over (see
 // LOOK in scenes/AdventureScene.js): this far ahead, this far below him, and this far above.
 export const VIEW = { ahead: 11, below: 9, up: 4 };
+
+// How far a bounce off a mushroom takes him: { up, across } in cells, from the mushroom's cell.
+// Worked out from its cap's height, its bounce and his second jump, then cut to SAFE_SHARE, as the
+// jump limits are,
+// so a player who isn't perfect still makes it. Across, he drifts a few cells as he rises.
+const SAFE_SHARE = 0.8;
+export const MUSHROOM_ACROSS = 3;
+export function mushroomReach(world) {
+  const mushroom = TRAPS[world]?.mushroom;
+  if (!mushroom) return null;
+  const { GRAVITY, AIR_JUMP_VELOCITY } = MOVEMENT;
+  const px = mushroom.height * mushroom.capTop + (mushroom.bounce ** 2 + AIR_JUMP_VELOCITY ** 2) / (2 * GRAVITY);
+  return { up: Math.floor((px * SAFE_SHARE) / TILE), across: MUSHROOM_ACROSS };
+}
 
 const SOLID_OBJECTS = new Set(['box', 'stone', 'bonus']);
 const PICKUPS = new Set(['coin', 'gem', 'heart', 'rage', 'weapon', 'ammo-standard', 'ammo-explosive', 'ammo-laser', 'ammo-freeze', 'ammo-fire', 'key', 'chest', 'silver-key', 'silver-chest', 'checkpoint']);
@@ -39,6 +56,8 @@ export function adventureRoutes(level) {
   const solid = (c, r) => isGround(c, r) || blocks.has(key(c, r));
   const logs = new Set((level.movers ?? []).flatMap((mover) => [...moverCells(mover)]));
   const leaves = new Set(objects.filter((o) => o.type === 'leaves').map((o) => key(o.col, o.row)));
+  const mushrooms = new Set((level.traps ?? []).filter((t) => t.kind === 'mushroom').map((t) => key(t.col, t.row)));
+  const bounce = mushroomReach(level.world);
   const floor = (c, r) => inside(c, r) && (tiles[r][c] >= 0 || blocks.has(key(c, r)) || logs.has(key(c, r)) || leaves.has(key(c, r)));
   const standable = (c, r) => inside(c, r) && r > 0 && !solid(c, r) && !solid(c, r - 1) && !spikes.has(key(c, r)) && floor(c, r + 1);
 
@@ -81,6 +100,15 @@ export function adventureRoutes(level) {
         for (let dc = -across; dc <= across; dc++) {
           const c2 = c + dc, r2 = r - up;
           if ((dc || up) && standable(c2, r2) && !solid(c, r - 2) && clearLine(c, r - 1, c2, r2 - 1)) visit(key(c2, r2));
+        }
+      }
+      // On a mushroom, he's thrown up high, and can land anywhere within its reach.
+      if (bounce && mushrooms.has(key(c, r))) {
+        for (let up = 1; up <= bounce.up; up++) {
+          for (let dc = -bounce.across; dc <= bounce.across; dc++) {
+            const c2 = c + dc, r2 = r - up;
+            if (standable(c2, r2) && clearLine(c, r - 1, c2, r2 - 1)) visit(key(c2, r2));
+          }
         }
       }
     }

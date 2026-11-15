@@ -24,50 +24,57 @@ const FLOOR = 30; // the forest floor's surface row: the cat stands on row 29
 
 const level = mapBuilder(COLS, ROWS).ground(0, COLS - 1, FLOOR);
 
-// ----- 1. The Root Path: a safe start. A stone to jump, a small spike pit, the first goon to land
-// on, and crates to climb.
+// ----- 1. The Root Path: a safe start, each thing met alone. A bounce mushroom to play with, and a
+// secret: a high island only the mushroom reaches, with a crystal, coins hinting at it. A stone to
+// jump, a small spike pit, the first goon to land on, the first crusher, slamming onto the safe
+// floor over a line of coins, and crates to climb.
 level.put(2, 29, '@').put(4, 29, '>').put(8, 29, 'b')
   .coins(6, 9, 28)
+  .trap('mushroom', 10, 29).coins(10, 10, 25).coins(10, 10, 23).island(9, 11, 21).put(10, 20, '*')
   .put(12, 29, 'X').arc(11, 13, 27, 1)
   .ground(16, 17, 33).put(16, 32, '^').put(17, 32, '^').arc(15, 18, 27, 2) // a pit, two spikes deep
   .put(22, 29, 'g').put(20, 29, 'p')
+  .trap('crusher', 24, 23).coins(23, 25, 28) // the first crusher: time the run under it for the coins
   .put(26, 29, 'B').put(27, 29, 'B').put(27, 28, 'B').coins(26, 27, 26);
 
 // ----- 2. Up the Roots: the first ladder, islands, a ? block, and the minigun, then a cone head to
-// try it on.
+// try it on, and the first dart idol, shooting back along the floor.
 level.island(30, 36, 25).ladder(31, 25, 29).put(34, 26, 'R')
   .coins(32, 35, 24)
   .island(39, 44, 22).put(41, 18, '?').put(43, 21, 'w').put(39, 21, '/')
   .arc(37, 38, 22, 1)
   .put(49, 29, 'c').coins(46, 48, 28)
-  // A bounce mushroom beside the minigun's island, a shortcut up; a dart idol shoots back along the floor.
-  .trap('mushroom', 45, 29).trap('idol', 52, 29, { facing: -1 });
+  .trap('idol', 51, 29, { facing: -1 }); // beside the crate step, not hiding it
 
 // ----- 3. The Gunner's Ledge: a raised ledge with a checkpoint. A blaster gunner shoots down from
-// an island above it, which a ladder climbs to, with a crate of rounds for whoever gets there.
+// the far end of an island above it, which a ladder climbs to, with a crate of rounds for whoever
+// gets there.
 level.put(53, 29, 'B').ground(54, 69, 26)
   .put(56, 25, 'C').coins(57, 59, 24).put(60, 25, 'g').put(68, 25, 'b')
-  .island(62, 67, 20).ladder(62, 20, 25).put(65, 19, '1').put(67, 19, 'a')
+  .island(62, 67, 20).ladder(62, 20, 25).put(67, 19, '1').put(65, 19, 'a')
   // A swinging mace on a gallows guards the ledge's end, before the drop into the hollow.
   .trap('mace', 67, 25, { facing: -1 });
 
 // ----- 4. Thorn Hollow: no floor at all, crossed on islands and a bridge. A crate of freeze rounds
-// on the first island, for the spiky enemy who holds the narrow middle island (he can't be stomped), a cone head the last, and a ray gun fires down from above. Above the spiky
-// one, a step leads up to the gunner's island, with a rage mushroom and a crystal.
+// on the first island, for the spiky enemy who holds the narrow middle island (he can't be stomped),
+// a cone head the last, and a blaster fires down from above. A crusher, met safely in the Root Path,
+// hangs under the gunner's island and slams onto the bridge. Above the spiky one, a step leads up
+// to the gunner's island, with a rage mushroom and a crystal.
 level.gap(70, 97)
   .island(72, 75, 27).arc(70, 71, 26, 1).put(74, 26, 'f')
   .bridge(78, 81, 27).coins(78, 81, 25)
-  .trap('crusher', 80, 22) // a crusher slams down onto the bridge
+  .trap('crusher', 80, 19) // hanging high under the gunner's island, it slams down onto the bridge
   .island(84, 87, 24).put(86, 23, 'v')
   .island(91, 94, 27).put(93, 26, 'c').coins(95, 96, 26)
   .island(88, 89, 21) // the step up
-  .island(78, 84, 18).put(82, 17, '2').put(80, 17, 'm').put(78, 17, '*').coins(79, 79, 17)
+  .island(78, 84, 18).put(82, 17, '1').put(80, 17, 'm').put(78, 17, '*').coins(79, 79, 17)
   // The way back down from up there, marked in coins: onto the step, then the last island.
   .put(86, 18, 'o').put(87, 19, 'o').put(90, 22, 'o').put(90, 24, 'o');
 
 // ----- 5. The Great Root: a checkpoint, a heart and a crate of fire rounds, then a tower of islands
-// zigzagging up, a goon and a cone head on the way, under a rifle gunner. Its top ledge, off the route, has the key and a
-// crystal.
+// zigzagging up, a goon and a cone head on the way, under a rifle gunner. The root's trunk, a wall
+// from the canopy to the floor, means the climb is the only way on. Its top ledge, off the route,
+// has the key and a crystal.
 level.put(100, 29, 'C').put(102, 29, '+').put(99, 29, 'b').put(103, 29, 'h')
   .island(104, 108, 26).ladder(104, 26, 29).put(107, 27, 'R').coins(105, 107, 25)
   .island(111, 116, 22).put(114, 21, 'g').arc(109, 110, 22, 2)
@@ -76,19 +83,23 @@ level.put(100, 29, 'C').put(102, 29, '+').put(99, 29, 'b').put(103, 29, 'h')
   .island(103, 108, 10).put(104, 9, '3').put(106, 9, 'k').put(108, 9, '*').put(102, 9, 'X')
   // The way down from the top ledge, and on up to the canopy, marked in coins.
   .put(109, 11, 'o').put(110, 12, 'o').put(116, 12, 'o').put(116, 11, 'o')
-  .put(118, 29, 'p').put(110, 29, 'g');
+  .put(110, 29, 'g')
+  .ground(117, 118, 11); // the trunk, under the canopy's first island: the floor below can't skip the climb
 
 // ----- 6. The Canopy: high islands with the level's longest jumps. A laser crate to start, a cone
-// head, a blaster guarding the chest, and a spiky one. A ladder climbs back up from the floor below
-// for whoever falls.
+// head, and a blaster at the far end of the chest's island. A ladder climbs back up from the floor
+// below for whoever falls, past spikes.
 level.island(117, 122, 10).put(118, 9, 'C').put(120, 9, 'z')
-  .island(127, 131, 8).put(129, 7, 'c').put(129, 4, '*').arc(123, 126, 9, 2)
-  .island(133, 140, 11).ladder(134, 11, 29).put(137, 10, '1').put(139, 10, 'T').arc(132, 132, 9, 0).put(133, 10, 'o')
-  .island(143, 147, 7).put(145, 6, 'v').coins(141, 142, 8)
+  .island(127, 131, 8).put(129, 7, 'c').arc(123, 126, 9, 2)
+  .island(133, 140, 11).ladder(134, 11, 29).put(140, 10, '1').put(137, 10, 'T').arc(132, 132, 9, 0).put(133, 10, 'o')
+  .coins(141, 142, 8)
   .put(130, 29, 'g').put(142, 29, 'c').put(126, 29, '+').coins(136, 140, 28);
 
-// ----- 7. The Portal Tree: one last jump to the portal, past a goon.
-level.island(151, 157, 6).put(152, 5, 's').put(154, 5, 'g').put(155, 5, 'E').put(158, 5, 'X').arc(148, 150, 6, 1)
+// ----- 7. The Portal Tree: the finale. Crumbling leaves that won't hold him for long, under fire
+// from a dart idol guarding the portal, spikes below for whoever falls, and a goon by the portal.
+level.put(143, 7, '%').put(144, 7, '%').put(145, 7, '%').put(146, 7, '%').put(147, 7, '%')
+  .ground(146, 149, 31).put(146, 30, '^').put(147, 30, '^').put(148, 30, '^').put(149, 30, '^') // a spike pit under the leaves
+  .island(151, 158, 6).trap('idol', 152, 5, { facing: -1 }).put(154, 5, 'g').put(156, 5, 'E').put(159, 5, 'X').arc(148, 150, 6, 1)
   .put(158, 29, 'b');
 
 export const WOOD_LEVEL = {

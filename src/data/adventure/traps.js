@@ -36,7 +36,7 @@ export const TRAPS = {
       fallSpeed: 1500, // px a second, once it's dropping (it speeds up to this)
       fallAccel: 6000,
       downMs: 450, // resting on the ground after the slam
-      riseSpeed: 110, // px a second, lifting slowly back
+      riseSpeed: 160, // px a second, lifting slowly back
       hitInset: 10, // px off each side of the picture that don't hurt (its soft moss edges)
       shakeIfWithin: 700, // px from the camera's middle: the slam shakes the screen
     },
@@ -53,7 +53,8 @@ export const TRAPS = {
     },
     mushroom: {
       calm: 'trap-mushroom', squashed: 'trap-mushroom-squashed', height: 96, sink: 6, depth: 3.5,
-      bounce: -1480, // the cat's speed up off it (a normal jump is -1104): about 6 tiles high
+      bounce: -1700, // the cat's speed up off it (a normal jump is -1104): about 8.5 tiles high
+      capTop: 0.9, // where he lands on it: this share of its height above its foot
       capShare: 0.8, // the share of its width he can land on
       squashMs: 140, // how long it stays squashed
     },

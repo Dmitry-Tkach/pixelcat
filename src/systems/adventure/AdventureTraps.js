@@ -78,7 +78,7 @@ export class AdventureTraps {
     const r = this.rules.mushroom;
     const image = this.scene.add.image(x, feet + r.sink, this.art(r.calm)).setOrigin(0.5, 1).setDepth(r.depth);
     // He lands on the cap's top, a little under the picture's top edge (its round dome).
-    this.mushrooms.push({ image, cap: { x, top: image.y - image.height * 0.9, half: (image.width * r.capShare) / 2 }, squashMs: 0, rules: r });
+    this.mushrooms.push({ image, cap: { x, top: image.y - image.height * r.capTop, half: (image.width * r.capShare) / 2 }, squashMs: 0, rules: r });
   }
 
   near(x, y, within) {
