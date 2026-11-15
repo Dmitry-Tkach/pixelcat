@@ -24,9 +24,11 @@ export function iceAfter(msLeft, ms, { ms: total, crackMs } = FREEZE) {
 // one frosts it more (frostTints, lightest first); with no round for frostFadeMs, the frost melts.
 //   kinds: the traps a freeze round freezes. ms: how long the ice lasts. crackMs: how long before
 //   thawing it cracks and shakes. pad: px the ice is bigger than the trap each way. ballShare: half
-//   a mace ball's ice block, as a share of the ball's height.
+//   a mace ball's ice block, as a share of the ball's height. underReach: px under a mace's ball
+//   that a freeze round still frosts it: the balls swing above his gun, and a slide passes under
+//   them, so a round fired standing would otherwise always miss.
 export const TRAP_FREEZE = {
-  kinds: ['mace', 'crusher', 'idol'], ms: 5000, crackMs: 1000, pad: 8, ballShare: 0.4,
+  kinds: ['mace', 'crusher', 'idol'], ms: 5000, crackMs: 1000, pad: 8, ballShare: 0.4, underReach: 60,
   shots: 3, frostFadeMs: 2500, frostTints: [0xe2f4ff, 0xc0e8ff],
 };
 

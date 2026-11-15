@@ -67,10 +67,7 @@ level.put(53, 29, 'B').ground(54, 69, 26)
   .trap('mace', 59, 20, { hanging: true, chain: 237, swingDeg: 30, periodMs: MACE_WAVE.periodMs, phaseMs: 0 })
   .trap('mace', 62, 20, { hanging: true, chain: 237, swingDeg: 30, periodMs: MACE_WAVE.periodMs, phaseMs: -MACE_WAVE.lagMs, crate: true })
   .put(61, 25, 'X') // a stone where the two hanging maces' swings meet: a slide stops at it, so jump it in time
-  .arc(60, 61, 23, 1).arc(64, 65, 23, 1) // coins among the swings, for the brave
-  // A goon past the maces walks toward the cat, into the wave, and is knocked out on screen: the
-  // maces hit enemies too, which the player can use later.
-  .put(67, 25, 'g');
+  .arc(60, 61, 23, 1).arc(64, 65, 23, 1); // coins among the swings, for the brave
 
 // ----- 4. Thorn Hollow: no floor at all, crossed on islands and a bridge. A crate of freeze rounds
 // on the first island, for the spiky enemy who holds the narrow middle island (he can't be stomped),
@@ -88,12 +85,15 @@ level.gap(70, 97)
   // The way back down from up there, marked in coins: onto the step, then the last island.
   .put(86, 18, 'o').put(87, 19, 'o').put(90, 22, 'o').put(90, 24, 'o');
 
-// ----- 5. The Great Root: a checkpoint, a heart and a crate of fire rounds, and the first dart idol,
+// ----- 5. The Great Root: a checkpoint, a heart, crates of fire and freeze rounds, and the first dart idol,
 // alone on the floor, its darts reaching the foot of the ladder: time the climb. Then a tower of
 // islands zigzagging up, a goon and a cone head on the way, under a rifle gunner. The root's trunk, a wall
 // from the canopy to the floor, means the climb is the only way on. Its top ledge, off the route,
 // has the key.
-level.put(100, 29, 'C').put(102, 29, '+').put(99, 29, 'b').put(103, 29, 'h')
+// Freezing a trap is taught here: a fire crate, then a freeze crate, so freeze is what he's holding.
+// From beside them he can freeze the goon (one round) and the idol (three), out of its darts' reach,
+// and climb in peace while they're ice.
+level.put(100, 29, 'C').put(102, 29, '+').put(99, 29, 'b').put(101, 29, 'h').put(103, 29, 'f')
   .island(104, 108, 26).ladder(104, 26, 29).put(107, 27, 'R').coins(105, 107, 25)
   .island(111, 116, 22).put(114, 21, 'g').arc(109, 110, 22, 2)
   .island(104, 109, 18).put(105, 17, 'e').coins(107, 109, 17)
@@ -107,18 +107,22 @@ level.put(100, 29, 'C').put(102, 29, '+').put(99, 29, 'b').put(103, 29, 'h')
 
 // ----- 6. The Canopy: high islands and wide jumps. A laser crate to start, a cone head, and a
 // blaster at the far end of the chest's island, with a mace on a gallows swinging over the chest.
-// Water under the jumps, so a miss costs a heart. Past them, a floor with a ladder back up, and a
+// Water under the jumps, crumbling leaves among them, so a miss costs a heart. The chest's mace can
+// be frozen (the freeze crate in the Great Root), to open the chest safely; its ice is a second way
+// up to the secret. Past them, a floor with a ladder back up, and a
 // hidden crystal high above, for whoever tries the mushroom.
 level.island(117, 122, 10).put(118, 9, 'C').put(120, 9, 'z')
-  .island(127, 131, 8).put(129, 7, 'c').arc(123, 126, 9, 2)
+  .island(129, 131, 8).put(129, 7, 'c').arc(123, 126, 9, 2)
+  .put(125, 10, '%').put(126, 10, '%') // crumbling leaves over the water, learnt over floor in Up the Roots
   .island(133, 142, 11).ladder(134, 11, 29).put(142, 10, '1').put(137, 10, 'T')
   .arc(132, 132, 9, 0).put(133, 10, 'o')
-  .trap('mace', 139, 10, { facing: -1 }) // beside the gunner, over the chest
+  .trap('mace', 139, 10, { facing: -1 }) // beside the gunner, over the chest: freeze it to open the chest in peace
   .coins(141, 142, 8)
   .put(138, 29, 'c').put(136, 29, '+').coins(136, 140, 28)
   // A secret: a bounce mushroom on the chest's island throws the cat high above the canopy, out of
   // the camera's view, to a hidden island with a crystal.
-  .trap('mushroom', 135, 10).island(135, 137, 3).put(136, 2, '*');
+  .trap('mushroom', 135, 10).island(135, 137, 3).put(136, 2, '*')
+  .coins(134, 134, 5).coins(134, 134, 7); // the way down from it: to the left, clear of the mace
 // Water under the canopy's jumps: a missed jump costs a heart, and he's back at the checkpoint just
 // above. Past a trunk, a floor down the ladder, with a heart and coins.
 level.gap(119, 132)

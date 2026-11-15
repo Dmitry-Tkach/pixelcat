@@ -391,7 +391,7 @@ export class AdventureTraps {
     for (const shot of this.shotList().slice()) {
       if (!shot.active || !shot.ammo?.freeze) continue;
       const at = { left: shot.x - SHOT_HALF, right: shot.x + SHOT_HALF, top: shot.y - SHOT_HALF, bottom: shot.y + SHOT_HALF };
-      const hit = this.freezableTraps().find(({ rect }) => rectsTouch(rect, at));
+      const hit = this.freezableTraps().find(({ rect, hitRect = rect }) => rectsTouch(hitRect, at));
       if (!hit) continue;
       this.freeze(hit);
       this.shotLanded(shot);
@@ -412,7 +412,13 @@ export class AdventureTraps {
   // The traps a freeze round can freeze, each with where its ice goes.
   freezableTraps() {
     const list = [];
-    if (canFreezeTrap('mace')) for (const mace of this.maces) list.push({ kind: 'mace', trap: mace, rect: this.maceBlock(mace) });
+    if (canFreezeTrap('mace')) {
+      for (const mace of this.maces) {
+        const rect = this.maceBlock(mace);
+        // A round passing just under the ball frosts it too (TRAP_FREEZE.underReach).
+        list.push({ kind: 'mace', trap: mace, rect, hitRect: { ...rect, bottom: rect.bottom + TRAP_FREEZE.underReach } });
+      }
+    }
     if (canFreezeTrap('crusher')) for (const crusher of this.crushers) list.push({ kind: 'crusher', trap: crusher, rect: this.crusherRect(crusher) });
     if (canFreezeTrap('idol')) for (const idol of this.idols) list.push({ kind: 'idol', trap: idol, rect: idol.stone });
     return list;
