@@ -5,7 +5,8 @@ import { ADVENTURE_ART, ADVENTURE_LEVELS, adventurePath } from '../src/data/adve
 import { mapBuilder } from '../src/data/adventure/mapBuilder.js';
 import {
   MACE_SWING_LOW, SLIDE_HEIGHT, STAND_HEIGHT, circleHitsRect, crusherAngry, crusherContact, crusherCrushes, crusherStart,
-  crusherStep, guardianBall, guardianGeometry, guardianPhase, guardianSwing, landsOnCap, maceAngle, maceHook, swingPoint,
+  crusherStep, guardianBall, guardianFireColumn, guardianFirePhase, guardianGeometry, guardianPhase, guardianSwing, landsOnCap,
+  maceAngle, maceHook, swingPoint,
   trapProblems,
 } from '../src/systems/adventure/trapLogic.js';
 import { TILE, checkAdventureLevel, readAdventureMap } from '../src/systems/adventureMap.js';
@@ -220,11 +221,11 @@ describe('the stone guardian', () => {
     expect(guardianBall(right, most).x).toBeGreaterThan(guardianBall(right, 0).x);
   });
 
-  // A path along row 15, and his platform of stones four cells up.
+  // A path along row 15, and his platform of stones five cells up.
   const guardianLevel = (stones = [8, 9, 10, 11]) => {
     const builder = mapBuilder(20, 16).ground(0, 19, 15);
-    for (const c of stones) builder.put(c, 11, 'X');
-    builder.trap('guardian', 10, 10);
+    for (const c of stones) builder.put(c, 10, 'X');
+    builder.trap('guardian', 10, 9);
     const level = { world: 'wood', map: builder.rows(), traps: builder.traps() };
     return trapProblems(level, readAdventureMap(level.map));
   };
@@ -246,5 +247,33 @@ describe('the stone guardian', () => {
       const over = c >= guardian.col - 2 && c < guardian.col + 2 && row <= guardian.row;
       expect(over, cell).toBe(false);
     }
+  });
+
+  it('pours fire from his mouth after a warning, now and then, never before he has swung once', () => {
+    const f = r.fire;
+    expect(guardianFirePhase(f.startMs, f)).toBe('idle'); // too soon after he wakes
+    const first = Math.ceil(f.firstAfterMs / f.everyMs) * f.everyMs + f.startMs;
+    expect(guardianFirePhase(first - f.warnMs / 2, f)).toBe('warn');
+    expect(guardianFirePhase(first + f.pourMs / 2, f)).toBe('pour');
+    expect(guardianFirePhase(first + f.pourMs + 10, f)).toBe('idle');
+  });
+
+  it('pours only while one mace rests low (a slide gets out under it) and the other isn\'t striking', () => {
+    const f = r.fire;
+    for (let ms = f.firstAfterMs; ms < f.firstAfterMs + f.everyMs * 3; ms += 25) {
+      if (guardianFirePhase(ms, f) !== 'pour') continue;
+      const arms = [guardianPhase(ms, r), guardianPhase(ms + r.periodMs / 2, r)];
+      expect(arms.includes('rest'), `${ms} ms: ${arms}`).toBe(true);
+      expect(arms.includes('strike'), `${ms} ms: ${arms}`).toBe(false);
+    }
+  });
+
+  it('pours onto the safe middle, between his two maces at rest', () => {
+    const trap = { col: 162, row: 16 };
+    const { arms } = guardianGeometry(trap, r);
+    const column = guardianFireColumn(trap, r, 1408);
+    expect(column.left).toBeGreaterThan(guardianBall(arms[0], 0).x);
+    expect(column.right).toBeLessThan(guardianBall(arms[1], 0).x);
+    expect(column.top).toBeLessThan(column.bottom);
   });
 });

@@ -1,8 +1,9 @@
+import Phaser from 'phaser';
 import { ONE_WAY, TILE } from '../adventureMap.js';
 import { landsFromAbove, staysOn } from '../adventurePlatformLanding.js';
 import {
   circleHitsRect, crusherAngry, crusherContact, crusherCrushes, crusherStart, crusherStep, floorRow, guardianBall,
-  guardianGeometry, guardianPhase, guardianSolid, guardianSwing, landsOnCap, maceAngle, maceHook, rectsTouch, swingPoint,
+  guardianFireColumn, guardianFirePhase, guardianGeometry, guardianPhase, guardianSolid, guardianSwing, landsOnCap, maceAngle, maceHook, rectsTouch, swingPoint,
 } from './trapLogic.js';
 
 // Builds a level's moving traps (data/adventure/traps.js) and moves them each frame, while play is
@@ -12,7 +13,7 @@ import {
 // The crusher and the idol are solid: he can stand on them (addColliders). The crusher carries him
 // as it moves, as a moving log does, and hurts only by falling on him; waiting or lifting, it's
 // stone he bumps his head on.
-const SOUNDS = { slam: 'smash', dart: 'shot', bounce: 'bounce' };
+const SOUNDS = { slam: 'smash', dart: 'shot', bounce: 'bounce', pour: 'ignite' };
 const SHADOW_KEY = 'trap-shadow'; // a soft dark ellipse, drawn once
 const TRAIL_HISTORY = 8; // frames of the ball's places kept, for its fading copies
 const ENEMY_NEAR = 300; // px across: enemies further than this from a mace's ball aren't checked
@@ -203,7 +204,58 @@ export class AdventureTraps {
     // His stone is solid: he can't be passed through, stood beside, or got over.
     const solid = guardianSolid(trap, r);
     this.idolBodies.add(this.scene.add.zone((solid.left + solid.right) / 2, (solid.top + solid.bottom) / 2, solid.right - solid.left, solid.bottom - solid.top));
-    this.guardians.push({ body, awake, arms, woke: false, rules: r });
+    this.guardians.push({ body, awake, arms, woke: false, rules: r, fire: this.buildGuardianFire(trap, r), firePhase: 'idle' });
+  }
+
+  // His mouth fire: a glow at his mouth and on the path where it will land, then a pouring stream of
+  // flame, splashing sparks where it hits the path.
+  buildGuardianFire(trap, r) {
+    const f = r.fire;
+    const platformRow = trap.row + 1;
+    const mouthX = guardianGeometry(trap, r).left + f.mouth.x * r.bodySize.w;
+    const pathY = (floorRow(this.layout.tiles, Math.floor(mouthX / TILE), platformRow + 1) ?? this.layout.rows) * TILE;
+    const column = guardianFireColumn(trap, r, pathY);
+    const mouthGlow = this.scene.add.image(mouthX, column.top, 'fx-dot').setTint(f.colours[1]).setBlendMode(Phaser.BlendModes.ADD).setDepth(r.depth + 0.2).setScale(0);
+    this.makeShadowTexture();
+    const groundGlow = this.scene.add.image(mouthX, pathY, SHADOW_KEY).setTint(f.colours[2]).setBlendMode(Phaser.BlendModes.ADD).setDepth(3.4)
+      .setScale(f.width / 64 * 1.2, 1.4).setAlpha(0);
+    const fall = pathY - column.top;
+    const stream = this.scene.add.particles(mouthX, column.top, 'fx-dot', {
+      emitting: false, frequency: 16, quantity: 3, speedY: { min: 760, max: 900 }, speedX: { min: -f.width / 3, max: f.width / 3 },
+      gravityY: 500, lifespan: Math.round((1000 * fall) / 900), scale: { start: 1.15, end: 0.55 }, alpha: { start: 1, end: 0.6 },
+      tint: f.colours, blendMode: 'ADD',
+    }).setDepth(3.6);
+    const sparks = this.scene.add.particles(mouthX, pathY - 6, 'fx-dot', {
+      emitting: false, lifespan: 420, speed: { min: 120, max: 300 }, angle: { min: 200, max: 340 }, gravityY: 700,
+      scale: { start: 0.5, end: 0 }, tint: f.colours, blendMode: 'ADD',
+    }).setDepth(3.6);
+    return { column, mouthGlow, groundGlow, stream, sparks, sparkMs: 0 };
+  }
+
+  updateGuardianFire(guardian, ms, catRect) {
+    const { fire, rules: r } = guardian;
+    const phase = guardianFirePhase(guardian.arms[0].ms, r.fire);
+    const warn = phase === 'warn', pour = phase === 'pour';
+    // The glows grow as the warning goes on, and flicker while it pours.
+    const target = warn ? 0.9 : pour ? 0.8 + Math.random() * 0.3 : 0;
+    fire.mouthGlow.setScale(fire.mouthGlow.scale + (target - fire.mouthGlow.scale) * Math.min(1, ms / 120));
+    fire.groundGlow.setAlpha(fire.groundGlow.alpha + ((warn ? 0.55 : pour ? 0.8 : 0) - fire.groundGlow.alpha) * Math.min(1, ms / 150));
+    if (pour !== (guardian.firePhase === 'pour')) {
+      if (pour) {
+        fire.stream.start();
+        this.sound('pour', fire.column.x, fire.column.bottom);
+      } else {
+        fire.stream.stop();
+      }
+    }
+    guardian.firePhase = phase;
+    if (!pour) return;
+    fire.sparkMs -= ms;
+    if (fire.sparkMs <= 0) {
+      fire.sparkMs = 90;
+      fire.sparks.explode(4);
+    }
+    if (rectsTouch(fire.column, catRect)) this.hurt(fire.column.x);
   }
 
   // He wakes the first time he's well in view: he lights up and roars, the ground shakes, and his
@@ -219,6 +271,7 @@ export class AdventureTraps {
       this.scene.effects.dust(body.x - body.width * 0.3, body.y, 8);
       this.scene.effects.dust(body.x + body.width * 0.3, body.y, 8);
     }
+    this.updateGuardianFire(guardian, ms, catRect);
     for (const a of guardian.arms) {
       a.ms += ms;
       const swing = guardianSwing(a.ms, r);

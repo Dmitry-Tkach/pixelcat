@@ -93,8 +93,8 @@ export const TRAPS = {
         { shoulder: { x: 0.19, y: 0.128 }, chainEnd: { x: 0.558, y: 1 } },
       ],
       ballHeight: 110, ballMiddle: 0.56, hitShare: 0.36,
-      chain: 9, // px from his fist to the ball's ring: on a platform four cells over the path, the ball hangs right under his fist
-      swingDeg: 50, // how far each arm winds up, outward from hanging straight down
+      chain: 73, // px from his fist to the ball's ring, for a platform five cells over the path
+      swingDeg: 56, // how far each arm winds up, outward from hanging straight down
       periodMs: 3600, // one swing of an arm; the other is half a swing behind
       // Each swing's parts, as shares of periodMs: resting low (a slide passes under), rising
       // outward (the warning), holding up there, and the strike back down, fast.
@@ -104,6 +104,15 @@ export const TRAPS = {
       wakeInset: 120, // px inside the camera's view: once he's this far in view, he wakes
       wakeMs: 600, // his eyes and runes lighting up
       sounds: { roar: 'guardianRoar', whoosh: 'maceWhoosh', creak: 'maceCreak', heardWithin: 1100 },
+      // Fire from his mouth, poured straight down onto the path under him, so the middle isn't safe for
+      // long. His mouth glows, and the path glows where it will land (warnMs), then it pours (pourMs).
+      // It comes every everyMs, startMs into each, on his arms' clock, timed so that one arm rests low
+      // (a slide gets out under it) and the other is up and away. Not before firstAfterMs.
+      fire: {
+        mouth: { x: 0.5, y: 0.29 }, width: 110,
+        everyMs: 7200, startMs: 1850, warnMs: 750, pourMs: 1050, firstAfterMs: 3600,
+        colours: [0xfff0a0, 0xffb02a, 0xff5a1a],
+      },
     },
   },
 };

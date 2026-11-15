@@ -164,6 +164,24 @@ export function guardianGeometry(trap, r) {
   return { x, feet, left, top, chain, arms };
 }
 
+// Whether the guardian's mouth fire is 'idle', 'warn' (glowing) or 'pour' at a moment on his arms'
+// clock (data/adventure/traps.js, guardian.fire).
+export function guardianFirePhase(ms, { everyMs, startMs, warnMs, pourMs, firstAfterMs }) {
+  if (ms < firstAfterMs) return 'idle';
+  const t = ms % everyMs;
+  if (t >= startMs && t < startMs + pourMs) return 'pour';
+  if (t >= startMs - warnMs && t < startMs) return 'warn';
+  return 'idle';
+}
+
+// Where his fire pours, in px ({ left, right, top, bottom }): from his mouth straight down to the path.
+export function guardianFireColumn(trap, r, pathY) {
+  const { x, left, top } = guardianGeometry(trap, r);
+  const { mouth, width } = r.fire;
+  const mouthX = left + mouth.x * r.bodySize.w;
+  return { left: mouthX - width / 2, right: mouthX + width / 2, top: top + mouth.y * r.bodySize.h, bottom: pathY, x };
+}
+
 // The guardian's solid stone, in px ({ left, right, top, bottom }): he blocks the cat, and fills his
 // platform, so there's no standing beside him or getting over him.
 export function guardianSolid(trap, r) {

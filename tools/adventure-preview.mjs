@@ -21,7 +21,7 @@ import { waterRuns } from '../src/systems/adventure/water.js';
 import { GATES } from '../src/data/adventure/gates.js';
 import { portalPosts } from '../src/systems/adventure/gatePlacement.js';
 import { TRAPS } from '../src/data/adventure/traps.js';
-import { floorRow, guardianBall, guardianGeometry, maceHook } from '../src/systems/adventure/trapLogic.js';
+import { floorRow, guardianBall, guardianFireColumn, guardianGeometry, maceHook } from '../src/systems/adventure/trapLogic.js';
 
 const [out, index = '0'] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const routes = process.argv.includes('--routes');
@@ -180,6 +180,13 @@ for (const trap of level.traps ?? []) {
       const px = (shoulder.x - 0.5) * w, py = (shoulder.y - 0.5) * h, c = Math.cos(arm.restTurn), sn = Math.sin(arm.restTurn);
       const sx = tw / 2 + px * c - py * sn, sy = th / 2 + px * sn + py * c;
       comps.push({ input: turned, left: Math.round(arm.socket.x * SCALE - sx), top: Math.round(arm.socket.y * SCALE - sy) });
+      if (i === 0) {
+        // His fire's column, from his mouth down to the path, in orange dots.
+        const mouthCol = Math.floor((geo.left + r.fire.mouth.x * r.bodySize.w) / TILE);
+        const column = guardianFireColumn(trap, r, (floorRow(tiles, mouthCol, trap.row + 2) ?? rows) * TILE);
+        await dots(column.left, column.top, column.left, column.bottom, '#ff9a20');
+        await dots(column.right, column.top, column.right, column.bottom, '#ff9a20');
+      }
       // A dotted arc where the ball swings, out to its widest.
       for (let a = 0; a <= r.swingDeg; a += 5) {
         const at = guardianBall(arm, (a * Math.PI) / 180);

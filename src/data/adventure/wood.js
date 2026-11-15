@@ -110,8 +110,8 @@ level.gap(142, COLS - 1).put(141, 29, 'X') // the floor ends at a stone: water f
   .put(144, 14, '%').put(145, 14, '%').put(146, 14, '%')
   .island(148, 150, 18).put(149, 17, 'C') // out of the maces' reach
   .island(152, COLS - 1, 22)
-  .put(160, 18, 'X').put(161, 18, 'X').put(162, 18, 'X').put(163, 18, 'X') // his platform, four cells up: his solid body fills it
-  .trap('guardian', 162, 17)
+  .put(160, 17, 'X').put(161, 17, 'X').put(162, 17, 'X').put(163, 17, 'X') // his platform, five cells up: his solid body fills it
+  .trap('guardian', 162, 16)
   .coins(161, 162, 20) // safe under him
   .put(175, 21, 'E');
 
@@ -133,9 +133,9 @@ export const WOOD_LEVEL = {
   camera: {
     shots: [
       { when: { cols: [54, 56], rows: [24, 25] }, look: { col: 62.5, row: 22.5 }, panMs: 800, holdMs: 1800 },
-      { when: { cols: [148, 150], rows: [17, 17] }, look: { col: 162, row: 16.8 }, panMs: 1100, holdMs: 2400 },
+      { when: { cols: [148, 150], rows: [17, 17] }, look: { col: 162, row: 16.35 }, panMs: 1100, holdMs: 2400 },
     ],
-    zones: [{ cols: [151, COLS - 1], rows: [12, 23], middleRow: 16.8 }],
+    zones: [{ cols: [151, COLS - 1], rows: [12, 23], middleRow: 16.35 }],
   },
   // Places to start at while developing, with /adventure.html?at=<name> (systems/adventure/devPlaces.js).
   places: {
