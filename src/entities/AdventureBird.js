@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { BIRD, birdHome, diveAt, hoverY, inReach } from '../data/adventure/birds.js';
+import { BIRD, PTERO_FRAMES, birdHome, diveAt, hoverY, inReach } from '../data/adventure/birds.js';
 import { FREEZE } from '../data/adventure/freeze.js';
 import { breakIce, isFrozen, updateIce } from '../systems/adventure/iceBlocks.js';
 import { putOut, updateBurn } from '../systems/adventure/burning.js';
@@ -10,8 +10,8 @@ import { TILE } from '../systems/adventureMap.js';
 // on it as on them; it has no gravity, so frozen it hangs in the air, a block to stand on.
 // canTarget(): whether the cat may be dived at now (on solid ground, not riding a wheel).
 //
-// Until the owner's art (prompts/forest-level/14-pterodactyl.md) is ready it's drawn in code: an
-// orange-red body, red-brown wings up, down or folded, a yellow beak and crest.
+// Its frames are the owner's (data/adventure/birds.js, PTERO_FRAMES). Without them, it's drawn in
+// code: an orange-red body, red-brown wings up, down or folded, a yellow beak and crest.
 const STAND_IN = { key: 'adventure-ptero-standin', w: 128, h: 80 };
 const SHOT_FLASH_MS = 70;
 const WARN_FLASH = { tint: 0xfff27a, everyMs: 90 };
@@ -21,6 +21,11 @@ export class AdventureBird extends Phaser.Physics.Arcade.Sprite {
     makeStandIn(scene);
     const home = birdHome({ col, row });
     super(scene, home.x, home.y, STAND_IN.key, 'up');
+    // The owner's frames, by name, if they're there; else null, and the stand-in's frames.
+    this.drawn = scene.textures.exists(scene.art('ptero-fly-0'))
+      ? Object.fromEntries(Object.keys(PTERO_FRAMES).map((name) => [name, scene.art(`ptero-${name}`)]))
+      : null;
+    if (this.drawn) this.setTexture(this.drawn['fly-0']); // before its body is sized, so it's centred on it
     this.kind = kind;
     this.info = BIRD;
     this.home = home;
@@ -84,7 +89,7 @@ export class AdventureBird extends Phaser.Physics.Arcade.Sprite {
         break;
       case 'warning':
         this.setVelocity(0, 0);
-        this.setFrame('spread');
+        this.pose('spread', `screech-${Math.min(2, Math.floor((3 * this.ms) / BIRD.warnMs))}`);
         if (Math.floor(this.ms / WARN_FLASH.everyMs) % 2) this.setTintFill(WARN_FLASH.tint);
         else this.clearTint();
         if (this.ms >= BIRD.warnMs) {
@@ -95,7 +100,7 @@ export class AdventureBird extends Phaser.Physics.Arcade.Sprite {
         }
         break;
       case 'diving': {
-        this.setFrame('dive');
+        this.pose('dive', `dive-${Math.min(2, Math.floor(this.ms / 90))}`);
         const flown = Math.hypot(this.x - this.from.x, this.y - this.from.y);
         if (flown >= this.aim.distance || this.body.blocked.down || this.body.blocked.left || this.body.blocked.right) this.enter('returning');
         break;
@@ -136,8 +141,14 @@ export class AdventureBird extends Phaser.Physics.Arcade.Sprite {
   }
 
   flap(how) {
-    if (how === 'glide') this.setFrame('spread');
-    else this.setFrame(Math.floor(this.clock / BIRD.flapMs) % 2 ? 'down' : 'up');
+    if (how === 'glide') this.pose('spread', `glide-${Math.floor(this.clock / (BIRD.flapMs * 4)) % 2}`);
+    else this.pose(Math.floor(this.clock / BIRD.flapMs) % 2 ? 'down' : 'up', `fly-${Math.floor(this.clock / BIRD.flapMs) % 6}`);
+  }
+
+  // Shows a pose: the owner's frame `name` if it has its art, else the stand-in's frame.
+  pose(standIn, name) {
+    if (this.drawn) this.setTexture(this.drawn[name]);
+    else this.setFrame(standIn);
   }
 
   // Stands still, for when the level ends.
@@ -159,7 +170,11 @@ export class AdventureBird extends Phaser.Physics.Arcade.Sprite {
     putOut(this);
     this.dead = true;
     this.body.enable = false;
-    this.setFrame('spread').clearTint();
+    this.clearTint();
+    this.pose('spread', 'hit-0');
+    this.scene.time.delayedCall(120, () => this.pose('spread', 'hit-1'));
+    this.scene.time.delayedCall(260, () => this.pose('spread', 'fall-0'));
+    this.scene.time.delayedCall(520, () => this.pose('spread', 'fall-1'));
     this.scene.tweens.add({
       targets: this, y: this.y + 420, angle: 200 * this.direction, alpha: 0, duration: 900, ease: 'Quad.easeIn',
       onComplete: () => this.destroy(),

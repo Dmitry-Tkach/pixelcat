@@ -3,6 +3,7 @@
 import { WOOD_LEVEL } from './wood.js';
 import { WOOD_MILL_LEVEL } from './wood2.js';
 import { MILL_ART } from './millArt.js';
+import { PTERO_KEYS } from './birds.js';
 
 export const ADVENTURE_LEVELS = [
   { ...WOOD_LEVEL, music: { track: 'village', bpm: 112 }, sky: '#8fd18f' },
@@ -30,6 +31,8 @@ export const ADVENTURE_ART = {
     'guardian-body', 'guardian-awake', 'guardian-arm-left', 'guardian-arm-right', 'guardian-ball', 'guardian-chain',
     // Mill Falls (level 2): the water wheel, waterfalls and props (data/adventure/millArt.js).
     ...MILL_ART,
+    // The pterodactyl's frames (data/adventure/birds.js).
+    ...PTERO_KEYS,
   ],
 };
 

@@ -59,3 +59,13 @@ export function diveAt(bx, by, x, y, { diveSpeed, angle, overshoot } = BIRD) {
 export function hoverY(homeY, ms, { hover } = BIRD) {
   return homeY - Math.sin((2 * Math.PI * ms) / hover.periodMs) * hover.loop * TILE;
 }
+
+// The owner's pterodactyl (prompts/forest-level/14-pterodactyl.md), cut by tools/adventure-ptero-art.mjs
+// into square frames `cell` px across, facing left. Where each frame is on the sheet (row, column).
+export const PTERO_ART = { cell: 160 };
+const run = (name, row, from, count) => Object.fromEntries(Array.from({ length: count }, (_, i) => [`${name}-${i}`, { row, col: from + i }]));
+export const PTERO_FRAMES = {
+  ...run('fly', 0, 0, 6), ...run('screech', 1, 0, 3), ...run('dive', 1, 3, 3),
+  ...run('hit', 2, 0, 2), ...run('fall', 2, 2, 2), ...run('glide', 2, 4, 2),
+};
+export const PTERO_KEYS = Object.keys(PTERO_FRAMES).map((name) => `ptero-${name}`);
