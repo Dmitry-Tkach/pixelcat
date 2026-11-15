@@ -2,7 +2,9 @@
 // traps beside its map, with mapBuilder's trap(kind, col, row, options), like its moving logs:
 //   mace      a spiked ball swinging on a chain, from a gallows standing at (col, row), or, with
 //             { hanging: true }, from the underside of the island above (col, row). Options:
-//             facing (-1: the gallows' beam points left), chain (its length, px), periodMs
+//             facing (-1: the gallows' beam points left), chain (its length, px), periodMs, swingDeg,
+//             phaseMs (where in its swing it starts: maces side by side with one period and a small
+//             lag between them swing as a wave, and never touch)
 //   crusher   a stone block waiting in the air at (col, row); its eyes glow, it slams down to the
 //             ground below and lifts slowly back. It's solid: he can stand on it and ride it, and
 //             it hurts only by falling on him

@@ -72,10 +72,10 @@ export class AdventureTraps {
       const box = this.scene.add.image(hook.x, groundY, this.art(r.crate.picture)).setOrigin(0.5, 1).setDepth(r.depth + 0.03);
       return box.setY(groundY - i * box.height);
     }) : null;
-    // A long chain swings slower: a level can give it its own periodMs.
+    // A long chain swings slower and less wide: a level can give it its own periodMs and swingDeg.
     this.maces.push({
       swing, hook, chain, groundY, shadow, ghosts, crate, history: [], angle: 0, turning: 0,
-      reach: chain + r.ballMiddle * r.ballHeight, ms: offset, rules: { ...r, periodMs: trap.periodMs ?? r.periodMs },
+      reach: chain + r.ballMiddle * r.ballHeight, ms: trap.phaseMs ?? offset, rules: { ...r, periodMs: trap.periodMs ?? r.periodMs, swingDeg: trap.swingDeg ?? r.swingDeg },
     });
   }
 

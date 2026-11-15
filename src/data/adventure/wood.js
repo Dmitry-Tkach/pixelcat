@@ -46,14 +46,19 @@ level.island(30, 36, 25).ladder(31, 25, 29).put(34, 26, 'R')
   .put(46, 29, 'c').coins(47, 49, 28)
   .trap('idol', 51, 29, { facing: -1 }); // beside the crate step, not hiding it, met apart from the cone head
 
-// ----- 3. The Gunner's Ledge: a raised ledge with a checkpoint. The first blaster gunner stands on
-// the ledge, out of sight of the checkpoint, and past him the first mace swings at the ledge's end:
-// one, then the other. An island above, up a ladder, has a crate of rounds.
+// ----- 3. The Mace Ledge: the level's star. A raised ledge with a checkpoint and a crate of rounds,
+// then three maces in a row: two on long chains from a root roof too high to reach (so there's no way
+// over them), and one on a gallows at the ledge's end, which smashes a stack of crates as the player
+// arrives. They swing as a wave, each a little behind the one before (MACE_WAVE), so they never touch.
+// Through them by rhythm: run, wait, slide.
+const MACE_WAVE = { periodMs: 3200, lagMs: 360 };
 level.put(53, 29, 'B').ground(54, 69, 26)
-  .put(56, 25, 'C').coins(57, 59, 24).put(60, 25, 'g').put(68, 25, 'b').put(64, 25, '1')
-  .island(62, 67, 20).ladder(62, 20, 25).put(65, 19, 'a')
-  // A swinging mace on a gallows guards the ledge's end, before the drop into the hollow.
-  .trap('mace', 67, 25, { facing: -1, crate: true }); // it smashes a crate as the player arrives
+  .put(54, 25, 'a').put(55, 25, 'C').put(68, 25, 'b')
+  .island(57, 64, 19) // the roof: seven cells above the ledge, out of reach
+  .trap('mace', 59, 20, { hanging: true, chain: 237, swingDeg: 30, periodMs: MACE_WAVE.periodMs, phaseMs: 0 })
+  .trap('mace', 62, 20, { hanging: true, chain: 237, swingDeg: 30, periodMs: MACE_WAVE.periodMs, phaseMs: -MACE_WAVE.lagMs })
+  .trap('mace', 67, 25, { facing: -1, crate: true, periodMs: MACE_WAVE.periodMs, phaseMs: -2 * MACE_WAVE.lagMs })
+  .arc(60, 61, 23, 1).arc(64, 65, 23, 1); // coins between the swings, for the brave
 
 // ----- 4. Thorn Hollow: no floor at all, crossed on islands and a bridge. A crate of freeze rounds
 // on the first island, for the spiky enemy who holds the narrow middle island (he can't be stomped),
