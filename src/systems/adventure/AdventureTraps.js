@@ -5,7 +5,7 @@ import {
   circleHitsRect, crusherAngry, crusherContact, crusherCrushes, crusherStart, crusherStep, floorRow, guardianBall,
   guardianFireColumn, guardianFirePhase, guardianGeometry, guardianPhase, guardianSolid, guardianSwing, landsOnCap, maceAngle, maceHook, rectsTouch, swingPoint,
 } from './trapLogic.js';
-import { canFreezeTrap, frozenBallBlock } from '../../data/adventure/freeze.js';
+import { TRAP_FREEZE, canFreezeTrap, frostAfterHit, frozenBallBlock } from '../../data/adventure/freeze.js';
 import { freezeTrap, updateTrapIce } from './trapIce.js';
 
 // Builds a level's moving traps (data/adventure/traps.js) and moves them each frame, while play is
@@ -15,8 +15,8 @@ import { freezeTrap, updateTrapIce } from './trapIce.js';
 // The crusher and the idol are solid: he can stand on them (addColliders). The crusher carries him
 // as it moves, as a moving log does, and hurts only by falling on him; waiting or lifting, it's
 // stone he bumps his head on.
-// A freeze round freezes a mace, a crusher or an idol for a while (adventure/trapIce.js): it stops
-// still and can't hurt, and a frozen mace's ball is ice he can stand on (iceBodies).
+// Freeze rounds freeze a mace, a crusher or an idol for a while, a few of them close together
+// (TRAP_FREEZE.shots, adventure/trapIce.js): it stops still and can't hurt, and a frozen mace's ball is ice he can stand on (iceBodies).
 const SOUNDS = { slam: 'smash', dart: 'shot', bounce: 'bounce', pour: 'ignite' };
 const SHADOW_KEY = 'trap-shadow'; // a soft dark ellipse, drawn once
 const TRAIL_HISTORY = 8; // frames of the ball's places kept, for its fading copies
@@ -384,7 +384,8 @@ export class AdventureTraps {
     this.shotLanded = landed;
   }
 
-  // A freeze round that reaches a small trap freezes it, and is spent.
+  // A freeze round that reaches a small trap frosts it, freezing it once it has had enough, and is
+  // spent. Into one already frozen, it makes the ice last again.
   freezeShots() {
     if (!this.shotList) return;
     for (const shot of this.shotList().slice()) {
@@ -394,6 +395,17 @@ export class AdventureTraps {
       if (!hit) continue;
       this.freeze(hit);
       this.shotLanded(shot);
+    }
+  }
+
+  // Frost that wasn't topped up in time melts away.
+  meltFrost(ms) {
+    for (const { kind, trap } of this.freezableTraps()) {
+      if (!trap.frost || trap.frozen) continue;
+      trap.frostMs -= ms;
+      if (trap.frostMs > 0) continue;
+      trap.frost = 0;
+      for (const look of this.looksOf(kind, trap)) look.clearTint();
     }
   }
 
@@ -411,18 +423,32 @@ export class AdventureTraps {
     return frozenBallBlock(swingPoint(mace.hook, mace.reach, mace.angle), mace.rules.ballHeight);
   }
 
+  // The pictures that turn icy: the mace's chain and ball, or the stone.
+  looksOf(kind, trap) {
+    return kind === 'mace' ? trap.swing.list : [trap.image];
+  }
+
   freeze({ kind, trap, rect }) {
+    if (!trap.frozen) {
+      const { frost, freezes } = frostAfterHit(trap.frost ?? 0);
+      trap.frost = frost;
+      trap.frostMs = TRAP_FREEZE.frostFadeMs;
+      if (!freezes) {
+        for (const look of this.looksOf(kind, trap)) look.setTint(TRAP_FREEZE.frostTints[frost - 1] ?? TRAP_FREEZE.frostTints.at(-1));
+        return;
+      }
+    }
     const { depth } = trap.rules;
     if (kind === 'mace') {
       for (const ghost of trap.ghosts) ghost.setAlpha(0);
-      const looks = trap.swing.list;
+      const looks = this.looksOf(kind, trap);
       if (trap.frozen) return freezeTrap(this.scene, trap, { looks, rect, depth: depth + 0.1 });
       // His ledge of ice: one-way, like an island (addColliders).
       const ledge = this.scene.add.zone((rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2, rect.right - rect.left, rect.bottom - rect.top);
       this.iceBodies.add(ledge);
       freezeTrap(this.scene, trap, { looks, rect, depth: depth + 0.1, onThaw: () => ledge.destroy() });
     } else {
-      freezeTrap(this.scene, trap, { looks: [trap.image], rect, depth: depth + 0.1 });
+      freezeTrap(this.scene, trap, { looks: this.looksOf(kind, trap), rect, depth: depth + 0.1 });
     }
   }
 
@@ -440,6 +466,7 @@ export class AdventureTraps {
     const { body } = cat;
     const catRect = { left: body.left, top: body.top, right: body.right, bottom: body.bottom };
     this.freezeShots();
+    this.meltFrost(ms);
     for (const mace of this.maces) {
       if (updateTrapIce(this.scene, mace, ms, this.maceBlock(mace))) continue; // frozen: still, and harmless
       mace.ms += ms;

@@ -20,10 +20,22 @@ export function iceAfter(msLeft, ms, { ms: total, crackMs } = FREEZE) {
 // a crusher stops where it is, a dart idol stops shooting. Frozen, it can't hurt, and a mace's ball
 // is a block of ice the cat can stand on. The guardian is too big to freeze, and a mushroom isn't a
 // danger. It cracks and shakes, then thaws, the way an enemy's ice does (FREEZE's look).
+// A trap is bigger than an enemy: it takes `shots` freeze rounds, close together, to freeze. Each
+// one frosts it more (frostTints, lightest first); with no round for frostFadeMs, the frost melts.
 //   kinds: the traps a freeze round freezes. ms: how long the ice lasts. crackMs: how long before
 //   thawing it cracks and shakes. pad: px the ice is bigger than the trap each way. ballShare: half
 //   a mace ball's ice block, as a share of the ball's height.
-export const TRAP_FREEZE = { kinds: ['mace', 'crusher', 'idol'], ms: 5000, crackMs: 1000, pad: 8, ballShare: 0.4 };
+export const TRAP_FREEZE = {
+  kinds: ['mace', 'crusher', 'idol'], ms: 5000, crackMs: 1000, pad: 8, ballShare: 0.4,
+  shots: 3, frostFadeMs: 2500, frostTints: [0xe2f4ff, 0xc0e8ff],
+};
+
+// A freeze round reaches a trap with `frost` rounds in it already: its frost now, and whether it
+// freezes (then its frost starts again from nothing).
+export function frostAfterHit(frost, { shots } = TRAP_FREEZE) {
+  const now = frost + 1;
+  return now >= shots ? { frost: 0, freezes: true } : { frost: now, freezes: false };
+}
 
 export const canFreezeTrap = (kind) => TRAP_FREEZE.kinds.includes(kind);
 

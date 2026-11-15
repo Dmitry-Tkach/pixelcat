@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TRAP_FREEZE, canFreezeTrap, frozenBallBlock, iceAfter } from '../src/data/adventure/freeze.js';
+import { TRAP_FREEZE, canFreezeTrap, frostAfterHit, frozenBallBlock, iceAfter } from '../src/data/adventure/freeze.js';
 import { TRAP_KINDS } from '../src/data/adventure/traps.js';
 
 describe('freezing small traps', () => {
@@ -24,5 +24,18 @@ describe('freezing small traps', () => {
     expect(iceAfter(ms, ms - crackMs - 1, TRAP_FREEZE).cracking).toBe(false);
     expect(iceAfter(ms, ms - crackMs + 1, TRAP_FREEZE).cracking).toBe(true);
     expect(iceAfter(ms, ms, TRAP_FREEZE).thawed).toBe(true);
+  });
+});
+
+describe('frosting a trap', () => {
+  it('takes several freeze rounds to freeze it', () => {
+    let frost = 0;
+    for (let i = 1; i < TRAP_FREEZE.shots; i++) {
+      const hit = frostAfterHit(frost);
+      expect(hit.freezes).toBe(false);
+      frost = hit.frost;
+    }
+    expect(frostAfterHit(frost)).toEqual({ frost: 0, freezes: true });
+    expect(TRAP_FREEZE.shots).toBeGreaterThan(1);
   });
 });
