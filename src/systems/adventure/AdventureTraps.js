@@ -309,7 +309,8 @@ export class AdventureTraps {
     image.body.setSize(image.width - r.hitInset * 2, image.height - r.hitInset, false).setOffset(r.hitInset, r.hitInset);
     image.body.setAllowGravity(false).setImmovable(true);
     const floor = floorRow(this.layout.tiles, trap.col, trap.row) * TILE;
-    const state = { ...crusherStart(), ms: offset % r.waitMs };
+    // phaseMs: where in its wait it starts, so two side by side can be put out of step.
+    const state = { ...crusherStart(), ms: (trap.phaseMs ?? offset) % r.waitMs };
     const crusher = { image, top, fall: floor - top - image.height, state, vy: 0, rules: r };
     image.crusher = crusher;
     this.crushers.push(crusher);

@@ -7,7 +7,8 @@
 //             lag between them swing as a wave, and never touch)
 //   crusher   a stone block waiting in the air at (col, row); its eyes glow, it slams down to the
 //             ground below and lifts slowly back. It's solid: he can stand on it and ride it, and
-//             it hurts only by falling on him
+//             it hurts only by falling on him. phaseMs: where in its wait it starts (under waitMs),
+//             so crushers side by side don't slam together
 //   idol      a stone head standing at (col, row) that shoots darts across the path; { facing: -1 }
 //             to shoot left. Its stone is solid: he can stand on its head, above its darts
 //   mushroom  a bouncy mushroom standing at (col, row): landing on it throws the cat up high

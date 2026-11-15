@@ -40,53 +40,61 @@ level.ground(31, 42, 39) // the dip, three cells down
   .ground(43, 54, CLIFF);
 
 // ----- 3. The Waterfall Wheel: the painting's big wheel, over the river. From the cliff onto a
-// seat, round, and off onto the far bank. A secret: from the top seat, a jump straight up reaches a
-// hidden branch in the leaves, with a crystal and the silver key (a coin just above the seat hints at
-// it). Then a rest: a bridge, with coins.
+// seat, round, and off onto the far bank. A bonus: from the top seat, a jump straight up reaches a
+// branch high in the leaves, with a crystal and the silver key (a coin just above the seat hints at
+// it). (It's in plain view for now: leaves drawn in front would make it a secret.) Then a bridge,
+// with a cone head on it.
 level.put(47, 27, 'C').put(52, 27, '/')
   .gap(55, 70)
   .wheel(62, 30, { dir: 1 })
   .put(62, 23, 'o').island(61, 63, 21).put(62, 20, '*').put(61, 20, 'j')
   .ground(71, 82, CLIFF).put(77, 27, 'c').coins(72, 75, 26)
-  .gap(83, 88).bridge(83, 88, CLIFF).coins(84, 87, 26);
+  .gap(83, 88).bridge(83, 88, CLIFF).coins(84, 85, 26).put(86, 27, 'c');
 
 // ----- 4. Idol Ruins: a wheel turning the other way, and a dart idol on a rock in the river firing
-// across its lower seats: ride high, or wait for the dart. Then a mace on a gallows, alone, as in
-// level 1, and a crate of freeze rounds.
-level.ground(89, 93, CLIFF).put(90, 27, 'C').put(92, 27, '+')
+// across its lower seats, which he rides through: jump the darts, or first freeze the idol (three
+// rounds, as taught in level 1) from the crate by the checkpoint. Then a mace on a gallows, alone,
+// as in level 1, and a heart.
+level.ground(89, 93, CLIFF).put(90, 27, 'C').put(92, 27, 'f')
   .gap(94, 108)
   .wheel(101, 30, { dir: -1 })
   .island(107, 108, 33).trap('idol', 108, 32, { facing: -1 })
   .ground(109, 124, CLIFF)
-  .trap('mace', 114, 27).put(117, 27, 'f');
+  .trap('mace', 114, 27).put(117, 27, '+');
 
-// ----- 5. Crusher Canopy: no wheels, a change of pace. Islands over the river, one with spikes,
-// then two crushers hanging under a ruined slab, slamming onto the island under it. Crumbling leaves
-// lead up and on; the slab's top, with a crystal, is reached from the leaves, or by freezing a
-// crusher at the top of its rise (three freeze rounds) and climbing it.
-level.put(120, 27, 'C')
+// ----- 5. Crusher Canopy: no wheels, a change of pace. A goon by the checkpoint, islands over the
+// river, one with spikes, then two crushers hanging under a ruined slab, out of step, slamming onto
+// the island under it; the first stands back, so the landing past the spikes is safe. Crumbling
+// leaves lead up and on. The slab's top, with a crystal, is reached from the leaves, or by riding a
+// crusher up as it lifts (a coin under it hints at it), and hopping up through the slab.
+level.put(120, 27, 'C').put(122, 27, 'g')
   .gap(125, 149)
   .island(127, 131, 27).put(130, 26, '^').put(131, 26, '^').coins(127, 129, 25)
-  .island(133, 139, 27).trap('crusher', 134, 19).trap('crusher', 138, 19).coins(135, 137, 26)
+  .island(133, 139, 27).trap('crusher', 135, 19, { phaseMs: 0 }).trap('crusher', 138, 19, { phaseMs: 1100 })
+  .coins(136, 137, 26).put(135, 21, 'o')
   .island(133, 139, 18).put(136, 17, '*')
   .put(141, 23, '%').put(142, 23, '%')
   .island(146, 149, 26).coins(146, 149, 24);
 
-// ----- 6. Twin Wheels: the test. Two wheels side by side, turning opposite ways: their seats meet
-// in the middle once a turn, and he jumps across. Then a small wheel lifts him to the portal cliff.
+// ----- 6. Twin Wheels: the test. Two wheels side by side, turning the same way, so where they meet
+// one's seats go up as the other's come down: the jump across needs timing. A blaster on the portal
+// cliff fires at him as he rides. Then a small wheel lifts him to the cliff.
 level.ground(150, 153, CLIFF).put(151, 27, 'C')
   .gap(154, 185)
   .wheel(159, 30, { dir: 1 })
-  .wheel(172, 30, { dir: -1 })
-  .wheel(181, 29, { ...LITTLE, dir: 1 });
+  .wheel(172, 30, { dir: 1 })
+  .wheel(181, 27, { ...LITTLE, dir: 1 });
 
-// ----- 7. Portal Cliff: up on the cliff, a goon, and a moving log lifting him to the portal. Under
-// the cliff, at the river, a cave with the silver chest and a crystal, reached by dropping off the
-// small wheel's lowest seat. (The owner's waterfall will hide it.)
+// ----- 7. Portal Cliff: up on the cliff, the blaster and a goon, a crusher over the path, and a
+// moving log lifting him to the portal. Under the cliff, at the river, a cave with the silver chest
+// and a crystal, four cells high with a ledge in front, reached by dropping off the small wheel's
+// lowest seat. (The owner's waterfall will hide it.)
 level.ground(186, COLS - 1, 23)
-  .gap(186, 190).ground(186, 190, 34).fill(186, 190, 23, 30) // the cave: three cells high, under the cliff
+  .gap(186, 190).ground(186, 190, 34).fill(186, 190, 23, 29) // the cave: four cells high, under the cliff
+  .ground(184, 185, 34) // a ledge in front of it, to catch a short drop
   .put(184, 33, 'o').put(187, 33, 'o').put(189, 33, 'U').put(190, 33, '*')
-  .put(193, 22, 'g')
+  .put(191, 22, '1').put(193, 22, 'g')
+  .trap('crusher', 195, 15) // the last hazard before the lift
   .mover(199, 22, { up: 6 })
   .island(203, 209, 16).put(206, 15, 'E'); // room each side for the portal's flame posts
 
