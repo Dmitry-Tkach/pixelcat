@@ -57,9 +57,11 @@ export class AudioManager {
     this.sequencer = new MusicSequencer(ctx, { music: this.musicBus, danger: this.dangerBus });
   }
 
-  playSfx(name) {
+  // volume: 0 to 1, for a sound heard from further off.
+  playSfx(name, volume = 1) {
     if (!this.ctx || !this.settings.sound) return;
-    playLayers(this.ctx, this.soundBus, this.ctx.currentTime, SOUNDS[name]);
+    const layers = volume === 1 ? SOUNDS[name] : SOUNDS[name].map((layer) => ({ ...layer, gain: layer.gain * volume }));
+    playLayers(this.ctx, this.soundBus, this.ctx.currentTime, layers);
   }
 
   startMusic({ track, bpm }) {

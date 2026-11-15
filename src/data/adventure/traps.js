@@ -29,6 +29,16 @@ export const TRAPS = {
       periodMs: 2600, // one swing there and back
       hitShare: 0.36, // the spiky ball hurts within this share of its height of its middle
       hangingSink: 6, // px a hanging chain starts inside the island above, so it looks fixed to it
+      // How it shows its weight: a shadow on the ground under the ball, darker as it comes lower;
+      // fading copies of the ball behind it when it's fast; a whoosh as it swings through the bottom
+      // and a creak at each end, louder the nearer it is (heardWithin px).
+      shadow: { width: 70, alpha: { low: 0.4, high: 0.08 }, fadeOver: 260, depth: 2.05 },
+      trail: { ghosts: 3, alpha: 0.28, minSpeed: 0.0016 }, // minSpeed: radians a ms
+      sounds: { whoosh: 'maceWhoosh', creak: 'maceCreak', heardWithin: 900 },
+      // A level can stand crates under a mace ({ crate: true }): the first swing that hits them while
+      // the player can see them smashes them to pieces, so he learns what the mace does. A stack of
+      // `stack`, so the ball, which swings over a slide, goes through the top one.
+      crate: { picture: 'box', stack: 2, pieces: 10, smashReach: 0.5 }, // smashReach: the ball's spikes, as a share of its height
     },
     crusher: {
       calm: 'trap-crusher', angry: 'trap-crusher-angry', height: 120, depth: 3.5,

@@ -56,6 +56,16 @@ export const ADVENTURE_SOUNDS = {
     { kind: 'noise', filter: 'lowpass', cutoff: 500, sweepTo: 1800, duration: 0.22, gain: 0.4, attack: 0.02 },
     { wave: 'sine', from: 140, to: 220, duration: 0.18, gain: 0.25 },
   ],
+  // A mace swinging through the bottom of its swing: a heavy whoosh of air, rising and falling.
+  maceWhoosh: [
+    { kind: 'noise', filter: 'bandpass', cutoff: 280, sweepTo: 900, q: 1.2, duration: 0.38, gain: 0.5, attack: 0.14 },
+    { wave: 'sine', from: 95, to: 60, duration: 0.3, gain: 0.18, attack: 0.08 },
+  ],
+  // A mace at the end of its swing: the chain creaking under the weight.
+  maceCreak: [
+    { wave: 'sawtooth', from: 430, to: 370, duration: 0.2, gain: 0.05, cutoff: 1400, attack: 0.03 },
+    { kind: 'noise', filter: 'bandpass', cutoff: 2600, q: 6, duration: 0.16, gain: 0.07 },
+  ],
   // Falling into water: a splash.
   splash: [
     { kind: 'noise', filter: 'lowpass', cutoff: 2600, sweepTo: 600, duration: 0.4, gain: 0.5, attack: 0.01 },

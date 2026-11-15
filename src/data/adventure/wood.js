@@ -53,7 +53,7 @@ level.put(53, 29, 'B').ground(54, 69, 26)
   .put(56, 25, 'C').coins(57, 59, 24).put(60, 25, 'g').put(68, 25, 'b').put(64, 25, '1')
   .island(62, 67, 20).ladder(62, 20, 25).put(65, 19, 'a')
   // A swinging mace on a gallows guards the ledge's end, before the drop into the hollow.
-  .trap('mace', 67, 25, { facing: -1 });
+  .trap('mace', 67, 25, { facing: -1, crate: true }); // it smashes a crate as the player arrives
 
 // ----- 4. Thorn Hollow: no floor at all, crossed on islands and a bridge. A crate of freeze rounds
 // on the first island, for the spiky enemy who holds the narrow middle island (he can't be stomped),

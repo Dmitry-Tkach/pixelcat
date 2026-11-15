@@ -13,6 +13,8 @@ import {
 // as it moves, as a moving log does, and hurts only by falling on him; waiting or lifting, it's
 // stone he bumps his head on.
 const SOUNDS = { slam: 'smash', dart: 'shot', bounce: 'bounce' };
+const SHADOW_KEY = 'trap-shadow'; // a soft dark ellipse, drawn once
+const TRAIL_HISTORY = 8; // frames of the ball's places kept, for its fading copies
 const HEARD_WITHIN = 900; // px from the camera's middle: further off, a trap makes no sound
 
 export class AdventureTraps {
@@ -60,8 +62,89 @@ export class AdventureTraps {
     const step = linkH * 0.9;
     for (let y = 0; y < chain; y += step) swing.add(this.scene.add.image(0, y, this.art(r.link)).setOrigin(0.5, 0));
     swing.add(this.scene.add.image(0, chain, this.art(r.ball)).setOrigin(0.5, 0));
+    // The ground under it, for its shadow (and a crate).
+    const hookCol = Math.floor(hook.x / TILE);
+    const groundY = trap.hanging ? (floorRow(this.layout.tiles, hookCol, Math.floor(hook.y / TILE) + 1) ?? this.layout.rows) * TILE : feet;
+    this.makeShadowTexture();
+    const shadow = this.scene.add.image(hook.x, groundY, SHADOW_KEY).setDepth(r.shadow.depth).setAlpha(0);
+    const ghosts = Array.from({ length: r.trail.ghosts }, () => this.scene.add.image(0, 0, this.art(r.ball)).setDepth(r.depth + 0.04).setAlpha(0));
+    const crate = trap.crate ? Array.from({ length: r.crate.stack }, (_, i) => {
+      const box = this.scene.add.image(hook.x, groundY, this.art(r.crate.picture)).setOrigin(0.5, 1).setDepth(r.depth + 0.03);
+      return box.setY(groundY - i * box.height);
+    }) : null;
     // A long chain swings slower: a level can give it its own periodMs.
-    this.maces.push({ swing, hook, reach: chain + r.ballMiddle * r.ballHeight, ms: offset, rules: { ...r, periodMs: trap.periodMs ?? r.periodMs } });
+    this.maces.push({
+      swing, hook, chain, groundY, shadow, ghosts, crate, history: [], angle: 0, turning: 0,
+      reach: chain + r.ballMiddle * r.ballHeight, ms: offset, rules: { ...r, periodMs: trap.periodMs ?? r.periodMs },
+    });
+  }
+
+  makeShadowTexture() {
+    if (this.scene.textures.exists(SHADOW_KEY)) return;
+    const g = this.scene.make.graphics({ add: false });
+    for (let i = 0; i < 6; i++) {
+      g.fillStyle(0x000000, 0.18).fillEllipse(32, 9, 64 - i * 9, 18 - i * 2.5);
+    }
+    g.generateTexture(SHADOW_KEY, 64, 18);
+    g.destroy();
+  }
+
+  // How the mace shows its weight, each frame: its shadow, its fading copies when fast, its whoosh
+  // and creak, and the crate it smashes.
+  updateMaceLook(mace, angle, ms, cat) {
+    const r = mace.rules;
+    const ball = swingPoint(mace.hook, mace.chain + r.ballHeight / 2, angle);
+    // The shadow: under the ball, darker and tighter the lower it swings.
+    const high = Math.min(1, Math.max(0, (mace.groundY - (ball.y + r.ballHeight / 2)) / r.shadow.fadeOver));
+    mace.shadow.setPosition(ball.x, mace.groundY).setAlpha(r.shadow.alpha.low + (r.shadow.alpha.high - r.shadow.alpha.low) * high)
+      .setScale((r.shadow.width / 64) * (1 - 0.4 * high), 1 - 0.3 * high);
+    // Fading copies along where the ball just was, when it swings fast.
+    const speed = ms > 0 ? Math.abs(angle - mace.angle) / ms : 0;
+    mace.history.unshift({ x: ball.x, y: ball.y, angle });
+    if (mace.history.length > TRAIL_HISTORY) mace.history.pop();
+    const fast = Math.min(1, speed / r.trail.minSpeed - 0.5);
+    mace.ghosts.forEach((ghost, i) => {
+      const at = mace.history[Math.min(mace.history.length - 1, (i + 1) * 2)];
+      ghost.setPosition(at.x, at.y).setRotation(at.angle).setAlpha(Math.max(0, fast) * r.trail.alpha * (1 - i / r.trail.ghosts));
+    });
+    // The whoosh through the bottom of the swing, and the creak at each end, louder the nearer.
+    const turning = Math.sign(angle - mace.angle);
+    const near = 1 - Math.hypot(ball.x - cat.x, ball.y - cat.y) / r.sounds.heardWithin;
+    if (near > 0.05) {
+      if (Math.sign(angle) !== Math.sign(mace.angle) && mace.angle !== 0) this.scene.audio.playSfx(r.sounds.whoosh, near);
+      if (turning !== 0 && mace.turning !== 0 && turning !== mace.turning) this.scene.audio.playSfx(r.sounds.creak, near);
+    }
+    if (turning !== 0) mace.turning = turning;
+    mace.angle = angle;
+    // The crates, smashed by the first swing that hits them while the player can see them.
+    if (mace.crate && this.inView(mace.crate[0], 80)) {
+      const [bottom] = mace.crate, top = mace.crate.at(-1);
+      const box = { left: bottom.x - bottom.width / 2, right: bottom.x + bottom.width / 2, top: top.y - top.height, bottom: bottom.y };
+      if (circleHitsRect(ball, r.ballHeight * r.crate.smashReach, box)) this.smashCrate(mace);
+    }
+  }
+
+  inView(image, inset) {
+    const view = this.scene.cameras.main.worldView;
+    return image.x > view.left + inset && image.x < view.right - inset && image.y > view.top && image.y - image.height < view.bottom;
+  }
+
+  smashCrate(mace) {
+    const { crate: crates, rules: r } = mace;
+    const [crate] = crates;
+    const x = crate.x, y = crate.y - (crate.height * crates.length) / 2;
+    mace.crate = null;
+    for (const box of crates) box.destroy();
+    const pieces = this.scene.add.particles(x, y, this.art(r.crate.picture), {
+      emitting: false, lifespan: 900, speed: { min: 160, max: 420 }, angle: { min: 200, max: 340 }, gravityY: 1100,
+      scale: { start: 0.32, end: 0.22 }, rotate: { start: 0, end: 540 }, alpha: { start: 1, end: 0 },
+    }).setDepth(r.depth + 0.1);
+    pieces.explode(r.crate.pieces);
+    this.scene.time.delayedCall(1000, () => pieces.destroy());
+    this.scene.effects.dust(x, crate.y, 8);
+    this.scene.effects.impact(x, y, 1.2);
+    this.scene.cameras.main.shake(120, 0.005);
+    this.scene.audio.playSfx('smash');
   }
 
   // Its body is the stone without its soft moss edges (hitInset), which he stands on and is blocked by.
@@ -150,6 +233,7 @@ export class AdventureTraps {
       mace.ms += ms;
       const angle = maceAngle(mace.ms, mace.rules);
       mace.swing.setRotation(angle);
+      this.updateMaceLook(mace, angle, ms, cat);
       const ball = swingPoint(mace.hook, mace.reach, angle);
       if (circleHitsRect(ball, mace.rules.hitShare * mace.rules.ballHeight, catRect)) this.hurt(ball.x);
     }
