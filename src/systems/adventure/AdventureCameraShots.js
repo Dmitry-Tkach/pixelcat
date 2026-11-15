@@ -3,7 +3,7 @@ import { TILE } from '../adventureMap.js';
 
 // The camera's own moments in a level (the level's `camera`), like a film's:
 //   shots: when the cat first stands in a shot's `when` cells, the camera glides over to show what's
-//     ahead (`look`, a cell, fractions allowed), holds there, and glides back. Black bars close in at
+//     ahead (`look`, a cell, fractions allowed), holds there, and glides back as slowly. Black bars close in at
 //     the top and bottom, and he waits, as in a film. Each plays once (not again after a fall).
 //     { when: { cols: [from, to], rows: [from, to] }, look: { col, row }, panMs, holdMs }
 //   zones: while the cat is in a zone's cells, the camera holds its middle at `middleRow` (a row,
@@ -11,14 +11,16 @@ import { TILE } from '../adventureMap.js';
 //     { cols: [from, to], rows: [from, to], middleRow }
 // The scene asks update() each frame whether a shot is playing (then he can't move), and frameY()
 // where the camera should keep its middle.
-const BARS = { share: 0.09, alpha: 0.92, ms: 350, depth: 95 };
+const BARS = { share: 0.09, alpha: 0.5, ms: 700, depth: 95 }; // alpha: see-through, so the level shows behind them
 
 const inside = ({ cols, rows }, col, row) => col >= cols[0] && col <= cols[1] && row >= rows[0] && row <= rows[1];
 const cellOf = (cat) => ({ col: Math.floor(cat.x / TILE), row: Math.floor((cat.body.bottom - 1) / TILE) });
 
 export class AdventureCameraShots {
-  // camera: the level's camera moments, or undefined. follow(): the scene starts following the cat again.
-  constructor(scene, camera = {}, follow) {
+  // camera: the level's camera moments, or undefined. follow(): the scene starts following the cat
+  // again. home(): where the camera's middle is when it follows him, to glide back to.
+  constructor(scene, camera = {}, follow, home) {
+    this.home = home;
     this.scene = scene;
     this.shots = (camera.shots ?? []).map((shot) => ({ ...shot, done: false }));
     this.zones = camera.zones ?? [];
@@ -46,10 +48,16 @@ export class AdventureCameraShots {
     cam.stopFollow();
     cam.pan(shot.look.col * TILE, shot.look.row * TILE, shot.panMs, 'Sine.easeInOut');
     this.showBars(true);
+    // Then back to him, on the same slow curve, the bars opening as it arrives. He moves again, and
+    // the camera follows him again, only once it's there, so nothing jumps.
     this.scene.time.delayedCall(shot.panMs + shot.holdMs, () => {
-      this.showBars(false);
-      this.playing = null;
-      this.follow(); // the camera glides back to him as it follows him again
+      const { x, y } = this.home();
+      cam.pan(x, y, shot.panMs, 'Sine.easeInOut');
+      this.scene.time.delayedCall(Math.max(0, shot.panMs - BARS.ms), () => this.showBars(false));
+      this.scene.time.delayedCall(shot.panMs, () => {
+        this.playing = null;
+        this.follow();
+      });
     });
   }
 

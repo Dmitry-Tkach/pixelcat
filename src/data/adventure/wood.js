@@ -132,8 +132,8 @@ export const WOOD_LEVEL = {
   // and it frames the guardian whole, from his head to the path, while the cat is near him.
   camera: {
     shots: [
-      { when: { cols: [54, 56], rows: [24, 25] }, look: { col: 62.5, row: 22.5 }, panMs: 800, holdMs: 1800 },
-      { when: { cols: [148, 150], rows: [17, 17] }, look: { col: 162, row: 16.35 }, panMs: 1100, holdMs: 2400 },
+      { when: { cols: [54, 56], rows: [24, 25] }, look: { col: 62.5, row: 22.5 }, panMs: 1400, holdMs: 2600 },
+      { when: { cols: [148, 150], rows: [17, 17] }, look: { col: 162, row: 16.35 }, panMs: 1900, holdMs: 3200 },
     ],
     zones: [{ cols: [151, COLS - 1], rows: [12, 23], middleRow: 16.35 }],
   },

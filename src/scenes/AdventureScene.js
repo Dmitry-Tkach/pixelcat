@@ -205,7 +205,9 @@ export class AdventureScene extends Phaser.Scene {
     cam.setDeadzone(CAMERA.deadzoneW, CAMERA.deadzoneH);
     cam.setBackgroundColor(level.sky ?? '#8fd18f');
     // The camera's own moments: shots that show what's ahead, zones that frame a set piece.
-    this.shots = new AdventureCameraShots(this, level.camera, () => cam.startFollow(this.cat, true, CAMERA.lerp, CAMERA.lerp, this.look.x, this.look.y).setDeadzone(CAMERA.deadzoneW, CAMERA.deadzoneH));
+    this.shots = new AdventureCameraShots(this, level.camera,
+      () => cam.startFollow(this.cat, true, CAMERA.lerp, CAMERA.lerp, this.look.x, this.look.y).setDeadzone(CAMERA.deadzoneW, CAMERA.deadzoneH),
+      () => ({ x: this.cat.x - this.look.x, y: this.shots.frameY(this.cat) ?? this.cat.y - this.look.y }));
 
     this.climbKeys = this.input.keyboard.addKeys({ up: 'UP', w: 'W', down: 'DOWN', s: 'S' });
     this.controls = new InputController(this, {
