@@ -23,6 +23,7 @@ const FLYBY = { ms: 2600, across: 900, up: 700, scale: 0.8, flapMs: 110, depth: 
 export class AdventureScenery {
   constructor(scene, level, art) {
     this.scene = scene;
+    this.art = art;
     this.flybys = (level.flybys ?? []).map((flyby) => ({ ...flyby, gone: false }));
     this.covers = [];
     this.flows = [];
@@ -65,9 +66,21 @@ export class AdventureScenery {
     flyby.gone = true;
     const { scene } = this;
     const dir = flyby.dir ?? -1;
-    const bird = scene.add.image(flyby.col * TILE + TILE / 2, flyby.row * TILE + TILE / 2, makeStandIn(scene), 'up')
+    const x = flyby.col * TILE + TILE / 2, y = flyby.row * TILE + TILE / 2;
+    // The owner's pterodactyl, flapping through its fly frames; without it, the stand-in drawn in code.
+    const drawn = scene.textures.exists(this.art('ptero-fly-0'));
+    const bird = (drawn ? scene.add.image(x, y, this.art('ptero-fly-0')) : scene.add.image(x, y, makeStandIn(scene), 'up'))
       .setScale(FLYBY.scale).setDepth(FLYBY.depth).setFlipX(dir > 0);
-    const flap = scene.time.addEvent({ delay: FLYBY.flapMs, loop: true, callback: () => bird.setFrame(bird.frame.name === 'up' ? 'down' : 'up') });
+    let frame = 0;
+    const flap = scene.time.addEvent({
+      delay: FLYBY.flapMs,
+      loop: true,
+      callback: () => {
+        frame += 1;
+        if (drawn) bird.setTexture(this.art(`ptero-fly-${frame % 6}`));
+        else bird.setFrame(frame % 2 ? 'down' : 'up');
+      },
+    });
     scene.tweens.add({
       targets: bird, x: bird.x + dir * FLYBY.across, y: bird.y - FLYBY.up, duration: FLYBY.ms, ease: 'Sine.easeIn',
       onComplete: () => { flap.remove(); bird.destroy(); },

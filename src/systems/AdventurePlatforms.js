@@ -186,8 +186,12 @@ export class AdventurePlatforms {
     this.scene.tweens.add({ targets: seat, angle: { from: -wobbleDeg, to: wobbleDeg }, duration: 70, yoyo: true, repeat: Math.floor(shakeMs / 140) });
     this.scene.time.delayedCall(shakeMs, () => {
       seat.rotten = 'fallen';
+      this.scene.tweens.killTweensOf(seat);
       seat.setAngle(0);
-      seat.disableBody(false, false);
+      // A seat is a plain picture given a body (not a physics sprite), so its body is switched off
+      // itself: it has no disableBody.
+      seat.body.setVelocity(0, 0);
+      seat.body.enable = false;
       if (this.riding === seat) this.riding = null;
       this.scene.audio.playSfx('collapse');
       this.scene.tweens.add({ targets: seat, y: seat.y + fallPx, angle: 25, alpha: 0, duration: fallMs, ease: 'Quad.easeIn' });
@@ -198,8 +202,10 @@ export class AdventurePlatforms {
   regrowSeat(seat) {
     const w = this.wheels.find((wheel) => wheel.seats.includes(seat));
     const at = seatPlace(w.wheel, seat.seatIndex, w.ms);
-    seat.setAngle(0).setAlpha(0);
-    seat.enableBody(true, at.x - seat.body.width / 2, at.y - seat.top, true, true);
+    this.scene.tweens.killTweensOf(seat);
+    seat.setAngle(0).setAlpha(0).setPosition(at.x - seat.body.width / 2, at.y - seat.top);
+    seat.body.enable = true;
+    seat.body.reset(seat.x, seat.y);
     seat.rotten = 'still';
     this.scene.tweens.add({ targets: seat, alpha: 1, duration: 300 });
   }
