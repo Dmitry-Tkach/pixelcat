@@ -61,6 +61,10 @@ level.put(47, 27, 'C').put(52, 27, '/')
   .bird('diver', 52, 23, { wake: 49 })
   .gap(55, 70)
   .wheel(62, 30, { dir: 1, broken: [1, 4] }).arc(68, 70, 28, 1) // coins from its right-hand seat to the far bank
+  // Two pterodactyls circle the wheel just outside its seats, on opposite sides, the other way to
+  // it: they cross the jumps on and off it, so each is timed round them.
+  .bird('orbit', 62, 30, { dir: -1, phase: 0.25 })
+  .bird('orbit', 62, 30, { dir: -1, phase: 0.75 })
   .put(62, 23, 'o').island(61, 63, 21).put(62, 20, '*').put(61, 20, 'j')
   .ground(71, 82, CLIFF).put(77, 27, 'c').coins(72, 75, 26)
   .gap(83, 88).bridge(83, 88, CLIFF).coins(84, 85, 26).put(86, 27, 'v'); // a spiky: no stomping him on a narrow bridge

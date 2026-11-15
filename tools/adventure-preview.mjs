@@ -24,6 +24,7 @@ import { TRAPS } from '../src/data/adventure/traps.js';
 import { floorRow, guardianBall, guardianFireColumn, guardianGeometry, maceHook } from '../src/systems/adventure/trapLogic.js';
 import { seatPlace, wheelHub, wheelWith } from '../src/systems/adventure/wheels.js';
 import { MILL_SEAT, MILL_STAND, MILL_WHEEL, standScale } from '../src/data/adventure/millArt.js';
+import { BIRD, birdHome, orbitAt } from '../src/data/adventure/birds.js';
 import { existsSync } from 'node:fs';
 
 const [out, index = '0'] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
@@ -56,6 +57,7 @@ const at = async (input, x, y, ox, oy) => {
 };
 const millArt = existsSync(art('mill-wheel'));
 const fronts = [];
+const at_ = (input, p) => at(input, p.x, p.y, 0.5, 0.5);
 if (millArt) {
   for (const { col, top, bottom, veil } of level.waterfalls ?? []) {
     const x = col * TILE + TILE / 2;
@@ -286,6 +288,20 @@ if (millArt) {
     (front ? fronts : comps).push(piece);
   }
   comps.push(...fronts);
+}
+// Pterodactyls: where each starts, and an orbit's circle dotted.
+if (existsSync(art('ptero-fly-0'))) {
+  const ptero = await scaled(art('ptero-fly-0'), 1);
+  for (const bird of level.birds ?? []) {
+    const { kind, ...flight } = bird;
+    const home = birdHome(bird);
+    const at = kind === 'orbit' ? orbitAt(home, 0, flight) : home;
+    if (kind === 'orbit') {
+      const r = ({ ...BIRD.orbit, ...flight }).radius * TILE * SCALE;
+      comps.push({ input: Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${cols * CELL}" height="${rows * CELL}"><circle cx="${home.x * SCALE}" cy="${home.y * SCALE}" r="${r}" fill="none" stroke="#ff7a3c" stroke-width="2" stroke-dasharray="5 4"/></svg>`), left: 0, top: 0 });
+    }
+    comps.push(await at_(ptero, at));
+  }
 }
 
 if (routes) {

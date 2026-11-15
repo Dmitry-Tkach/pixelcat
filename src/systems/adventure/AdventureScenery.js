@@ -18,7 +18,7 @@ const DEPTH = { behind: 1.6, front: 7, cave: 1.55, prop: 2.1, inWater: 1.97 };
 const COVER = { alpha: 1, seen: 0.35, fadePerMs: 0.004 }; // seen: its alpha while he's behind it
 const VEIL_ALPHA = 0.85;
 const CAVE = { colour: 0x0f1a12, alpha: 0.88 };
-const FLYBY = { ms: 2600, across: 900, up: 700, scale: 0.8, flapMs: 110, depth: 1.5 }; // behind the level
+const FLYBY = { ms: 2600, across: 900, up: 700, scale: 0.85, flapMs: 110, depth: 1.5 }; // behind the level
 
 export class AdventureScenery {
   constructor(scene, level, art) {

@@ -9,18 +9,22 @@ import { TILE } from '../../systems/adventureMap.js';
 //           home and rests before it can dive again.
 //   hover   it flies slowly up and down over its home cell, `loop` cells each way, and never dives:
 //           an obstacle to time, a step to bounce off, or, frozen, a block of ice to stand on.
+//   orbit   it circles round its home cell (a water wheel's hub), `radius` cells out, just outside
+//           the seats, once every `periodMs`, starting `phase` of a turn round (0 at the top) and
+//           going `dir` (1 clockwise): it crosses the jumps on and off the wheel, so they're timed
+//           round it. It never dives.
 // Either one hurts by touch, is knocked out by one round, a stomp, a dash, a slide or the claw, and
 // freezes in the air (a block of ice to stand on, hanging where it was). Its hit doesn't knock the
 // cat sideways (softHit): over a wheel or the river, that would cost him a second heart.
 // Plain numbers and code, no Phaser, so the dive's aim can be tested.
 
-export const BIRD_KINDS = ['diver', 'hover'];
+export const BIRD_KINDS = ['diver', 'hover', 'orbit'];
 
 export const BIRD = {
   hp: 1,
   stompable: true,
   softHit: true,
-  body: { w: 76, h: 40 }, // px: what hurts and what's hit, round its middle
+  body: { w: 54, h: 28 }, // px: what hurts and what's hit, round its middle
   bob: { px: 8, ms: 1400 }, // waiting at home: a gentle bob
   flapMs: 110, // each frame of its wing flap
   // The diver.
@@ -34,7 +38,15 @@ export const BIRD = {
   restMs: 2000, // at home, before it can warn again
   // The hover.
   hover: { loop: 1.5, periodMs: 3200 }, // loop: cells up and down from home; periodMs: once up and back
+  orbit: { radius: 5.5, periodMs: 9000, dir: 1, phase: 0 }, // the defaults for an orbit
 };
+
+// Where an orbiting bird is, `ms` into its flight round `center` (px).
+export function orbitAt(center, ms, options = {}) {
+  const { radius, periodMs, dir, phase } = { ...BIRD.orbit, ...options };
+  const angle = -Math.PI / 2 + 2 * Math.PI * (phase + (dir * ms) / periodMs);
+  return { x: center.x + Math.cos(angle) * radius * TILE, y: center.y + Math.sin(angle) * radius * TILE };
+}
 
 // Its home, in px: the middle of its cell.
 export const birdHome = ({ col, row }) => ({ x: col * TILE + TILE / 2, y: row * TILE + TILE / 2 });
@@ -62,7 +74,7 @@ export function hoverY(homeY, ms, { hover } = BIRD) {
 
 // The owner's pterodactyl (prompts/forest-level/14-pterodactyl.md), cut by tools/adventure-ptero-art.mjs
 // into square frames `cell` px across, facing left. Where each frame is on the sheet (row, column).
-export const PTERO_ART = { cell: 160 };
+export const PTERO_ART = { cell: 112 };
 const run = (name, row, from, count) => Object.fromEntries(Array.from({ length: count }, (_, i) => [`${name}-${i}`, { row, col: from + i }]));
 export const PTERO_FRAMES = {
   ...run('fly', 0, 0, 6), ...run('screech', 1, 0, 3), ...run('dive', 1, 3, 3),

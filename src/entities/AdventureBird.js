@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { BIRD, PTERO_FRAMES, birdHome, diveAt, hoverY, inReach } from '../data/adventure/birds.js';
+import { BIRD, PTERO_FRAMES, birdHome, diveAt, hoverY, inReach, orbitAt } from '../data/adventure/birds.js';
 import { FREEZE } from '../data/adventure/freeze.js';
 import { breakIce, isFrozen, updateIce } from '../systems/adventure/iceBlocks.js';
 import { putOut, updateBurn } from '../systems/adventure/burning.js';
@@ -17,7 +17,7 @@ const SHOT_FLASH_MS = 70;
 const WARN_FLASH = { tint: 0xfff27a, everyMs: 90 };
 
 export class AdventureBird extends Phaser.Physics.Arcade.Sprite {
-  constructor(scene, { kind, col, row, wake }, canTarget) {
+  constructor(scene, { kind, col, row, wake, ...flight }, canTarget) {
     makeStandIn(scene);
     const home = birdHome({ col, row });
     super(scene, home.x, home.y, STAND_IN.key, 'up');
@@ -37,7 +37,12 @@ export class AdventureBird extends Phaser.Physics.Arcade.Sprite {
     this.setDepth(5.5);
     this.hp = BIRD.hp;
     this.dead = false;
-    this.state = kind === 'hover' ? 'hover' : 'asleep';
+    this.flight = flight; // an orbit's radius, period, direction and phase
+    this.state = kind === 'diver' ? 'asleep' : kind;
+    if (kind === 'orbit') {
+      const at = orbitAt(home, 0, flight);
+      this.setPosition(at.x, at.y);
+    }
     this.ms = 0; // in its current state
     this.clock = 0; // for its bob, its hover and its flap
     this.face(-1);
@@ -71,6 +76,14 @@ export class AdventureBird extends Phaser.Physics.Arcade.Sprite {
         this.setVelocity(0, ((y - this.y) * 1000) / Math.max(1, ms));
         this.face(toCat);
         this.flap('glide');
+        break;
+      }
+      case 'orbit': {
+        const at = orbitAt(this.home, this.clock + ms, this.flight);
+        const vx = ((at.x - this.x) * 1000) / Math.max(1, ms);
+        this.setVelocity(vx, ((at.y - this.y) * 1000) / Math.max(1, ms));
+        this.face(Math.sign(vx) || this.direction);
+        this.flap('fly');
         break;
       }
       case 'asleep':
