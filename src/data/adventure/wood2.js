@@ -7,8 +7,8 @@
 // small wheel in a dry dip, the only way up a cliff, where a fall costs nothing; (3) the big
 // waterfall wheel over the river, with a secret above it; (4) a wheel a dart idol fires across;
 // (5) a breather from wheels: hanging crushers and spikes, and a crusher to freeze into a step;
-// (6) two wheels at different speeds, under a gunner's fire, and a jump between them needing
-// timing, then a small one up to the cliff; (7) the portal cliff, and a last small wheel up to the
+// (6) the peak: two wheels, a dart idol between them firing across the second, and a gunner above;
+// the hub, the freeze and the jump are all answers; then a small one up to the cliff; (7) the portal cliff, and a last small wheel up to the
 // portal, so the level begins and ends with a little wheel; a cave under the cliff for the silver
 // chest. A checkpoint starts each hard part. Tests check the routes and blind drops, as for every
 // level: they count a wheel's whole ring as somewhere to stand, as he can wait for a seat. A wheel's
@@ -54,7 +54,7 @@ level.put(47, 27, 'C').put(52, 27, '/')
   .wheel(62, 30, { dir: 1 }).arc(68, 70, 28, 1) // coins from its right-hand seat to the far bank
   .put(62, 23, 'o').island(61, 63, 21).put(62, 20, '*').put(61, 20, 'j')
   .ground(71, 82, CLIFF).put(77, 27, 'c').coins(72, 75, 26)
-  .gap(83, 88).bridge(83, 88, CLIFF).coins(84, 85, 26).put(86, 27, 'c');
+  .gap(83, 88).bridge(83, 88, CLIFF).coins(84, 85, 26).put(86, 27, 'v'); // a spiky: no stomping him on a narrow bridge
 
 // ----- 4. Idol Ruins: a wheel turning the other way, and a dart idol on a rock in the river firing
 // across its lower seats, which he rides through. Three answers: jump the darts; freeze the idol
@@ -75,7 +75,7 @@ level.ground(89, 93, CLIFF).put(90, 27, 'C').put(92, 27, 'f')
 // the island under it; the first stands back, so the landing past the spikes is safe. Crumbling
 // leaves lead up and on. The slab's top, with a crystal, is reached from the leaves, or by riding a
 // crusher up as it lifts (a coin under it hints at it), and hopping up through the slab.
-level.put(120, 27, 'C').put(122, 27, 'g')
+level.put(120, 27, 'C').put(119, 27, 'g') // he patrols into the mace's swing: lure him in
   .gap(125, 149)
   .island(127, 131, 27).put(130, 26, '^').put(131, 26, '^').coins(127, 129, 25)
   .island(133, 139, 27).trap('crusher', 135, 19, { phaseMs: 0 }).trap('crusher', 138, 19, { phaseMs: 1100 })
@@ -84,17 +84,19 @@ level.put(120, 27, 'C').put(122, 27, 'g')
   .put(141, 23, '%').put(142, 23, '%')
   .island(146, 149, 26).coins(146, 149, 24);
 
-// ----- 6. Twin Wheels: the test. Two wheels side by side, the second faster and with fewer seats,
-// so where their seats meet changes every turn: he watches, and picks his moment (coins mark the
-// crossing). A blaster on a rock in the waterfall between them fires at him on the wheels' upper
-// halves, never at the crossing; the rock is also a higher way across, for whoever fights him. A
-// crate of freeze rounds by the checkpoint: three into a hub stop that wheel for a while, its seats
-// still steps.
+// ----- 6. Twin Wheels: the peak, where the level's tricks meet. Two wheels side by side, the second
+// turning the other way, and a dart idol on a rock between them firing across the second wheel's
+// low seats: the cat lands on it and is carried down through the darts. Three answers: from the
+// first wheel, shoot the second's hub to turn it back, and ride up and over the top, clear of the
+// darts but under the blaster; freeze the idol from behind it (the crate by the checkpoint); or ride
+// through, jumping the darts. A blaster on a rock in the waterfall fires on the wheels' upper
+// halves; the rock is also a higher way across. A heart by the checkpoint, for the hardest part.
 // Then a small wheel lifts him to the cliff.
-level.ground(150, 153, CLIFF).put(151, 27, 'C').put(153, 27, 'f')
+level.ground(150, 153, CLIFF).put(151, 27, 'C').put(152, 27, '+').put(153, 27, 'f')
   .gap(154, 185)
   .wheel(159, 30, { dir: 1 })
-  .wheel(172, 30, { dir: 1, seats: 4, periodMs: 11000 })
+  .wheel(172, 30, { dir: -1, seats: 4, periodMs: 11000 })
+  .island(165, 166, 33).trap('idol', 166, 32, { facing: 1 }) // its darts cross the second wheel's low seats
   .island(165, 167, 22).put(166, 21, '1').coins(165, 166, 29)
   .wheel(181, 27, { ...LITTLE, dir: 1 });
 
