@@ -17,7 +17,8 @@ const SHOT_FLASH_MS = 70;
 const WARN_FLASH = { tint: 0xfff27a, everyMs: 90 };
 
 export class AdventureBird extends Phaser.Physics.Arcade.Sprite {
-  constructor(scene, { kind, col, row, wake, patrol = 0, riders = false, look = 'orange' }, canTarget) {
+  // flock: every bird in the level, so divers take turns.
+  constructor(scene, { kind, col, row, wake, patrol = 0, riders = false, look = 'orange' }, canTarget, flock = []) {
     makeStandIn(scene);
     const home = birdHome({ col, row });
     super(scene, home.x, home.y, STAND_IN.key, 'up');
@@ -39,6 +40,8 @@ export class AdventureBird extends Phaser.Physics.Arcade.Sprite {
     this.hp = BIRD.hp;
     this.dead = false;
     this.patrol = patrol;
+    this.flock = flock;
+    this.diveEndMs = -Infinity;
     this.riders = riders;
     this.state = kind === 'hover' ? 'hover' : 'asleep';
     this.ms = 0; // in its current state
@@ -83,11 +86,11 @@ export class AdventureBird extends Phaser.Physics.Arcade.Sprite {
       case 'waiting':
         this.bobHome(ms);
         this.face(toCat);
-        if (this.ms >= BIRD.firstAfterMs && this.canTarget(this.riders) && inReach(this.x, this.y, body.center.x, body.center.y)) {
+        if (this.ms >= BIRD.firstAfterMs && !this.othersBusy() && this.canTarget(this.riders) && inReach(this.x, this.y, body.center.x, body.center.y)) {
           this.aim = diveAt(this.x, this.y, body.center.x, body.center.y);
           this.face(this.aim.dir);
           this.enter('warning');
-          this.scene.audio.playSfx('shot'); // its screech, until it has a sound of its own
+          this.scene.audio.playSfx(BIRD.sounds.screech); // its screech, until it has a sound of its own
         }
         break;
       case 'warning':
@@ -99,13 +102,17 @@ export class AdventureBird extends Phaser.Physics.Arcade.Sprite {
           this.clearTint();
           this.from = { x: this.x, y: this.y };
           this.setVelocity(this.aim.vx, this.aim.vy);
+          this.scene.audio.playSfx(BIRD.sounds.dive); // the moment to jump
           this.enter('diving');
         }
         break;
       case 'diving': {
         this.pose('dive', `dive-${Math.min(2, Math.floor(this.ms / 90))}`);
         const flown = Math.hypot(this.x - this.from.x, this.y - this.from.y);
-        if (flown >= this.aim.distance || this.body.blocked.down || this.body.blocked.left || this.body.blocked.right) this.enter('returning');
+        if (flown >= this.aim.distance || this.body.blocked.down || this.body.blocked.left || this.body.blocked.right) {
+          this.diveEndMs = this.scene.time.now;
+          this.enter('returning');
+        }
         break;
       }
       case 'returning': {
@@ -129,6 +136,22 @@ export class AdventureBird extends Phaser.Physics.Arcade.Sprite {
       default:
         break;
     }
+  }
+
+  // Whether another bird is warning or diving, or ended a dive less than apartMs ago.
+  othersBusy() {
+    const now = this.scene.time.now;
+    return this.flock.some((bird) => bird !== this && !bird.dead
+      && (bird.state === 'warning' || bird.state === 'diving' || now - bird.diveEndMs < BIRD.apartMs));
+  }
+
+  // He's back at a checkpoint at x: a diver he hasn't reached from there goes home and back to
+  // sleep, so none is waiting, awake, over where he comes back.
+  sleepAgain(x) {
+    if (this.dead || this.kind !== 'diver' || this.wakeX === null || this.wakeX <= x || this.frozenMs > 0) return;
+    this.clearTint();
+    this.body.reset(this.home.x, this.home.y);
+    this.enter('asleep');
   }
 
   enter(state, ms = 0) {

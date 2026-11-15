@@ -2,6 +2,9 @@ import { TILE } from '../../systems/adventureMap.js';
 
 // The adventure's flying enemies: the pterodactyl (entities/AdventureBird.js). A level lists its
 // birds beside its map, with mapBuilder's bird(kind, col, row, options):
+// Divers take turns: one doesn't start its warning while another is warning or diving, or within
+// apartMs of a dive's end, so two never come at him together. After he falls in the river and comes
+// back at a checkpoint, the divers not yet reached go back to sleep, so none waits for him there.
 //   diver   it waits at its home cell (col, row), bobbing (or, with `patrol`, flying slowly to and
 //           fro that many cells each way), until the cat passes column `wake`. Then, while he's on
 //           solid ground within its reach (or, with `riders`, on a wheel's seat too: not in the air),
@@ -33,6 +36,8 @@ export const BIRD = {
   overshoot: TILE * 1.5, // it flies on this far past where it aimed, then climbs back
   returnSpeed: 220, // px a second, back home
   restMs: 2000, // at home, before it can warn again
+  apartMs: 1000, // one bird dives at a time: another waits until this long after a dive has ended
+  sounds: { screech: 'shot', dive: 'maceWhoosh' }, // the dive's whoosh is the cue to jump
   // The hover.
   hover: { loop: 1.5, periodMs: 3200 }, // loop: cells up and down from home; periodMs: once up and back
   patrolMs: 5000, // a patrolling diver: once to and fro

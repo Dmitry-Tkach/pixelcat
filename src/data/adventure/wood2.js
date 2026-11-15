@@ -14,8 +14,9 @@
 // level: they count a wheel's whole ring as somewhere to stand, as he can wait for a seat. A wheel's
 // green hub is a target: a round turns the wheel the other way, three freeze rounds stop it.
 // Pterodactyls live here (entities/AdventureBird.js): two take off harmlessly at the start, one dives
-// at him over the cliff before the big wheel (only ever on solid ground), and one flies up and down
-// over the canopy's last gap.
+// at him over the cliff before the big wheel (only ever on solid ground), two fly above the big
+// wheel and dive at him as he rides it, taking turns, and one flies up and down over the canopy's
+// last gap.
 // To see it: node tools/adventure-preview.mjs <out.png> 1 --routes
 //
 // Letters as in wood.js; also % crumbling leaves, j the silver key, U the silver chest.
@@ -67,7 +68,7 @@ level.put(47, 27, 'C').put(52, 27, '/')
   .bird('diver', 56, 22, { wake: 55, patrol: 2, riders: true })
   .bird('diver', 68, 22, { wake: 58, patrol: 2, riders: true, look: 'green' }) // the owner's green one
   .put(62, 23, 'o').island(61, 63, 21).put(62, 20, '*').put(61, 20, 'j')
-  .ground(71, 82, CLIFF).put(77, 27, 'c').coins(72, 75, 26)
+  .ground(71, 82, CLIFF).put(80, 27, 'c').coins(72, 75, 26) // the cone head back from the landing, out of the green bird's reach
   .gap(83, 88).bridge(83, 88, CLIFF).coins(84, 85, 26).put(86, 27, 'v'); // a spiky: no stomping him on a narrow bridge
 
 // ----- 4. Idol Ruins: a wheel turning the other way, and a dart idol on a rock in the river firing

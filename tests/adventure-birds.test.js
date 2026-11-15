@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BIRD, BIRD_KINDS, birdHome, diveAt, hoverY, inReach, waitingAt } from '../src/data/adventure/birds.js';
 import { ADVENTURE_LEVELS } from '../src/data/adventure/index.js';
 import { mapBuilder } from '../src/data/adventure/mapBuilder.js';
+import { ADVENTURE_SOUNDS } from '../src/data/adventure/sounds.js';
 import { TILE, readAdventureMap } from '../src/systems/adventureMap.js';
 
 describe('pterodactyls', () => {
@@ -22,9 +23,11 @@ describe('pterodactyls', () => {
     expect(flat.distance).toBeCloseTo(600 + BIRD.overshoot);
   });
 
-  it('warn longer than the traps do, and dive faster than he runs', () => {
+  it('warn longer than the traps do, dive faster than he runs, whoosh as they dive, and take turns', () => {
     expect(BIRD.warnMs).toBeGreaterThanOrEqual(600);
     expect(BIRD.diveSpeed).toBeGreaterThan(380);
+    expect(ADVENTURE_SOUNDS[BIRD.sounds.dive]).toBeDefined();
+    expect(BIRD.apartMs).toBeGreaterThan(0);
   });
 
   it('hover up and down round their home, a loop each way', () => {

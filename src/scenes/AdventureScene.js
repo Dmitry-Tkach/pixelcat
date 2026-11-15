@@ -176,9 +176,11 @@ export class AdventureScene extends Phaser.Scene {
     this.traps.addColliders(this.cat, this.enemies, () => !this.climbing && !this.pullingUp);
     // Pterodactyls (data/adventure/birds.js): they dive at him on solid ground, or, for one that
     // takes riders, on a wheel's seat too; never in the air or climbing.
+    this.birds = [];
     for (const bird of this.level.birds ?? []) {
-      this.enemies.add(new AdventureBird(this, bird, (riders) => this.cat.onGround && !this.climbing && (riders || !this.platforms.riding)));
-      this.enemies.getChildren().at(-1).ready();
+      const pterodactyl = new AdventureBird(this, bird, (riders) => this.cat.onGround && !this.climbing && (riders || !this.platforms.riding), this.birds);
+      this.enemies.add(pterodactyl);
+      this.birds.push(pterodactyl.ready());
       this.totals.enemies += 1;
     }
     this.moves = new AdventureMoves(this, this.cat, {
@@ -1004,6 +1006,7 @@ export class AdventureScene extends Phaser.Scene {
     if (this.climbing) this.stopClimbing();
     this.cat.body.reset(this.respawnAt.x, this.respawnAt.y - 80);
     this.cat.moveVelocity = 0;
+    for (const bird of this.birds) bird.sleepAgain(this.respawnAt.x); // none waiting, awake, over him
     this.cameras.main.flash(200, 255, 255, 255);
   }
 
