@@ -220,11 +220,11 @@ describe('the stone guardian', () => {
     expect(guardianBall(right, most).x).toBeGreaterThan(guardianBall(right, 0).x);
   });
 
-  // A path along row 15, and his platform of stones seven cells up.
+  // A path along row 15, and his platform of stones four cells up.
   const guardianLevel = (stones = [8, 9, 10, 11]) => {
     const builder = mapBuilder(20, 16).ground(0, 19, 15);
-    for (const c of stones) builder.put(c, 8, 'X');
-    builder.trap('guardian', 10, 7);
+    for (const c of stones) builder.put(c, 11, 'X');
+    builder.trap('guardian', 10, 10);
     const level = { world: 'wood', map: builder.rows(), traps: builder.traps() };
     return trapProblems(level, readAdventureMap(level.map));
   };
@@ -237,10 +237,14 @@ describe('the stone guardian', () => {
     expect(guardianLevel([8, 9, 10]).join(' ')).toMatch(/his platform needs stone/);
   });
 
-  it('stands out of reach in level 1, so there is no way over him', () => {
+  it('is solid in level 1, so nothing above his platform can be stood on: no way over him', () => {
     const level = ADVENTURE_LEVELS[0];
     const guardian = level.traps.find((t) => t.kind === 'guardian');
     const { reached } = adventureRoutes(level);
-    for (let c = guardian.col - 2; c < guardian.col + 2; c++) expect(reached.has(`${c},${guardian.row}`)).toBe(false);
+    for (const cell of reached) {
+      const [c, row] = cell.split(',').map(Number);
+      const over = c >= guardian.col - 2 && c < guardian.col + 2 && row <= guardian.row;
+      expect(over, cell).toBe(false);
+    }
   });
 });

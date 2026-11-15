@@ -101,8 +101,8 @@ level.island(117, 122, 10).put(118, 9, 'C').put(120, 9, 'z')
   .put(130, 29, 'g').put(138, 29, 'c').put(126, 29, '+').coins(136, 140, 28);
 
 // ----- 7. The Guardian: the finale, over water. Down from the canopy on crumbling leaves and a step
-// with a checkpoint, to a long stone path. Over it, on a stone platform out of reach, stands a giant
-// stone guardian, who wakes and roars as he comes into view, and swings a mace on a chain in each
+// with a checkpoint, to a long stone path. Over it, on a stone platform, stands a giant stone
+// guardian, solid from his feet to his head, so there's no way over him, who wakes and roars as he comes into view, and swings a mace on a chain in each
 // hand down onto the path, in turn: each arm winds up outward (the warning) and strikes back down.
 // Past his left mace, safe under his platform, past his right one, to the portal. The level's maces,
 // learnt alone, then as a wave, end on him.
@@ -110,8 +110,8 @@ level.gap(142, COLS - 1).put(141, 29, 'X') // the floor ends at a stone: water f
   .put(144, 14, '%').put(145, 14, '%').put(146, 14, '%')
   .island(148, 150, 18).put(149, 17, 'C') // out of the maces' reach
   .island(152, COLS - 1, 22)
-  .put(160, 15, 'X').put(161, 15, 'X').put(162, 15, 'X').put(163, 15, 'X') // his platform, seven cells up
-  .trap('guardian', 162, 14)
+  .put(160, 18, 'X').put(161, 18, 'X').put(162, 18, 'X').put(163, 18, 'X') // his platform, four cells up: his solid body fills it
+  .trap('guardian', 162, 17)
   .coins(161, 162, 20) // safe under him
   .put(175, 21, 'E');
 
@@ -127,6 +127,16 @@ export const WOOD_LEVEL = {
   // the level to the next, so it's the same all through.
   map: level.rows(),
   traps: level.traps(),
+  // The camera's moments (systems/adventure/AdventureCameraShots.js): it shows the Mace Ledge's maces
+  // as the cat steps onto it, and the guardian, who wakes on camera, from the checkpoint before him;
+  // and it frames the guardian whole, from his head to the path, while the cat is near him.
+  camera: {
+    shots: [
+      { when: { cols: [54, 56], rows: [24, 25] }, look: { col: 62.5, row: 22.5 }, panMs: 800, holdMs: 1800 },
+      { when: { cols: [148, 150], rows: [17, 17] }, look: { col: 162, row: 16.8 }, panMs: 1100, holdMs: 2400 },
+    ],
+    zones: [{ cols: [151, COLS - 1], rows: [12, 23], middleRow: 16.8 }],
+  },
   // Places to start at while developing, with /adventure.html?at=<name> (systems/adventure/devPlaces.js).
   places: {
     maces: { col: 55, row: 25 }, // the Mace Ledge's checkpoint

@@ -15,6 +15,7 @@
 import { MOVEMENT } from '../config/gameConfig.js';
 import { TRAPS } from '../data/adventure/traps.js';
 import { TILE, moverCells, readAdventureMap } from './adventureMap.js';
+import { guardianSolid } from './adventure/trapLogic.js';
 
 // How many cells across he can jump, with a double jump, for each number of cells up (or down, as
 // negative). He really reaches about 6 up and 8 across at full speed; these leave a margin, so a
@@ -48,6 +49,13 @@ export function adventureRoutes(level) {
   const { rows, cols, tiles, ladders, objects } = readAdventureMap(level.map);
   const key = (c, r) => `${c},${r}`;
   const blocks = new Set(objects.filter((o) => SOLID_OBJECTS.has(o.type)).map((o) => key(o.col, o.row)));
+  // A stone guardian's body is solid too (data/adventure/traps.js).
+  for (const trap of (level.traps ?? []).filter((t) => t.kind === 'guardian' && TRAPS[level.world]?.guardian)) {
+    const { left, right, top, bottom } = guardianSolid(trap, TRAPS[level.world].guardian);
+    for (let c = Math.floor(left / TILE); c <= Math.floor((right - 1) / TILE); c++) {
+      for (let r = Math.floor(top / TILE); r <= Math.floor((bottom - 1) / TILE); r++) blocks.add(key(c, r));
+    }
+  }
   const spikes = new Set(objects.filter((o) => o.type === 'spike').map((o) => key(o.col, o.row)));
   const ladderCells = new Set(ladders.map((l) => key(l.col, l.row)));
   const inside = (c, r) => c >= 0 && c < cols && r >= 0 && r < rows;

@@ -21,6 +21,7 @@ import { AdventureGates } from '../systems/adventure/AdventureGates.js';
 import { TRAPS } from '../data/adventure/traps.js';
 import { AdventureTraps } from '../systems/adventure/AdventureTraps.js';
 import { devPlace } from '../systems/adventure/devPlaces.js';
+import { AdventureCameraShots } from '../systems/adventure/AdventureCameraShots.js';
 import { FLASH, FLASH_KEY } from '../data/adventure/gunners.js';
 import { BOSS_FIGHTS } from '../data/adventure/bossFights.js';
 import { AdventureBoss } from '../entities/AdventureBoss.js';
@@ -203,6 +204,8 @@ export class AdventureScene extends Phaser.Scene {
     this.look = { x: 0, y: -LOOK.below, edgeMs: 0 };
     cam.setDeadzone(CAMERA.deadzoneW, CAMERA.deadzoneH);
     cam.setBackgroundColor(level.sky ?? '#8fd18f');
+    // The camera's own moments: shots that show what's ahead, zones that frame a set piece.
+    this.shots = new AdventureCameraShots(this, level.camera, () => cam.startFollow(this.cat, true, CAMERA.lerp, CAMERA.lerp, this.look.x, this.look.y).setDeadzone(CAMERA.deadzoneW, CAMERA.deadzoneH));
 
     this.climbKeys = this.input.keyboard.addKeys({ up: 'UP', w: 'W', down: 'DOWN', s: 'S' });
     this.controls = new InputController(this, {
@@ -590,6 +593,9 @@ export class AdventureScene extends Phaser.Scene {
     else if (riding && riding.body.velocity.y < 0) y = LOOK.above;
     else if (riding && riding.body.velocity.y > 0) y = -LOOK.ride;
     else if (look.edgeMs > LOOK.stillMs) y = -LOOK.peek;
+    // In a camera zone, the camera holds its middle where the zone says, to show a whole set piece.
+    const frame = this.shots.frameY(cat);
+    if (frame !== null) y = cat.y - frame;
     // Ahead of him: the way he's running, or standing, the way he faces.
     const x = -(running ? Math.sign(cat.moveVelocity) : (cat.flipX ? -1 : 1)) * LOOK.ahead;
     const ease = 1 - Math.exp(-ms / LOOK.easeMs);
@@ -636,7 +642,7 @@ export class AdventureScene extends Phaser.Scene {
   }
 
   jump(key) {
-    if (!this.playing || this.pullingUp || this.moves.isFiringSpecial) return;
+    if (!this.playing || this.pullingUp || this.moves.isFiringSpecial || this.shots.playing) return;
     if (this.climbing) {
       if (key === 'space') {
         this.stopClimbing();
@@ -654,7 +660,7 @@ export class AdventureScene extends Phaser.Scene {
   }
 
   slide(key) {
-    if (!this.playing || this.climbing || this.pullingUp || this.moves.isFiringSpecial) return;
+    if (!this.playing || this.climbing || this.pullingUp || this.moves.isFiringSpecial || this.shots.playing) return;
     // Down while standing at the top of a ladder climbs down it. Running past one, Down slides, so a
     // ladder through the middle of an island doesn't catch the cat.
     const standing = Math.abs(this.cat.moveVelocity) < CLIMB.standStill;
@@ -1109,12 +1115,12 @@ export class AdventureScene extends Phaser.Scene {
     if (this.climbing) {
       this.updateClimbing();
     } else if (!this.pullingUp) {
-      this.cat.move(this.moves.isFiringSpecial ? 0 : this.controls.steer);
+      this.cat.move(this.moves.isFiringSpecial || this.shots.update(this.cat) ? 0 : this.controls.steer);
       this.cat.tick(ms);
       // Holding Up as the cat reaches a ladder grabs it.
       if (this.upHeld && this.ladderNear() && !this.moves.isFiringSpecial) this.startClimbing();
     }
-    this.moves.update(ms, { canAct: !this.climbing && !this.pullingUp });
+    this.moves.update(ms, { canAct: !this.climbing && !this.pullingUp && !this.shots.playing });
     for (const enemy of this.enemies.getChildren()) enemy.update(this.cat, ms);
     this.updateEnemyBullets();
     if (this.boss) {

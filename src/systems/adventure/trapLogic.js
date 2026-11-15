@@ -164,6 +164,14 @@ export function guardianGeometry(trap, r) {
   return { x, feet, left, top, chain, arms };
 }
 
+// The guardian's solid stone, in px ({ left, right, top, bottom }): he blocks the cat, and fills his
+// platform, so there's no standing beside him or getting over him.
+export function guardianSolid(trap, r) {
+  const { x, feet, top } = guardianGeometry(trap, r);
+  const half = (r.bodySize.w * r.solid.width) / 2;
+  return { left: x - half, right: x + half, top: top + r.bodySize.h * r.solid.top, bottom: feet };
+}
+
 // The middle of an arm's ball, swung `swing` radians outward.
 export const guardianBall = (arm, swing) => swingPoint(arm.socket, arm.reach, arm.outward * swing);
 
@@ -211,7 +219,8 @@ export function trapProblems(level, layout) {
       }
       for (const arm of guardianGeometry(trap, r).arms) {
         const ball = guardianBall(arm, 0);
-        const floor = floorRow(tiles, Math.floor(ball.x / TILE), Math.floor(ball.y / TILE) + 1);
+        // The ground under the ball: the first below his shoulder (the ball may hang below it).
+        const floor = floorRow(tiles, Math.floor(ball.x / TILE), Math.floor(arm.socket.y / TILE) + 1);
         if (floor === null) continue;
         const spikes = floor * TILE - (ball.y + r.hitShare * r.ballHeight);
         if (spikes < MACE_SWING_LOW.min) errors.push(`${name} in column ${col}: a ball hangs too low to slide under (${Math.round(spikes)} px up)`);

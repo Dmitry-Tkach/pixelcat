@@ -2,7 +2,7 @@ import { ONE_WAY, TILE } from '../adventureMap.js';
 import { landsFromAbove, staysOn } from '../adventurePlatformLanding.js';
 import {
   circleHitsRect, crusherAngry, crusherContact, crusherCrushes, crusherStart, crusherStep, floorRow, guardianBall,
-  guardianGeometry, guardianPhase, guardianSwing, landsOnCap, maceAngle, maceHook, rectsTouch, swingPoint,
+  guardianGeometry, guardianPhase, guardianSolid, guardianSwing, landsOnCap, maceAngle, maceHook, rectsTouch, swingPoint,
 } from './trapLogic.js';
 
 // Builds a level's moving traps (data/adventure/traps.js) and moves them each frame, while play is
@@ -200,6 +200,9 @@ export class AdventureTraps {
       // The second arm is half a swing behind the first: they strike in turn.
       return { ...look, arm, container, ms: (i * r.periodMs) / 2, swing: 0, phase: 'rest' };
     });
+    // His stone is solid: he can't be passed through, stood beside, or got over.
+    const solid = guardianSolid(trap, r);
+    this.idolBodies.add(this.scene.add.zone((solid.left + solid.right) / 2, (solid.top + solid.bottom) / 2, solid.right - solid.left, solid.bottom - solid.top));
     this.guardians.push({ body, awake, arms, woke: false, rules: r });
   }
 

@@ -11,7 +11,8 @@
 //   idol      a stone head standing at (col, row) that shoots darts across the path; { facing: -1 }
 //             to shoot left. Its stone is solid: he can stand on its head, above its darts
 //   mushroom  a bouncy mushroom standing at (col, row): landing on it throws the cat up high
-//   guardian  a giant stone statue standing on a stone platform out of reach, his feet at row + 1,
+//   guardian  a giant stone statue standing on a stone platform, solid (his body fills it, so there's
+//             no way over him), his feet at row + 1,
 //             his middle on column col's left edge. He wakes as he comes into view, and swings a
 //             spiked mace on a chain in each hand down onto the path below, in turn: each arm
 //             winds up outward and strikes back down. Under his platform, between the maces, is safe.
@@ -92,13 +93,14 @@ export const TRAPS = {
         { shoulder: { x: 0.19, y: 0.128 }, chainEnd: { x: 0.558, y: 1 } },
       ],
       ballHeight: 110, ballMiddle: 0.56, hitShare: 0.36,
-      chain: 199, // px from his fist to the ball's ring
+      chain: 9, // px from his fist to the ball's ring: on a platform four cells over the path, the ball hangs right under his fist
       swingDeg: 50, // how far each arm winds up, outward from hanging straight down
       periodMs: 3600, // one swing of an arm; the other is half a swing behind
       // Each swing's parts, as shares of periodMs: resting low (a slide passes under), rising
       // outward (the warning), holding up there, and the strike back down, fast.
       swing: { rest: 0.32, rise: 0.36, hold: 0.14, strike: 0.18 },
       platformCells: 4, // stone blocks under his feet: col - 2 to col + 1
+      solid: { width: 0.86, top: 0.04 }, // his solid stone: this share of his body's width, from this far down
       wakeInset: 120, // px inside the camera's view: once he's this far in view, he wakes
       wakeMs: 600, // his eyes and runes lighting up
       sounds: { roar: 'guardianRoar', whoosh: 'maceWhoosh', creak: 'maceCreak', heardWithin: 1100 },
