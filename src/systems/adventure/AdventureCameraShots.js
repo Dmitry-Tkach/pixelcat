@@ -10,8 +10,13 @@ import { TILE } from '../adventureMap.js';
 //     fractions allowed), instead of looking below him, to show a whole set piece.
 //     { cols: [from, to], rows: [from, to], middleRow }
 // The scene asks update() each frame whether a shot is playing (then he can't move), and frameY()
-// where the camera should keep its middle.
+// where the camera should keep its middle. Jump or slide during a shot skips it (skip()): the camera
+// glides back quickly.
 const BARS = { share: 0.09, alpha: 0.5, ms: 700, depth: 95 }; // alpha: see-through, so the level shows behind them
+// Skipping: not in the shot's first SKIP_AFTER_MS (a key still held from before doesn't skip it), and
+// the camera glides back in SKIP_BACK_MS.
+const SKIP_AFTER_MS = 300;
+const SKIP_BACK_MS = 600;
 
 const inside = ({ cols, rows }, col, row) => col >= cols[0] && col <= cols[1] && row >= rows[0] && row <= rows[1];
 const cellOf = (cat) => ({ col: Math.floor(cat.x / TILE), row: Math.floor((cat.body.bottom - 1) / TILE) });
@@ -44,21 +49,36 @@ export class AdventureCameraShots {
   play(shot) {
     shot.done = true;
     this.playing = shot;
+    this.returning = false;
+    this.startedAt = this.scene.time.now;
     const cam = this.scene.cameras.main;
     cam.stopFollow();
     cam.pan(shot.look.col * TILE, shot.look.row * TILE, shot.panMs, 'Sine.easeInOut');
     this.showBars(true);
-    // Then back to him, on the same slow curve, the bars opening as it arrives. He moves again, and
-    // the camera follows him again, only once it's there, so nothing jumps.
-    this.scene.time.delayedCall(shot.panMs + shot.holdMs, () => {
-      const { x, y } = this.home();
-      cam.pan(x, y, shot.panMs, 'Sine.easeInOut');
-      this.scene.time.delayedCall(Math.max(0, shot.panMs - BARS.ms), () => this.showBars(false));
-      this.scene.time.delayedCall(shot.panMs, () => {
+    this.timers = [this.scene.time.delayedCall(shot.panMs + shot.holdMs, () => this.goBack(shot.panMs))];
+  }
+
+  // Back to him, on the same slow curve, the bars opening as it arrives. He moves again, and the
+  // camera follows him again, only once it's there, so nothing jumps.
+  goBack(ms) {
+    this.returning = true;
+    const cam = this.scene.cameras.main;
+    const { x, y } = this.home();
+    cam.pan(x, y, ms, 'Sine.easeInOut', true);
+    this.timers = [
+      this.scene.time.delayedCall(Math.max(0, ms - BARS.ms), () => this.showBars(false)),
+      this.scene.time.delayedCall(ms, () => {
         this.playing = null;
         this.follow();
-      });
-    });
+      }),
+    ];
+  }
+
+  // Jump or slide during a shot: it ends, gliding back quickly.
+  skip() {
+    if (!this.playing || this.returning || this.scene.time.now - this.startedAt < SKIP_AFTER_MS) return;
+    for (const timer of this.timers) timer.remove();
+    this.goBack(SKIP_BACK_MS);
   }
 
   // The bars slide in from the top and bottom of the screen, and out again.
