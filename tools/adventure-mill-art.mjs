@@ -46,6 +46,38 @@ function clearStrays(p) {
   for (const g of groups) if (g.edge && g.members.length < biggest * 0.05) for (const q of g.members) pixels[q * 4 + 3] = 0;
 }
 for (const p of Object.values(piece)) clearStrays(p);
+
+// The waterfall's middle and veil repeat down the fall, so they must join end to end: their soft,
+// fading top and bottom rows (a gap at every join) are cut off, and the bottom BLEND share is faded
+// into the top, then dropped, so the last row runs on into the first.
+const BLEND = 0.15;
+function loopDown(p) {
+  const { pixels, w, h } = p;
+  const solid = (y) => {
+    let sum = 0;
+    for (let x = Math.round(w * 0.2); x < w * 0.8; x++) sum += pixels[(y * w + x) * 4 + 3];
+    return sum / (w * 0.6) >= 250;
+  };
+  let y0 = 0, y1 = h - 1;
+  while (y0 < h && !solid(y0)) y0++;
+  while (y1 > y0 && !solid(y1)) y1--;
+  const rows = y1 - y0 + 1, blend = Math.round(rows * BLEND), out = rows - blend;
+  const result = Buffer.alloc(w * out * 4);
+  for (let y = 0; y < out; y++) {
+    for (let x = 0; x < w; x++) {
+      const to = (y * w + x) * 4, from = ((y0 + y) * w + x) * 4;
+      // The first rows fade from the rows past the end into their own, so the loop has no seam.
+      const t = y < blend ? y / blend : 1;
+      const under = ((y0 + out + y) * w + x) * 4;
+      for (let c = 0; c < 4; c++) {
+        result[to + c] = y < blend ? Math.round(pixels[under + c] * (1 - t) + pixels[from + c] * t) : pixels[from + c];
+      }
+    }
+  }
+  Object.assign(p, { pixels: result, h: out });
+}
+loopDown(piece['fall-middle']);
+loopDown(piece['fall-veil']);
 const saved = [];
 const save = async (name, outW) => {
   const p = piece[name];
