@@ -123,7 +123,7 @@ describe('the trap checks', () => {
       { kind: 'idol', col: 3, row: 8 },
       { kind: 'mushroom', col: 6, row: 8 },
       { kind: 'mace', col: 12, row: 4, hanging: true, chain: 100 },
-      { kind: 'crusher', col: 20, row: 4 },
+      { kind: 'crusher', col: 20, row: 1 },
       { kind: 'mace', col: 24, row: 8 },
     ]);
     expect(problems).toEqual([]);
@@ -133,6 +133,10 @@ describe('the trap checks', () => {
     expect(testLevel([{ kind: 'cannon', col: 3, row: 8 }]).problems[0]).toMatch(/isn't a kind of trap/);
     expect(testLevel([{ kind: 'idol', col: 3, row: 5 }]).problems[0]).toMatch(/isn't standing on anything/);
     expect(testLevel([{ kind: 'mace', col: 20, row: 4, hanging: true }]).problems[0]).toMatch(/no island above/);
+  });
+
+  it('find a crusher that waits so low a plain jump under it would touch it', () => {
+    expect(testLevel([{ kind: 'crusher', col: 20, row: 4 }]).problems[0]).toMatch(/waits too low/);
   });
 
   it('find a mace whose ball would hang into the ground', () => {

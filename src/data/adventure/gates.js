@@ -15,6 +15,7 @@ export const GATES = {
     start: {
       ring: 'gate-ring', swirl: 'gate-swirl', height: 170, sink: 8, depth: 1.8,
       hole: { x: 0.49, y: 0.503, size: 0.463 }, // the empty middle the swirl fills, as a fraction of the ring's width
+      swirlHue: 100, // degrees its swirl's colour is turned when cut: calm blue, so it can't be taken for the green portal
       spinMs: 9000, // one turn of the swirl
       openMs: 1400, // the swirl shines bright as the cat comes out, then settles
       idleAlpha: 0.55, // how bright the swirl stays once he's out

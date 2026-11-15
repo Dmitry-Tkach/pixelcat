@@ -63,17 +63,17 @@ export async function cutGates(sheetFile, outDir) {
   const piece = await readSheet(sheetFile, NAMES, { glowing: (name) => name.endsWith('swirl') });
 
   const { start, checkpoint, portal } = GATES.wood;
-  const save = (p, name, outW, outH) => savePiece(p, `${outDir}/${name}.png`, outW, outH);
+  const save = (p, name, outW, outH, options) => savePiece(p, `${outDir}/${name}.png`, outW, outH, options);
   const measured = {};
 
   // A ring and its swirl: the ring at its height, the swirl sized to its hole.
-  const ring = async (ringName, swirlName, { height }) => {
+  const ring = async (ringName, swirlName, { height, swirlHue = 0 }) => {
     const p = piece[ringName];
     const f = height / p.h;
     const { x, y, across } = hole(alphaOf(p), p.w, p.h);
     await save(p, ringName, p.w * f, height);
     const swirlAcross = across * SWIRL_OVER * f;
-    await save(piece[swirlName], swirlName, swirlAcross, swirlAcross);
+    await save(piece[swirlName], swirlName, swirlAcross, swirlAcross, { hue: swirlHue });
     return { x: round(x / p.w), y: round(y / p.h), size: round((across * SWIRL_OVER) / p.w) };
   };
   measured.startHole = await ring('gate-ring', 'gate-swirl', start);

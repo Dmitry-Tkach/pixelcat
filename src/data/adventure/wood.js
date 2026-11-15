@@ -34,7 +34,7 @@ level.put(2, 29, '@').put(4, 29, '>').put(8, 29, 'b')
   .put(12, 29, 'X').arc(11, 13, 27, 1)
   .ground(16, 17, 33).put(16, 32, '^').put(17, 32, '^').arc(15, 18, 27, 2) // a pit, two spikes deep
   .put(22, 29, 'g').put(20, 29, 'p')
-  .trap('crusher', 24, 23).coins(23, 25, 28) // the first crusher: time the run under it for the coins
+  .trap('crusher', 24, 22).coins(23, 25, 28) // the first crusher: time the run under it for the coins
   .put(26, 29, 'B').put(27, 29, 'B').put(27, 28, 'B').coins(26, 27, 26);
 
 // ----- 2. Up the Roots: the first ladder, islands, a ? block, and the minigun, then a cone head to
@@ -43,15 +43,15 @@ level.island(30, 36, 25).ladder(31, 25, 29).put(34, 26, 'R')
   .coins(32, 35, 24)
   .island(39, 44, 22).put(41, 18, '?').put(43, 21, 'w').put(39, 21, '/')
   .arc(37, 38, 22, 1)
-  .put(49, 29, 'c').coins(46, 48, 28)
-  .trap('idol', 51, 29, { facing: -1 }); // beside the crate step, not hiding it
+  .put(46, 29, 'c').coins(47, 49, 28)
+  .trap('idol', 51, 29, { facing: -1 }); // beside the crate step, not hiding it, met apart from the cone head
 
-// ----- 3. The Gunner's Ledge: a raised ledge with a checkpoint. A blaster gunner shoots down from
-// the far end of an island above it, which a ladder climbs to, with a crate of rounds for whoever
-// gets there.
+// ----- 3. The Gunner's Ledge: a raised ledge with a checkpoint. The first blaster gunner stands on
+// the ledge, out of sight of the checkpoint, and past him the first mace swings at the ledge's end:
+// one, then the other. An island above, up a ladder, has a crate of rounds.
 level.put(53, 29, 'B').ground(54, 69, 26)
-  .put(56, 25, 'C').coins(57, 59, 24).put(60, 25, 'g').put(68, 25, 'b')
-  .island(62, 67, 20).ladder(62, 20, 25).put(67, 19, '1').put(65, 19, 'a')
+  .put(56, 25, 'C').coins(57, 59, 24).put(60, 25, 'g').put(68, 25, 'b').put(64, 25, '1')
+  .island(62, 67, 20).ladder(62, 20, 25).put(65, 19, 'a')
   // A swinging mace on a gallows guards the ledge's end, before the drop into the hollow.
   .trap('mace', 67, 25, { facing: -1 });
 
@@ -91,16 +91,16 @@ level.put(100, 29, 'C').put(102, 29, '+').put(99, 29, 'b').put(103, 29, 'h')
 // below for whoever falls, past spikes.
 level.island(117, 122, 10).put(118, 9, 'C').put(120, 9, 'z')
   .island(127, 131, 8).put(129, 7, 'c').arc(123, 126, 9, 2)
-  .island(133, 140, 11).ladder(134, 11, 29).put(140, 10, '1').put(137, 10, 'T').arc(132, 132, 9, 0).put(133, 10, 'o')
+  .island(133, 142, 11).ladder(134, 11, 29).put(142, 10, '1').put(137, 10, 'T').arc(132, 132, 9, 0).put(133, 10, 'o')
   .coins(141, 142, 8)
-  .put(130, 29, 'g').put(142, 29, 'c').put(126, 29, '+').coins(136, 140, 28);
+  .put(130, 29, 'g').put(138, 29, 'c').put(126, 29, '+').coins(136, 140, 28);
 
-// ----- 7. The Portal Tree: the finale. Crumbling leaves that won't hold him for long, under fire
-// from a dart idol guarding the portal, spikes below for whoever falls, and a goon by the portal.
-level.put(143, 7, '%').put(144, 7, '%').put(145, 7, '%').put(146, 7, '%').put(147, 7, '%')
-  .ground(146, 149, 31).put(146, 30, '^').put(147, 30, '^').put(148, 30, '^').put(149, 30, '^') // a spike pit under the leaves
-  .island(151, 158, 6).trap('idol', 152, 5, { facing: -1 }).put(154, 5, 'g').put(156, 5, 'E').put(159, 5, 'X').arc(148, 150, 6, 1)
-  .put(158, 29, 'b');
+// ----- 7. The Portal Tree: the finale, over water. Crumbling leaves that won't hold him for long,
+// at the height of a dart idol guarding the portal, so its darts fly across them: jump or slide
+// over a dart while the leaves fall. A goon by the portal.
+level.gap(142, 159).put(141, 29, 'X') // the floor ends at a stone: water from here to the end
+  .put(143, 7, '%').put(144, 7, '%').put(145, 7, '%').put(146, 7, '%').put(147, 7, '%')
+  .island(151, 158, 7).trap('idol', 152, 6, { facing: -1 }).put(154, 6, 'g').put(156, 6, 'E').put(159, 6, 'X').arc(148, 150, 7, 1);
 
 export const WOOD_LEVEL = {
   id: 'wood-1',

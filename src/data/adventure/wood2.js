@@ -38,7 +38,7 @@ level.mover(30, 65, { up: 8 }).put(29, 65, '/')
 // him across the gaps between branches, cone heads on them, a blaster on a branch above. A log off the
 // last branch goes down to a hidden hollow with the silver key and a crystal.
 level.mover(54, 49, { across: 6 }).coins(55, 61, 47)
-  .island(65, 69, 49).put(67, 48, 'c').put(65, 48, 'a').trap('crusher', 68, 44)
+  .island(65, 69, 49).put(67, 48, 'c').put(65, 48, 'a').trap('crusher', 68, 41)
   .island(60, 63, 41).put(61, 40, '1')
   .mover(71, 47, { across: 6 }).coins(72, 78, 45)
   .island(82, 88, 46).put(85, 45, 'g')

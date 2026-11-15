@@ -1,3 +1,4 @@
+import { SINGLE_JUMP_HEIGHT } from '../../config/gameConfig.js';
 import { TILE } from '../adventureMap.js';
 import { TRAPS, TRAP_KINDS } from '../../data/adventure/traps.js';
 
@@ -6,6 +7,12 @@ import { TRAPS, TRAP_KINDS } from '../../data/adventure/traps.js';
 // sensibly. No Phaser, so tests can check it; systems/adventure/AdventureTraps.js draws them.
 
 const STANDS = new Set(['idol', 'mushroom']);
+// How much room a waiting crusher must leave above the ground it slams onto: a single jump lifts his
+// feet SINGLE_JUMP_HEIGHT, and his head is CAT_HEIGHT above them. A crusher hurts at a touch even
+// while it waits, so lower than this, a plain jump under it would be hurt.
+const CAT_HEIGHT = 113;
+const CRUSHER_MARGIN = 20;
+export const CRUSHER_CLEARANCE = Math.ceil(SINGLE_JUMP_HEIGHT + CAT_HEIGHT + CRUSHER_MARGIN);
 
 // The mace's angle (radians) at a moment: a pendulum swinging swingDeg each way. Positive is
 // clockwise on screen, so the ball goes left.
@@ -112,7 +119,13 @@ export function trapProblems(level, layout) {
       if (hookCol < 0 || hookCol >= cols) errors.push(`${name}'s chain hangs off the map`);
       else if (floor !== null && lowest > floor * TILE) errors.push(`${name} in column ${col} hangs into the ground`);
     }
-    if (kind === 'crusher' && floorRow(tiles, col, row) === null) errors.push(`${name} in column ${col} has no ground below to slam onto`);
+    if (kind === 'crusher') {
+      const floor = floorRow(tiles, col, row);
+      if (floor === null) errors.push(`${name} in column ${col} has no ground below to slam onto`);
+      else if (floor * TILE - (row * TILE + rules.crusher.height) < CRUSHER_CLEARANCE) {
+        errors.push(`${name} in column ${col} waits too low: a jump under it would touch it (it needs ${CRUSHER_CLEARANCE} px of room)`);
+      }
+    }
   }
   return errors;
 }
