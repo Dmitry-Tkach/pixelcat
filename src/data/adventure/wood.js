@@ -41,12 +41,15 @@ level.put(2, 29, '@').put(4, 29, '>').put(8, 29, 'b')
   .trap('crusher', 24, 22).coins(23, 25, 28) // the first crusher: time the run under it for the coins
   .put(26, 29, 'B').put(27, 29, 'B').put(27, 28, 'B').coins(26, 27, 26);
 
-// ----- 2. Up the Roots: the first ladder, islands, a ? block, and the minigun, then the first
+// ----- 2. Up the Roots: the first ladder, islands, crumbling leaves, a ? block, and the minigun, then the first
 // gunner to try it on: he shoots back. He stands out of sight of the Mace Ledge's checkpoint.
 level.island(30, 36, 25).ladder(31, 25, 29).put(34, 26, 'R')
   .coins(32, 35, 24)
   .island(39, 44, 22).put(41, 18, '?').put(43, 21, 'w').put(39, 21, '/')
   .arc(37, 38, 22, 1)
+  // Crumbling leaves, met first here over the safe floor: a step between the two islands that
+  // falls away once stood on. They come back over water at the end (section 7).
+  .put(37, 23, '%').put(38, 23, '%')
   .put(47, 29, '1').coins(47, 49, 28)
   // The first mace, alone, over the safe floor under the minigun's island: met before the wave.
   .trap('mace', 42, 23, { hanging: true, chain: 300, swingDeg: 30 });
@@ -64,7 +67,10 @@ level.put(53, 29, 'B').ground(54, 69, 26)
   .trap('mace', 59, 20, { hanging: true, chain: 237, swingDeg: 30, periodMs: MACE_WAVE.periodMs, phaseMs: 0 })
   .trap('mace', 62, 20, { hanging: true, chain: 237, swingDeg: 30, periodMs: MACE_WAVE.periodMs, phaseMs: -MACE_WAVE.lagMs, crate: true })
   .put(61, 25, 'X') // a stone where the two hanging maces' swings meet: a slide stops at it, so jump it in time
-  .arc(60, 61, 23, 1).arc(64, 65, 23, 1); // coins among the swings, for the brave
+  .arc(60, 61, 23, 1).arc(64, 65, 23, 1) // coins among the swings, for the brave
+  // A goon past the maces walks toward the cat, into the wave, and is knocked out on screen: the
+  // maces hit enemies too, which the player can use later.
+  .put(67, 25, 'g');
 
 // ----- 4. Thorn Hollow: no floor at all, crossed on islands and a bridge. A crate of freeze rounds
 // on the first island, for the spiky enemy who holds the narrow middle island (he can't be stomped),
@@ -86,29 +92,37 @@ level.gap(70, 97)
 // alone on the floor, its darts reaching the foot of the ladder: time the climb. Then a tower of
 // islands zigzagging up, a goon and a cone head on the way, under a rifle gunner. The root's trunk, a wall
 // from the canopy to the floor, means the climb is the only way on. Its top ledge, off the route,
-// has the key and a crystal.
+// has the key.
 level.put(100, 29, 'C').put(102, 29, '+').put(99, 29, 'b').put(103, 29, 'h')
   .island(104, 108, 26).ladder(104, 26, 29).put(107, 27, 'R').coins(105, 107, 25)
   .island(111, 116, 22).put(114, 21, 'g').arc(109, 110, 22, 2)
   .island(104, 109, 18).put(105, 17, 'e').coins(107, 109, 17)
   .island(110, 115, 14).put(113, 13, 'c')
   .trap('mace', 112, 15, { hanging: true, chain: 300, swingDeg: 30 }) // swinging across the climb
-  .island(103, 108, 10).put(104, 9, '3').put(106, 9, 'k').put(108, 9, '*').put(102, 9, 'X')
+  .island(103, 108, 10).put(104, 9, '3').put(106, 9, 'k').put(102, 9, 'X')
   // The way down from the top ledge, and on up to the canopy, marked in coins.
   .put(109, 11, 'o').put(110, 12, 'o').put(116, 12, 'o').put(116, 11, 'o')
   .put(110, 29, 'g').trap('idol', 113, 29, { facing: -1 })
   .ground(117, 118, 11); // the trunk, under the canopy's first island: the floor below can't skip the climb
 
 // ----- 6. The Canopy: high islands and wide jumps. A laser crate to start, a cone head, and a
-// blaster at the far end of the chest's island, with a mace on a gallows swinging over the chest. A ladder climbs back up from the floor
-// below for whoever falls, past spikes.
+// blaster at the far end of the chest's island, with a mace on a gallows swinging over the chest.
+// Water under the jumps, so a miss costs a heart. Past them, a floor with a ladder back up, and a
+// hidden crystal high above, for whoever tries the mushroom.
 level.island(117, 122, 10).put(118, 9, 'C').put(120, 9, 'z')
   .island(127, 131, 8).put(129, 7, 'c').arc(123, 126, 9, 2)
   .island(133, 142, 11).ladder(134, 11, 29).put(142, 10, '1').put(137, 10, 'T')
   .arc(132, 132, 9, 0).put(133, 10, 'o')
   .trap('mace', 139, 10, { facing: -1 }) // beside the gunner, over the chest
   .coins(141, 142, 8)
-  .put(130, 29, 'g').put(138, 29, 'c').put(126, 29, '+').coins(136, 140, 28);
+  .put(138, 29, 'c').put(136, 29, '+').coins(136, 140, 28)
+  // A secret: a bounce mushroom on the chest's island throws the cat high above the canopy, out of
+  // the camera's view, to a hidden island with a crystal.
+  .trap('mushroom', 135, 10).island(135, 137, 3).put(136, 2, '*');
+// Water under the canopy's jumps: a missed jump costs a heart, and he's back at the checkpoint just
+// above. Past a trunk, a floor down the ladder, with a heart and coins.
+level.gap(119, 132)
+  .ground(133, 133, 11); // a trunk under the chest island's end: the floor past it is reached by the ladder only
 
 // ----- 7. The Guardian: the finale, over water. Down from the canopy on crumbling leaves and a step
 // with a checkpoint, to a long stone path. Over it, on a stone platform, stands a giant stone

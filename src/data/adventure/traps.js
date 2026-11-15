@@ -110,7 +110,7 @@ export const TRAPS = {
       // (a slide gets out under it) and the other is up and away. Not before firstAfterMs.
       fire: {
         mouth: { x: 0.5, y: 0.29 }, width: 110,
-        everyMs: 7200, startMs: 1850, warnMs: 750, pourMs: 1050, firstAfterMs: 3600,
+        everyMs: 3600, startMs: 1850, warnMs: 750, pourMs: 1050, firstAfterMs: 3600,
         colours: [0xfff0a0, 0xffb02a, 0xff5a1a],
       },
     },
