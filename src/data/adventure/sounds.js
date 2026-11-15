@@ -56,6 +56,19 @@ export const ADVENTURE_SOUNDS = {
     { kind: 'noise', filter: 'lowpass', cutoff: 500, sweepTo: 1800, duration: 0.22, gain: 0.4, attack: 0.02 },
     { wave: 'sine', from: 140, to: 220, duration: 0.18, gain: 0.25 },
   ],
+  // The pterodactyl's screech, its warning before a dive (data/adventure/birds.js): a harsh squawk
+  // that shoots up, warbles, and falls away, with a raspy breath under it, about half a second, so
+  // it's over before the dive (and its whoosh) begins. Two voices a little apart make it rough.
+  pteroScreech: [
+    { wave: 'sawtooth', from: 900, to: 2300, duration: 0.08, gain: 0.1, attack: 0.01, cutoff: 5200 },
+    { wave: 'square', from: 960, to: 2460, duration: 0.08, gain: 0.05, attack: 0.01, cutoff: 4200 },
+    { wave: 'sawtooth', at: 0.07, from: 2300, to: 1700, duration: 0.12, gain: 0.11, cutoff: 5200 },
+    { wave: 'square', at: 0.07, from: 2460, to: 1820, duration: 0.12, gain: 0.05, cutoff: 4200 },
+    { wave: 'sawtooth', at: 0.17, from: 2050, to: 1500, duration: 0.1, gain: 0.1, cutoff: 5000 },
+    { wave: 'sawtooth', at: 0.26, from: 1850, to: 650, duration: 0.24, gain: 0.1, cutoff: 4200 },
+    { wave: 'square', at: 0.26, from: 1980, to: 700, duration: 0.24, gain: 0.045, cutoff: 3400 },
+    { kind: 'noise', filter: 'bandpass', cutoff: 2800, sweepTo: 1500, q: 2, duration: 0.45, gain: 0.22, attack: 0.02 },
+  ],
   // A mace swinging through the bottom of its swing: a heavy whoosh of air, rising and falling.
   maceWhoosh: [
     { kind: 'noise', filter: 'bandpass', cutoff: 280, sweepTo: 900, q: 1.2, duration: 0.38, gain: 0.5, attack: 0.14 },

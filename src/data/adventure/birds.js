@@ -37,7 +37,7 @@ export const BIRD = {
   returnSpeed: 220, // px a second, back home
   restMs: 2000, // at home, before it can warn again
   apartMs: 1000, // one bird dives at a time: another waits until this long after a dive has ended
-  sounds: { screech: 'shot', dive: 'maceWhoosh' }, // the dive's whoosh is the cue to jump
+  sounds: { screech: 'pteroScreech', dive: 'maceWhoosh' }, // the dive's whoosh is the cue to jump
   // The hover.
   hover: { loop: 1.5, periodMs: 3200 }, // loop: cells up and down from home; periodMs: once up and back
   patrolMs: 5000, // a patrolling diver: once to and fro

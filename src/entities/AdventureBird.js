@@ -93,7 +93,7 @@ export class AdventureBird extends Phaser.Physics.Arcade.Sprite {
           this.aim = diveAt(this.x, this.y, body.center.x, body.center.y);
           this.face(this.aim.dir);
           this.enter('warning');
-          this.scene.audio.playSfx(BIRD.sounds.screech); // its screech, until it has a sound of its own
+          this.scene.audio.playSfx(BIRD.sounds.screech); // its screech (data/adventure/sounds.js)
         }
         break;
       case 'warning':

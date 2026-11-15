@@ -27,6 +27,7 @@ describe('pterodactyls', () => {
     expect(BIRD.warnMs).toBeGreaterThanOrEqual(600);
     expect(BIRD.diveSpeed).toBeGreaterThan(380);
     expect(ADVENTURE_SOUNDS[BIRD.sounds.dive]).toBeDefined();
+    expect(ADVENTURE_SOUNDS[BIRD.sounds.screech]).toBeDefined();
     expect(BIRD.apartMs).toBeGreaterThan(0);
   });
 
