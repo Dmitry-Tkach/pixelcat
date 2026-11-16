@@ -9,11 +9,12 @@ import sharp from 'sharp';
 import { existsSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { RB_PIECES } from '../src/data/adventure/rootbreaker.js';
+import { RB_ARM_PIECES, RB_PIECES } from '../src/data/adventure/rootbreaker.js';
 import { alphaOf, readSheet, savePiece } from './sheetPieces.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SHEET = join(ROOT, 'images', 'levels', 'forest', 'boss', 'root-breacker.png');
+const ARMS = join(ROOT, 'images', 'levels', 'forest', 'boss', 'upper-arms.png'); // his arms' pieces
 const OUT = join(ROOT, 'public', 'assets', 'adventure', 'bosses', 'rootbreaker');
 const REVIEW = process.argv[2];
 
@@ -23,6 +24,7 @@ if (!existsSync(SHEET)) {
 }
 mkdirSync(OUT, { recursive: true });
 const piece = await readSheet(SHEET, RB_PIECES);
+if (existsSync(ARMS)) Object.assign(piece, await readSheet(ARMS, RB_ARM_PIECES));
 for (const [name, p] of Object.entries(piece)) await savePiece(p, join(OUT, `${name}.png`), p.w, p.h);
 
 // The hole in his chest: transparent pixels inside his body that the outside can't reach.

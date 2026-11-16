@@ -12,8 +12,8 @@ import { landsFromAbove } from '../systems/adventurePlatformLanding.js';
 // ask what touching him does (ownTouch).
 //
 // Every move has its weight: a wind-up the cat can read, a fast strike, a hard impact, and a heavy
-// recovery. Between attacks he breathes and his eyes follow the cat. His arm bones are drawn in
-// code until the owner draws them (prompts/forest-level/22-rootbreaker-arms.md).
+// recovery. Between attacks he breathes and his eyes follow the cat. His arm pieces are the owner's
+// (rb-upper, rb-fore, rb-elbow); without them, they're drawn in code.
 const DEPTH = { body: 1.8, face: 1.81, glow: 1.815, core: 1.82, arm: 5.7, elbow: 5.72, fist: 5.8, seal: 5.81, shot: 6.3, warn: 6.35, laser: 6.4 };
 const STAND_IN = { bone: 'adventure-rb-bone', elbow: 'adventure-rb-elbow' };
 const WAVE_COLOUR = 0x7dff6a;
@@ -51,6 +51,11 @@ export class AdventureRootbreaker {
     this.lean = { x: 0, y: 0 }; // his body's lean and flinch, easing back (px)
     const r = ROOTBREAKER;
     makeStandIns(scene);
+    // The owner's arm pieces, if they're there; else the stand-ins drawn in code.
+    const has = (name) => scene.textures.exists(rbKey(name));
+    this.armArt = has('rb-upper') && has('rb-fore') && has('rb-elbow')
+      ? { upper: rbKey('rb-upper'), fore: rbKey('rb-fore'), elbow: rbKey('rb-elbow'), cracked: rbKey('rb-elbow-cracked') }
+      : { upper: STAND_IN.bone, fore: STAND_IN.bone, elbow: STAND_IN.elbow, cracked: STAND_IN.elbow };
 
     // His body, standing on the floor behind the arena; his face, his core and its glow over it.
     this.body = scene.add.image(this.x, this.floorY, rbKey('rb-body')).setOrigin(0.5, 1).setScale(r.scale.body).setDepth(DEPTH.body);
@@ -75,10 +80,9 @@ export class AdventureRootbreaker {
       fist.body.setAllowGravity(false).setImmovable(true).setSize(fist.width * 0.8, fist.height * 0.7);
       const arm = {
         side, fist, shoulderAt: r.shoulders[i], state: 'rest', speed: 1, sealHits: 0, cracked: false, shake: 0,
-        upper: scene.add.image(0, 0, STAND_IN.bone).setOrigin(0, 0.5).setDepth(DEPTH.arm),
-        fore: scene.add.image(0, 0, STAND_IN.bone).setOrigin(0, 0.5).setDepth(DEPTH.arm),
-        elbow: scene.add.image(0, 0, STAND_IN.elbow).setDepth(DEPTH.elbow),
-        seal: scene.add.image(0, 0, rbKey('rb-seal-cracked')).setScale(0.3, 0.55).setDepth(DEPTH.seal).setVisible(false),
+        upper: scene.add.image(0, 0, this.armArt.upper).setDepth(DEPTH.arm),
+        fore: scene.add.image(0, 0, this.armArt.fore).setDepth(DEPTH.arm),
+        elbow: scene.add.image(0, 0, this.armArt.elbow).setDepth(DEPTH.elbow),
         ghosts: Array.from({ length: TRAIL.ghosts }, () => scene.add.image(0, 0, rbKey('rb-fist')).setScale(r.scale.fist).setDepth(DEPTH.fist - 0.01).setAlpha(0)),
         trail: [],
       };
@@ -148,10 +152,11 @@ export class AdventureRootbreaker {
     const { elbow, wrist } = armPose(shoulder, { x: arm.goal.x + wristOff, y: arm.goal.y }, r.arm, arm.side);
     const x = wrist.x - wristOff + arm.shake, y = wrist.y;
     fist.body.reset(x, y);
-    arm.seal.setPosition(wrist.x, y).setVisible(arm.cracked);
-    bone(arm.upper, shoulder, elbow, r.arm.thick);
-    bone(arm.fore, elbow, wrist, r.arm.thick * 0.85);
-    arm.elbow.setPosition(elbow.x, elbow.y).setDisplaySize(r.arm.elbow * 2, r.arm.elbow * 2);
+    bone(arm.upper, shoulder, elbow, r.arm);
+    bone(arm.fore, elbow, wrist, r.arm);
+    // The elbow: its seal cracked, in phase 2, once it's been shot enough.
+    arm.elbow.setTexture(arm.cracked ? this.armArt.cracked : this.armArt.elbow)
+      .setPosition(elbow.x, elbow.y).setDisplaySize(r.arm.elbow * 2, r.arm.elbow * 2);
     // Fast, it leaves fading copies behind.
     arm.trail.unshift({ x, y });
     if (arm.trail.length > TRAIL.ghosts * 2 + 1) arm.trail.pop();
@@ -281,7 +286,6 @@ export class AdventureRootbreaker {
     for (const arm of this.arms) {
       arm.state = 'dead';
       arm.fist.body.enable = false;
-      arm.seal.setVisible(false);
       for (const ghost of arm.ghosts) ghost.setAlpha(0);
       for (const part of [arm.fist, arm.upper, arm.fore, arm.elbow]) {
         this.scene.tweens.add({ targets: part, y: this.floorY + 60, angle: arm.side * Phaser.Math.Between(20, 70), alpha: 0, duration: 1100, ease: 'Quad.easeIn', delay: Phaser.Math.Between(0, 300) });
@@ -683,10 +687,12 @@ export class AdventureRootbreaker {
   }
 }
 
-// An arm bone (an image, origin at its left middle) from one point to another, this thick.
-function bone(image, from, to, thick) {
-  image.setPosition(from.x, from.y).setRotation(Math.atan2(to.y - from.y, to.x - from.x))
-    .setDisplaySize(Math.max(1, Math.hypot(to.x - from.x, to.y - from.y)), thick);
+// An arm bone (an image lying flat) from one joint to the next: in the middle, turned along it, a
+// little longer than it (overlap) so its ends tuck under the joints, its thickness in proportion.
+function bone(image, from, to, { overlap }) {
+  const length = Math.max(1, Math.hypot(to.x - from.x, to.y - from.y)) * overlap;
+  image.setPosition((from.x + to.x) / 2, (from.y + to.y) / 2).setRotation(Math.atan2(to.y - from.y, to.x - from.x))
+    .setDisplaySize(length, (length * image.height) / image.width);
 }
 
 // The arm bones and the elbow, drawn in code until the owner's art: a mossy stone bone, and a stone

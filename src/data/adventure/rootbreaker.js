@@ -6,7 +6,7 @@
 //   phase 1, Awakening (100-66%): one fist at a time slams down where the cat is; a missed smash
 //     sticks in the ground, and his core opens for a while. His mouth blasts balls of green energy.
 //   phase 2, Enraged (66-33%): a fist sweeps low across the arena, and his eyes fire a laser across
-//     it, high or low; a stuck fist's seal (the green ring at its wrist) can be shot, and with both
+//     it, high or low; shooting a stuck fist cracks its arm's seal (the green ring at its elbow), and with both
 //     seals broken his core opens.
 //   phase 3, Overload (33-0%): everything faster, rocks fall from above, and every smash opens his
 //     core.
@@ -21,7 +21,14 @@ export const RB_PIECES = [
   ['rb-fist', 'rb-hand', 'rb-seal', 'rb-seal-cracked'],
   ['rb-ball', 'rb-laser', 'rb-rock-1', 'rb-rock-2'],
 ];
-export const RB_ART = RB_PIECES.flat();
+// His arms' pieces, from a second sheet (images/levels/forest/boss/upper-arms.png, from
+// prompts/forest-level/22-rootbreaker-arms.md): the upper arm and forearm, lying flat, and the
+// elbow joint, whole and cracked (its seal broken, in phase 2).
+export const RB_ARM_PIECES = [
+  ['rb-upper', 'rb-elbow'],
+  ['rb-fore', 'rb-elbow-cracked'],
+];
+export const RB_ART = [...RB_PIECES.flat(), ...RB_ARM_PIECES.flat()];
 export const rbKey = (name) => `adventure-${name}`;
 export const rbPath = (name) => `assets/adventure/bosses/rootbreaker/${name}.png`;
 
@@ -38,10 +45,10 @@ export const ROOTBREAKER = {
   // the elbow bends up and outward, like a strongman's. wrist: how far the wrist is from the fist's middle,
   // toward his body, as a share of the fist's width.
   shoulders: [{ x: 0.13, y: 0.54 }, { x: 0.87, y: 0.54 }],
-  arm: { upper: 180, fore: 175, thick: 62, elbow: 38 },
+  arm: { upper: 215, fore: 205, thick: 62, elbow: 50, overlap: 1.25 }, // overlap: a bone's picture this much longer than the bone, so its ends tuck under the joints
   wrist: 0.42,
   // Each fist rests beside him, this far out from his middle and this far up from his feet (px).
-  fistRest: { out: 470, up: 290 },
+  fistRest: { out: 490, up: 280 },
   // Alive between attacks: he breathes, and his eyes follow the cat.
   idle: { breathePx: 5, breatheMs: 3200, eyesPx: 9, swayDeg: 4 },
   // The camera, while he fights: it frames his whole arena, from this far above his feet to this far
