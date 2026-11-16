@@ -22,6 +22,7 @@ import { TRAPS } from '../data/adventure/traps.js';
 import { AdventureTraps } from '../systems/adventure/AdventureTraps.js';
 import { AdventureScenery } from '../systems/adventure/AdventureScenery.js';
 import { AdventureBird } from '../entities/AdventureBird.js';
+import { AdventureRootbreaker } from '../entities/AdventureRootbreaker.js';
 import { devPlace } from '../systems/adventure/devPlaces.js';
 import { AdventureCameraShots } from '../systems/adventure/AdventureCameraShots.js';
 import { FLASH, FLASH_KEY } from '../data/adventure/gunners.js';
@@ -512,6 +513,18 @@ export class AdventureScene extends Phaser.Scene {
       while (row > 0 && tiles[row - 1][col] >= 0) row -= 1;
     }
     const fight = { def, endsLevel, started: false, beaten: false, door: this.buildDoor(def.door) };
+    // The Rootbreaker is his own boss (entities/AdventureRootbreaker.js), nothing like the troll.
+    if (def.kind === 'rootbreaker') {
+      fight.boss = new AdventureRootbreaker(this, {
+        col, floor: row, arena, cat: this.cat,
+        onHurtCat: (fromX) => this.hurt(fromX),
+        onShake: () => this.cameras.main.shake(200, 0.006),
+        onDefeated: () => (endsLevel ? this.complete() : this.bossBeaten(fight)),
+      });
+      fight.arena = fight.boss.arena;
+      this.bossFights.push(fight);
+      return fight;
+    }
     fight.boss = new AdventureBoss(this, {
       kind,
       x: col * TILE + TILE / 2,
@@ -544,10 +557,12 @@ export class AdventureScene extends Phaser.Scene {
     this.boss = fight.boss;
     this.bossArena = fight.arena;
     this.moves.setBoss(this.boss);
-    this.physics.add.overlap(this.cat, this.boss.sprite, () => this.meetBoss());
+    // A boss who hurts the cat himself (ownTouch) isn't asked what touching him does.
+    if (!this.boss.ownTouch) this.physics.add.overlap(this.cat, this.boss.sprite, () => this.meetBoss());
     this.toldAboutHead = false;
     this.bossBar?.hide();
-    this.bossBar = new AdventureBossBar(this, { name: this.boss.name, marks: BOSS_FIGHTS[fight.def.kind].phases.slice(1).map((phase) => phase.from) });
+    const marks = this.boss.phaseMarks ?? BOSS_FIGHTS[fight.def.kind].phases.slice(1).map((phase) => phase.from);
+    this.bossBar = new AdventureBossBar(this, { name: this.boss.name, marks });
     if (fight.def.hint) this.showHint(fight.def.hint, 3200);
     this.boss.start();
   }

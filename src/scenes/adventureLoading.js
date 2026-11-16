@@ -1,3 +1,4 @@
+import { RB_ART, rbKey, rbPath } from '../data/adventure/rootbreaker.js';
 import { BOSSES, bossAnimKey, bossFrameCount, bossKey, bossPath } from '../data/adventure/bosses.js';
 import { EXPLOSION, EXPLOSION_KEY, EXPLOSION_PATH, explosionFrameCount } from '../data/adventure/ammo.js';
 import { ENEMIES, enemyAnimKey, enemyFrameCount, enemyKey, enemyPath } from '../data/adventure/enemies.js';
@@ -40,6 +41,8 @@ export function loadAdventureArt(scene) {
   // The water in the gaps (data/adventure/water.js).
   for (const [name, file] of Object.entries(WATER_ART)) scene.load.image(waterKey(name), `${WATER_PATH}/${file}.png`);
   scene.load.atlas(EXPLOSION_KEY, `${EXPLOSION_PATH}.png`, `${EXPLOSION_PATH}.json`);
+  // The Rootbreaker's parts (data/adventure/rootbreaker.js).
+  for (const name of RB_ART) scene.load.image(rbKey(name), rbPath(name));
   // The bosses: atlases of several pages, listed in one JSON.
   for (const kind of Object.keys(BOSSES)) {
     scene.load.multiatlas(bossKey(kind), `${bossPath(kind)}.json`, 'assets/adventure/bosses');

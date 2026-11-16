@@ -1,8 +1,7 @@
 // The third adventure level: Heart of the Tree, the Wood world's boss level, from the owner's idea
 // (images/levels/forest/levelel3-example): two paths to one portal, a boss at the end of each: the
 // jungle path above, to a stone giant, and the caves below, to the troll. Each path is long, longer
-// than levels 1 and 2, since a run plays only one of them. The stone giant is still to come (his art
-// first): for now his arena is open.
+// than levels 1 and 2, since a run plays only one of them.
 //
 // The caves' star is the arrow stone (systems/adventure/arrowStones.js): a moving stone platform with
 // a green arrow showing which way it goes next. Green means shoot it, as level 2 taught with the
@@ -102,7 +101,7 @@ level.hollow(224, 226, SURFACE, CAVE - 1)
 // crumbling leaves and a dart idol, a crystal on an arch a bud reaches; (J3) a breather in old ruins:
 // maces swinging under arches, a rifle gunner, a heart; (J4) buds in a chain, high over a floor of
 // thorns, a pterodactyl over the gap, a crystal on the chain and a secret one out of sight above.
-// Then the stone giant's arena, and on to the Heart of the Tree.
+// Then the Rootbreaker's arena, and on to the Heart of the Tree.
 const thorns = (from, to) => { // a thorn pit in the rock: two cells deep, spikes at its bottom
   level.hollow(from, to, SURFACE, SURFACE + 1);
   for (let c = from; c <= to; c++) level.put(c, SURFACE + 1, '^');
@@ -157,9 +156,12 @@ level.island(157, 160, 19).trap('mushroom', 159, 18, { bud: true }).island(160, 
   .island(176, 179, 21) // a branch under the secret's right edge, so the way down is in view
   .island(175, 178, 26).island(181, 184, 30).coins(176, 177, 24).coins(182, 183, 28);
 
-// ----- The stone giant's arena: a checkpoint and a crate of explosive rounds, then open ground (he's
-// still to come), and on to the Heart of the Tree.
-level.put(187, 33, 'C').put(189, 33, 'e');
+// ----- The Rootbreaker's arena (data/adventure/rootbreaker.js): a checkpoint and a crate of explosive
+// rounds, then his floor, with a low ledge each side, three cells up: from a ledge (or a jump, or a
+// fist stuck in the floor) a round reaches his core; up there his low laser passes under, his sweep
+// too, but not his high laser. Beating him crumbles his door, on to the Heart of the Tree.
+level.put(187, 33, 'C').put(189, 33, 'e')
+  .island(193, 196, 31).island(214, 217, 31).put(195, 30, 'a');
 
 export const WOOD_HEART_LEVEL = {
   id: 'wood-3',
@@ -182,6 +184,10 @@ export const WOOD_HEART_LEVEL = {
   // The bosses (AdventureScene buildBoss): each waits in his arena until the cat walks in.
   bosses: [
     {
+      kind: 'rootbreaker', col: 205, floor: SURFACE, arena: { left: 190, right: 221 }, door: { col: 222, rows: [SURFACE - 8, SURFACE - 1] },
+      hint: 'The Rootbreaker!\nMake him miss a smash, then hit his core',
+    },
+    {
       kind: 'troll1', col: 218, floor: CAVE, arena: { left: 198, right: 221 }, door: { col: 222, rows: [CAVE_TOP, CAVE - 1] },
       hint: 'The Troll!\nJump his shock waves, and hit him hard while his club is stuck',
     },
@@ -199,6 +205,7 @@ export const WOOD_HEART_LEVEL = {
     jungle: { col: 67, row: 33 },
     ruins: { col: 110, row: 33 },
     sporeLift: { col: 145, row: 33 },
+    rootbreaker: { col: 187, row: 33 },
     lake: { col: 63, row: 46 },
     tunnel: { col: 112, row: 46 },
     secondLake: { col: 139, row: 46 },
