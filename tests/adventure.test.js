@@ -30,7 +30,7 @@ describe('adventure levels', () => {
   // A level with two paths: each, with the other's entrance closed, reaches the portal and has three
   // crystals of its own, so either path can earn every star.
   const forked = ADVENTURE_LEVELS.filter((level) => level.paths).flatMap((level) => Object.keys(level.paths).map((path) => [level.id, path, level]));
-  it.each(forked)('%s: its %s path, on its own, reaches the portal with three crystals', (_id, path, level) => {
+  if (forked.length) it.each(forked)('%s: its %s path, on its own, reaches the portal with three crystals', (_id, path, level) => {
     const closed = Object.entries(level.paths).filter(([name]) => name !== path).map(([, entrance]) => entrance);
     const { portal, unreachable } = adventureRoutes(level, { closed });
     expect(portal).toBe(true);

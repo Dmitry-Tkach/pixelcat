@@ -40,6 +40,7 @@ export class AdventureRootbreaker {
     this.attackCount = 0;
     this.phaseIndex = 0;
     this.leftovers = [];
+    this.clock = 0; // for his fists' bob: before they're placed, which reads it
     const r = ROOTBREAKER;
     const art = (name) => rbKey(name);
 
@@ -81,7 +82,6 @@ export class AdventureRootbreaker {
     };
     // The arena's own business (the scene updates it, and shakes it for his slams).
     this.arena = { update: () => {}, shake: () => scene.cameras.main.shake(200, 0.006) };
-    this.clock = 0;
   }
 
   get phase() {
