@@ -52,6 +52,7 @@ const CLIMB_UP = { below: 50, depth: 1.9, riseFrames: 2 };
 const HURT = { invulnerableMs: 1300, knockX: 330, knockY: -640, blinkMs: 90 };
 // A level's boss wakes once the cat stands this many cells inside his arena (updateBossFights).
 const BOSS_WAKE_CELLS = 3;
+const BOSS_CAMERA_PAN_MS = 900; // the camera's glide to frame a boss's arena
 const PENALTY = { speedMultiplier: 0.6, durationMs: 600 };
 const FALL_OUT_BELOW = 160; // below the bottom of the map, the cat has fallen out
 const MOOD_WASH_DEPTH = 90; // the mood's colour over the screen: over the level, under the HUD (100)
@@ -564,7 +565,21 @@ export class AdventureScene extends Phaser.Scene {
     const marks = this.boss.phaseMarks ?? BOSS_FIGHTS[fight.def.kind].phases.slice(1).map((phase) => phase.from);
     this.bossBar = new AdventureBossBar(this, { name: this.boss.name, marks });
     if (fight.def.hint) this.showHint(fight.def.hint, 3200);
+    // A boss with a frame: the camera locks onto his whole arena, and his gate shuts behind the cat.
+    if (this.boss.frame) this.lockCamera(this.boss.frame);
+    fight.gate = this.buildDoor(fight.def.gate);
     this.boss.start();
+  }
+
+  // The camera glides to the middle of a boss's arena and stays, until he's beaten.
+  lockCamera(frame) {
+    const cam = this.cameras.main;
+    cam.stopFollow();
+    cam.pan((frame.left + frame.right) / 2, (frame.top + frame.bottom) / 2, BOSS_CAMERA_PAN_MS, 'Sine.easeInOut');
+  }
+
+  unlockCamera() {
+    this.cameras.main.startFollow(this.cat, true, CAMERA.lerp, CAMERA.lerp, this.look.x, this.look.y).setDeadzone(CAMERA.deadzoneW, CAMERA.deadzoneH);
   }
 
   // A level's boss starts once the cat is standing inside his arena, a little way in.
@@ -591,13 +606,14 @@ export class AdventureScene extends Phaser.Scene {
     return blocks;
   }
 
-  // Beaten: his door crumbles, and the way on is open.
+  // Beaten: his door and his gate crumble, the camera follows the cat again, and the way on is open.
   bossBeaten(fight) {
     fight.beaten = true;
     this.bossBar?.hide();
     this.audio.playSfx('smash');
     this.cameras.main.shake(300, 0.006);
-    for (const block of fight.door) {
+    if (fight.boss.frame) this.unlockCamera();
+    for (const block of [...fight.door, ...(fight.gate ?? [])]) {
       this.solids.splice(this.solids.indexOf(block), 1);
       this.effects.dust(block.x, block.y + TILE / 2, 6);
       this.tweens.add({ targets: block, alpha: 0, y: block.y + 20, duration: 500, onComplete: () => block.destroy() });

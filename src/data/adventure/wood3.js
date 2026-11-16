@@ -88,8 +88,8 @@ level.island(157, 160, 19).trap('mushroom', 159, 18, { bud: true }).island(160, 
 // rounds, then his floor, with a low ledge each side, three cells up: from a ledge (or a jump, or a
 // fist stuck in the floor) a round reaches his core; up there his low laser passes under, his sweep
 // too, but not his high laser. Beating him crumbles his door, on to the Heart of the Tree.
-level.put(187, 33, 'C').put(189, 33, 'e')
-  .island(193, 196, 31).island(214, 217, 31).put(195, 30, 'a');
+level.put(189, 33, 'C').put(191, 33, 'e')
+  .island(196, 198, 31).island(211, 213, 31).put(197, 30, 'a');
 
 // ----- The Heart of the Tree: past his door, the portal.
 level.put(229, 33, 'b').put(234, 33, 'E');
@@ -110,7 +110,10 @@ export const WOOD_HEART_LEVEL = {
   // crumbles his door.
   bosses: [
     {
-      kind: 'rootbreaker', col: 205, floor: SURFACE, arena: { left: 190, right: 221 }, door: { col: 222, rows: [SURFACE - 8, SURFACE - 1] },
+      // His arena is one screen wide (20 cells), so the camera frames it whole; a gate shuts behind
+      // the cat as he wakes.
+      kind: 'rootbreaker', col: 204, floor: SURFACE, arena: { left: 195, right: 214 },
+      gate: { col: 194, rows: [SURFACE - 8, SURFACE - 1] }, door: { col: 215, rows: [SURFACE - 8, SURFACE - 1] },
       hint: 'The Rootbreaker!\nMake him miss a smash, then hit his core',
     },
   ],
@@ -118,6 +121,6 @@ export const WOOD_HEART_LEVEL = {
     jungle: { col: 67, row: 33 },
     ruins: { col: 110, row: 33 },
     sporeLift: { col: 145, row: 33 },
-    rootbreaker: { col: 187, row: 33 },
+    rootbreaker: { col: 189, row: 33 },
   },
 };

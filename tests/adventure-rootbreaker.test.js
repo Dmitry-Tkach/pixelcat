@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { RB_ART, ROOTBREAKER, coreDamage, nextAttack, rbPath, rootbreakerPhase } from '../src/data/adventure/rootbreaker.js';
+import { RB_ART, ROOTBREAKER, armPose, coreDamage, nextAttack, rbPath, rootbreakerPhase } from '../src/data/adventure/rootbreaker.js';
 import { ADVENTURE_LEVELS } from '../src/data/adventure/index.js';
 
 describe('the Rootbreaker', () => {
@@ -40,5 +40,28 @@ describe('the Rootbreaker', () => {
     const [low, high] = ROOTBREAKER.laser.heights;
     expect(low).toBeLessThan(90); // a standing cat is 90 px tall: the low one must be jumped
     expect(high).toBeGreaterThan(90 + ROOTBREAKER.laser.thick); // and the high one passes over him
+  });
+});
+
+
+describe("the Rootbreaker's arms", () => {
+  const bones = { upper: 270, fore: 270 };
+  const shoulder = { x: 0, y: 0 };
+
+  it('bend at the elbow, the bones their own lengths, the elbow up', () => {
+    const { elbow, wrist } = armPose(shoulder, { x: -200, y: 150 }, bones, -1);
+    expect(Math.hypot(elbow.x - shoulder.x, elbow.y - shoulder.y)).toBeCloseTo(270);
+    expect(Math.hypot(wrist.x - elbow.x, wrist.y - elbow.y)).toBeCloseTo(270);
+    expect(wrist).toEqual({ x: -200, y: 150 });
+    // Of the two ways it could bend, the elbow goes up.
+    const straightLine = 150 * (elbow.x / -200);
+    expect(elbow.y).toBeLessThan(straightLine);
+  });
+
+  it('pull a wrist beyond reach in, the arm straight', () => {
+    const { elbow, wrist } = armPose(shoulder, { x: 1000, y: 0 }, bones, 1);
+    expect(wrist.x).toBeCloseTo(540, 1);
+    expect(elbow.x).toBeCloseTo(270, 1);
+    expect(Math.abs(elbow.y)).toBeLessThan(2); // straight, but for a hair
   });
 });
