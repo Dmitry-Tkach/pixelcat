@@ -1,16 +1,16 @@
 // The Rootbreaker, the jungle path's boss in level 3 (Heart of the Tree): an ancient stone guardian
 // whose body is part of the mountain, from the owner's design (images/levels/forest/levelel3-example
 // boss-guardian.png and fight-flow.png). He stands behind his arena, facing the cat, and never walks;
-// his big stone fists float and fight, each held to his shoulder by a chain of glowing links. Only his core crystal, in his chest, can be hurt, and
+// his fists, big mossy stones, float and fight, each held to his shoulder by a chain of glowing links. Only his core crystal, in his chest, can be hurt, and
 // only while it's open:
 //   phase 1, Awakening (100-66%): one fist at a time slams down where the cat is; a missed smash
 //     sticks in the ground, and his core opens for a while. His mouth blasts balls of green energy.
 //   phase 2, Enraged (66-33%): a fist sweeps low across his side of the arena, and his eyes fire a
-//     laser across it, high or low; a stuck fist's target lights up, shooting it cracks its seal,
-//     and with both seals broken his core opens.
+//     laser across it, high or low; a stuck fist glows green, shooting it cracks its seal, and
+//     with both seals broken his core opens.
 //   phase 3, Overload (33-0%): everything faster, rocks fall from above, and every smash opens his
 //     core.
-// His parts are cut from the owner's two sheets by tools/adventure-rootbreaker-art.mjs, and
+// His parts are cut from the owner's sheet by tools/adventure-rootbreaker-art.mjs, and
 // tools/adventure-rootbreaker-preview.mjs draws his poses as a picture. Plain numbers and
 // code, no Phaser, so the fight's rules can be tested; entities/AdventureRootbreaker.js plays it.
 
@@ -23,28 +23,12 @@ export const RB_PIECES = [
   ['_fist', '_hand', 'rb-link', '_seal-cracked'],
   ['rb-ball', 'rb-laser', 'rb-rock-1', 'rb-rock-2'],
 ];
-// His fists, from the owner's second sheet (images/levels/forest/guardian-parts.png): the big fist
-// with its cuff and its green target, drawn pointing right (r) and left (l), so the moss is always
-// on top. The sheet's other pieces (a whole golem, and stiff arm pieces) aren't used.
-export const RB_ARM_PIECES = [
-  ['_golem', '_golem-angry'],
-  ['_r-shoulder', '_r-upper', '_r-fore', 'rb-r-fist'],
-  ['rb-l-fist', '_l-fore', '_l-upper', '_l-shoulder'],
-];
-// Each fist's target, as the tool makes it: lit (the owner's art: shoot here), dim (stone), and
-// cracked (its seal broken, in phase 2).
-export const RB_FIST_LOOKS = ['rb-r-fist-dim', 'rb-r-fist-cracked', 'rb-l-fist-dim', 'rb-l-fist-cracked'];
-export const RB_ART = [...RB_PIECES.flat(), ...RB_ARM_PIECES.flat(), ...RB_FIST_LOOKS].filter((name) => !name.startsWith('_'));
+// His fists are the big mossy stone (rb-rock-1); the tool also makes it cracked (its seal broken,
+// in phase 2).
+export const RB_FIST_LOOKS = ['rb-fist-cracked'];
+export const RB_ART = [...RB_PIECES.flat(), ...RB_FIST_LOOKS].filter((name) => !name.startsWith('_'));
 export const rbKey = (name) => `adventure-${name}`;
 export const rbPath = (name) => `assets/adventure/bosses/rootbreaker/${name}.png`;
-
-// The fist's picture, as shares of the right-pointing one (x across, y down; the left is its
-// mirror): its cuff (`root`, where his arm's chain holds it) and the middle of the big fist (`end`,
-// where the target is).
-export const RB_FIST_JOINTS = { root: { x: 0.06, y: 0.52 }, end: { x: 0.8, y: 0.55 } };
-// The big fist's own block (without the cuff), as shares of the fist piece: what hits, what the cat
-// stands on, and what rounds stop on.
-export const RB_FIST_BLOCK = { x0: 0.47, x1: 1, y0: 0.05, y1: 0.95 };
 
 export const ROOTBREAKER = {
   name: 'The Rootbreaker',
@@ -55,13 +39,14 @@ export const ROOTBREAKER = {
   // Where his face and his core sit on his body (shares of the body picture), measured by the tool.
   faceAt: { x: 0.513, y: 0.259 },
   coreAt: { x: 0.521, y: 0.685 },
-  // His arms: each fist floats free, held to the green ring at his shoulder (shoulders, shares of
-  // the body picture) by a chain of glowing stone links that bows like a rope (chainLinks): it
-  // can't look broken however the fist moves. scale: the fist's size, as a share of the owner's
-  // drawing. swapAt: a fist turning past straight up or down swaps to the other way's drawing (moss
-  // on top) only this far past it, so it doesn't flicker there.
+  // His arms: each fist, a big mossy stone, floats free, held to the green ring at his shoulder
+  // (shoulders, shares of the body picture) by a chain of glowing stone links that bows like a rope
+  // (chainLinks): it can't look broken however the fist moves.
+  //   scale: the stone's size, as a share of its drawing; box: its hit box, as a share of its
+  //   picture; hold: where the chain holds it, as a share of its half-size from its middle, toward
+  //   the shoulder; spin: how much of its swing the stone turns (a little, so its moss stays on top).
   shoulders: [{ x: 0.13, y: 0.54 }, { x: 0.87, y: 0.54 }],
-  arm: { scale: 0.55, swapAt: 0.25 },
+  arm: { scale: 1.1, box: 0.82, hold: 0.6, spin: 0.3 },
   // The chain: `links` stone rings, `linkFrom` of the ring's drawn size at the shoulder down to
   // `linkTo` at the fist. It's `length` px long: closer in than that, it bows out (at most `bowMost`
   // px), up and out like an elbow. It trails behind a fast fist (lag: px of bow for each px a
@@ -137,8 +122,8 @@ export function inReach(x, side, middle, { left, right }, { inner, edge } = ROOT
   return side > 0 ? Math.min(Math.max(x, middle + inner), right - edge) : Math.max(Math.min(x, middle - inner), left + edge);
 }
 
-// Which way a fist points (radians, from its cuff to its middle), for a tilt (degrees: 0 level, 90
-// straight down, -90 straight up) and the side it points to (dir: -1 left, 1 right).
+// Which way a fist swings (radians), for a tilt (degrees: 0 level, 90 straight down, -90 straight
+// up) and the side it's toward (dir: -1 left, 1 right). The stone turns a share of it (arm.spin).
 export const fistAngle = (tilt, dir) => {
   const a = (tilt * Math.PI) / 180;
   return dir > 0 ? a : Math.PI - a;
@@ -147,32 +132,16 @@ export const fistAngle = (tilt, dir) => {
 // The turn (radians) from angle a to angle b, the short way round.
 export const turnBetween = (a, b) => Math.atan2(Math.sin(b - a), Math.cos(b - a));
 
-// Which drawing a piece pointing `angle` uses: the right-pointing one (1) or the left (-1). It keeps
-// the one it has (`now`) until it's turned `swapAt` past straight up or down, so it doesn't flicker.
-export function pieceSide(angle, now, swapAt) {
-  const c = Math.cos(angle);
-  if (now > 0 ? c < -swapAt : c > swapAt) return -now;
-  return now;
+// Where the chain holds a fist whose middle is at `at`: on its edge toward the shoulder (`mount`).
+// size: the stone's picture { w, h }.
+export function chainHold(at, mount, size, { scale, hold } = ROOTBREAKER.arm) {
+  const dx = mount.x - at.x, dy = mount.y - at.y;
+  const d = Math.hypot(dx, dy) || 1;
+  const r = (Math.min(size.w, size.h) * scale * hold) / 2;
+  return { x: at.x + (dx / d) * r, y: at.y + (dy / d) * r };
 }
 
-// The fist's joints in its drawing: its root (its cuff, as shares of the picture), and the way from
-// its cuff to its middle (px, at `scale`), for the right-pointing drawing (dir 1) or the left (-1).
-// size: the right-pointing picture's { w, h }.
-export function fistJoints(size, scale, dir, { root, end } = RB_FIST_JOINTS) {
-  const v = { x: (end.x - root.x) * size.w * scale * dir, y: (end.y - root.y) * size.h * scale };
-  return { root: { x: dir > 0 ? root.x : 1 - root.x, y: root.y }, v, length: Math.hypot(v.x, v.y), angle: Math.atan2(v.y, v.x) };
-}
-
-// A fist whose middle is at `at`, pointing `angle` (radians), in the drawing it used last (`now`):
-// which drawing it uses now (side), its cuff (where its picture turns: origin, as shares; and x, y)
-// and its turn (rotation, radians).
-export function placeFist(at, angle, size, now, { scale, swapAt } = ROOTBREAKER.arm) {
-  const side = pieceSide(angle, now, swapAt);
-  const j = fistJoints(size, scale, side);
-  return { side, origin: j.root, x: at.x - Math.cos(angle) * j.length, y: at.y - Math.sin(angle) * j.length, rotation: angle - j.angle };
-}
-
-// How an arm's chain bows, from its shoulder (`from`) to its fist's cuff (`to`), on side `side`:
+// How an arm's chain bows, from its shoulder (`from`) to where it holds its fist (`to`), on side `side`:
 // slack (the fist closer in than the chain's length), it bows out from the straight line, up and
 // out like an elbow, more the closer in; taut, hardly at all. Returns the push on its middle { x, y }.
 export function chainBow(from, to, side, { length, bowMost, bowLeast } = ROOTBREAKER.chain) {
@@ -202,13 +171,9 @@ export function chainLinks(from, to, bow, { links, linkFrom, linkTo } = ROOTBREA
   });
 }
 
-// The box round a fist's big block (world px), for a fist whose middle is at `at`, pointing `angle`:
-// what it hits with and what's stood on. size: its picture { w, h }.
-export function fistBox(at, angle, size, scale = ROOTBREAKER.arm.scale, block = RB_FIST_BLOCK) {
-  const along = (block.x1 - block.x0) * size.w * scale / 2, across = (block.y1 - block.y0) * size.h * scale / 2;
-  const back = ((block.x0 + block.x1) / 2 - RB_FIST_JOINTS.end.x) * size.w * scale; // its middle, from the fist's
-  const c = Math.cos(angle), s = Math.sin(angle);
-  const x = at.x + c * back, y = at.y + s * back;
-  const hw = Math.abs(c) * along + Math.abs(s) * across, hh = Math.abs(s) * along + Math.abs(c) * across;
-  return { x, y, left: x - hw, right: x + hw, top: y - hh, bottom: y + hh };
+// The box round a fist (world px) whose middle is at `at`: what it hits with, what rounds stop
+// on and, stuck, what's stood on. size: the stone's picture { w, h }.
+export function fistBox(at, size, { scale, box } = ROOTBREAKER.arm) {
+  const hw = (size.w * scale * box) / 2, hh = (size.h * scale * box) / 2;
+  return { x: at.x, y: at.y, left: at.x - hw, right: at.x + hw, top: at.y - hh, bottom: at.y + hh };
 }

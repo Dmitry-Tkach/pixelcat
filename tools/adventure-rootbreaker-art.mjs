@@ -1,8 +1,7 @@
 // Cuts the owner's Rootbreaker sheet (images/levels/forest/boss/root-breacker.png, from
 // prompts/forest-level/16-rootbreaker.md) into his parts (data/adventure/rootbreaker.js), at the
-// size they're drawn on the sheet: the game scales them (ROOTBREAKER.scale). His arms come from a
-// second sheet (images/levels/forest/guardian-parts.png); from each fist it also makes its target
-// unlit (stone) and cracked. It measures where his
+// size they're drawn on the sheet: the game scales them (ROOTBREAKER.scale). His fists are its big
+// mossy stone, and it also makes that stone cracked. It measures where his
 // face and his core sit on his body, and prints them, to copy into rootbreaker.js:
 //   the face: where the calm face matches the body's own face best;
 //   the core: the middle of the hole in his chest.
@@ -11,47 +10,26 @@ import sharp from 'sharp';
 import { existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { RB_ARM_PIECES, RB_ART, RB_FIST_JOINTS, RB_PIECES } from '../src/data/adventure/rootbreaker.js';
+import { RB_ART, RB_PIECES } from '../src/data/adventure/rootbreaker.js';
 import { alphaOf, readSheet, savePiece } from './sheetPieces.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SHEET = join(ROOT, 'images', 'levels', 'forest', 'boss', 'root-breacker.png');
-const ARMS = join(ROOT, 'images', 'levels', 'forest', 'guardian-parts.png'); // his arms' pieces
 const OUT = join(ROOT, 'public', 'assets', 'adventure', 'bosses', 'rootbreaker');
 const REVIEW = process.argv[2];
-// A fist's target, the green cross and ring round its middle (px on the owner's fist): `arm` is how
-// far each arm of the cross reaches and `bar` how wide it is; `ring` the ring's reach.
-const TARGET = { arm: 66, bar: 16, ring: 38 };
-const STONE = [128, 120, 106]; // an unlit target: carved into the stone, this colour at its lightest
-
-// The fist with its target unlit: inside the cross and ring, the green turns to carved stone, as
-// light as it was, but darker; the moss round it is left alone.
-function unlit({ pixels, w, h }, middle) {
-  const out = Buffer.from(pixels);
-  const cx = middle.x * w, cy = middle.y * h;
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    const dx = Math.abs(x - cx), dy = Math.abs(y - cy);
-    const inCross = (dx < TARGET.bar / 2 && dy < TARGET.arm) || (dy < TARGET.bar / 2 && dx < TARGET.arm);
-    if (!inCross && Math.hypot(dx, dy) > TARGET.ring) continue;
-    const i = (y * w + x) * 4;
-    const [r, g, b] = [out[i], out[i + 1], out[i + 2]];
-    if (Math.max(r, g, b) - Math.min(r, g, b) < 40) continue; // grey already: the stone
-    const light = (0.3 * r + 0.59 * g + 0.11 * b) / 255;
-    for (let c = 0; c < 3; c++) out[i + c] = Math.round(STONE[c] * (0.35 + 0.4 * light));
-  }
-  return { pixels: out, w, h };
-}
-
-// The unlit fist, cracked through its target: dark cracks from the middle, with a light edge.
+// A stone, cracked through: dark cracks from near its middle, with a light edge. Drawn for a stone
+// about CRACK_SIZE px across, and scaled to this one.
+const CRACK_SIZE = 130;
 async function cracked({ pixels, w, h }, middle, dir) {
   const cx = middle.x * w, cy = middle.y * h;
+  const k = Math.min(w, h) / CRACK_SIZE;
   const lines = [
     [[0, 0], [22, -18], [30, -44], [52, -60]],
     [[0, 0], [-16, 12], [-40, 16], [-58, 40]],
     [[0, 0], [10, 24], [4, 52]],
     [[22, -18], [46, -12]],
   ];
-  const path = (pts, dx, dy) => pts.map(([x, y], i) => `${i ? 'L' : 'M'}${(cx + x * dir + dx).toFixed(1)},${(cy + y + dy).toFixed(1)}`).join(' ');
+  const path = (pts, dx, dy) => pts.map(([x, y], i) => `${i ? 'L' : 'M'}${(cx + x * k * 0.8 * dir + dx).toFixed(1)},${(cy + y * k * 0.8 + dy).toFixed(1)}`).join(' ');
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
     ${lines.map((pts) => `<path d="${path(pts, 1.5, 1.5)}" stroke="#d8cdb4" stroke-width="3" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.7"/>`).join('')}
     ${lines.map((pts) => `<path d="${path(pts, 0, 0)}" stroke="#2a2418" stroke-width="5" fill="none" stroke-linejoin="round" stroke-linecap="round"/>`).join('')}
@@ -69,13 +47,7 @@ if (!existsSync(SHEET)) {
 }
 mkdirSync(OUT, { recursive: true });
 const piece = await readSheet(SHEET, RB_PIECES);
-Object.assign(piece, await readSheet(ARMS, RB_ARM_PIECES));
-for (const side of ['r', 'l']) {
-  const fist = piece[`rb-${side}-fist`];
-  const middle = { x: side === 'r' ? RB_FIST_JOINTS.end.x : 1 - RB_FIST_JOINTS.end.x, y: RB_FIST_JOINTS.end.y };
-  piece[`rb-${side}-fist-dim`] = unlit(fist, middle);
-  piece[`rb-${side}-fist-cracked`] = await cracked(piece[`rb-${side}-fist-dim`], middle, side === 'r' ? 1 : -1);
-}
+piece['rb-fist-cracked'] = await cracked(piece['rb-rock-1'], { x: 0.5, y: 0.6 }, 1); // under its moss
 for (const name of RB_ART) await savePiece(piece[name], join(OUT, `${name}.png`), piece[name].w, piece[name].h);
 // Pieces no longer used (his old arms, fists and seals) are cleared away.
 for (const file of readdirSync(OUT)) if (!RB_ART.includes(file.replace(/\.png$/, ''))) rmSync(join(OUT, file));

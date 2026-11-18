@@ -1,11 +1,11 @@
 // Draws the Rootbreaker in his arena, his fists and their chains in the poses of his moves, as one
-// picture, to review him without a browser. It places them with the game's own code (placeFist,
+// picture, to review him without a browser. It places them with the game's own code (chainHold,
 // chainBow and chainLinks in data/adventure/rootbreaker.js), from the pieces in public/assets.
 // Run: node tools/adventure-rootbreaker-preview.mjs out.png
 import sharp from 'sharp';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { RB_FIST_BLOCK, ROOTBREAKER, chainBow, chainLinks, fistAngle, fistBox, placeFist, rbPath } from '../src/data/adventure/rootbreaker.js';
+import { ROOTBREAKER, chainBow, chainHold, chainLinks, fistAngle, fistBox, rbPath, turnBetween } from '../src/data/adventure/rootbreaker.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = process.argv[2] ?? 'rootbreaker-preview.png';
@@ -15,7 +15,7 @@ const PAD = 700; // room round each panel, so pieces never fall off the canvas
 
 const file = (name) => join(ROOT, 'public', rbPath(name));
 const sizeOf = async (name) => sharp(file(name)).metadata().then((m) => ({ w: m.width, h: m.height }));
-const sizes = { fist: await sizeOf('rb-r-fist') };
+const sizes = { fist: await sizeOf('rb-rock-1') };
 
 // One picture, scaled and turned about its joint, placed so that joint is at (x, y).
 async function placed(name, scale, origin, x, y, rotation) {
@@ -47,11 +47,14 @@ async function bodyParts(x, floor) {
 // One arm's pictures: its chain behind his body, its fist in front.
 async function armParts(mount, side, goal, tilt, dir, look = '') {
   const angle = fistAngle(tilt, dir);
-  const fist = placeFist(goal, angle, sizes.fist, dir);
-  const links = chainLinks(mount, fist, chainBow(mount, fist, side));
+  const hold = chainHold(goal, mount, sizes.fist);
+  const links = chainLinks(mount, hold, chainBow(mount, hold, side));
+  const turn = turnBetween(fistAngle(0, side), angle) * ROOTBREAKER.arm.spin;
+  const glowing = look === '';
   const k = ROOTBREAKER.arm.scale;
   const glow = `<svg xmlns="http://www.w3.org/2000/svg" width="${W + PAD * 2}" height="${H + PAD * 2}">
-    <polyline points="${[mount, ...links, fist].map((p) => `${(p.x + PAD).toFixed(1)},${(p.y + PAD).toFixed(1)}`).join(' ')}" fill="none" stroke="#7dff6a" stroke-width="10" stroke-opacity="0.35" stroke-linejoin="round"/>
+    ${glowing ? `<circle cx="${goal.x + PAD}" cy="${goal.y + PAD}" r="95" fill="#7dff6a" opacity="0.4"/>` : ''}
+    <polyline points="${[mount, ...links, hold].map((p) => `${(p.x + PAD).toFixed(1)},${(p.y + PAD).toFixed(1)}`).join(' ')}" fill="none" stroke="#7dff6a" stroke-width="10" stroke-opacity="0.35" stroke-linejoin="round"/>
   </svg>`;
   return {
     angle,
@@ -59,18 +62,18 @@ async function armParts(mount, side, goal, tilt, dir, look = '') {
       { input: Buffer.from(glow), left: 0, top: 0 },
       ...await Promise.all(links.map((l) => placed('rb-link', l.size, { x: 0.5, y: 0.5 }, l.x, l.y, l.rotation))),
     ],
-    parts: [await placed(`rb-${fist.side > 0 ? 'r' : 'l'}-fist${look}`, k, fist.origin, fist.x, fist.y, fist.rotation)],
+    parts: [await placed(look === '-cracked' ? 'rb-fist-cracked' : 'rb-rock-1', k, { x: 0.5, y: 0.5 }, goal.x, goal.y, turn)],
     goal,
   };
 }
 
 // The poses: each arm's goal (its fist's middle), tilt and the way it points, as his moves set them.
 const r = ROOTBREAKER;
-const across = (RB_FIST_BLOCK.y1 - RB_FIST_BLOCK.y0) * sizes.fist.h * r.arm.scale / 2;
+const across = (sizes.fist.h * r.arm.scale * r.arm.box) / 2;
 const POSES = [
   { title: 'Resting', arms: (x, f) => [-1, 1].map((side) => ({ goal: { x: x + side * r.fistRest.out, y: f - r.fistRest.up }, tilt: r.fistRest.tilt, dir: side })) },
   { title: 'Smash: raised over the cat (right)', cat: 380, arms: (x, f, cat) => [rest(x, f, -1), { goal: { x: cat, y: f - r.smash.high }, tilt: r.smash.raiseTilt, dir: 1 }] },
-  { title: 'Smash: stuck on the floor, target lit (phase 2)', cat: 520, arms: (x, f) => [rest(x, f, -1), { goal: { x: x + 420, y: f - across }, tilt: 0, dir: 1, look: '' }] },
+  { title: 'Smash: stuck on the floor, glowing (phase 2)', cat: 520, arms: (x, f) => [rest(x, f, -1), { goal: { x: x + 420, y: f - across }, tilt: 0, dir: 1, look: '' }] },
   { title: 'Rockfall: fists clash over his head', arms: (x, f) => [-1, 1].map((side) => ({ goal: { x: x + side * 150, y: f - 373 + 20 }, tilt: 0, dir: -side, look: '-dim' })) },
   { title: 'Smash, as near his body as it lands (cracked)', cat: -150, arms: (x, f) => [{ goal: { x: x - r.reachZone.inner, y: f - across }, tilt: 0, dir: -1, look: '-cracked' }, rest(x, f, 1)] },
   { title: 'Sweep: cocked at the wall, glowing', cat: 300, arms: (x, f) => [rest(x, f, -1), { goal: { x: x + 640 - r.reachZone.edge, y: f - r.sweep.cockUp }, tilt: r.sweep.cockTilt, dir: 1 }] },
@@ -88,7 +91,7 @@ for (const pose of POSES) {
   const arms = [];
   for (const [i, arm] of pose.arms(x, floor, x + (pose.cat ?? 0)).entries()) arms.push(await armParts(mounts[i], i ? 1 : -1, arm.goal, arm.tilt, arm.dir, arm.look ?? '-dim'));
   // The floor, the arena's walls, the cat's box, and each fist's hit box.
-  const boxes = arms.map(({ goal, angle }) => fistBox(goal, angle, sizes.fist));
+  const boxes = arms.map(({ goal }) => fistBox(goal, sizes.fist));
   const catX = x + (pose.cat ?? -300);
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W + PAD * 2}" height="${H + PAD * 2}">
     <rect x="${PAD}" y="${PAD}" width="${W}" height="${H}" fill="#5f8f7a"/>

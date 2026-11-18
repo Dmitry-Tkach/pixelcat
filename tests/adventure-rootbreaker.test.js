@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
-  RB_ART, ROOTBREAKER, chainBow, chainLinks, coreDamage, fistAngle, fistBox, inReach, nextAttack, pieceSide, placeFist, rbPath, rootbreakerPhase,
+  RB_ART, ROOTBREAKER, chainBow, chainHold, chainLinks, coreDamage, fistAngle, fistBox, inReach, nextAttack, rbPath, rootbreakerPhase,
 } from '../src/data/adventure/rootbreaker.js';
 import { ADVENTURE_LEVELS } from '../src/data/adventure/index.js';
 
@@ -48,25 +48,15 @@ describe('the Rootbreaker', () => {
 
 describe("the Rootbreaker's arms", () => {
   const length = (a, b) => Math.hypot(b.x - a.x, b.y - a.y);
-  const fist = { w: 503, h: 261 }; // the fist's picture, as the owner drew it
+  const fist = { w: 134, h: 138 }; // the fist's stone, as drawn
   const mount = { x: 181, y: -172 }; // his right shoulder's ring, from the middle of his feet
 
-  it('hold each fist by its cuff, its middle where its move wants it', () => {
-    for (const [tilt, dir] of [[0, 1], [50, 1], [-80, 1], [0, -1]]) {
-      const goal = { x: 420, y: -200 };
-      const angle = fistAngle(tilt, dir);
-      const at = placeFist(goal, angle, fist, dir);
-      const reach = (0.8 - 0.06) * fist.w * ROOTBREAKER.arm.scale;
-      expect(length(at, goal)).toBeCloseTo(reach, -1); // the cuff is the fist's length behind its middle
-      expect(at.side).toBe(Math.cos(angle) < 0 ? -1 : 1);
-    }
-  });
-
-  it('keep the moss on top: a fist pointing left uses the left drawing, without flickering at straight down', () => {
-    expect(pieceSide(Math.PI, 1, 0.25)).toBe(-1);
-    expect(pieceSide(0, -1, 0.25)).toBe(1);
-    expect(pieceSide(Math.PI / 2 + 0.1, 1, 0.25)).toBe(1); // just past straight down: it keeps its drawing
-    expect(pieceSide(Math.PI / 2 - 0.1, -1, 0.25)).toBe(-1);
+  it('hold each fist on its edge toward the shoulder', () => {
+    const goal = { x: 420, y: -100 };
+    const hold = chainHold(goal, mount, fist);
+    const r = (Math.min(fist.w, fist.h) * ROOTBREAKER.arm.scale * ROOTBREAKER.arm.hold) / 2;
+    expect(length(hold, goal)).toBeCloseTo(r);
+    expect(length(hold, mount)).toBeLessThan(length(goal, mount));
   });
 
   it('chain each fist to its shoulder: links between, smaller toward the fist', () => {
@@ -100,9 +90,9 @@ describe("the Rootbreaker's arms", () => {
     expect(inReach(-450, -1, 0, arena)).toBe(-450);
   });
 
-  it('land flat, the fist a block on the floor to stand on', () => {
-    const across = (0.9 * fist.h * ROOTBREAKER.arm.scale) / 2;
-    const box = fistBox({ x: 400, y: -across }, fistAngle(0, 1), fist);
+  it('land on the floor, the fist a stone to stand on', () => {
+    const across = (ROOTBREAKER.arm.box * fist.h * ROOTBREAKER.arm.scale) / 2;
+    const box = fistBox({ x: 400, y: -across }, fist);
     expect(box.bottom).toBeCloseTo(0);
     expect(box.bottom - box.top).toBeGreaterThan(60);
     expect(box.bottom - box.top).toBeLessThan(180); // low enough to jump onto
