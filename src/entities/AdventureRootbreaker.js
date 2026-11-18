@@ -926,7 +926,7 @@ export class AdventureRootbreaker {
       }
     } else if (st.state === 'fly') {
       st.t += (ms * st.speed) / s.flyMs;
-      st.at = stoneFlight(st.from, st.to, Phaser.Math.Easing.Quad.In(Math.min(1, st.t)), s.arcPx);
+      st.at = stoneFlight(st.from, st.to, Phaser.Math.Easing.Quadratic.In(Math.min(1, st.t)), s.arcPx);
       st.spin += (s.spinDeg * ms) / 1000 * (st.to.x < st.from.x ? -1 : 1);
       const hw = (this.stoneSize.w * 0.8) / 2, hh = (this.stoneSize.h * 0.8) / 2;
       this.hurtIfTouching({ left: st.at.x - hw, right: st.at.x + hw, top: st.at.y - hh, bottom: st.at.y + hh }, st.at.x);
