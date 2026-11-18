@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   RB_ART, ROOTBREAKER, armDamage, beamEnd, beamTouches, chainBow, chainHold, chainLinks, coreDamage, fistAngle, fistBox, inReach, nextAttack, pickAttack, rbPath, stoneFlight,
@@ -28,6 +28,7 @@ describe('the Rootbreaker', () => {
   it('has arms that can be worn down and broken, the bolt and explosives hardest', () => {
     const { full } = ROOTBREAKER.armHealth;
     expect(full).toBeGreaterThan(armDamage('standard') * 5); // more than a few rounds
+    expect(ROOTBREAKER.armHealth.regrowMs).toBeGreaterThanOrEqual(15000); // a broken arm stays gone a good while
     expect(armDamage('standard')).toBe(1);
     expect(armDamage('explosive')).toBeGreaterThan(armDamage('standard'));
     expect(armDamage('bolt')).toBeGreaterThan(armDamage('explosive'));
@@ -64,8 +65,9 @@ describe('the Rootbreaker', () => {
     expect(stoneFlight(from, to, 0.5, 150).y).toBeLessThan((from.y + to.y) / 2 - 100); // lifted in its middle
   });
 
-  it('is hurt only in his open core', () => {
-    expect(coreDamage('standard', false)).toBe(0);
+  it('is hurt a little anywhere on his body, fully while his core is open', () => {
+    expect(coreDamage('standard', false)).toBeGreaterThan(0); // his body, a little
+    expect(coreDamage('standard', false)).toBeLessThan(coreDamage('standard', true)); // his open core, fully
     expect(coreDamage('standard', true)).toBe(1);
     expect(coreDamage('explosive', true)).toBeGreaterThan(coreDamage('standard', true));
   });
@@ -74,15 +76,15 @@ describe('the Rootbreaker', () => {
     for (const attack of ['smash', 'blast', 'sweep', 'laser', 'rockfall', 'shoulder']) expect(ROOTBREAKER[attack].tellMs).toBeGreaterThanOrEqual(700);
   });
 
-  it('can be shot in the core from the floor, a low ledge or a stuck fist: his target reaches up past a ledge', () => {
+  it('can be shot from the floor, a low ledge or a stuck fist: his body reaches up past a ledge', () => {
     const level = ADVENTURE_LEVELS.find((l) => l.id === 'wood-3');
     const def = level.bosses.find((b) => b.kind === 'rootbreaker');
-    const ledgeUp = 3 * 64; // the arena's low ledges, three cells over his floor
-    const gunUp = 40; // the minigun, at most this far over the paws
-    expect(ROOTBREAKER.coreTarget.up).toBeGreaterThan(ledgeUp + gunUp);
-    // And the low ledges are where the test thinks: three cells over his floor.
-    const rows = level.map;
-    const ledge = rows[def.floor - 3].slice(def.arena.left, def.arena.right + 1);
+    // His body's picture height, from its PNG header.
+    const png = readFileSync(`public/${rbPath('rb-body')}`);
+    const height = png.readUInt32BE(20) * ROOTBREAKER.scale.body - ROOTBREAKER.sinkPx;
+    const ledgeUp = 3 * 64, gunUp = 40; // the low ledges, three cells up; the minigun over the paws
+    expect(height).toBeGreaterThan(ledgeUp + gunUp);
+    const ledge = level.map[def.floor - 3].slice(def.arena.left, def.arena.right + 1);
     expect(ledge).toMatch(/=/);
   });
 

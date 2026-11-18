@@ -21,7 +21,6 @@ import { landsFromAbove } from '../systems/adventurePlatformLanding.js';
 // can be worn down and broken (hurtArm), and grow back. The shoulder stones strike too (shoulder).
 const DEPTH = { body: 1.8, face: 1.81, glow: 1.815, core: 1.82, glowLine: 1.824, link: 1.826, shoulder: 1.83, fist: 5.8, shot: 6.3, warn: 6.35, laser: 6.4 };
 const CHAIN_GLOW = { colour: 0x7dff6a, width: 10, alpha: 0.35 }; // the green glow along a chain
-const CORE_TARGET = 0.8; // the core's target, as a share of its picture across
 const STOMP_SPEED = 250; // px a second: landing on a stuck fist faster than this stomps it
 const BREAK_SHAKE = { ms: 320, strength: 0.012 }; // the screen, as an arm shatters
 const FIST = 'rb-rock-1'; // his fists' stone
@@ -68,6 +67,7 @@ export class AdventureRootbreaker {
     const stoneImage = scene.textures.get(rbKey(SHOULDER)).getSourceImage();
     this.stoneSize = { w: stoneImage.width * r.shoulderStone.scale, h: stoneImage.height * r.shoulderStone.scale };
     this.hitStopMs = 0;
+    this.bodyTint = 0xffffff; // his stone's tint, greener each phase
 
     // His body, standing on the floor behind the arena; his face, his core and its glow over it.
     this.body = scene.add.image(this.x, this.floorY, rbKey('rb-body')).setOrigin(0.5, 1).setScale(r.scale.body).setDepth(DEPTH.body);
@@ -76,15 +76,12 @@ export class AdventureRootbreaker {
     this.coreGlow = scene.add.image(0, 0, 'fx-dot').setTint(0x7dff6a).setBlendMode(Phaser.BlendModes.ADD).setDepth(DEPTH.glow).setAlpha(0);
     this.core = scene.add.image(0, 0, rbKey('rb-core-closed')).setScale(r.scale.body).setDepth(DEPTH.core);
     this.eyeGlows = [-1, 1].map(() => scene.add.image(0, 0, 'fx-dot').setTint(0x9dff7a).setBlendMode(Phaser.BlendModes.ADD).setDepth(DEPTH.warn).setAlpha(0));
-    // What the cat's rounds aim at: a band as wide as his core, from the floor up to the height of
-    // a round fired from a low ledge (ROOTBREAKER.coreTarget), placed in pose. The minigun fires low,
-    // at the paws' height, so a round from the floor, from a low ledge or from a stuck fist all reach
-    // it. His stone doesn't stop rounds: they fly through it to his core.
+    // What the cat's rounds and moves hit: his whole body, from the floor to the top of his head
+    // (ROOTBREAKER.bodyTarget), placed in pose. A hit there hurts him a little, fully while his core
+    // is open (takeHit).
     this.sprite = scene.add.zone(0, 0, 10, 10);
     scene.physics.add.existing(this.sprite);
     this.sprite.body.setAllowGravity(false).setImmovable(true);
-    const coreImage = scene.textures.get(rbKey('rb-core-closed')).getSourceImage();
-    this.coreSize = { w: coreImage.width * r.scale.body * CORE_TARGET, h: coreImage.height * r.scale.body * CORE_TARGET };
     // The camera frames his whole arena while he fights.
     this.frame = { left: this.left, right: this.right, top: this.floorY - r.camera.above, bottom: this.floorY + r.camera.below };
 
@@ -148,7 +145,7 @@ export class AdventureRootbreaker {
     this.brain = {
       get isDefeated() { return self.defeated; },
       get healthShare() { return Math.max(0, self.hp / ROOTBREAKER.health); },
-      get isInvulnerable() { return !self.coreOpen; },
+      get isInvulnerable() { return false; }, // always hurt a little, fully while his core's open
     };
     // The arena's own business (the scene updates it, and shakes it).
     this.arena = { update: () => {}, shake: () => scene.cameras.main.shake(200, 0.006) };
@@ -228,10 +225,10 @@ export class AdventureRootbreaker {
       this.core.setPosition(coreAt.x, coreAt.y);
     }
     this.coreGlow.setPosition(coreAt.x, coreAt.y);
-    const targetTop = Math.min(coreAt.y - this.coreSize.h / 2, this.floorY - r.coreTarget.up), targetH = this.floorY - targetTop;
-    this.sprite.setSize(this.coreSize.w, targetH);
-    this.sprite.body.setSize(this.coreSize.w, targetH);
-    this.sprite.body.reset(coreAt.x, targetTop + targetH / 2);
+    const targetW = this.size.w * r.bodyTarget.across, targetH = this.floorY - top;
+    this.sprite.setSize(targetW, targetH);
+    this.sprite.body.setSize(targetW, targetH);
+    this.sprite.body.reset(this.body.x, top + targetH / 2);
     this.mouth = { x: this.face.x, y: this.face.y + this.face.displayHeight * 0.2 };
     this.eyes = [-1, 1].map((s) => ({ x: this.face.x + s * this.face.displayWidth * 0.11, y: this.face.y - this.face.displayHeight * 0.04 }));
     this.eyeGlows.forEach((glow, i) => glow.setPosition(this.eyes[i].x, this.eyes[i].y));
@@ -350,19 +347,24 @@ export class AdventureRootbreaker {
   }
 
   // A round, a blast or a move reached his core: it hurts only while open.
+  // A hit on his body: a little damage, his stone flashing; with his core open, the full damage,
+  // his core flashing.
   takeHit(kind, x, y) {
     if (this.defeated) return;
     const damage = coreDamage(kind, this.coreOpen);
-    if (!damage) {
-      this.spark(x, y);
-      return;
-    }
     const before = this.phase.index;
     this.hp = Math.max(0, this.hp - damage);
-    this.core.setTintFill(0xffffff);
-    this.scene.time.delayedCall(FLASH_MS, () => this.core.clearTint());
-    this.scene.effects.impact(x, y, 0.9);
-    this.flinch(4 + damage * 2);
+    if (this.coreOpen) {
+      this.core.setTintFill(0xffffff);
+      this.scene.time.delayedCall(FLASH_MS, () => this.core.clearTint());
+      this.scene.effects.impact(x, y, 0.9);
+      this.flinch(4 + damage * 2);
+    } else {
+      this.body.setTintFill(0xffffff);
+      this.scene.time.delayedCall(FLASH_MS / 2, () => this.body.setTint(this.bodyTint));
+      this.spark(x, y);
+      this.flinch(1 + damage);
+    }
     if (this.hp === 0) {
       this.die();
       return;
@@ -391,7 +393,8 @@ export class AdventureRootbreaker {
     this.attackCount = 0;
     this.roar(1300, 0.014);
     this.debris(18);
-    this.body.setTint([0xffffff, 0xe0ffd8, 0xc8ffb8][this.phase.index]);
+    this.bodyTint = [0xffffff, 0xe0ffd8, 0xc8ffb8][this.phase.index];
+    this.body.setTint(this.bodyTint);
     this.state = 'rest';
     this.stateMs = 1400; // a beat to breathe after the roar
   }
@@ -682,6 +685,7 @@ export class AdventureRootbreaker {
 
   endHitStop() {
     this.hitStopMs = 0;
+    this.bodyTint = 0xffffff; // his stone's tint, greener each phase
     this.scene.physics.world.resume();
     this.scene.tweens.resumeAll();
   }

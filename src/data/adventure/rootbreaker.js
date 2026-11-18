@@ -7,6 +7,7 @@
 //     sticks in the ground, and his core opens for a while. His mouth blasts balls of green energy.
 //   phase 2, Enraged (66-33%): a fist sweeps low across his side of the arena, and his eyes fire
 //     lasers at the cat; a missed smash doesn't open his core: breaking an arm does.
+// He can be hit anywhere on his body, a little while his core is shut, fully while it's open.
 // In every phase his arms can be hurt: rounds, blasts, the bolt, the claw, a dash or a stomp on a
 // fist wear its arm down (it cracks at half); broken, it shatters, his core opens, and it grows
 // back after a while. With an arm gone, the other does its work.
@@ -64,9 +65,9 @@ export const ROOTBREAKER = {
   // Each fist hovers beside him: this far out from his middle and this far up from his feet (px),
   // pointing out and a little down (tilt, degrees: 0 level, 90 straight down), bobbing and swaying.
   fistRest: { out: 470, up: 160, tilt: 50, swayDeg: 6, bobPx: 10 },
-  // His core's target reaches from the floor this far up (px), over the height a round flies from
-  // one of the arena's low ledges (three cells up, and the gun a little above the paws).
-  coreTarget: { up: 250 },
+  // Where he can be hit: his whole body (`across`, a share of his picture's width, from the floor
+  // to the top of his head). With his core open, a hit does its full damage; shut, `shut` of it.
+  bodyTarget: { across: 0.8, shut: 1 / 3 },
   // How far his feet sit into the ground (px), so his round rocks rest in it, not on it.
   sinkPx: 12,
   // Alive between attacks: he breathes (stretching up from his feet), and his eyes follow the cat.
@@ -119,7 +120,7 @@ export const ROOTBREAKER = {
   // His arms' own health: hurt by the same damage as his core (damage), and by `hits` for the
   // moves his core doesn't feel that way; cracked at `crackedAt` of it, broken at none. Broken, his
   // core opens and the arm grows back after `regrowMs`, coming together over `rebuildMs`.
-  armHealth: { full: 12, crackedAt: 0.5, regrowMs: 10000, rebuildMs: 900, hits: { bolt: 6, claw: 2 } },
+  armHealth: { full: 12, crackedAt: 0.5, regrowMs: 18000, rebuildMs: 900, hits: { bolt: 6, claw: 2 } },
   dieMs: 1800,
 };
 
@@ -154,9 +155,10 @@ export function armDamage(kind, { damage, armHealth } = ROOTBREAKER) {
   return armHealth.hits[kind] ?? damage[kind] ?? 1;
 }
 
-// What a hit does to his core: the damage, or 0 if it's closed.
-export function coreDamage(kind, open, { damage } = ROOTBREAKER) {
-  return open ? damage[kind] ?? 1 : 0;
+// What a hit on his body does: its full damage while his core's open, a share of it while it's shut.
+export function coreDamage(kind, open, { damage, bodyTarget } = ROOTBREAKER) {
+  const full = damage[kind] ?? 1;
+  return open ? full : full * bodyTarget.shut;
 }
 
 // Where a fist on side `side` (-1 left, 1 right) may work, for an x it's after: on its own side of
