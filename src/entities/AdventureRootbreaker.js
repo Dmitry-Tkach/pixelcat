@@ -21,7 +21,7 @@ import { landsFromAbove } from '../systems/adventurePlatformLanding.js';
 // can be worn down and broken (hurtArm), and grow back. The shoulder stones strike too (shoulder).
 const DEPTH = { body: 1.8, face: 1.81, glow: 1.815, core: 1.82, glowLine: 1.824, link: 1.826, shoulder: 1.83, fist: 5.8, shot: 6.3, warn: 6.35, laser: 6.4 };
 const CHAIN_GLOW = { colour: 0x7dff6a, width: 10, alpha: 0.35 }; // the green glow along a chain
-const CORE_TARGET = 0.8; // the core's target, as a share of its picture across (and down to the floor)
+const CORE_TARGET = 0.8; // the core's target, as a share of its picture across
 const STOMP_SPEED = 250; // px a second: landing on a stuck fist faster than this stomps it
 const BREAK_SHAKE = { ms: 320, strength: 0.012 }; // the screen, as an arm shatters
 const FIST = 'rb-rock-1'; // his fists' stone
@@ -76,9 +76,10 @@ export class AdventureRootbreaker {
     this.coreGlow = scene.add.image(0, 0, 'fx-dot').setTint(0x7dff6a).setBlendMode(Phaser.BlendModes.ADD).setDepth(DEPTH.glow).setAlpha(0);
     this.core = scene.add.image(0, 0, rbKey('rb-core-closed')).setScale(r.scale.body).setDepth(DEPTH.core);
     this.eyeGlows = [-1, 1].map(() => scene.add.image(0, 0, 'fx-dot').setTint(0x9dff7a).setBlendMode(Phaser.BlendModes.ADD).setDepth(DEPTH.warn).setAlpha(0));
-    // What the cat's rounds aim at: his core, and below it down to the floor, so a round fired
-    // from the floor, which flies low, at his paws' height, reaches it too (placed in pose). His
-    // stone doesn't stop rounds: they fly through it to his core.
+    // What the cat's rounds aim at: a band as wide as his core, from the floor up to the height of
+    // a round fired from a low ledge (ROOTBREAKER.coreTarget), placed in pose. The minigun fires low,
+    // at the paws' height, so a round from the floor, from a low ledge or from a stuck fist all reach
+    // it. His stone doesn't stop rounds: they fly through it to his core.
     this.sprite = scene.add.zone(0, 0, 10, 10);
     scene.physics.add.existing(this.sprite);
     this.sprite.body.setAllowGravity(false).setImmovable(true);
@@ -227,7 +228,7 @@ export class AdventureRootbreaker {
       this.core.setPosition(coreAt.x, coreAt.y);
     }
     this.coreGlow.setPosition(coreAt.x, coreAt.y);
-    const targetTop = coreAt.y - this.coreSize.h / 2, targetH = this.floorY - targetTop;
+    const targetTop = Math.min(coreAt.y - this.coreSize.h / 2, this.floorY - r.coreTarget.up), targetH = this.floorY - targetTop;
     this.sprite.setSize(this.coreSize.w, targetH);
     this.sprite.body.setSize(this.coreSize.w, targetH);
     this.sprite.body.reset(coreAt.x, targetTop + targetH / 2);

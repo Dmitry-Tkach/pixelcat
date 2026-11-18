@@ -74,6 +74,18 @@ describe('the Rootbreaker', () => {
     for (const attack of ['smash', 'blast', 'sweep', 'laser', 'rockfall', 'shoulder']) expect(ROOTBREAKER[attack].tellMs).toBeGreaterThanOrEqual(700);
   });
 
+  it('can be shot in the core from the floor, a low ledge or a stuck fist: his target reaches up past a ledge', () => {
+    const level = ADVENTURE_LEVELS.find((l) => l.id === 'wood-3');
+    const def = level.bosses.find((b) => b.kind === 'rootbreaker');
+    const ledgeUp = 3 * 64; // the arena's low ledges, three cells over his floor
+    const gunUp = 40; // the minigun, at most this far over the paws
+    expect(ROOTBREAKER.coreTarget.up).toBeGreaterThan(ledgeUp + gunUp);
+    // And the low ledges are where the test thinks: three cells over his floor.
+    const rows = level.map;
+    const ledge = rows[def.floor - 3].slice(def.arena.left, def.arena.right + 1);
+    expect(ledge).toMatch(/=/);
+  });
+
   it('stands in his arena in level 3', () => {
     const level = ADVENTURE_LEVELS.find((l) => l.id === 'wood-3');
     const def = level.bosses.find((b) => b.kind === 'rootbreaker');

@@ -64,6 +64,9 @@ export const ROOTBREAKER = {
   // Each fist hovers beside him: this far out from his middle and this far up from his feet (px),
   // pointing out and a little down (tilt, degrees: 0 level, 90 straight down), bobbing and swaying.
   fistRest: { out: 470, up: 160, tilt: 50, swayDeg: 6, bobPx: 10 },
+  // His core's target reaches from the floor this far up (px), over the height a round flies from
+  // one of the arena's low ledges (three cells up, and the gun a little above the paws).
+  coreTarget: { up: 250 },
   // How far his feet sit into the ground (px), so his round rocks rest in it, not on it.
   sinkPx: 12,
   // Alive between attacks: he breathes (stretching up from his feet), and his eyes follow the cat.
