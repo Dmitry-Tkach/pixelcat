@@ -75,17 +75,18 @@ export const ROOTBREAKER = {
   // His attacks (ms, px, px a second). Each starts with a tell the cat can read.
   // smash, an overhead hammer blow: a wind-up (the fist hauled up and back, pointing up: raiseTilt),
   // the tell (high over the cat, following him, trembling, his shadow below), the drop (fast,
-  // speeding up, the fist swinging over to land flat), the slam (squash, dust, shake, a wave along
-  // the floor), stuck (flat on the floor, tugging to get free), and a slow, heavy lift back.
+  // speeding up, the fist swinging over to land flat), the slam (squash, dust, shake, a ring along
+  // the floor), stuck (flat on the floor, tugging to get free), and a slow, heavy lift back. Only the
+  // fist itself hurts: the ring (waveMs, waveReach) is only a look, so a cat beside it is safe.
   smash: {
     windupMs: 480, tellMs: 900, follow: 0.9, high: 400, raiseTilt: -80, trembleDeg: 3, dropMs: 280,
-    stuckMs: 2400, struggleMs: 260, tugDeg: 6, liftMs: 800, waveMs: 320, waveReach: 480,
+    stuckMs: 2400, struggleMs: 260, tugDeg: 6, liftMs: 800, waveMs: 320, waveReach: 260,
   },
   // A short freeze of the whole fight when a fist lands (ms), so the blow feels heavy.
   hitStopMs: 70,
   // Where his fists work: each on its own side, from `inner` px out from his middle (closer in, it
   // would cover his core) to `edge` px short of the arena's wall. A cat closer in than that is
-  // reached by the smash's wave, his blasts and his lasers.
+  // reached by his blasts and his lasers.
   reachZone: { inner: 190, edge: 80 },
   blast: { tellMs: 800, balls: 3, spreadDeg: 18, speed: 380, everyMs: 260 },
   // sweep, a backhand swing by the fist on the cat's side: hauled out to the wall, cocked back and

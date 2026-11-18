@@ -506,7 +506,7 @@ export class AdventureRootbreaker {
   // Smash, an overhead hammer blow. The wind-up: the fist hauled up and back, pointing up, his body
   // leaning into it. The tell: high over the cat, following him a little behind, trembling, its
   // shadow growing on the floor. The drop: fast and speeding up, the fist swinging over as it falls
-  // to land flat. Then the slam (squash, dust, stones, a shake, a wave along the floor), stuck there
+  // to land flat. Then the slam (squash, dust, stones, a shake, a ring along the floor), stuck there
   // tugging to get free (a step to stand on; in phase 1 and 3 his core opens), and a slow, heavy lift.
   smash(arm, speed) {
     const s = ROOTBREAKER.smash;
@@ -653,13 +653,11 @@ export class AdventureRootbreaker {
     this.scene.audio.playSfx('smash');
     this.scene.cameras.main.shake(280, 0.013);
     this.hitStop(ROOTBREAKER.hitStopMs);
-    // The wave, along the floor both ways.
+    // A ring of dust along the floor both ways: only a look. Only the fist itself hurts.
     for (const dir of [-1, 1]) {
       const wave = this.scene.add.ellipse(x, this.floorY - 8, 70, 22, WAVE_COLOUR, 0.18).setStrokeStyle(5, WAVE_COLOUR, 0.95).setDepth(DEPTH.warn);
       this.scene.tweens.add({ targets: wave, x: x + dir * s.waveReach, scaleY: 0.5, alpha: 0, duration: s.waveMs, ease: 'Quad.easeOut', onComplete: () => wave.destroy() });
     }
-    const { body } = this.cat;
-    if (this.cat.onGround && Math.abs(body.bottom - this.floorY) < 12 && Math.abs(body.center.x - x) < s.waveReach) this.onHurtCat(x);
     if (this.phase.index !== 1) this.openCore(ROOTBREAKER.coreOpenMs[`phase${this.phase.index + 1}`]);
   }
 
