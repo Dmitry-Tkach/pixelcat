@@ -21,6 +21,7 @@ import { landsFromAbove } from '../systems/adventurePlatformLanding.js';
 // can be worn down and broken (hurtArm), and grow back. The shoulder stones strike too (shoulder).
 const DEPTH = { body: 1.8, face: 1.81, glow: 1.815, core: 1.82, glowLine: 1.824, link: 1.826, shoulder: 1.83, fist: 5.8, shot: 6.3, warn: 6.35, laser: 6.4 };
 const CHAIN_GLOW = { colour: 0x7dff6a, width: 10, alpha: 0.35 }; // the green glow along a chain
+const CORE_TARGET = 0.8; // the core's target, as a share of its picture across (and down to the floor)
 const STOMP_SPEED = 250; // px a second: landing on a stuck fist faster than this stomps it
 const BREAK_SHAKE = { ms: 320, strength: 0.012 }; // the screen, as an arm shatters
 const FIST = 'rb-rock-1'; // his fists' stone
@@ -75,11 +76,14 @@ export class AdventureRootbreaker {
     this.coreGlow = scene.add.image(0, 0, 'fx-dot').setTint(0x7dff6a).setBlendMode(Phaser.BlendModes.ADD).setDepth(DEPTH.glow).setAlpha(0);
     this.core = scene.add.image(0, 0, rbKey('rb-core-closed')).setScale(r.scale.body).setDepth(DEPTH.core);
     this.eyeGlows = [-1, 1].map(() => scene.add.image(0, 0, 'fx-dot').setTint(0x9dff7a).setBlendMode(Phaser.BlendModes.ADD).setDepth(DEPTH.warn).setAlpha(0));
-    // What the cat's rounds aim at: his core. Rounds into his stone elsewhere stop.
-    this.sprite = scene.physics.add.image(0, 0, rbKey('rb-core-closed')).setScale(r.scale.body * 0.8).setVisible(false);
+    // What the cat's rounds aim at: his core, and below it down to the floor, so a round fired
+    // from the floor, which flies low, at his paws' height, reaches it too (placed in pose). His
+    // stone doesn't stop rounds: they fly through it to his core.
+    this.sprite = scene.add.zone(0, 0, 10, 10);
+    scene.physics.add.existing(this.sprite);
     this.sprite.body.setAllowGravity(false).setImmovable(true);
-    this.stone = scene.add.zone(this.x, this.floorY - this.size.h / 2, this.size.w * 0.8, this.size.h);
-    scene.physics.add.existing(this.stone, true);
+    const coreImage = scene.textures.get(rbKey('rb-core-closed')).getSourceImage();
+    this.coreSize = { w: coreImage.width * r.scale.body * CORE_TARGET, h: coreImage.height * r.scale.body * CORE_TARGET };
     // The camera frames his whole arena while he fights.
     this.frame = { left: this.left, right: this.right, top: this.floorY - r.camera.above, bottom: this.floorY + r.camera.below };
 
@@ -223,7 +227,10 @@ export class AdventureRootbreaker {
       this.core.setPosition(coreAt.x, coreAt.y);
     }
     this.coreGlow.setPosition(coreAt.x, coreAt.y);
-    this.sprite.body.reset(coreAt.x, coreAt.y);
+    const targetTop = coreAt.y - this.coreSize.h / 2, targetH = this.floorY - targetTop;
+    this.sprite.setSize(this.coreSize.w, targetH);
+    this.sprite.body.setSize(this.coreSize.w, targetH);
+    this.sprite.body.reset(coreAt.x, targetTop + targetH / 2);
     this.mouth = { x: this.face.x, y: this.face.y + this.face.displayHeight * 0.2 };
     this.eyes = [-1, 1].map((s) => ({ x: this.face.x + s * this.face.displayWidth * 0.11, y: this.face.y - this.face.displayHeight * 0.04 }));
     this.eyeGlows.forEach((glow, i) => glow.setPosition(this.eyes[i].x, this.eyes[i].y));
@@ -294,16 +301,10 @@ export class AdventureRootbreaker {
     this.roar(1200, 0.01);
     this.state = 'rest';
     this.stateMs = ROOTBREAKER.restMs * 1.5;
-    // Rounds into his stone stop there, sparking; over his open core, the scene's overlap with
-    // `sprite` takes them. Rounds into a fist stop on it, and wear its arm down.
+    // Rounds fly through his stone to his core, where the scene's overlap with `sprite` takes them
+    // (stopping, sparking while it's shut). Rounds into a fist stop on it, and wear its arm down.
     const { moves } = this.scene;
     const bulletOf = (a, b) => (moves.bullets.contains(a) ? a : b);
-    this.scene.physics.add.overlap(moves.bullets, this.stone, (a, b) => {
-      const bullet = bulletOf(a, b);
-      if (!bullet.active || this.coreHitBy(bullet)) return;
-      this.spark(bullet.x, bullet.y);
-      moves.bulletStops(bullet);
-    });
     // Rounds into a shoulder stone stop on it, sparking: it can't be hurt.
     this.scene.physics.add.overlap(moves.bullets, this.stoneGroup, (a, b) => {
       const bullet = bulletOf(a, b);
@@ -318,10 +319,6 @@ export class AdventureRootbreaker {
       if (!this.hurtArm(hit.arm, bullet.kind, bullet.x, bullet.y)) this.spark(bullet.x, bullet.y);
       moves.bulletStops(bullet);
     });
-  }
-
-  coreHitBy(bullet) {
-    return this.coreOpen && this.sprite.getBounds().contains(bullet.x, bullet.y);
   }
 
   halt() {
