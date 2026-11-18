@@ -1,22 +1,67 @@
 // Cuts the owner's Rootbreaker sheet (images/levels/forest/boss/root-breacker.png, from
 // prompts/forest-level/16-rootbreaker.md) into his parts (data/adventure/rootbreaker.js), at the
-// size they're drawn on the sheet: the game scales them (ROOTBREAKER.scale). It measures where his
+// size they're drawn on the sheet: the game scales them (ROOTBREAKER.scale). His arms come from a
+// second sheet (images/levels/forest/guardian-parts.png); from each fist it also makes its target
+// unlit (stone) and cracked. It measures where his
 // face and his core sit on his body, and prints them, to copy into rootbreaker.js:
 //   the face: where the calm face matches the body's own face best;
 //   the core: the middle of the hole in his chest.
 // Run: node tools/adventure-rootbreaker-art.mjs [folder for a review picture] (part of npm run assets).
 import sharp from 'sharp';
-import { existsSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { RB_ARM_PIECES, RB_PIECES } from '../src/data/adventure/rootbreaker.js';
+import { RB_ARM_PIECES, RB_ART, RB_JOINTS, RB_PIECES } from '../src/data/adventure/rootbreaker.js';
 import { alphaOf, readSheet, savePiece } from './sheetPieces.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SHEET = join(ROOT, 'images', 'levels', 'forest', 'boss', 'root-breacker.png');
-const ARMS = join(ROOT, 'images', 'levels', 'forest', 'boss', 'upper-arms.png'); // his arms' pieces
+const ARMS = join(ROOT, 'images', 'levels', 'forest', 'guardian-parts.png'); // his arms' pieces
 const OUT = join(ROOT, 'public', 'assets', 'adventure', 'bosses', 'rootbreaker');
 const REVIEW = process.argv[2];
+// A fist's target, the green cross and ring round its middle (px on the owner's fist): `arm` is how
+// far each arm of the cross reaches and `bar` how wide it is; `ring` the ring's reach.
+const TARGET = { arm: 66, bar: 16, ring: 38 };
+const STONE = [128, 120, 106]; // an unlit target: carved into the stone, this colour at its lightest
+
+// The fist with its target unlit: inside the cross and ring, the green turns to carved stone, as
+// light as it was, but darker; the moss round it is left alone.
+function unlit({ pixels, w, h }, middle) {
+  const out = Buffer.from(pixels);
+  const cx = middle.x * w, cy = middle.y * h;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const dx = Math.abs(x - cx), dy = Math.abs(y - cy);
+    const inCross = (dx < TARGET.bar / 2 && dy < TARGET.arm) || (dy < TARGET.bar / 2 && dx < TARGET.arm);
+    if (!inCross && Math.hypot(dx, dy) > TARGET.ring) continue;
+    const i = (y * w + x) * 4;
+    const [r, g, b] = [out[i], out[i + 1], out[i + 2]];
+    if (Math.max(r, g, b) - Math.min(r, g, b) < 40) continue; // grey already: the stone
+    const light = (0.3 * r + 0.59 * g + 0.11 * b) / 255;
+    for (let c = 0; c < 3; c++) out[i + c] = Math.round(STONE[c] * (0.35 + 0.4 * light));
+  }
+  return { pixels: out, w, h };
+}
+
+// The unlit fist, cracked through its target: dark cracks from the middle, with a light edge.
+async function cracked({ pixels, w, h }, middle, dir) {
+  const cx = middle.x * w, cy = middle.y * h;
+  const lines = [
+    [[0, 0], [22, -18], [30, -44], [52, -60]],
+    [[0, 0], [-16, 12], [-40, 16], [-58, 40]],
+    [[0, 0], [10, 24], [4, 52]],
+    [[22, -18], [46, -12]],
+  ];
+  const path = (pts, dx, dy) => pts.map(([x, y], i) => `${i ? 'L' : 'M'}${(cx + x * dir + dx).toFixed(1)},${(cy + y + dy).toFixed(1)}`).join(' ');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
+    ${lines.map((pts) => `<path d="${path(pts, 1.5, 1.5)}" stroke="#d8cdb4" stroke-width="3" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.7"/>`).join('')}
+    ${lines.map((pts) => `<path d="${path(pts, 0, 0)}" stroke="#2a2418" stroke-width="5" fill="none" stroke-linejoin="round" stroke-linecap="round"/>`).join('')}
+  </svg>`;
+  const raw = { raw: { width: w, height: h, channels: 4 } };
+  // Only over the fist itself: the cracks are cut to its own shape.
+  const drawn = await sharp(pixels, raw).composite([{ input: Buffer.from(svg) }]).raw().toBuffer();
+  for (let i = 3; i < drawn.length; i += 4) drawn[i] = pixels[i];
+  return { pixels: drawn, w, h };
+}
 
 if (!existsSync(SHEET)) {
   console.log('No Rootbreaker sheet (images/levels/forest/boss/root-breacker.png): he has no pictures yet');
@@ -24,8 +69,16 @@ if (!existsSync(SHEET)) {
 }
 mkdirSync(OUT, { recursive: true });
 const piece = await readSheet(SHEET, RB_PIECES);
-if (existsSync(ARMS)) Object.assign(piece, await readSheet(ARMS, RB_ARM_PIECES));
-for (const [name, p] of Object.entries(piece)) await savePiece(p, join(OUT, `${name}.png`), p.w, p.h);
+Object.assign(piece, await readSheet(ARMS, RB_ARM_PIECES));
+for (const side of ['r', 'l']) {
+  const fist = piece[`rb-${side}-fist`];
+  const middle = { x: side === 'r' ? RB_JOINTS.fist.end.x : 1 - RB_JOINTS.fist.end.x, y: RB_JOINTS.fist.end.y };
+  piece[`rb-${side}-fist-dim`] = unlit(fist, middle);
+  piece[`rb-${side}-fist-cracked`] = await cracked(piece[`rb-${side}-fist-dim`], middle, side === 'r' ? 1 : -1);
+}
+for (const name of RB_ART) await savePiece(piece[name], join(OUT, `${name}.png`), piece[name].w, piece[name].h);
+// Pieces no longer used (his old arms, fists and seals) are cleared away.
+for (const file of readdirSync(OUT)) if (!RB_ART.includes(file.replace(/\.png$/, ''))) rmSync(join(OUT, file));
 
 // The hole in his chest: transparent pixels inside his body that the outside can't reach.
 const body = piece['rb-body'];
@@ -69,11 +122,11 @@ for (let oy = -20; oy < body.h / 2; oy += 2) {
   }
 }
 const faceAt = { x: (best.ox + face.w / 2) / body.w, y: (best.oy + face.h / 2) / body.h };
-console.log(`Rootbreaker: ${Object.keys(piece).length} pieces. Measured: core ${JSON.stringify({ x: +core.x.toFixed(3), y: +core.y.toFixed(3) })}, face ${JSON.stringify({ x: +faceAt.x.toFixed(3), y: +faceAt.y.toFixed(3) })} (match ${best.err.toFixed(1)})`);
+console.log(`Rootbreaker: ${RB_ART.length} pieces. Measured: core ${JSON.stringify({ x: +core.x.toFixed(3), y: +core.y.toFixed(3) })}, face ${JSON.stringify({ x: +faceAt.x.toFixed(3), y: +faceAt.y.toFixed(3) })} (match ${best.err.toFixed(1)})`);
 
 if (REVIEW) {
   mkdirSync(REVIEW, { recursive: true });
-  const names = Object.keys(piece);
+  const names = RB_ART;
   const comps = await Promise.all(names.map(async (name, i) => ({
     input: await sharp(join(OUT, `${name}.png`)).resize({ width: 280, height: 280, fit: 'inside' }).toBuffer(),
     left: (i % 4) * 300 + 10, top: Math.floor(i / 4) * 300 + 10,

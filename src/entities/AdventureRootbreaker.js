@@ -1,21 +1,23 @@
 import Phaser from 'phaser';
-import { ROOTBREAKER, armPose, coreDamage, nextAttack, rbKey, rootbreakerPhase } from '../data/adventure/rootbreaker.js';
+import { RB_FIST_BLOCK, ROOTBREAKER, coreDamage, fistAngle, fistBox, inReach, layArm, nextAttack, rbKey, rootbreakerPhase, turnBetween } from '../data/adventure/rootbreaker.js';
 import { TILE } from '../systems/adventureMap.js';
 import { landsFromAbove } from '../systems/adventurePlatformLanding.js';
 
 // The Rootbreaker, played (data/adventure/rootbreaker.js for his rules and numbers). He's his own
-// boss, nothing like the troll: he stands behind his arena and never walks; his arms reach out from
-// the green rings at his shoulders, bending at a glowing elbow, to fists that fight; only his open
-// core can be hurt. The scene fights him the way it fights any boss: it starts him, updates him,
+// boss, nothing like the troll: he stands behind his arena and never walks; his stone arms reach out
+// from the green rings at his shoulders, bending at the elbow, to the big fists that fight; only his
+// open core can be hurt. The scene fights him the way it fights any boss: it starts him, updates him,
 // aims the cat's rounds at `sprite` (his core) through takeHit, reads `brain` for his health bar,
 // and frames `frame` with the camera. He hurts the cat himself (onHurtCat), so the scene doesn't
 // ask what touching him does (ownTouch).
 //
 // Every move has its weight: a wind-up the cat can read, a fast strike, a hard impact, and a heavy
-// recovery. Between attacks he breathes and his eyes follow the cat. His arm pieces are the owner's
-// (rb-upper, rb-fore, rb-elbow); without them, they're drawn in code.
-const DEPTH = { body: 1.8, face: 1.81, glow: 1.815, core: 1.82, arm: 5.7, elbow: 5.72, fist: 5.8, seal: 5.81, shot: 6.3, warn: 6.35, laser: 6.4 };
-const STAND_IN = { bone: 'adventure-rb-bone', elbow: 'adventure-rb-elbow' };
+// recovery. Between attacks he breathes and his eyes follow the cat. His arms are the owner's stone
+// pieces (images/levels/forest/guardian-parts.png), laid out by layArm each frame: the arm behind his
+// body (so it never hides his core), the fist in front. Each fist swings toward the way its move
+// points it with the weight of stone, and its target lights up when it can be shot.
+const DEPTH = { upper: 1.79, shoulder: 1.793, fore: 1.796, body: 1.8, face: 1.81, glow: 1.815, core: 1.82, fist: 5.8, shot: 6.3, warn: 6.35, laser: 6.4 };
+const ARM_PIECES = ['shoulder', 'upper', 'fore', 'fist'];
 const WAVE_COLOUR = 0x7dff6a;
 const ROCK_SHADOW = { w: 90, h: 16, alpha: 0.45 };
 const FLASH_MS = 90;
@@ -50,12 +52,11 @@ export class AdventureRootbreaker {
     this.leftovers = [];
     this.lean = { x: 0, y: 0 }; // his body's lean and flinch, easing back (px)
     const r = ROOTBREAKER;
-    makeStandIns(scene);
-    // The owner's arm pieces, if they're there; else the stand-ins drawn in code.
-    const has = (name) => scene.textures.exists(rbKey(name));
-    this.armArt = has('rb-upper') && has('rb-fore') && has('rb-elbow')
-      ? { upper: rbKey('rb-upper'), fore: rbKey('rb-fore'), elbow: rbKey('rb-elbow'), cracked: rbKey('rb-elbow-cracked') }
-      : { upper: STAND_IN.bone, fore: STAND_IN.bone, elbow: STAND_IN.elbow, cracked: STAND_IN.elbow };
+    // Each arm piece's size, from its right-pointing picture.
+    this.armSizes = Object.fromEntries(ARM_PIECES.map((name) => {
+      const image = scene.textures.get(rbKey(`rb-r-${name}`)).getSourceImage();
+      return [name, { w: image.width, h: image.height }];
+    }));
 
     // His body, standing on the floor behind the arena; his face, his core and its glow over it.
     this.body = scene.add.image(this.x, this.floorY, rbKey('rb-body')).setOrigin(0.5, 1).setScale(r.scale.body).setDepth(DEPTH.body);
@@ -72,26 +73,36 @@ export class AdventureRootbreaker {
     // The camera frames his whole arena while he fights.
     this.frame = { left: this.left, right: this.right, top: this.floorY - r.camera.above, bottom: this.floorY + r.camera.below };
 
-    // His arms: an upper arm, a glowing elbow, a forearm, and the fist; a stuck fist is a step.
+    // His arms: the shoulder, the upper arm, the elbow and forearm, and the big fist. Each fist's
+    // block is an invisible box (`hit`) that hurts, stops rounds, and, stuck, is a step.
     this.fistGroup = scene.physics.add.group({ allowGravity: false, immovable: true });
     this.arms = [-1, 1].map((side, i) => {
-      const fist = scene.physics.add.image(0, 0, rbKey('rb-fist')).setScale(r.scale.fist).setDepth(DEPTH.fist).setFlipX(side > 0);
-      this.fistGroup.add(fist);
-      fist.body.setAllowGravity(false).setImmovable(true).setSize(fist.width * 0.8, fist.height * 0.7);
+      const hit = scene.add.zone(0, 0, 10, 10);
+      this.fistGroup.add(hit);
+      hit.body.setAllowGravity(false).setImmovable(true);
+      const piece = (name) => scene.add.image(0, 0, rbKey(`rb-r-${name}`)).setScale(r.arm.scale).setDepth(DEPTH[name]);
       const arm = {
-        side, fist, shoulderAt: r.shoulders[i], state: 'rest', speed: 1, sealHits: 0, cracked: false, shake: 0,
-        upper: scene.add.image(0, 0, this.armArt.upper).setDepth(DEPTH.arm),
-        fore: scene.add.image(0, 0, this.armArt.fore).setDepth(DEPTH.arm),
-        elbow: scene.add.image(0, 0, this.armArt.elbow).setDepth(DEPTH.elbow),
-        ghosts: Array.from({ length: TRAIL.ghosts }, () => scene.add.image(0, 0, rbKey('rb-fist')).setScale(r.scale.fist).setDepth(DEPTH.fist - 0.01).setAlpha(0)),
+        side, hit, shoulderAt: r.shoulders[i], state: 'rest', speed: 1, sealHits: 0, cracked: false, shake: 0,
+        pieces: Object.fromEntries(ARM_PIECES.map((name) => [name, piece(name)])),
+        sides: {}, // the drawing each piece used last frame (layArm)
+        squash: { x: 1, y: 1 }, // the fist's squash when it lands
+        ghosts: Array.from({ length: TRAIL.ghosts }, () => scene.add.image(0, 0, rbKey('rb-r-fist')).setScale(r.arm.scale).setDepth(DEPTH.fist - 0.01).setAlpha(0)),
         trail: [],
       };
-      arm.goal = this.restOf(arm); // where the fist is heading: its moves tween it
-      fist.arm = arm;
+      arm.goal = this.restOf(arm); // where the fist's middle is heading: its moves tween it
+      // The way the fist points (radians): it swings toward `aim` (a spring), unless a move turns it
+      // itself (`swing` false).
+      arm.aim = this.restAim(arm);
+      arm.angle = arm.aim;
+      arm.spin = 0;
+      arm.swing = true;
+      arm.tremble = 0;
+      arm.lastGoal = { ...arm.goal };
+      hit.arm = arm;
       return arm;
     });
-    scene.physics.add.collider(cat, this.fistGroup, null, (cat_, fist) => fist.arm.state === 'stuck' && landsFromAbove({
-      bottom: cat.body.bottom, prevBottom: cat.body.prev.y + cat.body.height, top: fist.body.top, vy: cat.body.velocity.y,
+    scene.physics.add.collider(cat, this.fistGroup, null, (cat_, hit) => hit.arm.state === 'stuck' && landsFromAbove({
+      bottom: cat.body.bottom, prevBottom: cat.body.prev.y + cat.body.height, top: hit.body.top, vy: cat.body.velocity.y,
     }));
     this.pose();
 
@@ -120,6 +131,39 @@ export class AdventureRootbreaker {
     };
   }
 
+  // The way a resting fist points: out and down, swaying a little.
+  restAim(arm) {
+    const { fistRest } = ROOTBREAKER;
+    return fistAngle(fistRest.tilt + Math.sin(this.clock / 1300 + arm.side) * fistRest.swayDeg, arm.side);
+  }
+
+  // Points a fist for a move: tilt (degrees: 0 level, 90 down, -90 up), toward `dir` (-1 left, 1
+  // right; its own side if not given). It swings there with the weight of stone.
+  aimFist(arm, tilt, dir = arm.side) {
+    arm.aim = fistAngle(tilt, dir);
+    arm.swing = true;
+  }
+
+  // Turns a fist itself, to `angle` the short way round, over `ms` (the hammer swing of a drop).
+  turnFist(arm, angle, ms, ease) {
+    arm.swing = false;
+    arm.spin = 0;
+    const to = arm.angle + turnBetween(arm.angle, angle);
+    this.scene.tweens.add({ targets: arm, angle: to, duration: ms, ease });
+  }
+
+  // Each frame: a fist swinging on its own swings toward its aim, lagging behind when it moves fast.
+  swingFist(arm, ms) {
+    const s = ROOTBREAKER.fistSwing, dt = Math.min(ms, 50) / 1000;
+    const vx = (arm.goal.x - arm.lastGoal.x) / Math.max(dt, 0.001);
+    arm.lastGoal = { ...arm.goal };
+    if (!arm.swing) return;
+    const lag = Phaser.Math.Clamp(vx / s.lagSpeed, -1, 1) * Phaser.Math.DegToRad(s.lagDeg);
+    arm.spin += turnBetween(arm.angle, arm.aim + lag) * s.stiff * dt;
+    arm.spin *= Math.exp(-s.settle * dt);
+    arm.angle += arm.spin * dt;
+  }
+
   // Places everything for this frame: the body breathing and leaning, his eyes following the cat,
   // the core, and each arm reaching for its fist's goal.
   pose() {
@@ -142,29 +186,44 @@ export class AdventureRootbreaker {
     for (const arm of this.arms) this.poseArm(arm, on(arm.shoulderAt));
   }
 
-  // One arm: its fist goes where its goal is, as near as the arm reaches; the wrist is on the fist's
-  // body side; the bones and the elbow fill in between, the elbow bending outward.
-  poseArm(arm, shoulder) {
+  // One arm: its pieces laid out from its shoulder to its fist's goal (layArm), each in the drawing
+  // that keeps its moss on top; the fist's target lit, unlit or cracked; its hit box on its block.
+  poseArm(arm, mount) {
     if (arm.state === 'dead') return;
-    const r = ROOTBREAKER;
-    const { fist } = arm;
-    const wristOff = -arm.side * fist.displayWidth * r.wrist; // toward his body
-    const { elbow, wrist } = armPose(shoulder, { x: arm.goal.x + wristOff, y: arm.goal.y }, r.arm, arm.side);
-    const x = wrist.x - wristOff + arm.shake, y = wrist.y;
-    fist.body.reset(x, y);
-    bone(arm.upper, shoulder, elbow, r.arm);
-    bone(arm.fore, elbow, wrist, r.arm);
-    // The elbow: its seal cracked, in phase 2, once it's been shot enough.
-    arm.elbow.setTexture(arm.cracked ? this.armArt.cracked : this.armArt.elbow)
-      .setPosition(elbow.x, elbow.y).setDisplaySize(r.arm.elbow * 2, r.arm.elbow * 2);
+    const k = ROOTBREAKER.arm.scale;
+    const angle = arm.angle + Phaser.Math.DegToRad(arm.tremble);
+    const lay = layArm({ mount, side: arm.side, goal: { x: arm.goal.x + arm.shake, y: arm.goal.y }, angle, sizes: this.armSizes, sides: arm.sides });
+    const look = this.fistLook(arm);
+    for (const name of ARM_PIECES) {
+      const at = lay[name];
+      arm.sides[name] = at.side;
+      const key = rbKey(`rb-${at.side > 0 ? 'r' : 'l'}-${name}${name === 'fist' ? look : ''}`);
+      arm.pieces[name].setTexture(key).setOrigin(at.origin.x, at.origin.y).setPosition(at.x, at.y).setRotation(at.rotation);
+    }
+    arm.pieces.fist.setScale(k * arm.squash.x, k * arm.squash.y);
+    const box = fistBox(lay.fistAt, lay.angle, this.armSizes.fist);
+    arm.box = box;
+    arm.hit.setSize(box.right - box.left, box.bottom - box.top);
+    arm.hit.body.setSize(box.right - box.left, box.bottom - box.top);
+    arm.hit.body.reset(box.x, box.y);
     // Fast, it leaves fading copies behind.
-    arm.trail.unshift({ x, y });
+    const { fist } = arm.pieces;
+    arm.trail.unshift({ x: fist.x, y: fist.y, rotation: fist.rotation, key: fist.texture.key, ox: fist.originX, oy: fist.originY });
     if (arm.trail.length > TRAIL.ghosts * 2 + 1) arm.trail.pop();
     const fast = arm.state === 'drop' || arm.state === 'sweeping';
     arm.ghosts.forEach((ghost, i) => {
       const at = arm.trail[Math.min(arm.trail.length - 1, (i + 1) * 2)];
-      ghost.setPosition(at.x, at.y).setFlipX(fist.flipX).setAlpha(fast ? TRAIL.alpha * (1 - i / TRAIL.ghosts) : 0);
+      ghost.setTexture(at.key).setOrigin(at.ox, at.oy).setPosition(at.x, at.y).setRotation(at.rotation)
+        .setAlpha(fast ? TRAIL.alpha * (1 - i / TRAIL.ghosts) : 0);
     });
+  }
+
+  // A fist's target: cracked once its seal's broken; lit while it can be shot (stuck, in phase 2);
+  // else carved stone.
+  fistLook(arm) {
+    if (arm.cracked) return '-cracked';
+    if (this.started && !this.defeated && this.phase.index === 1 && arm.state === 'stuck') return '';
+    return '-dim';
   }
 
   // ----- The fight's life -----
@@ -285,9 +344,9 @@ export class AdventureRootbreaker {
     for (let i = 0; i < 4; i++) this.scene.time.delayedCall(i * 350, () => this.debris(12));
     for (const arm of this.arms) {
       arm.state = 'dead';
-      arm.fist.body.enable = false;
+      arm.hit.body.enable = false;
       for (const ghost of arm.ghosts) ghost.setAlpha(0);
-      for (const part of [arm.fist, arm.upper, arm.fore, arm.elbow]) {
+      for (const part of Object.values(arm.pieces)) {
         this.scene.tweens.add({ targets: part, y: this.floorY + 60, angle: arm.side * Phaser.Math.Between(20, 70), alpha: 0, duration: 1100, ease: 'Quad.easeIn', delay: Phaser.Math.Between(0, 300) });
       }
     }
@@ -304,14 +363,19 @@ export class AdventureRootbreaker {
     this.lean.x -= this.lean.x * ease;
     this.lean.y -= this.lean.y * ease;
     if (this.halted || this.defeated) {
+      for (const arm of this.arms) this.swingFist(arm, ms);
       this.pose();
       return;
     }
     if (this.faceMs > 0 && (this.faceMs -= ms) <= 0) this.setFace('calm');
     this.updateCore(ms);
     for (const arm of this.arms) {
-      if (arm.state === 'rest') arm.goal = this.restOf(arm);
+      if (arm.state === 'rest') {
+        arm.goal = this.restOf(arm);
+        arm.aim = this.restAim(arm);
+      }
       this.updateArm(arm, ms);
+      this.swingFist(arm, ms);
     }
     this.updateShots(ms);
     this.pose();
@@ -328,10 +392,10 @@ export class AdventureRootbreaker {
     const kind = nextAttack(this.phase, this.attackCount++);
     this.state = kind;
     const speed = this.phase.speed;
-    // A smash is made by the fist on the cat's side; a sweep by the other, crossing toward him.
-    const near = this.arms[this.cat.x < this.x ? 0 : 1], far = this.arms[this.cat.x < this.x ? 1 : 0];
+    // A smash and a sweep are made by the fist on the cat's side.
+    const near = this.arms[this.cat.x < this.x ? 0 : 1];
     if (kind === 'smash') this.smash(near, speed);
-    if (kind === 'sweep') this.sweep(far, speed);
+    if (kind === 'sweep') this.sweep(near, speed);
     if (kind === 'blast') this.blast(speed);
     if (kind === 'laser') this.laser(speed);
     if (kind === 'rockfall') this.rockfall(speed);
@@ -394,18 +458,32 @@ export class AdventureRootbreaker {
 
   // ----- His attacks -----
 
-  // Smash: the fist pulls back and up (the wind-up), rises over the cat and follows him, its shadow
-  // growing on the floor (the tell), drops (fast, speeding up), slams (squash, dust, stones, a
-  // shake, a wave along the floor), sticks there struggling (a step to stand on; in phase 1 and 3 his
-  // core opens), and lifts back, slow and heavy.
+  // Where this arm's fist may work, for an x it's after (inReach): its own side of the arena.
+  zoneX(arm, x) {
+    return inReach(x, arm.side, this.x, { left: this.left, right: this.right });
+  }
+
+  // The height of a fist's middle lying flat on the floor.
+  get fistOnFloor() {
+    const { fist } = this.armSizes;
+    return this.floorY - ((RB_FIST_BLOCK.y1 - RB_FIST_BLOCK.y0) * fist.h * ROOTBREAKER.arm.scale) / 2;
+  }
+
+  // Smash, an overhead hammer blow. The wind-up: the fist hauled up and back, pointing up, his body
+  // leaning into it. The tell: high over the cat, following him a little behind, trembling, its
+  // shadow growing on the floor. The drop: fast and speeding up, the fist swinging over as it falls
+  // to land flat. Then the slam (squash, dust, stones, a shake, a wave along the floor), stuck there
+  // tugging to get free (a step to stand on; in phase 1 and 3 his core opens), and a slow, heavy lift.
   smash(arm, speed) {
     const s = ROOTBREAKER.smash;
     arm.state = 'windup';
     arm.speed = speed;
     this.stateMs = 0;
-    this.lean.x = arm.side * 10;
+    this.lean.x = arm.side * 12;
+    this.lean.y = -4;
+    this.aimFist(arm, s.raiseTilt);
     this.scene.tweens.add({
-      targets: arm.goal, x: arm.goal.x + arm.side * 60, y: arm.goal.y - 90, duration: s.windupMs / speed, ease: 'Back.easeOut',
+      targets: arm.goal, x: this.zoneX(arm, arm.goal.x + arm.side * 40), y: this.floorY - s.high, duration: s.windupMs / speed, ease: 'Back.easeOut',
       onComplete: () => {
         if (this.defeated) return;
         arm.state = 'tell';
@@ -415,32 +493,36 @@ export class AdventureRootbreaker {
     });
   }
 
-  // Sweep: the fist swings out low to its far side, glowing (the wind-up), then sweeps fast across
-  // the arena toward the cat, and returns.
+  // Sweep, a backhand swing: the fist hauled out to the wall, cocked back and up, glowing (the
+  // wind-up); then swung low across its side of the arena toward his body, trailing behind its arm;
+  // and back.
   sweep(arm, speed) {
     const s = ROOTBREAKER.sweep;
     arm.state = 'sweepOut';
     arm.speed = speed;
     arm.blinkMs = 0;
     this.stateMs = 0;
-    const low = this.floorY - s.height;
-    const from = arm.side < 0 ? this.left + 90 : this.right - 90;
-    const to = arm.side < 0 ? this.right - 90 : this.left + 90;
+    const wall = this.zoneX(arm, arm.side > 0 ? this.right : this.left);
+    const inner = this.zoneX(arm, this.x);
     this.lean.x = arm.side * 14;
+    this.aimFist(arm, s.cockTilt);
     this.scene.tweens.add({
-      targets: arm.goal, x: from, y: low, duration: s.tellMs / speed, ease: 'Sine.easeInOut',
+      targets: arm.goal, x: wall, y: this.floorY - s.cockUp, duration: s.tellMs / speed, ease: 'Sine.easeInOut',
       onComplete: () => {
         if (this.defeated) return;
-        arm.fist.setTint(0xd8ffc8);
+        arm.pieces.fist.setTint(0xd8ffc8);
         arm.state = 'sweeping';
         this.scene.audio.playSfx('maceWhoosh');
         this.lean.x = -arm.side * 18;
+        this.aimFist(arm, 0);
+        this.scene.tweens.add({ targets: arm.goal, y: this.floorY - s.height, duration: (s.sweepMs * 0.35) / speed, ease: 'Quad.easeIn' });
         this.scene.tweens.add({
-          targets: arm.goal, x: to, duration: s.sweepMs / speed, ease: 'Cubic.easeIn',
+          targets: arm.goal, x: inner, duration: s.sweepMs / speed, ease: 'Cubic.easeIn',
           onComplete: () => {
-            arm.fist.clearTint();
+            arm.pieces.fist.clearTint();
             arm.state = 'return';
             const rest = this.restOf(arm);
+            this.aimFist(arm, ROOTBREAKER.fistRest.tilt);
             this.scene.tweens.add({ targets: arm.goal, x: rest.x, y: rest.y, duration: s.returnMs / speed, ease: 'Sine.easeInOut', onComplete: () => { arm.state = 'rest'; } });
           },
         });
@@ -450,37 +532,47 @@ export class AdventureRootbreaker {
 
   updateArm(arm, ms) {
     const s = ROOTBREAKER.smash;
+    arm.tremble = 0;
     if (arm.state === 'sweepOut') {
       arm.blinkMs += ms;
-      arm.fist.setTint(Math.floor(arm.blinkMs / 90) % 2 ? 0xb8ff8a : 0xffffff);
+      arm.pieces.fist.setTint(Math.floor(arm.blinkMs / 90) % 2 ? 0xb8ff8a : 0xffffff);
     }
     if (arm.state === 'tell') {
-      // Over the cat, high, following him a little behind; the shadow grows and darkens.
-      const target = Phaser.Math.Clamp(this.cat.x, this.left + 70, this.right - 70);
+      // Over the cat, high, following him a little behind, trembling; the shadow grows and darkens.
+      const target = this.zoneX(arm, this.cat.x);
       arm.goal.x += (target - arm.goal.x) * Math.min(1, (s.follow * ms) / 160);
       arm.goal.y += (this.floorY - s.high - arm.goal.y) * Math.min(1, ms / 140);
       arm.tellMs -= ms;
       const t = 1 - Math.max(0, arm.tellMs) / (s.tellMs / arm.speed);
-      arm.shadow.setPosition(arm.fist.x, this.floorY).setSize(60 + 80 * t, 14 + 8 * t).setAlpha(0.2 + 0.35 * t);
-      arm.fist.setTint(Math.floor(arm.tellMs / 80) % 2 ? 0xd0ffc0 : 0xffffff);
+      arm.tremble = Phaser.Math.FloatBetween(-1, 1) * s.trembleDeg * t;
+      arm.shadow.setPosition(arm.goal.x, this.floorY).setSize(60 + 100 * t, 14 + 8 * t).setAlpha(0.2 + 0.35 * t);
+      arm.pieces.fist.setTint(Math.floor(arm.tellMs / 80) % 2 ? 0xd0ffc0 : 0xffffff);
       if (arm.tellMs <= 0) {
-        arm.fist.clearTint();
+        arm.pieces.fist.clearTint();
         arm.state = 'drop';
-        const contact = this.floorY - arm.fist.displayHeight * 0.38;
-        this.scene.tweens.add({ targets: arm.goal, y: contact, duration: s.dropMs / arm.speed, ease: 'Quad.easeIn', onComplete: () => this.slam(arm) });
+        // Down it comes, swinging over to land flat, pointing away from his body.
+        this.lean.x = arm.side * 20;
+        this.turnFist(arm, fistAngle(0, arm.side), s.dropMs / arm.speed, 'Quad.easeIn');
+        this.scene.tweens.add({ targets: arm.goal, y: this.fistOnFloor, duration: s.dropMs / arm.speed, ease: 'Quad.easeIn', onComplete: () => this.slam(arm) });
       }
     }
-    if (arm.state === 'drop' || arm.state === 'sweeping') this.hurtIfTouching(arm.fist.getBounds(), arm.fist.x);
+    if ((arm.state === 'drop' || arm.state === 'sweeping') && arm.box) this.hurtIfTouching(arm.box, arm.goal.x);
     if (arm.state === 'stuck') {
-      // Struggling to pull free: a shake now and then, a strain at the end.
+      // Tugging to pull free: now and then a heave, the fist rocking and the arm shaking; a strain at
+      // the end.
       arm.stuckMs -= ms;
-      arm.shake = Math.floor(arm.stuckMs / s.struggleMs) % 3 === 0 ? Phaser.Math.FloatBetween(-4, 4) : 0;
-      if (arm.stuckMs < 500) arm.fist.setTint(Math.floor(arm.stuckMs / 70) % 2 ? 0xffffff : 0xd0ffc0);
+      const heave = Math.floor(arm.stuckMs / s.struggleMs) % 3 === 0;
+      arm.shake = heave ? Phaser.Math.FloatBetween(-4, 4) : 0;
+      arm.tremble = heave ? Math.sin(this.clock / 40) * s.tugDeg : 0;
+      if (arm.stuckMs < 500) arm.pieces.fist.setTint(Math.floor(arm.stuckMs / 70) % 2 ? 0xffffff : 0xd0ffc0);
       if (arm.stuckMs <= 0) {
         arm.shake = 0;
-        arm.fist.clearTint();
+        arm.pieces.fist.clearTint();
         arm.state = 'lift';
         this.debris(3);
+        this.flyStones(arm.goal.x, this.floorY, 3);
+        // Wrenched free: it lifts slow and heavy, swinging back to its rest.
+        this.aimFist(arm, ROOTBREAKER.fistRest.tilt);
         const rest = this.restOf(arm);
         this.scene.tweens.add({ targets: arm.goal, x: rest.x, y: rest.y, duration: s.liftMs / arm.speed, ease: 'Sine.easeInOut', onComplete: () => { arm.state = 'rest'; } });
       }
@@ -490,26 +582,27 @@ export class AdventureRootbreaker {
   // The fist hits the floor.
   slam(arm) {
     const s = ROOTBREAKER.smash;
-    const { fist } = arm;
+    const x = arm.goal.x;
     arm.state = 'stuck';
     arm.stuckMs = s.stuckMs / arm.speed;
     arm.shadow?.destroy();
-    this.lean.y = 6;
+    arm.angle = fistAngle(0, arm.side);
+    this.lean.y = 8;
     // Squash, and spring back.
-    fist.setScale(ROOTBREAKER.scale.fist * 1.12, ROOTBREAKER.scale.fist * 0.86);
-    this.scene.tweens.add({ targets: fist, scaleX: ROOTBREAKER.scale.fist, scaleY: ROOTBREAKER.scale.fist, duration: 220, ease: 'Back.easeOut' });
-    this.scene.effects.dust(fist.x - 70, this.floorY, 10);
-    this.scene.effects.dust(fist.x + 70, this.floorY, 10);
-    this.flyStones(fist.x, this.floorY, 6);
+    arm.squash = { x: 1.14, y: 0.84 };
+    this.scene.tweens.add({ targets: arm.squash, x: 1, y: 1, duration: 240, ease: 'Back.easeOut' });
+    this.scene.effects.dust(x - 90, this.floorY, 12);
+    this.scene.effects.dust(x + 90, this.floorY, 12);
+    this.flyStones(x, this.floorY, 7);
     this.scene.audio.playSfx('smash');
-    this.scene.cameras.main.shake(260, 0.012);
+    this.scene.cameras.main.shake(280, 0.013);
     // The wave, along the floor both ways.
     for (const dir of [-1, 1]) {
-      const wave = this.scene.add.ellipse(fist.x, this.floorY - 8, 70, 22, WAVE_COLOUR, 0.18).setStrokeStyle(5, WAVE_COLOUR, 0.95).setDepth(DEPTH.warn);
-      this.scene.tweens.add({ targets: wave, x: fist.x + dir * s.waveReach, scaleY: 0.5, alpha: 0, duration: s.waveMs, ease: 'Quad.easeOut', onComplete: () => wave.destroy() });
+      const wave = this.scene.add.ellipse(x, this.floorY - 8, 70, 22, WAVE_COLOUR, 0.18).setStrokeStyle(5, WAVE_COLOUR, 0.95).setDepth(DEPTH.warn);
+      this.scene.tweens.add({ targets: wave, x: x + dir * s.waveReach, scaleY: 0.5, alpha: 0, duration: s.waveMs, ease: 'Quad.easeOut', onComplete: () => wave.destroy() });
     }
     const { body } = this.cat;
-    if (this.cat.onGround && Math.abs(body.bottom - this.floorY) < 12 && Math.abs(body.center.x - fist.x) < s.waveReach) this.onHurtCat(fist.x);
+    if (this.cat.onGround && Math.abs(body.bottom - this.floorY) < 12 && Math.abs(body.center.x - x) < s.waveReach) this.onHurtCat(x);
     if (this.phase.index !== 1) this.openCore(ROOTBREAKER.coreOpenMs[`phase${this.phase.index + 1}`]);
   }
 
@@ -575,27 +668,38 @@ export class AdventureRootbreaker {
     });
   }
 
-  // Rockfall: both fists pound together over his head, the screen shakes, dust falls, then rocks,
-  // each one's shadow first.
+  // Rockfall: both fists rise over his head, pointing up, then clash together, knuckles in; the
+  // screen shakes, dust falls, then rocks, each one's shadow first.
   rockfall(speed) {
     const r = ROOTBREAKER.rockfall;
     this.stateMs = r.tellMs / speed + r.rocks * r.everyMs + 600;
-    const top = this.floorY - this.size.h - 60;
+    const top = this.floorY - this.size.h + 20; // just over his head, still on screen
+    const raiseMs = (r.tellMs * 0.6) / speed;
     for (const arm of this.arms) {
       arm.state = 'pound';
+      this.aimFist(arm, -80);
       this.scene.tweens.add({
-        targets: arm.goal, x: this.x + arm.side * 90, y: top, duration: (r.tellMs * 0.6) / speed, ease: 'Back.easeIn',
+        targets: arm.goal, x: this.x + arm.side * 230, y: top - 60, duration: raiseMs * 0.7, ease: 'Sine.easeOut',
         onComplete: () => {
-          const rest = this.restOf(arm);
-          this.scene.tweens.add({ targets: arm.goal, x: rest.x, y: rest.y, duration: 600, delay: 200, ease: 'Sine.easeInOut', onComplete: () => { arm.state = 'rest'; } });
+          if (this.defeated) return;
+          this.aimFist(arm, 0, -arm.side); // knuckles in, toward each other
+          this.scene.tweens.add({
+            targets: arm.goal, x: this.x + arm.side * 150, y: top, duration: raiseMs * 0.3, ease: 'Back.easeIn',
+            onComplete: () => {
+              const rest = this.restOf(arm);
+              this.aimFist(arm, ROOTBREAKER.fistRest.tilt);
+              this.scene.tweens.add({ targets: arm.goal, x: rest.x, y: rest.y, duration: 650, delay: 220, ease: 'Sine.easeInOut', onComplete: () => { arm.state = 'rest'; } });
+            },
+          });
         },
       });
     }
-    this.scene.time.delayedCall((r.tellMs * 0.6) / speed, () => {
+    this.scene.time.delayedCall(raiseMs, () => {
       if (this.defeated || this.halted) return;
       this.setFace('blast', 500);
       this.scene.audio.playSfx('smash');
       this.scene.cameras.main.shake(600, 0.012);
+      this.scene.effects.impact(this.x, top, 1.2);
       this.debris(8);
     });
     for (let i = 0; i < r.rocks; i++) {
@@ -660,17 +764,17 @@ export class AdventureRootbreaker {
     if (body.right > rect.left && body.left < rect.right && body.bottom > rect.top && body.top < rect.bottom) this.onHurtCat(fromX);
   }
 
-  // ----- Phase 2: a stuck fist's seal -----
+  // ----- Phase 2: a stuck fist's seal, the target on it -----
 
-  // A round at (x, y): into a stuck fist, in phase 2, it cracks its seal a little; three, and it
-  // breaks; both broken, his core opens. Returns whether it hit a seal.
+  // A round at (x, y): into a stuck fist, in phase 2 (its target lit), it cracks its seal a little;
+  // three, and it breaks; both broken, his core opens. Returns whether it hit a seal.
   shootSeal(x, y) {
     if (this.phase.index !== 1) return false;
-    const arm = this.arms.find((a) => a.state === 'stuck' && !a.cracked && a.fist.getBounds().contains(x, y));
+    const arm = this.arms.find((a) => a.state === 'stuck' && !a.cracked && a.box && inBox(a.box, x, y));
     if (!arm) return false;
     arm.sealHits += 1;
-    arm.fist.setTintFill(0xffffff);
-    this.scene.time.delayedCall(FLASH_MS, () => arm.fist.clearTint());
+    arm.pieces.fist.setTintFill(0xffffff);
+    this.scene.time.delayedCall(FLASH_MS, () => arm.pieces.fist.clearTint());
     this.scene.effects.impact(x, y, 0.5);
     if (arm.sealHits >= ROOTBREAKER.sealHits) {
       arm.cracked = true;
@@ -687,37 +791,5 @@ export class AdventureRootbreaker {
   }
 }
 
-// An arm bone (an image lying flat) from one joint to the next: in the middle, turned along it, a
-// little longer than it (overlap) so its ends tuck under the joints, its thickness in proportion.
-function bone(image, from, to, { overlap }) {
-  const length = Math.max(1, Math.hypot(to.x - from.x, to.y - from.y)) * overlap;
-  image.setPosition((from.x + to.x) / 2, (from.y + to.y) / 2).setRotation(Math.atan2(to.y - from.y, to.x - from.x))
-    .setDisplaySize(length, (length * image.height) / image.width);
-}
-
-// The arm bones and the elbow, drawn in code until the owner's art: a mossy stone bone, and a stone
-// joint with a glowing green ring.
-function makeStandIns(scene) {
-  if (!scene.textures.exists(STAND_IN.bone)) {
-    const g = scene.make.graphics({ add: false });
-    const w = 256, h = 72;
-    g.fillStyle(0x4c4636).fillRoundedRect(0, 4, w, h - 8, 26);
-    g.fillStyle(0x8e8468).fillRoundedRect(3, 7, w - 6, h - 16, 24);
-    g.fillStyle(0xa79c7c).fillRoundedRect(10, 12, w - 20, 14, 7);
-    g.fillStyle(0x5f583f, 0.6);
-    for (let x = 48; x < w - 20; x += 52) g.fillRect(x, 12, 4, h - 26); // its carved bands
-    g.fillStyle(0x7fb24a).fillRoundedRect(20, 4, w - 40, 7, 3); // moss along its top
-    g.generateTexture(STAND_IN.bone, w, h);
-    g.destroy();
-  }
-  if (!scene.textures.exists(STAND_IN.elbow)) {
-    const g = scene.make.graphics({ add: false });
-    g.fillStyle(0x4c4636).fillCircle(40, 40, 39);
-    g.fillStyle(0x8e8468).fillCircle(40, 40, 35);
-    g.lineStyle(8, 0x58d84a).strokeCircle(40, 40, 22);
-    g.lineStyle(3, 0xd8ffc8).strokeCircle(40, 40, 22);
-    g.fillStyle(0x5f583f).fillCircle(40, 40, 12);
-    g.generateTexture(STAND_IN.elbow, 80, 80);
-    g.destroy();
-  }
-}
+// Whether (x, y) is inside a box { left, right, top, bottom }.
+const inBox = (box, x, y) => x >= box.left && x <= box.right && y >= box.top && y <= box.bottom;
