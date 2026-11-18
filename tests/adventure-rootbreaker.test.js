@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
-  RB_ART, ROOTBREAKER, armPose, coreDamage, fistAngle, fistBox, inReach, layArm, nextAttack, pieceSide, rbPath, rootbreakerPhase,
+  RB_ART, ROOTBREAKER, chainBow, chainLinks, coreDamage, fistAngle, fistBox, inReach, nextAttack, pieceSide, placeFist, rbPath, rootbreakerPhase,
 } from '../src/data/adventure/rootbreaker.js';
 import { ADVENTURE_LEVELS } from '../src/data/adventure/index.js';
 
@@ -47,64 +47,48 @@ describe('the Rootbreaker', () => {
 
 
 describe("the Rootbreaker's arms", () => {
-  const bones = { upper: 270, fore: 270 };
-  const shoulder = { x: 0, y: 0 };
   const length = (a, b) => Math.hypot(b.x - a.x, b.y - a.y);
+  const fist = { w: 503, h: 261 }; // the fist's picture, as the owner drew it
+  const mount = { x: 181, y: -172 }; // his right shoulder's ring, from the middle of his feet
 
-  it('bend at the elbow, the bones their own lengths', () => {
-    const { elbow, wrist } = armPose(shoulder, { x: -200, y: 150 }, bones, -1);
-    expect(length(shoulder, elbow)).toBeCloseTo(270);
-    expect(length(elbow, wrist)).toBeCloseTo(270);
-    expect(wrist).toEqual({ x: -200, y: 150 });
-  });
-
-  it('bend one way only, like an elbow: out when the arm reaches up, tucked in when it reaches down', () => {
-    // The right arm (out 1): reaching up, the elbow is out to the right of the line; reaching down,
-    // it's in, to the left.
-    const up = armPose(shoulder, { x: 0, y: -300 }, bones, 1);
-    expect(up.elbow.x).toBeGreaterThan(0);
-    const down = armPose(shoulder, { x: 0, y: 300 }, bones, 1);
-    expect(down.elbow.x).toBeLessThan(0);
-    // The left arm is its mirror.
-    expect(armPose(shoulder, { x: 0, y: -300 }, bones, -1).elbow.x).toBeCloseTo(-up.elbow.x);
-  });
-
-  it('pull a wrist beyond reach in, the arm straight', () => {
-    const { elbow, wrist } = armPose(shoulder, { x: 1000, y: 0 }, bones, 1);
-    expect(wrist.x).toBeCloseTo(540, 1);
-    expect(elbow.x).toBeCloseTo(270, 1);
-    expect(Math.abs(elbow.y)).toBeLessThan(2); // straight, but for a hair
-  });
-
-  // The pieces' sizes, as the owner drew them (the right-pointing pictures).
-  const sizes = { shoulder: { w: 247, h: 225 }, upper: { w: 205, h: 207 }, fore: { w: 447, h: 169 }, fist: { w: 503, h: 261 } };
-  const mount = { x: 272, y: -258 }; // his right shoulder, from the middle of his feet
-
-  it('lay their pieces end to end, from the shoulder to a fist that gets where its move wants it', () => {
-    for (const goal of [{ x: 540, y: -140 }, { x: 400, y: -560 }, { x: 330, y: -106 }, { x: 530, y: -85 }]) {
-      const lay = layArm({ mount, side: 1, goal, angle: fistAngle(0, 1), sizes });
-      expect(length(lay.fistAt, goal), JSON.stringify(goal)).toBeLessThan(1);
-      // Each piece starts where the one before it ends.
-      const { lengths } = lay;
-      expect(length(lay.shoulder, lay.upper)).toBeCloseTo(lengths.shoulder);
-      expect(length(lay.shoulder, lay.fore)).toBeCloseTo(lengths.upper);
-      expect(length(lay.fore, lay.fist)).toBeCloseTo(lengths.fore);
-      expect(length(lay.fist, lay.fistAt)).toBeCloseTo(lengths.fist);
+  it('hold each fist by its cuff, its middle where its move wants it', () => {
+    for (const [tilt, dir] of [[0, 1], [50, 1], [-80, 1], [0, -1]]) {
+      const goal = { x: 420, y: -200 };
+      const angle = fistAngle(tilt, dir);
+      const at = placeFist(goal, angle, fist, dir);
+      const reach = (0.8 - 0.06) * fist.w * ROOTBREAKER.arm.scale;
+      expect(length(at, goal)).toBeCloseTo(reach, -1); // the cuff is the fist's length behind its middle
+      expect(at.side).toBe(Math.cos(angle) < 0 ? -1 : 1);
     }
   });
 
-  it('bend the wrist only so far when the fist has room', () => {
-    const lay = layArm({ mount, side: 1, goal: { x: 560, y: -140 }, angle: fistAngle(80, 1), sizes });
-    const forearm = Math.atan2(lay.fist.y - lay.fore.y, lay.fist.x - lay.fore.x);
-    const bend = Math.abs(Math.atan2(Math.sin(lay.angle - forearm), Math.cos(lay.angle - forearm)));
-    expect(bend).toBeLessThanOrEqual((ROOTBREAKER.arm.wristBend * Math.PI) / 180 + 1e-6);
-  });
-
-  it('keep the moss on top: a piece pointing left uses the left drawing, without flickering at straight down', () => {
+  it('keep the moss on top: a fist pointing left uses the left drawing, without flickering at straight down', () => {
     expect(pieceSide(Math.PI, 1, 0.25)).toBe(-1);
     expect(pieceSide(0, -1, 0.25)).toBe(1);
     expect(pieceSide(Math.PI / 2 + 0.1, 1, 0.25)).toBe(1); // just past straight down: it keeps its drawing
     expect(pieceSide(Math.PI / 2 - 0.1, -1, 0.25)).toBe(-1);
+  });
+
+  it('chain each fist to its shoulder: links between, smaller toward the fist', () => {
+    const cuff = { x: 380, y: -330 };
+    const links = chainLinks(mount, cuff, chainBow(mount, cuff, 1));
+    expect(links).toHaveLength(ROOTBREAKER.chain.links);
+    for (const link of links) expect(link.x).toBeGreaterThan(mount.x - 50);
+    expect(links[0].size).toBeGreaterThan(links.at(-1).size);
+    // In order from the shoulder to the fist.
+    expect(length(mount, links[0])).toBeLessThan(length(mount, links.at(-1)));
+  });
+
+  it('bow the chain like a rope: up and out when slack, nearly straight when taut', () => {
+    const { length: full, bowMost } = ROOTBREAKER.chain;
+    const near = chainBow(mount, { x: mount.x + 120, y: mount.y }, 1);
+    expect(near.y).toBeLessThan(0); // up
+    const far = chainBow(mount, { x: mount.x + full + 50, y: mount.y }, 1);
+    expect(Math.hypot(far.x, far.y)).toBeLessThan(Math.hypot(near.x, near.y));
+    expect(Math.hypot(near.x, near.y)).toBeLessThanOrEqual(bowMost);
+    // The left arm's chain is its mirror.
+    const left = chainBow({ x: -mount.x, y: mount.y }, { x: -mount.x - 120, y: mount.y }, -1);
+    expect(left.y).toBeCloseTo(near.y);
   });
 
   it('work each on its own side of the arena, out of his way', () => {
@@ -116,15 +100,11 @@ describe("the Rootbreaker's arms", () => {
     expect(inReach(-450, -1, 0, arena)).toBe(-450);
   });
 
-  it('land flat, the fist a step on the floor, and every fist landing reachable', () => {
-    const across = (sizes.fist.h * ROOTBREAKER.arm.scale * 0.9) / 2;
-    const box = fistBox({ x: 400, y: -across }, fistAngle(0, 1), sizes.fist);
+  it('land flat, the fist a block on the floor to stand on', () => {
+    const across = (0.9 * fist.h * ROOTBREAKER.arm.scale) / 2;
+    const box = fistBox({ x: 400, y: -across }, fistAngle(0, 1), fist);
     expect(box.bottom).toBeCloseTo(0);
-    expect(box.bottom - box.top).toBeGreaterThan(60); // a block to stand on
-    const { inner, edge } = ROOTBREAKER.reachZone;
-    for (const x of [inner, 640 - edge]) {
-      const lay = layArm({ mount, side: 1, goal: { x, y: -across }, angle: fistAngle(0, 1), sizes });
-      expect(lay.fistAt.x, `${x}`).toBeCloseTo(x, 0);
-    }
+    expect(box.bottom - box.top).toBeGreaterThan(60);
+    expect(box.bottom - box.top).toBeLessThan(180); // low enough to jump onto
   });
 });

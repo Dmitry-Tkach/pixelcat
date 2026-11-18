@@ -11,7 +11,7 @@ import sharp from 'sharp';
 import { existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { RB_ARM_PIECES, RB_ART, RB_JOINTS, RB_PIECES } from '../src/data/adventure/rootbreaker.js';
+import { RB_ARM_PIECES, RB_ART, RB_FIST_JOINTS, RB_PIECES } from '../src/data/adventure/rootbreaker.js';
 import { alphaOf, readSheet, savePiece } from './sheetPieces.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -72,7 +72,7 @@ const piece = await readSheet(SHEET, RB_PIECES);
 Object.assign(piece, await readSheet(ARMS, RB_ARM_PIECES));
 for (const side of ['r', 'l']) {
   const fist = piece[`rb-${side}-fist`];
-  const middle = { x: side === 'r' ? RB_JOINTS.fist.end.x : 1 - RB_JOINTS.fist.end.x, y: RB_JOINTS.fist.end.y };
+  const middle = { x: side === 'r' ? RB_FIST_JOINTS.end.x : 1 - RB_FIST_JOINTS.end.x, y: RB_FIST_JOINTS.end.y };
   piece[`rb-${side}-fist-dim`] = unlit(fist, middle);
   piece[`rb-${side}-fist-cracked`] = await cracked(piece[`rb-${side}-fist-dim`], middle, side === 'r' ? 1 : -1);
 }

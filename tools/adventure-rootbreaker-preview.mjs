@@ -1,11 +1,11 @@
-// Draws the Rootbreaker in his arena, his arms in the poses of his moves, as one picture, to review
-// his arms without a browser. It lays the arms out with the game's own code (layArm in
-// data/adventure/rootbreaker.js), from the pieces in public/assets.
+// Draws the Rootbreaker in his arena, his fists and their chains in the poses of his moves, as one
+// picture, to review him without a browser. It places them with the game's own code (placeFist,
+// chainBow and chainLinks in data/adventure/rootbreaker.js), from the pieces in public/assets.
 // Run: node tools/adventure-rootbreaker-preview.mjs out.png
 import sharp from 'sharp';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { RB_FIST_BLOCK, ROOTBREAKER, fistAngle, fistBox, layArm, rbPath } from '../src/data/adventure/rootbreaker.js';
+import { RB_FIST_BLOCK, ROOTBREAKER, chainBow, chainLinks, fistAngle, fistBox, placeFist, rbPath } from '../src/data/adventure/rootbreaker.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = process.argv[2] ?? 'rootbreaker-preview.png';
@@ -15,10 +15,7 @@ const PAD = 700; // room round each panel, so pieces never fall off the canvas
 
 const file = (name) => join(ROOT, 'public', rbPath(name));
 const sizeOf = async (name) => sharp(file(name)).metadata().then((m) => ({ w: m.width, h: m.height }));
-const sizes = {
-  shoulder: await sizeOf('rb-r-shoulder'), upper: await sizeOf('rb-r-upper'),
-  fore: await sizeOf('rb-r-fore'), fist: await sizeOf('rb-r-fist'),
-};
+const sizes = { fist: await sizeOf('rb-r-fist') };
 
 // One picture, scaled and turned about its joint, placed so that joint is at (x, y).
 async function placed(name, scale, origin, x, y, rotation) {
@@ -47,22 +44,23 @@ async function bodyParts(x, floor) {
   return { parts, mounts: r.shoulders.map(on) };
 }
 
-// One arm's pictures, back to front as the game draws them.
+// One arm's pictures: its chain behind his body, its fist in front.
 async function armParts(mount, side, goal, tilt, dir, look = '') {
   const angle = fistAngle(tilt, dir);
-  const lay = layArm({ mount, side, goal, angle, sizes });
-  const k = ROOTBREAKER.arm.scale, s = (d) => (d > 0 ? 'r' : 'l');
+  const fist = placeFist(goal, angle, sizes.fist, dir);
+  const links = chainLinks(mount, fist, chainBow(mount, fist, side));
+  const k = ROOTBREAKER.arm.scale;
+  const glow = `<svg xmlns="http://www.w3.org/2000/svg" width="${W + PAD * 2}" height="${H + PAD * 2}">
+    <polyline points="${[mount, ...links, fist].map((p) => `${(p.x + PAD).toFixed(1)},${(p.y + PAD).toFixed(1)}`).join(' ')}" fill="none" stroke="#7dff6a" stroke-width="10" stroke-opacity="0.35" stroke-linejoin="round"/>
+  </svg>`;
   return {
-    lay, angle,
-    // The arm goes behind his body, the fist in front of it.
+    angle,
     back: [
-      await placed(`rb-${s(lay.upper.side)}-upper`, k, lay.upper.origin, lay.upper.x, lay.upper.y, lay.upper.rotation),
-      await placed(`rb-${s(lay.shoulder.side)}-shoulder`, k, lay.shoulder.origin, lay.shoulder.x, lay.shoulder.y, lay.shoulder.rotation),
-      await placed(`rb-${s(lay.fore.side)}-fore`, k, lay.fore.origin, lay.fore.x, lay.fore.y, lay.fore.rotation),
+      { input: Buffer.from(glow), left: 0, top: 0 },
+      ...await Promise.all(links.map((l) => placed('rb-link', l.size, { x: 0.5, y: 0.5 }, l.x, l.y, l.rotation))),
     ],
-    parts: [
-      await placed(`rb-${s(lay.fist.side)}-fist${look}`, k, lay.fist.origin, lay.fist.x, lay.fist.y, lay.fist.rotation),
-    ],
+    parts: [await placed(`rb-${fist.side > 0 ? 'r' : 'l'}-fist${look}`, k, fist.origin, fist.x, fist.y, fist.rotation)],
+    goal,
   };
 }
 
@@ -72,8 +70,9 @@ const across = (RB_FIST_BLOCK.y1 - RB_FIST_BLOCK.y0) * sizes.fist.h * r.arm.scal
 const POSES = [
   { title: 'Resting', arms: (x, f) => [-1, 1].map((side) => ({ goal: { x: x + side * r.fistRest.out, y: f - r.fistRest.up }, tilt: r.fistRest.tilt, dir: side })) },
   { title: 'Smash: raised over the cat (right)', cat: 380, arms: (x, f, cat) => [rest(x, f, -1), { goal: { x: cat, y: f - r.smash.high }, tilt: r.smash.raiseTilt, dir: 1 }] },
-  { title: 'Smash: stuck on the floor, target lit (phase 2)', cat: 520, arms: (x, f) => [rest(x, f, -1), { goal: { x: x + 400, y: f - across }, tilt: 0, dir: 1, look: '' }] },
-  { title: 'Smash, as near his body as it lands (cracked)', cat: -200, arms: (x, f) => [{ goal: { x: x - r.reachZone.inner, y: f - across }, tilt: 0, dir: -1, look: '-cracked' }, rest(x, f, 1)] },
+  { title: 'Smash: stuck on the floor, target lit (phase 2)', cat: 520, arms: (x, f) => [rest(x, f, -1), { goal: { x: x + 420, y: f - across }, tilt: 0, dir: 1, look: '' }] },
+  { title: 'Rockfall: fists clash over his head', arms: (x, f) => [-1, 1].map((side) => ({ goal: { x: x + side * 150, y: f - 373 + 20 }, tilt: 0, dir: -side, look: '-dim' })) },
+  { title: 'Smash, as near his body as it lands (cracked)', cat: -150, arms: (x, f) => [{ goal: { x: x - r.reachZone.inner, y: f - across }, tilt: 0, dir: -1, look: '-cracked' }, rest(x, f, 1)] },
   { title: 'Sweep: cocked at the wall, glowing', cat: 300, arms: (x, f) => [rest(x, f, -1), { goal: { x: x + 640 - r.reachZone.edge, y: f - r.sweep.cockUp }, tilt: r.sweep.cockTilt, dir: 1 }] },
   { title: 'Sweep: swung in low, as far as it goes', cat: 200, arms: (x, f) => [rest(x, f, -1), { goal: { x: x + r.reachZone.inner, y: f - r.sweep.height }, tilt: 0, dir: 1 }] },
 ];
@@ -89,7 +88,7 @@ for (const pose of POSES) {
   const arms = [];
   for (const [i, arm] of pose.arms(x, floor, x + (pose.cat ?? 0)).entries()) arms.push(await armParts(mounts[i], i ? 1 : -1, arm.goal, arm.tilt, arm.dir, arm.look ?? '-dim'));
   // The floor, the arena's walls, the cat's box, and each fist's hit box.
-  const boxes = arms.map(({ lay }) => fistBox(lay.fistAt, lay.angle, sizes.fist));
+  const boxes = arms.map(({ goal, angle }) => fistBox(goal, angle, sizes.fist));
   const catX = x + (pose.cat ?? -300);
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W + PAD * 2}" height="${H + PAD * 2}">
     <rect x="${PAD}" y="${PAD}" width="${W}" height="${H}" fill="#5f8f7a"/>
