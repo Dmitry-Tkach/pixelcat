@@ -1,7 +1,8 @@
 import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
-  RB_ART, ROOTBREAKER, chainBow, chainHold, chainLinks, coreDamage, fistAngle, fistBox, inReach, nextAttack, rbPath, rootbreakerPhase,
+  RB_ART, ROOTBREAKER, armDamage, chainBow, chainHold, chainLinks, coreDamage, fistAngle, fistBox, inReach, nextAttack, pickAttack, rbPath,
+  rootbreakerPhase,
 } from '../src/data/adventure/rootbreaker.js';
 import { ADVENTURE_LEVELS } from '../src/data/adventure/index.js';
 
@@ -22,6 +23,25 @@ describe('the Rootbreaker', () => {
     const awakening = rootbreakerPhase(1);
     expect([0, 1, 2, 3].map((n) => nextAttack(awakening, n))).toEqual(['smash', 'blast', 'smash', 'smash']);
     for (const phase of ROOTBREAKER.phases) expect(phase.attacks).toContain('smash');
+  });
+
+  it('has arms that can be worn down and broken, the bolt and explosives hardest', () => {
+    const { full } = ROOTBREAKER.armHealth;
+    expect(full).toBeGreaterThan(armDamage('standard') * 5); // more than a few rounds
+    expect(armDamage('standard')).toBe(1);
+    expect(armDamage('explosive')).toBeGreaterThan(armDamage('standard'));
+    expect(armDamage('bolt')).toBeGreaterThan(armDamage('explosive'));
+    expect(armDamage('claw')).toBeGreaterThan(0);
+    expect(armDamage('dash')).toBeGreaterThan(0);
+  });
+
+  it('passes over a fist attack while both his arms are broken, and makes it with one', () => {
+    const enraged = rootbreakerPhase(0.5); // sweep, smash, laser, smash
+    expect(pickAttack(enraged, 0, 2)).toEqual({ kind: 'sweep', steps: 1 });
+    expect(pickAttack(enraged, 0, 1)).toEqual({ kind: 'sweep', steps: 1 });
+    expect(pickAttack(enraged, 0, 0)).toEqual({ kind: 'laser', steps: 3 });
+    // Never stuck: with no fists he always finds something.
+    for (const phase of ROOTBREAKER.phases) for (let n = 0; n < 8; n++) expect(['blast', 'laser', 'rockfall']).toContain(pickAttack(phase, n, 0).kind);
   });
 
   it('is hurt only in his open core', () => {

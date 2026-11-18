@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import {
-  ROOTBREAKER, chainBow, chainHold, chainLinks, coreDamage, fistAngle, fistBox, inReach, nextAttack, rbKey, rootbreakerPhase, turnBetween,
+  ROOTBREAKER, armDamage, chainBow, chainHold, chainLinks, coreDamage, fistAngle, fistBox, inReach, pickAttack, rbKey, rootbreakerPhase, turnBetween,
 } from '../data/adventure/rootbreaker.js';
 import { TILE } from '../systems/adventureMap.js';
 import { landsFromAbove } from '../systems/adventurePlatformLanding.js';
@@ -16,11 +16,13 @@ import { landsFromAbove } from '../systems/adventurePlatformLanding.js';
 // Every move has its weight: a wind-up the cat can read, a fast strike, a hard impact, and a heavy
 // recovery, and a short freeze of the whole fight when a fist lands. Between attacks he breathes and
 // his eyes follow the cat. Each fist swings toward the way its move points it with the weight of
-// stone (the stone itself turning only a little, its moss on top), and glows green when it can be
-// shot. The chain bows like a rope, trailing behind a fast fist, its links bobbing.
+// stone (the stone itself turning only a little, its moss on top). The chain bows like a rope,
+// trailing behind a fast fist, its links bobbing. His arms can be worn down and broken (hurtArm),
+// and grow back.
 const DEPTH = { glowLine: 1.79, link: 1.795, body: 1.8, face: 1.81, glow: 1.815, core: 1.82, fist: 5.8, shot: 6.3, warn: 6.35, laser: 6.4 };
 const CHAIN_GLOW = { colour: 0x7dff6a, width: 10, alpha: 0.35 }; // the green glow along a chain
-const FIST_GLOW = { colour: 0x7dff6a, scale: 3.2, alpha: 0.55, pulseMs: 160 }; // a fist that can be shot
+const STOMP_SPEED = 250; // px a second: landing on a stuck fist faster than this stomps it
+const BREAK_SHAKE = { ms: 320, strength: 0.012 }; // the screen, as an arm shatters
 const FIST = 'rb-rock-1'; // his fists' stone
 const WAVE_COLOUR = 0x7dff6a;
 const ROCK_SHADOW = { w: 90, h: 16, alpha: 0.45 };
@@ -85,9 +87,10 @@ export class AdventureRootbreaker {
       this.fistGroup.add(hit);
       hit.body.setAllowGravity(false).setImmovable(true);
       const arm = {
-        side, hit, shoulderAt: r.shoulders[i], state: 'rest', speed: 1, sealHits: 0, cracked: false, shake: 0,
+        side, hit, shoulderAt: r.shoulders[i], state: 'rest', speed: 1, shake: 0,
+        health: r.armHealth.full, brokenMs: 0, grow: 1, // grow: 0 to 1 as a broken arm comes back
+        dashHit: false, // already hit by this dash
         fist: scene.add.image(0, 0, rbKey(FIST)).setScale(r.arm.scale).setDepth(DEPTH.fist),
-        glow: scene.add.image(0, 0, 'fx-dot').setTint(FIST_GLOW.colour).setBlendMode(Phaser.BlendModes.ADD).setDepth(DEPTH.fist - 0.02).setAlpha(0),
         links: Array.from({ length: r.chain.links }, () => scene.add.image(0, 0, rbKey('rb-link')).setDepth(DEPTH.link)),
         glowLine: scene.add.graphics().setDepth(DEPTH.glowLine).setBlendMode(Phaser.BlendModes.ADD),
         bow: { x: 0, y: 0 }, // the chain's bow, easing to its shape
@@ -109,9 +112,14 @@ export class AdventureRootbreaker {
       hit.arm = arm;
       return arm;
     });
-    scene.physics.add.collider(cat, this.fistGroup, null, (cat_, hit) => hit.arm.state === 'stuck' && landsFromAbove({
-      bottom: cat.body.bottom, prevBottom: cat.body.prev.y + cat.body.height, top: hit.body.top, vy: cat.body.velocity.y,
-    }));
+    // A stuck fist is a step; landing on it hard stomps it.
+    scene.physics.add.collider(cat, this.fistGroup, null, (cat_, hit) => {
+      const lands = hit.arm.state === 'stuck' && landsFromAbove({
+        bottom: cat.body.bottom, prevBottom: cat.body.prev.y + cat.body.height, top: hit.body.top, vy: cat.body.velocity.y,
+      });
+      if (lands && cat.body.velocity.y > STOMP_SPEED) this.hurtArm(hit.arm, 'stomp', cat.x, hit.body.top);
+      return lands;
+    });
     this.pose();
 
     const self = this;
@@ -199,20 +207,19 @@ export class AdventureRootbreaker {
     for (const arm of this.arms) this.poseArm(arm, on(arm.shoulderAt), ms);
   }
 
-  // One arm: the stone fist where its goal is, turned a little with its swing; cracked once its
-  // seal's broken, glowing green while it can be shot; its hit box round it; and the chain from the
-  // shoulder ring to its edge, bowing like a rope and trailing behind it when it moves fast.
+  // One arm: the stone fist where its goal is, turned a little with its swing, cracked once it's
+  // worn down to half; its hit box round it; and the chain from the shoulder ring to its edge,
+  // bowing like a rope and trailing behind it when it moves fast. A broken arm isn't there; one
+  // growing back comes together (grow).
   poseArm(arm, mount, ms = 16) {
-    if (arm.state === 'dead') return;
+    if (arm.state === 'dead' || arm.state === 'broken') return;
     const r = ROOTBREAKER, k = r.arm.scale;
     const angle = arm.angle + Phaser.Math.DegToRad(arm.tremble);
     const at = { x: arm.goal.x + arm.shake, y: arm.goal.y };
     const turn = turnBetween(fistAngle(0, arm.side), angle) * r.arm.spin;
-    arm.fist.setTexture(rbKey(arm.cracked ? 'rb-fist-cracked' : FIST)).setPosition(at.x, at.y).setRotation(turn)
-      .setScale(k * arm.squash.x, k * arm.squash.y);
-    const lit = this.canShoot(arm);
-    const pulse = 0.5 + 0.5 * Math.sin(this.clock / FIST_GLOW.pulseMs);
-    arm.glow.setPosition(at.x, at.y).setScale(FIST_GLOW.scale * (0.9 + 0.2 * pulse)).setAlpha(lit ? FIST_GLOW.alpha * (0.6 + 0.4 * pulse) : 0);
+    const cracked = arm.health <= r.armHealth.full * r.armHealth.crackedAt;
+    arm.fist.setTexture(rbKey(cracked ? 'rb-fist-cracked' : FIST)).setPosition(at.x, at.y).setRotation(turn)
+      .setScale(k * arm.squash.x * arm.grow, k * arm.squash.y * arm.grow).setAlpha(arm.grow);
     const box = fistBox(at, this.fistSize);
     arm.box = box;
     arm.hit.setSize(box.right - box.left, box.bottom - box.top);
@@ -229,10 +236,12 @@ export class AdventureRootbreaker {
     const links = chainLinks(mount, hold, arm.bow, c);
     links.forEach((link, i) => {
       const bob = Math.sin(this.clock / 260 + i * 1.3 + arm.side) * c.bobPx;
-      arm.links[i].setPosition(link.x, link.y + bob).setRotation(link.rotation).setScale(link.size);
+      // Growing back, the links come one by one from his shoulder.
+      const shown = Phaser.Math.Clamp(arm.grow * links.length - i, 0, 1);
+      arm.links[i].setPosition(link.x, link.y + bob).setRotation(link.rotation).setScale(link.size * shown).setAlpha(shown);
     });
     // A faint green glow along it, the magic that holds it together.
-    arm.glowLine.clear().lineStyle(CHAIN_GLOW.width, CHAIN_GLOW.colour, CHAIN_GLOW.alpha).beginPath().moveTo(mount.x, mount.y);
+    arm.glowLine.clear().lineStyle(CHAIN_GLOW.width, CHAIN_GLOW.colour, CHAIN_GLOW.alpha * arm.grow).beginPath().moveTo(mount.x, mount.y);
     for (const link of links) arm.glowLine.lineTo(link.x, link.y);
     arm.glowLine.lineTo(hold.x, hold.y).strokePath();
     // Fast, it leaves fading copies behind.
@@ -246,9 +255,9 @@ export class AdventureRootbreaker {
     });
   }
 
-  // Whether a fist can be shot: stuck, in phase 2, its seal not yet broken.
-  canShoot(arm) {
-    return this.started && !this.defeated && this.phase.index === 1 && arm.state === 'stuck' && !arm.cracked;
+  // Whether an arm is there to fight with: not broken, nor still growing back.
+  whole(arm) {
+    return arm.state !== 'broken' && arm.state !== 'rebuild' && arm.state !== 'dead';
   }
 
   // ----- The fight's life -----
@@ -259,7 +268,7 @@ export class AdventureRootbreaker {
     this.state = 'rest';
     this.stateMs = ROOTBREAKER.restMs * 1.5;
     // Rounds into his stone stop there, sparking; over his open core, the scene's overlap with
-    // `sprite` takes them. Rounds into a fist stop on it, and in phase 2 a stuck one's seal cracks.
+    // `sprite` takes them. Rounds into a fist stop on it, and wear its arm down.
     const { moves } = this.scene;
     const bulletOf = (a, b) => (moves.bullets.contains(a) ? a : b);
     this.scene.physics.add.overlap(moves.bullets, this.stone, (a, b) => {
@@ -270,8 +279,9 @@ export class AdventureRootbreaker {
     });
     this.scene.physics.add.overlap(moves.bullets, this.fistGroup, (a, b) => {
       const bullet = bulletOf(a, b);
-      if (!bullet.active || this.defeated) return;
-      if (!this.shootSeal(bullet.x, bullet.y)) this.spark(bullet.x, bullet.y);
+      const hit = bullet === a ? b : a;
+      if (!bullet.active || this.defeated || !hit.arm) return;
+      if (!this.hurtArm(hit.arm, bullet.kind, bullet.x, bullet.y)) this.spark(bullet.x, bullet.y);
       moves.bulletStops(bullet);
     });
   }
@@ -349,7 +359,6 @@ export class AdventureRootbreaker {
     this.attackCount = 0;
     this.roar(1300, 0.014);
     this.debris(18);
-    for (const arm of this.arms) Object.assign(arm, { sealHits: 0, cracked: false });
     this.body.setTint([0xffffff, 0xe0ffd8, 0xc8ffb8][this.phase.index]);
     this.state = 'rest';
     this.stateMs = 1400; // a beat to breathe after the roar
@@ -373,7 +382,6 @@ export class AdventureRootbreaker {
       arm.hit.body.enable = false;
       for (const ghost of arm.ghosts) ghost.setAlpha(0);
       arm.glowLine.clear();
-      arm.glow.setAlpha(0);
       for (const part of [arm.fist, ...arm.links]) {
         this.scene.tweens.add({ targets: part, y: this.floorY + 60, angle: arm.side * Phaser.Math.Between(20, 70), alpha: 0, duration: 1100, ease: 'Quad.easeIn', delay: Phaser.Math.Between(0, 300) });
       }
@@ -404,10 +412,12 @@ export class AdventureRootbreaker {
     if (this.faceMs > 0 && (this.faceMs -= ms) <= 0) this.setFace('calm');
     this.updateCore(ms);
     for (const arm of this.arms) {
-      if (arm.state === 'rest') {
+      if (arm.state === 'rest' || arm.state === 'rebuild') {
         arm.goal = this.restOf(arm);
         arm.aim = this.restAim(arm);
       }
+      if (arm.state === 'broken' && (arm.brokenMs -= ms) <= 0) this.rebuildArm(arm);
+      this.dashInto(arm);
       this.updateArm(arm, ms);
       this.swingFist(arm, ms);
     }
@@ -423,11 +433,14 @@ export class AdventureRootbreaker {
   }
 
   beginAttack() {
-    const kind = nextAttack(this.phase, this.attackCount++);
+    const fists = this.arms.filter((arm) => this.whole(arm));
+    const { kind, steps } = pickAttack(this.phase, this.attackCount, fists.length);
+    this.attackCount += steps;
     this.state = kind;
     const speed = this.phase.speed;
-    // A smash and a sweep are made by the fist on the cat's side.
-    const near = this.arms[this.cat.x < this.x ? 0 : 1];
+    // A smash and a sweep are made by the fist on the cat's side; with that arm gone, by the other.
+    const onSide = this.arms[this.cat.x < this.x ? 0 : 1];
+    const near = this.whole(onSide) ? onSide : fists[0];
     if (kind === 'smash') this.smash(near, speed);
     if (kind === 'sweep') this.sweep(near, speed);
     if (kind === 'blast') this.blast(speed);
@@ -436,7 +449,7 @@ export class AdventureRootbreaker {
   }
 
   attackDone() {
-    return this.stateMs <= 0 && this.arms.every((arm) => arm.state === 'rest') && this.leftovers.length === 0;
+    return this.stateMs <= 0 && this.arms.every((arm) => arm.state === 'rest' || !this.whole(arm)) && this.leftovers.length === 0;
   }
 
   setFace(kind, ms = 0) {
@@ -493,8 +506,11 @@ export class AdventureRootbreaker {
   // ----- His attacks -----
 
   // Where this arm's fist may work, for an x it's after (inReach): its own side of the arena.
+  // An arm alone (the other broken) works both sides.
   zoneX(arm, x) {
-    return inReach(x, arm.side, this.x, { left: this.left, right: this.right });
+    const alone = this.arms.some((other) => other !== arm && !this.whole(other));
+    const side = alone ? Math.sign(x - this.x) || arm.side : arm.side;
+    return inReach(x, side, this.x, { left: this.left, right: this.right });
   }
 
   // The height of a fist's middle lying flat on the floor.
@@ -730,7 +746,7 @@ export class AdventureRootbreaker {
     this.stateMs = r.tellMs / speed + r.rocks * r.everyMs + 600;
     const top = this.floorY - this.size.h + 20; // just over his head, still on screen
     const raiseMs = (r.tellMs * 0.6) / speed;
-    for (const arm of this.arms) {
+    for (const arm of this.arms.filter((a) => this.whole(a))) {
       arm.state = 'pound';
       this.aimFist(arm, -80);
       this.scene.tweens.add({
@@ -819,32 +835,116 @@ export class AdventureRootbreaker {
     if (body.right > rect.left && body.left < rect.right && body.bottom > rect.top && body.top < rect.bottom) this.onHurtCat(fromX);
   }
 
-  // ----- Phase 2: a stuck fist's seal, the target on it -----
+  // ----- His arms, hurt and broken -----
 
-  // A round at (x, y): into a stuck fist, in phase 2 (its target lit), it cracks its seal a little;
-  // three, and it breaks; both broken, his core opens. Returns whether it hit a seal.
-  shootSeal(x, y) {
-    if (this.phase.index !== 1) return false;
-    const arm = this.arms.find((a) => a.state === 'stuck' && !a.cracked && a.box && inBox(a.box, x, y));
-    if (!arm) return false;
-    arm.sealHits += 1;
+  // A hit of this kind at (x, y) on an arm: it wears it down, flashing and jolting; worn out, it
+  // breaks. Returns whether it hit (a broken arm, or one growing back, isn't there to hit).
+  hurtArm(arm, kind, x, y) {
+    if (this.defeated || this.halted || !this.whole(arm)) return false;
+    arm.health = Math.max(0, arm.health - armDamage(kind));
     arm.fist.setTintFill(0xffffff);
     this.scene.time.delayedCall(FLASH_MS, () => arm.fist.clearTint());
     this.scene.effects.impact(x, y, 0.5);
-    if (arm.sealHits >= ROOTBREAKER.sealHits) {
-      arm.cracked = true;
-      this.scene.audio.playSfx('shatter');
-      this.flinch(10);
-      if (this.arms.every((a) => a.cracked)) {
-        this.openCore(ROOTBREAKER.coreOpenMs.phase2);
-        this.scene.time.delayedCall(ROOTBREAKER.coreOpenMs.phase2, () => {
-          for (const a of this.arms) Object.assign(a, { cracked: false, sealHits: 0 });
-        });
-      }
+    this.flyStones(x, y, 1);
+    arm.squash = { x: 0.9, y: 1.1 };
+    this.scene.tweens.add({ targets: arm.squash, x: 1, y: 1, duration: 160, ease: 'Back.easeOut' });
+    if (arm.health === 0) this.breakArm(arm);
+    else if (this.scene.time.now - (arm.clinkAt ?? 0) > 120) {
+      arm.clinkAt = this.scene.time.now;
+      this.scene.audio.playSfx('bump');
     }
     return true;
   }
-}
 
-// Whether (x, y) is inside a box { left, right, top, bottom }.
-const inBox = (box, x, y) => x >= box.left && x <= box.right && y >= box.top && y <= box.bottom;
+  // Each frame: the cat dashing into a fist hits it, once a dash.
+  dashInto(arm) {
+    const { moves } = this.scene;
+    if (!moves?.isDashing) {
+      arm.dashHit = false;
+      return;
+    }
+    if (arm.dashHit || !arm.box || !this.whole(arm)) return;
+    const { body } = this.cat;
+    if (body.right > arm.box.left && body.left < arm.box.right && body.bottom > arm.box.top && body.top < arm.box.bottom) {
+      arm.dashHit = true;
+      this.hurtArm(arm, moves.isRaging ? 'rage' : 'dash', body.center.x, body.center.y);
+    }
+  }
+
+  // A blow from the cat's moves (the claw, a blast, the bolt) over a box { left, right, top,
+  // bottom }: it hits each arm it reaches, once (`seen` keeps the ones already hit, for the bolt).
+  // Returns whether it hit one. The cat's moves call it (systems/AdventureMoves.js).
+  strikeParts(kind, box, seen = null) {
+    let struck = false;
+    for (const arm of this.arms) {
+      if (!arm.box || seen?.has(arm)) continue;
+      const b = arm.box;
+      if (box.right < b.left || box.left > b.right || box.bottom < b.top || box.top > b.bottom) continue;
+      if (this.hurtArm(arm, kind, (Math.max(box.left, b.left) + Math.min(box.right, b.right)) / 2, (Math.max(box.top, b.top) + Math.min(box.bottom, b.bottom)) / 2)) {
+        seen?.add(arm);
+        struck = true;
+      }
+    }
+    return struck;
+  }
+
+  // An arm worn out: the stone shatters, the chain's links drop and fade, he reels and roars, and
+  // his core opens. It grows back after a while (rebuildArm).
+  breakArm(arm) {
+    const { armHealth } = ROOTBREAKER;
+    this.scene.tweens.killTweensOf(arm.goal);
+    this.scene.tweens.killTweensOf(arm);
+    arm.shadow?.destroy();
+    arm.shadow = null;
+    arm.fist.clearTint();
+    arm.state = 'broken';
+    arm.brokenMs = armHealth.regrowMs;
+    arm.hit.body.enable = false;
+    const { x, y } = arm.fist;
+    arm.fist.setVisible(false);
+    for (const ghost of arm.ghosts) ghost.setAlpha(0);
+    arm.glowLine.clear();
+    // The stone in pieces, flying.
+    this.flyStones(x, y, 10);
+    this.scene.effects.dust(x, y, 14);
+    this.scene.effects.impact(x, y, 1.3);
+    this.scene.audio.playSfx('shatter');
+    this.scene.cameras.main.shake(BREAK_SHAKE.ms, BREAK_SHAKE.strength);
+    // The links drop to the floor and fade.
+    for (const link of arm.links) {
+      this.scene.tweens.add({
+        targets: link, y: this.floorY - 10, angle: Phaser.Math.Between(-120, 120), duration: Phaser.Math.Between(450, 750), ease: 'Quad.easeIn',
+        onComplete: () => this.scene.tweens.add({ targets: link, alpha: 0, duration: 400 }),
+      });
+    }
+    this.flinch(16);
+    this.roar(700, 0.008);
+    this.openCore(ROOTBREAKER.coreOpenMs[`phase${this.phase.index + 1}`]);
+  }
+
+  // A broken arm grows back: the links come out of his shoulder one by one, and the stone forms at
+  // their end, whole again.
+  rebuildArm(arm) {
+    const { armHealth } = ROOTBREAKER;
+    arm.state = 'rebuild';
+    arm.health = armHealth.full;
+    arm.grow = 0;
+    arm.goal = this.restOf(arm);
+    arm.lastGoal = { ...arm.goal };
+    arm.angle = arm.aim = this.restAim(arm);
+    arm.spin = 0;
+    arm.swing = true;
+    arm.squash = { x: 1, y: 1 };
+    arm.fist.setVisible(true).setAlpha(0);
+    for (const link of arm.links) link.setAngle(0);
+    this.scene.audio.playSfx('checkpoint');
+    this.scene.tweens.add({
+      targets: arm, grow: 1, duration: armHealth.rebuildMs, ease: 'Back.easeOut',
+      onComplete: () => {
+        if (arm.state !== 'rebuild') return;
+        arm.state = 'rest';
+        arm.hit.body.enable = true;
+      },
+    });
+  }
+}

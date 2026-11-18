@@ -6,8 +6,10 @@
 //   phase 1, Awakening (100-66%): one fist at a time slams down where the cat is; a missed smash
 //     sticks in the ground, and his core opens for a while. His mouth blasts balls of green energy.
 //   phase 2, Enraged (66-33%): a fist sweeps low across his side of the arena, and his eyes fire a
-//     laser across it, high or low; a stuck fist glows green, shooting it cracks its seal, and
-//     with both seals broken his core opens.
+//     laser across it, high or low; a missed smash doesn't open his core: breaking an arm does.
+// In every phase his arms can be hurt: rounds, blasts, the bolt, the claw, a dash or a stomp on a
+// fist wear its arm down (it cracks at half); broken, it shatters, his core opens, and it grows
+// back after a while. With an arm gone, the other does its work.
 //   phase 3, Overload (33-0%): everything faster, rocks fall from above, and every smash opens his
 //     core.
 // His parts are cut from the owner's sheet by tools/adventure-rootbreaker-art.mjs, and
@@ -23,8 +25,8 @@ export const RB_PIECES = [
   ['_fist', '_hand', 'rb-link', '_seal-cracked'],
   ['rb-ball', 'rb-laser', 'rb-rock-1', 'rb-rock-2'],
 ];
-// His fists are the big mossy stone (rb-rock-1); the tool also makes it cracked (its seal broken,
-// in phase 2).
+// His fists are the big mossy stone (rb-rock-1); the tool also makes it cracked (an arm worn down
+// to half).
 export const RB_FIST_LOOKS = ['rb-fist-cracked'];
 export const RB_ART = [...RB_PIECES.flat(), ...RB_FIST_LOOKS].filter((name) => !name.startsWith('_'));
 export const rbKey = (name) => `adventure-${name}`;
@@ -98,7 +100,10 @@ export const ROOTBREAKER = {
   rockfall: { tellMs: 900, rocks: 5, everyMs: 300, fallSpeed: 760 },
   restMs: 900, // between attacks
   coreOpenMs: { phase1: 2400, phase2: 3600, phase3: 2600 },
-  sealHits: 3, // rounds to crack a fist's seal, in phase 2
+  // His arms' own health: hurt by the same damage as his core (damage), and by `hits` for the
+  // moves his core doesn't feel that way; cracked at `crackedAt` of it, broken at none. Broken, his
+  // core opens and the arm grows back after `regrowMs`, coming together over `rebuildMs`.
+  armHealth: { full: 12, crackedAt: 0.5, regrowMs: 10000, rebuildMs: 900, hits: { bolt: 6, claw: 2 } },
   dieMs: 1800,
 };
 
@@ -111,6 +116,25 @@ export function rootbreakerPhase(share, { phases } = ROOTBREAKER) {
 
 // The attack after `count` attacks in this phase: its list, in turn.
 export const nextAttack = (phase, count) => phase.attacks[count % phase.attacks.length];
+
+// The attacks that need a fist.
+const FIST_ATTACKS = new Set(['smash', 'sweep']);
+
+// The attack he makes, with `count` attacks made in this phase and `fists` of his fists whole: his
+// list in turn, passing over a fist's attack while he has none. Returns the attack and how many
+// turns of the list it took (to add to count).
+export function pickAttack(phase, count, fists) {
+  for (let step = 0; step < phase.attacks.length; step++) {
+    const kind = nextAttack(phase, count + step);
+    if (fists > 0 || !FIST_ATTACKS.has(kind)) return { kind, steps: step + 1 };
+  }
+  return { kind: 'blast', steps: 1 }; // no fists, and nothing but fist attacks: he blasts
+}
+
+// What a hit of this kind does to one of his arms: the damage.
+export function armDamage(kind, { damage, armHealth } = ROOTBREAKER) {
+  return armHealth.hits[kind] ?? damage[kind] ?? 1;
+}
 
 // What a hit does to his core: the damage, or 0 if it's closed.
 export function coreDamage(kind, open, { damage } = ROOTBREAKER) {

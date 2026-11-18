@@ -409,6 +409,8 @@ export class AdventureMoves {
     }
     const { boss } = this;
     if (boss && !boss.brain.isDefeated && AdventureMoves.near(boss.sprite.body, x, y, radius)) boss.takeHit('explosive', x, y);
+    // A boss with parts of his own to hit (the Rootbreaker's arms).
+    boss?.strikeParts?.('explosive', { left: x - radius, right: x + radius, top: y - radius, bottom: y + radius });
   }
 
   // ----- The claw swipe (systems/adventure/clawSwipe.js) -----
@@ -453,6 +455,7 @@ export class AdventureMoves {
       boss.takeHit(CLAW.boss, (area.left + area.right) / 2, (area.top + area.bottom) / 2);
       struck = true;
     }
+    if (boss?.strikeParts?.(CLAW.boss, area)) struck = true; // a boss's own parts (the Rootbreaker's arms)
     this.scene.audio.playSfx(struck ? 'punch' : 'lungeMiss');
   }
 
@@ -697,6 +700,7 @@ export class AdventureMoves {
       this.beamBoom(b.center.x, b.center.y, BEAM_HIT.scale, BEAM_HIT.ring);
       boss.takeHit('bolt', b.center.x, b.center.y);
     }
+    boss?.strikeParts?.('bolt', { left: x - radius, right: x + radius, top: y - radius, bottom: y + radius }, bolt.hit);
     if (bolt.flown >= reach || (tile && !ONE_WAY.has(tile.index))) this.endBolt(true);
   }
 
