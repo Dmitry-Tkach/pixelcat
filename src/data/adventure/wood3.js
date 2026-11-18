@@ -87,9 +87,13 @@ level.island(157, 160, 19).trap('mushroom', 159, 18, { bud: true }).island(160, 
 // ----- The Rootbreaker's arena (data/adventure/rootbreaker.js): a checkpoint and a crate of explosive
 // rounds, then his floor, with a low ledge each side, three cells up: from a ledge (or a jump, or a
 // fist stuck in the floor) a round reaches his core; up there his low laser passes under, his sweep
-// too, but not his high laser. Beating him crumbles his door, on to the Heart of the Tree.
+// too, but not his high laser. Above each ledge a higher branch, out of both lasers' way but not his
+// fists' or his shoulder stones'; and over his head the top branch, with a minigun on it (a reload
+// for a cat who has one). Beating him crumbles his door, on to the Heart of the Tree.
 level.put(189, 33, 'C').put(191, 33, 'e')
-  .island(196, 198, 31).island(211, 213, 31).put(197, 30, 'a');
+  .island(196, 198, 31).island(211, 213, 31).put(197, 30, 'a')
+  .island(197, 199, 28).island(209, 211, 28)
+  .island(202, 206, 25).put(204, 24, 'w');
 
 // ----- The Heart of the Tree: past his door, the portal.
 level.put(229, 33, 'b').put(234, 33, 'E');
