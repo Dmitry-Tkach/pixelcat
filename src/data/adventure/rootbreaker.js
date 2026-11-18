@@ -28,16 +28,7 @@ export const RB_PIECES = [
 // His fists are the big mossy stone (rb-rock-1); the tool also makes it cracked (an arm worn down
 // to half).
 export const RB_FIST_LOOKS = ['rb-fist-cracked'];
-// His shoulders, from the owner's second sheet (images/levels/forest/guardian-parts.png): a mossy
-// stone shoulder with a hole in its side, drawn for his right (r) and left (l), sitting over the
-// green ring at each shoulder; his arm's chain comes out of the hole. The sheet's other pieces aren't
-// used.
-export const RB_ARM_PIECES = [
-  ['_golem', '_golem-angry'],
-  ['rb-r-shoulder', '_r-upper', '_r-fore', '_r-fist'],
-  ['_l-fist', '_l-fore', '_l-upper', 'rb-l-shoulder'],
-];
-export const RB_ART = [...RB_PIECES.flat(), ...RB_ARM_PIECES.flat(), ...RB_FIST_LOOKS].filter((name) => !name.startsWith('_'));
+export const RB_ART = [...RB_PIECES.flat(), ...RB_FIST_LOOKS].filter((name) => !name.startsWith('_'));
 export const rbKey = (name) => `adventure-${name}`;
 export const rbPath = (name) => `assets/adventure/bosses/rootbreaker/${name}.png`;
 
@@ -58,10 +49,9 @@ export const ROOTBREAKER = {
   //   the shoulder; spin: how much of its swing the stone turns (a little, so its moss stays on top).
   shoulders: [{ x: 0.13, y: 0.54 }, { x: 0.87, y: 0.54 }],
   arm: { scale: 1.1, box: 0.82, hold: 0.6, spin: 0.3 },
-  // The stone shoulder over each ring: its size (a share of its drawing), the point of it that sits
-  // on the ring (`on`) and its hole (`hole`, where the chain comes out), as shares of the right
-  // shoulder's picture (the left is its mirror); it turns a little toward its chain, at most turnDeg.
-  shoulder: { scale: 0.5, on: { x: 0.45, y: 0.5 }, hole: { x: 0.87, y: 0.42 }, turnDeg: 14 },
+  // The stone on each shoulder (the smaller mossy stone, rb-rock-2), over the green ring, his arm's
+  // chain coming out from under it: its size, a share of its drawing.
+  shoulderStone: { scale: 0.8 },
   // The chain: `links` stone rings, `linkFrom` of the ring's drawn size at the shoulder down to
   // `linkTo` at the fist. It's `length` px long: closer in than that, it bows out (at most `bowMost`
   // px), up and out like an elbow. It trails behind a fast fist (lag: px of bow for each px a
@@ -84,8 +74,8 @@ export const ROOTBREAKER = {
   // The phases, by the share of his health left.
   phases: [
     { from: 1, name: 'Awakening', attacks: ['smash', 'blast', 'smash'], speed: 1 },
-    { from: 0.66, name: 'Enraged', attacks: ['sweep', 'smash', 'laser', 'smash'], speed: 1.15 },
-    { from: 0.33, name: 'Overload', attacks: ['smash', 'rockfall', 'laser', 'sweep', 'smash', 'blast'], speed: 1.35 },
+    { from: 0.66, name: 'Enraged', attacks: ['sweep', 'smash', 'shoulder', 'laser', 'smash'], speed: 1.15 },
+    { from: 0.33, name: 'Overload', attacks: ['smash', 'rockfall', 'shoulder', 'laser', 'sweep', 'smash', 'shoulder', 'blast'], speed: 1.35 },
   ],
   // His attacks (ms, px, px a second). Each starts with a tell the cat can read.
   // smash, an overhead hammer blow: a wind-up (the fist hauled up and back, pointing up: raiseTilt),
@@ -104,6 +94,11 @@ export const ROOTBREAKER = {
   // reached by his blasts and his lasers.
   reachZone: { inner: 190, edge: 80 },
   blast: { tellMs: 800, balls: 3, spreadDeg: 18, speed: 380, everyMs: 260 },
+  // shoulder, the shoulder stone's strike: it shakes and glows green (the tell, shakePx), then pops
+  // off and flies in an arc (arcPx high) to where the cat was when the tell began, lands, waits
+  // there, and flies back. Only touching it as it flies hurts. With an arm broken, the stone on
+  // that side strikes in its place, every other attack (in the phases that have this attack).
+  shoulder: { tellMs: 950, shakePx: 4, flyMs: 560, arcPx: 170, waitMs: 500, returnMs: 700, spinDeg: 300 },
   // sweep, a backhand swing by the fist on the cat's side: hauled out to the wall, cocked back and
   // up and glowing (the wind-up), then swung low across his side of the arena toward his body, the
   // fist trailing, and back. height: px over the floor its middle passes; cockUp: how high it's
@@ -134,9 +129,11 @@ export const nextAttack = (phase, count) => phase.attacks[count % phase.attacks.
 const FIST_ATTACKS = new Set(['smash', 'sweep']);
 
 // The attack he makes, with `count` attacks made in this phase and `fists` of his fists whole: his
-// list in turn, passing over a fist's attack while he has none. Returns the attack and how many
-// turns of the list it took (to add to count).
+// list in turn, passing over a fist's attack while he has none. With an arm broken (fists under 2),
+// in a phase that has the shoulder strike, every other attack is one. Returns the attack and how
+// many turns of the list it took (to add to count).
 export function pickAttack(phase, count, fists) {
+  if (fists < 2 && phase.attacks.includes('shoulder') && count % 2 === 0) return { kind: 'shoulder', steps: 1 };
   for (let step = 0; step < phase.attacks.length; step++) {
     const kind = nextAttack(phase, count + step);
     if (fists > 0 || !FIST_ATTACKS.has(kind)) return { kind, steps: step + 1 };
@@ -170,14 +167,10 @@ export const fistAngle = (tilt, dir) => {
 // The turn (radians) from angle a to angle b, the short way round.
 export const turnBetween = (a, b) => Math.atan2(Math.sin(b - a), Math.cos(b - a));
 
-// A stone shoulder on the ring at `ring`, on side `side`, turned `turn` (radians): where its picture
-// turns (origin, shares of it) and where its hole is (the chain's start). size: the right shoulder's
-// picture { w, h }.
-export function shoulderAt(ring, side, turn, size, { scale, on, hole } = ROOTBREAKER.shoulder) {
-  const origin = { x: side > 0 ? on.x : 1 - on.x, y: on.y };
-  const v = { x: (hole.x - on.x) * size.w * scale * side, y: (hole.y - on.y) * size.h * scale };
-  const c = Math.cos(turn), s = Math.sin(turn);
-  return { origin, hole: { x: ring.x + v.x * c - v.y * s, y: ring.y + v.x * s + v.y * c } };
+// Where a shoulder stone is as it flies (t: 0 at `from`, 1 at `to`): along the line, lifted in an
+// arc `arc` px high at its middle.
+export function stoneFlight(from, to, t, arc) {
+  return { x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t - Math.sin(Math.PI * t) * arc };
 }
 
 // Where the chain holds a fist whose middle is at `at`: on its edge toward the shoulder (`mount`).

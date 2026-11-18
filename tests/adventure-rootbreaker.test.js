@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
-  RB_ART, ROOTBREAKER, armDamage, chainBow, chainHold, chainLinks, coreDamage, fistAngle, fistBox, inReach, nextAttack, pickAttack, rbPath,
+  RB_ART, ROOTBREAKER, armDamage, chainBow, chainHold, chainLinks, coreDamage, fistAngle, fistBox, inReach, nextAttack, pickAttack, rbPath, stoneFlight,
   rootbreakerPhase,
 } from '../src/data/adventure/rootbreaker.js';
 import { ADVENTURE_LEVELS } from '../src/data/adventure/index.js';
@@ -36,12 +36,32 @@ describe('the Rootbreaker', () => {
   });
 
   it('passes over a fist attack while both his arms are broken, and makes it with one', () => {
-    const enraged = rootbreakerPhase(0.5); // sweep, smash, laser, smash
-    expect(pickAttack(enraged, 0, 2)).toEqual({ kind: 'sweep', steps: 1 });
-    expect(pickAttack(enraged, 0, 1)).toEqual({ kind: 'sweep', steps: 1 });
-    expect(pickAttack(enraged, 0, 0)).toEqual({ kind: 'laser', steps: 3 });
+    const awakening = rootbreakerPhase(1); // smash, blast, smash
+    expect(pickAttack(awakening, 0, 2)).toEqual({ kind: 'smash', steps: 1 });
+    expect(pickAttack(awakening, 0, 1)).toEqual({ kind: 'smash', steps: 1 });
+    expect(pickAttack(awakening, 0, 0)).toEqual({ kind: 'blast', steps: 2 });
     // Never stuck: with no fists he always finds something.
-    for (const phase of ROOTBREAKER.phases) for (let n = 0; n < 8; n++) expect(['blast', 'laser', 'rockfall']).toContain(pickAttack(phase, n, 0).kind);
+    for (const phase of ROOTBREAKER.phases) for (let n = 0; n < 8; n++) expect(['blast', 'laser', 'rockfall', 'shoulder']).toContain(pickAttack(phase, n, 0).kind);
+  });
+
+  it('strikes with a shoulder stone in phases 2 and 3, and every other attack with an arm broken', () => {
+    expect(rootbreakerPhase(1).attacks).not.toContain('shoulder');
+    expect(rootbreakerPhase(0.5).attacks).toContain('shoulder');
+    expect(rootbreakerPhase(0.2).attacks).toContain('shoulder');
+    const enraged = rootbreakerPhase(0.5);
+    expect(pickAttack(enraged, 0, 2).kind).toBe('sweep');
+    expect(pickAttack(enraged, 0, 1).kind).toBe('shoulder');
+    expect(pickAttack(enraged, 1, 1).kind).not.toBe('shoulder');
+    expect(ROOTBREAKER.shoulder.tellMs).toBeGreaterThanOrEqual(700); // a warning as long as the traps'
+    expect(ROOTBREAKER.shoulderStone.scale).toBeGreaterThan(0); // the stone's own size, apart from the strike's settings
+  });
+
+  it('flies a shoulder stone in an arc, from his shoulder to where it lands', () => {
+    const from = { x: 0, y: -200 }, to = { x: 300, y: -40 };
+    expect(stoneFlight(from, to, 0, 150)).toEqual(from);
+    expect(stoneFlight(from, to, 1, 150).x).toBeCloseTo(to.x);
+    expect(stoneFlight(from, to, 1, 150).y).toBeCloseTo(to.y);
+    expect(stoneFlight(from, to, 0.5, 150).y).toBeLessThan((from.y + to.y) / 2 - 100); // lifted in its middle
   });
 
   it('is hurt only in his open core', () => {
@@ -51,7 +71,7 @@ describe('the Rootbreaker', () => {
   });
 
   it('warns before every attack, for at least as long as the traps do', () => {
-    for (const attack of ['smash', 'blast', 'sweep', 'laser', 'rockfall']) expect(ROOTBREAKER[attack].tellMs).toBeGreaterThanOrEqual(700);
+    for (const attack of ['smash', 'blast', 'sweep', 'laser', 'rockfall', 'shoulder']) expect(ROOTBREAKER[attack].tellMs).toBeGreaterThanOrEqual(700);
   });
 
   it('stands in his arena in level 3, his laser passing under a cat on a ledge or over one on the floor', () => {

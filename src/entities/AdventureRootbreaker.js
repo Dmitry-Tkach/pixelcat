@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import {
-  ROOTBREAKER, armDamage, chainBow, chainHold, chainLinks, shoulderAt, coreDamage, fistAngle, fistBox, inReach, pickAttack, rbKey, rootbreakerPhase, turnBetween,
+  ROOTBREAKER, armDamage, chainBow, chainHold, chainLinks, stoneFlight, coreDamage, fistAngle, fistBox, inReach, pickAttack, rbKey, rootbreakerPhase, turnBetween,
 } from '../data/adventure/rootbreaker.js';
 import { TILE } from '../systems/adventureMap.js';
 import { landsFromAbove } from '../systems/adventurePlatformLanding.js';
@@ -17,13 +17,16 @@ import { landsFromAbove } from '../systems/adventurePlatformLanding.js';
 // recovery, and a short freeze of the whole fight when a fist lands. Between attacks he breathes and
 // his eyes follow the cat. Each fist swings toward the way its move points it with the weight of
 // stone (the stone itself turning only a little, its moss on top). The chain bows like a rope,
-// trailing behind a fast fist, its links bobbing. His arms can be worn down and broken (hurtArm),
-// and grow back.
+// trailing behind a fast fist, its links bobbing, out from under the stone on his shoulder. His arms
+// can be worn down and broken (hurtArm), and grow back. The shoulder stones strike too (shoulder).
 const DEPTH = { body: 1.8, face: 1.81, glow: 1.815, core: 1.82, glowLine: 1.824, link: 1.826, shoulder: 1.83, fist: 5.8, shot: 6.3, warn: 6.35, laser: 6.4 };
 const CHAIN_GLOW = { colour: 0x7dff6a, width: 10, alpha: 0.35 }; // the green glow along a chain
 const STOMP_SPEED = 250; // px a second: landing on a stuck fist faster than this stomps it
 const BREAK_SHAKE = { ms: 320, strength: 0.012 }; // the screen, as an arm shatters
 const FIST = 'rb-rock-1'; // his fists' stone
+const SHOULDER = 'rb-rock-2'; // his shoulders' stone
+const STONE_GLOW = { colour: 0x7dff6a, scale: 2.2, alpha: 0.7 }; // a shoulder stone about to strike
+const TETHER = { colour: 0x7dff6a, width: 5, alpha: 0.45 }; // the glow from his shoulder to its stone, away
 const WAVE_COLOUR = 0x7dff6a;
 const ROCK_SHADOW = { w: 90, h: 16, alpha: 0.45 };
 const FLASH_MS = 90;
@@ -61,8 +64,8 @@ export class AdventureRootbreaker {
     // The fist's size, from its picture.
     const fistImage = scene.textures.get(rbKey(FIST)).getSourceImage();
     this.fistSize = { w: fistImage.width, h: fistImage.height };
-    const shoulderImage = scene.textures.get(rbKey('rb-r-shoulder')).getSourceImage();
-    this.shoulderSize = { w: shoulderImage.width, h: shoulderImage.height };
+    const stoneImage = scene.textures.get(rbKey(SHOULDER)).getSourceImage();
+    this.stoneSize = { w: stoneImage.width * r.shoulderStone.scale, h: stoneImage.height * r.shoulderStone.scale };
     this.hitStopMs = 0;
 
     // His body, standing on the floor behind the arena; his face, his core and its glow over it.
@@ -80,9 +83,11 @@ export class AdventureRootbreaker {
     // The camera frames his whole arena while he fights.
     this.frame = { left: this.left, right: this.right, top: this.floorY - r.camera.above, bottom: this.floorY + r.camera.below };
 
-    // His arms: a stone shoulder over the ring, a chain of links from its hole, and the stone fist.
-    // Each fist has an invisible box (`hit`) that hurts, stops rounds, and, stuck, is a step.
+    // His arms: a stone over the ring at his shoulder, a chain of links from under it, and the stone
+    // fist. Each fist has an invisible box (`hit`) that hurts, stops rounds, and, stuck, is a step;
+    // each shoulder stone one that stops rounds.
     this.fistGroup = scene.physics.add.group({ allowGravity: false, immovable: true });
+    this.stoneGroup = scene.physics.add.group({ allowGravity: false, immovable: true });
     this.arms = [-1, 1].map((side, i) => {
       const hit = scene.add.zone(0, 0, 10, 10);
       this.fistGroup.add(hit);
@@ -92,8 +97,14 @@ export class AdventureRootbreaker {
         health: r.armHealth.full, brokenMs: 0, grow: 1, // grow: 0 to 1 as a broken arm comes back
         dashHit: false, // already hit by this dash
         fist: scene.add.image(0, 0, rbKey(FIST)).setScale(r.arm.scale).setDepth(DEPTH.fist),
-        shoulder: scene.add.image(0, 0, rbKey(`rb-${side > 0 ? 'r' : 'l'}-shoulder`)).setScale(r.shoulder.scale).setDepth(DEPTH.shoulder),
-        shoulderTurn: 0, // radians, easing toward its chain
+        stone: {
+          image: scene.add.image(0, 0, rbKey(SHOULDER)).setScale(r.shoulderStone.scale).setDepth(DEPTH.shoulder).setFlipX(side < 0),
+          glow: scene.add.image(0, 0, 'fx-dot').setTint(STONE_GLOW.colour).setBlendMode(Phaser.BlendModes.ADD).setDepth(DEPTH.shoulder - 0.001).setAlpha(0),
+          tether: scene.add.graphics().setDepth(DEPTH.glowLine).setBlendMode(Phaser.BlendModes.ADD),
+          hit: scene.add.zone(0, 0, 10, 10),
+          state: 'home', // home, tell, fly, wait, back
+          at: { x: 0, y: 0 }, from: null, to: null, t: 0, ms: 0, spin: 0, speed: 1,
+        },
         links: Array.from({ length: r.chain.links }, () => scene.add.image(0, 0, rbKey('rb-link')).setDepth(DEPTH.link)),
         glowLine: scene.add.graphics().setDepth(DEPTH.glowLine).setBlendMode(Phaser.BlendModes.ADD),
         bow: { x: 0, y: 0 }, // the chain's bow, easing to its shape
@@ -113,6 +124,9 @@ export class AdventureRootbreaker {
       arm.vx = 0;
       arm.vy = 0;
       hit.arm = arm;
+      this.stoneGroup.add(arm.stone.hit);
+      arm.stone.hit.body.setAllowGravity(false).setImmovable(true).setSize(this.stoneSize.w * 0.8, this.stoneSize.h * 0.8);
+      arm.stone.hit.setSize(this.stoneSize.w * 0.8, this.stoneSize.h * 0.8);
       return arm;
     });
     // A stuck fist is a step; landing on it hard stomps it.
@@ -218,15 +232,9 @@ export class AdventureRootbreaker {
   poseArm(arm, ring, ms = 16) {
     if (arm.state === 'dead') return;
     const r = ROOTBREAKER, k = r.arm.scale;
-    // The shoulder, turning a little toward its fist.
-    const base = arm.side > 0 ? 0 : Math.PI;
-    const toward = arm.state === 'broken' ? 0 : turnBetween(base, Math.atan2(arm.goal.y - ring.y, arm.goal.x - ring.x));
-    const most = Phaser.Math.DegToRad(r.shoulder.turnDeg);
-    arm.shoulderTurn += (Phaser.Math.Clamp(toward, -most, most) - arm.shoulderTurn) * (1 - Math.exp(-Math.min(ms, 50) / 120));
-    const shoulder = shoulderAt(ring, arm.side, arm.shoulderTurn, this.shoulderSize);
-    arm.shoulder.setOrigin(shoulder.origin.x, shoulder.origin.y).setPosition(ring.x, ring.y).setRotation(arm.shoulderTurn);
+    this.poseStone(arm, ring);
     if (arm.state === 'broken') return;
-    const mount = shoulder.hole;
+    const mount = ring;
     const angle = arm.angle + Phaser.Math.DegToRad(arm.tremble);
     const at = { x: arm.goal.x + arm.shake, y: arm.goal.y };
     const turn = turnBetween(fistAngle(0, arm.side), angle) * r.arm.spin;
@@ -287,6 +295,13 @@ export class AdventureRootbreaker {
     this.scene.physics.add.overlap(moves.bullets, this.stone, (a, b) => {
       const bullet = bulletOf(a, b);
       if (!bullet.active || this.coreHitBy(bullet)) return;
+      this.spark(bullet.x, bullet.y);
+      moves.bulletStops(bullet);
+    });
+    // Rounds into a shoulder stone stop on it, sparking: it can't be hurt.
+    this.scene.physics.add.overlap(moves.bullets, this.stoneGroup, (a, b) => {
+      const bullet = bulletOf(a, b);
+      if (!bullet.active || this.defeated) return;
       this.spark(bullet.x, bullet.y);
       moves.bulletStops(bullet);
     });
@@ -395,7 +410,9 @@ export class AdventureRootbreaker {
       arm.hit.body.enable = false;
       for (const ghost of arm.ghosts) ghost.setAlpha(0);
       arm.glowLine.clear();
-      for (const part of [arm.fist, arm.shoulder, ...arm.links]) {
+      arm.stone.glow.setAlpha(0);
+      arm.stone.tether.clear();
+      for (const part of [arm.fist, arm.stone.image, ...arm.links]) {
         this.scene.tweens.add({ targets: part, y: this.floorY + 60, angle: arm.side * Phaser.Math.Between(20, 70), alpha: 0, duration: 1100, ease: 'Quad.easeIn', delay: Phaser.Math.Between(0, 300) });
       }
     }
@@ -433,6 +450,7 @@ export class AdventureRootbreaker {
       this.dashInto(arm);
       this.updateArm(arm, ms);
       this.swingFist(arm, ms);
+      this.updateStone(arm, ms);
     }
     this.updateShots(ms);
     this.pose(ms);
@@ -454,6 +472,8 @@ export class AdventureRootbreaker {
     // A smash and a sweep are made by the fist on the cat's side; with that arm gone, by the other.
     const onSide = this.arms[this.cat.x < this.x ? 0 : 1];
     const near = this.whole(onSide) ? onSide : fists[0];
+    // The shoulder stone strikes from the side whose arm is broken, else the cat's side.
+    if (kind === 'shoulder') this.shoulderStrike(this.arms.find((arm) => !this.whole(arm)) ?? onSide, speed);
     if (kind === 'smash') this.smash(near, speed);
     if (kind === 'sweep') this.sweep(near, speed);
     if (kind === 'blast') this.blast(speed);
@@ -462,7 +482,8 @@ export class AdventureRootbreaker {
   }
 
   attackDone() {
-    return this.stateMs <= 0 && this.arms.every((arm) => arm.state === 'rest' || !this.whole(arm)) && this.leftovers.length === 0;
+    return this.stateMs <= 0 && this.arms.every((arm) => (arm.state === 'rest' || !this.whole(arm)) && arm.stone.state === 'home')
+      && this.leftovers.length === 0;
   }
 
   setFace(kind, ms = 0) {
@@ -846,6 +867,87 @@ export class AdventureRootbreaker {
   hurtIfTouching(rect, fromX) {
     const { body } = this.cat;
     if (body.right > rect.left && body.left < rect.right && body.bottom > rect.top && body.top < rect.bottom) this.onHurtCat(fromX);
+  }
+
+  // ----- His shoulder stones -----
+
+  // A shoulder stone: on its ring at home (shaking as it warns), else where its flight has it,
+  // spinning, with a glow back to his shoulder; and its box, which stops rounds.
+  poseStone(arm, ring) {
+    const st = arm.stone, s = ROOTBREAKER.shoulder;
+    if (st.state === 'home' || st.state === 'tell') {
+      const shake = st.state === 'tell' ? s.shakePx : 0;
+      st.at = { x: ring.x + Phaser.Math.FloatBetween(-1, 1) * shake, y: ring.y + Phaser.Math.FloatBetween(-1, 1) * shake };
+    } else if (st.state === 'back') {
+      st.at = stoneFlight(st.from, ring, Phaser.Math.Easing.Sine.InOut(Math.min(1, st.t)), s.arcPx * 0.5);
+    }
+    st.image.setPosition(st.at.x, st.at.y).setAngle(st.spin);
+    st.hit.body.reset(st.at.x, st.at.y);
+    // The tell's glow, growing; and away, the glow back to his shoulder.
+    const tell = st.state === 'tell' ? 1 - st.ms / (s.tellMs / st.speed) : 0;
+    st.glow.setPosition(st.at.x, st.at.y).setScale(STONE_GLOW.scale * (0.6 + 0.4 * tell)).setAlpha(st.state === 'tell' ? STONE_GLOW.alpha * tell : st.state === 'fly' ? STONE_GLOW.alpha * 0.6 : 0);
+    st.tether.clear();
+    if (st.state !== 'home' && st.state !== 'tell') {
+      st.tether.lineStyle(TETHER.width, TETHER.colour, TETHER.alpha).lineBetween(ring.x, ring.y, st.at.x, st.at.y);
+    }
+  }
+
+  // The shoulder strike: the stone shakes and glows, he leans toward the cat, and it marks where
+  // the cat is now; then it flies there (updateStone).
+  shoulderStrike(arm, speed) {
+    const st = arm.stone, s = ROOTBREAKER.shoulder;
+    this.stateMs = 0;
+    st.state = 'tell';
+    st.speed = speed;
+    st.ms = s.tellMs / speed;
+    st.to = { x: Phaser.Math.Clamp(this.cat.x, this.left + this.stoneSize.w, this.right - this.stoneSize.w), y: this.floorY - (this.stoneSize.h * 0.8) / 2 };
+    this.lean.x = (this.cat.x < this.x ? -1 : 1) * 10;
+    this.setFace('warn', st.ms);
+    this.scene.audio.playSfx('checkpoint');
+  }
+
+  // Each frame: a shoulder stone's strike goes on. The tell counts down; it flies in an arc to the
+  // marked place, hurting the cat it touches, and lands with a thud; it waits there, then flies home.
+  updateStone(arm, ms) {
+    const st = arm.stone, s = ROOTBREAKER.shoulder;
+    if (st.state === 'tell') {
+      st.ms -= ms;
+      if (st.ms <= 0) {
+        st.state = 'fly';
+        st.t = 0;
+        st.from = { ...st.at };
+        this.scene.audio.playSfx('maceWhoosh');
+      }
+    } else if (st.state === 'fly') {
+      st.t += (ms * st.speed) / s.flyMs;
+      st.at = stoneFlight(st.from, st.to, Phaser.Math.Easing.Quad.In(Math.min(1, st.t)), s.arcPx);
+      st.spin += (s.spinDeg * ms) / 1000 * (st.to.x < st.from.x ? -1 : 1);
+      const hw = (this.stoneSize.w * 0.8) / 2, hh = (this.stoneSize.h * 0.8) / 2;
+      this.hurtIfTouching({ left: st.at.x - hw, right: st.at.x + hw, top: st.at.y - hh, bottom: st.at.y + hh }, st.at.x);
+      if (st.t >= 1) {
+        st.state = 'wait';
+        st.ms = s.waitMs;
+        this.scene.effects.dust(st.at.x, this.floorY, 8);
+        this.flyStones(st.at.x, this.floorY, 3);
+        this.scene.audio.playSfx('smash');
+        this.scene.cameras.main.shake(160, 0.006);
+      }
+    } else if (st.state === 'wait') {
+      st.ms -= ms;
+      if (st.ms <= 0) {
+        st.state = 'back';
+        st.t = 0;
+        st.from = { ...st.at };
+      }
+    } else if (st.state === 'back') {
+      st.t += (ms * st.speed) / s.returnMs;
+      st.spin -= st.spin * Math.min(1, ms / 200); // it settles upright as it comes home
+      if (st.t >= 1) {
+        st.state = 'home';
+        st.spin = 0;
+        this.scene.audio.playSfx('bump');
+      }
+    }
   }
 
   // ----- His arms, hurt and broken -----
