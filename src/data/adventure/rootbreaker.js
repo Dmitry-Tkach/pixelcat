@@ -5,8 +5,8 @@
 // only while it's open:
 //   phase 1, Awakening (100-66%): one fist at a time slams down where the cat is; a missed smash
 //     sticks in the ground, and his core opens for a while. His mouth blasts balls of green energy.
-//   phase 2, Enraged (66-33%): a fist sweeps low across his side of the arena, and his eyes fire a
-//     laser across it, high or low; a missed smash doesn't open his core: breaking an arm does.
+//   phase 2, Enraged (66-33%): a fist sweeps low across his side of the arena, and his eyes fire
+//     lasers at the cat; a missed smash doesn't open his core: breaking an arm does.
 // In every phase his arms can be hurt: rounds, blasts, the bolt, the claw, a dash or a stomp on a
 // fist wear its arm down (it cracks at half); broken, it shatters, his core opens, and it grows
 // back after a while. With an arm gone, the other does its work.
@@ -106,7 +106,10 @@ export const ROOTBREAKER = {
   // fist trailing, and back. height: px over the floor its middle passes; cockUp: how high it's
   // cocked (px over the floor) and cockTilt how it points then.
   sweep: { tellMs: 900, sweepMs: 650, height: 70, cockTilt: -50, cockUp: 150, returnMs: 700 },
-  laser: { tellMs: 1000, fireMs: 700, heights: [60, 200], thick: 26 }, // over the floor (px): one jumped, one passed under
+  // laser, from his eyes at the cat: his eyes glow and a thin line from each follows the cat (the
+  // tell), then stops following for the last `lockShare` of it (the moment to move), and the beams
+  // burn along those lines to the floor or the walls. thick: the beams' thickness (px).
+  laser: { tellMs: 1000, lockShare: 0.35, follow: 6, fireMs: 700, thick: 24 }, // follow: how fast the lines catch up with the cat
   rockfall: { tellMs: 900, rocks: 5, everyMs: 300, fallSpeed: 760 },
   restMs: 900, // between attacks
   coreOpenMs: { phase1: 2400, phase2: 3600, phase3: 2600 },
@@ -168,6 +171,41 @@ export const fistAngle = (tilt, dir) => {
 
 // The turn (radians) from angle a to angle b, the short way round.
 export const turnBetween = (a, b) => Math.atan2(Math.sin(b - a), Math.cos(b - a));
+
+// Where a beam from `from`, aimed at `toward`, ends: where it first meets the floor, a wall or the
+// top of the arena (bounds: { left, right, top, floor }).
+export function beamEnd(from, toward, { left, right, top, floor }) {
+  const dx = toward.x - from.x, dy = toward.y - from.y;
+  const d = Math.hypot(dx, dy) || 1;
+  const ux = dx / d, uy = dy / d;
+  let t = Infinity;
+  if (uy > 1e-6) t = Math.min(t, (floor - from.y) / uy);
+  if (uy < -1e-6) t = Math.min(t, (top - from.y) / uy);
+  if (ux > 1e-6) t = Math.min(t, (right - from.x) / ux);
+  if (ux < -1e-6) t = Math.min(t, (left - from.x) / ux);
+  if (!Number.isFinite(t)) t = 0;
+  return { x: from.x + ux * t, y: from.y + uy * t };
+}
+
+// Whether a beam from `a` to `b`, `thick` px thick, touches a box { left, right, top, bottom }: the
+// line, clipped to the box grown by half the beam's thickness.
+export function beamTouches(a, b, thick, box) {
+  const h = thick / 2;
+  const l = box.left - h, r = box.right + h, t = box.top - h, bt = box.bottom + h;
+  let t0 = 0, t1 = 1;
+  const dx = b.x - a.x, dy = b.y - a.y;
+  for (const [p, q] of [[-dx, a.x - l], [dx, r - a.x], [-dy, a.y - t], [dy, bt - a.y]]) {
+    if (p === 0) {
+      if (q < 0) return false;
+      continue;
+    }
+    const k = q / p;
+    if (p < 0) t0 = Math.max(t0, k);
+    else t1 = Math.min(t1, k);
+    if (t0 > t1) return false;
+  }
+  return true;
+}
 
 // Where a shoulder stone is as it flies (t: 0 at `from`, 1 at `to`): along the line, lifted in an
 // arc `arc` px high at its middle.

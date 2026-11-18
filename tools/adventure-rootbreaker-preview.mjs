@@ -5,7 +5,7 @@
 import sharp from 'sharp';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ROOTBREAKER, chainBow, chainHold, chainLinks, fistAngle, fistBox, rbPath, stoneFlight, turnBetween } from '../src/data/adventure/rootbreaker.js';
+import { ROOTBREAKER, beamEnd, chainBow, chainHold, chainLinks, fistAngle, fistBox, rbPath, stoneFlight, turnBetween } from '../src/data/adventure/rootbreaker.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = process.argv[2] ?? 'rootbreaker-preview.png';
@@ -42,7 +42,10 @@ async function bodyParts(x, floor) {
     await placed('rb-face-calm', k, { x: 0.5, y: 0.5 }, on(r.faceAt).x, on(r.faceAt).y, 0),
     await placed('rb-core-closed', k, { x: 0.5, y: 0.5 }, on(r.coreAt).x, on(r.coreAt).y, 0),
   ];
-  return { parts, mounts: r.shoulders.map(on) };
+  // His eyes, as the game finds them on his face.
+  const face = await sizeOf('rb-face-calm'), f = on(r.faceAt);
+  const eyes = [-1, 1].map((s) => ({ x: f.x + s * face.w * k * 0.11, y: f.y - face.h * k * 0.04 }));
+  return { parts, mounts: r.shoulders.map(on), eyes };
 }
 
 // One arm's pictures: its chain, then its shoulder and fist, all in front of his body.
@@ -79,6 +82,7 @@ const POSES = [
   { title: 'Smash: raised over the cat (right)', cat: 380, arms: (x, f, cat) => [rest(x, f, -1), { goal: { x: cat, y: f - r.smash.high }, tilt: r.smash.raiseTilt, dir: 1 }] },
   { title: 'Smash: stuck on the floor, a step', cat: 520, arms: (x, f) => [rest(x, f, -1), { goal: { x: x + 420, y: f - across }, tilt: 0, dir: 1 }] },
   { title: 'Shoulder stone strike: flying at the cat', cat: 420, arms: (x, f) => [rest(x, f, -1), { ...rest(x, f, 1), stone: (ring) => stoneFlight(ring, { x: x + 420, y: f - 40 }, 0.55, r.shoulder.arcPx) }] },
+  { title: 'Eye lasers at a cat on a branch', cat: -380, catUp: 6 * 64, laser: true, arms: (x, f) => [rest(x, f, -1), rest(x, f, 1)] },
   { title: 'Rockfall: fists clash over his head', arms: (x, f) => [-1, 1].map((side) => ({ goal: { x: x + side * 150, y: f - 373 + 20 }, tilt: 0, dir: -side, look: '-dim' })) },
   { title: 'Smash, as near his body as it lands (cracked)', cat: -150, arms: (x, f) => [{ goal: { x: x - r.reachZone.inner, y: f - across }, tilt: 0, dir: -1, look: '-cracked' }, rest(x, f, 1)] },
   { title: 'Sweep: cocked at the wall, glowing', cat: 300, arms: (x, f) => [rest(x, f, -1), { goal: { x: x + 640 - r.reachZone.edge, y: f - r.sweep.cockUp }, tilt: r.sweep.cockTilt, dir: 1 }] },
@@ -92,7 +96,7 @@ const W = ARENA.w, H = ARENA.above + ARENA.below;
 const panels = [];
 for (const pose of POSES) {
   const x = W / 2, floor = ARENA.above;
-  const { parts, mounts } = await bodyParts(x, floor);
+  const { parts, mounts, eyes } = await bodyParts(x, floor);
   const arms = [];
   for (const [i, arm] of pose.arms(x, floor, x + (pose.cat ?? 0)).entries()) {
     const stone = arm.stone ? arm.stone(mounts[i]) : null;
@@ -101,14 +105,18 @@ for (const pose of POSES) {
   // The floor, the arena's walls, the cat's box, and each fist's hit box.
   const boxes = arms.map(({ goal }) => fistBox(goal, sizes.fist));
   const catX = x + (pose.cat ?? -300);
+  const catY = floor - (pose.catUp ?? 0);
+  // His eye lasers, at the cat's middle, to the floor or the walls.
+  const beams = pose.laser ? eyes.map((eye) => [eye, beamEnd(eye, { x: catX, y: catY - CAT.h / 2 }, { left: 0, right: W, top: 0, floor })]) : [];
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W + PAD * 2}" height="${H + PAD * 2}">
     <rect x="${PAD}" y="${PAD}" width="${W}" height="${H}" fill="#5f8f7a"/>
     <rect x="${PAD}" y="${PAD + floor}" width="${W}" height="${ARENA.below}" fill="#4a3a28"/>
-    <rect x="${PAD + catX - CAT.w / 2}" y="${PAD + floor - CAT.h}" width="${CAT.w}" height="${CAT.h}" fill="#e8743b" opacity="0.85"/>
+    <rect x="${PAD + catX - CAT.w / 2}" y="${PAD + catY - CAT.h}" width="${CAT.w}" height="${CAT.h}" fill="#e8743b" opacity="0.85"/>
     <text x="${PAD + 16}" y="${PAD + 40}" font-family="Helvetica" font-size="32" fill="#fff">${pose.title}</text>
   </svg>`;
   const over = `<svg xmlns="http://www.w3.org/2000/svg" width="${W + PAD * 2}" height="${H + PAD * 2}">
     <rect x="${PAD}" y="${PAD + floor}" width="${W}" height="${ARENA.below}" fill="#4a3a28"/>
+    ${beams.map(([a, b]) => `<line x1="${a.x + PAD}" y1="${a.y + PAD}" x2="${b.x + PAD}" y2="${b.y + PAD}" stroke="#b8ff8a" stroke-width="${r.laser.thick}" stroke-opacity="0.85" stroke-linecap="round"/>`).join('')}
     ${boxes.map((b) => `<rect x="${PAD + b.left}" y="${PAD + b.top}" width="${b.right - b.left}" height="${b.bottom - b.top}" fill="none" stroke="#ff3b3b" stroke-width="3" stroke-dasharray="10 6"/>`).join('')}
   </svg>`;
   const big = await sharp({ create: { width: W + PAD * 2, height: H + PAD * 2, channels: 4, background: '#00000000' } })

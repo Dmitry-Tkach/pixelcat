@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import {
-  ROOTBREAKER, armDamage, chainBow, chainHold, chainLinks, stoneFlight, coreDamage, fistAngle, fistBox, inReach, pickAttack, rbKey, rootbreakerPhase, turnBetween,
+  ROOTBREAKER, armDamage, beamEnd, beamTouches, chainBow, chainHold, chainLinks, stoneFlight, coreDamage, fistAngle, fistBox, inReach, pickAttack, rbKey, rootbreakerPhase, turnBetween,
 } from '../data/adventure/rootbreaker.js';
 import { TILE } from '../systems/adventureMap.js';
 import { landsFromAbove } from '../systems/adventurePlatformLanding.js';
@@ -754,29 +754,24 @@ export class AdventureRootbreaker {
     });
   }
 
-  // Eye laser: a thin line shows its height, his eyes charge up, and the beam burns across the arena,
-  // sparking along it.
+  // Eye lasers, at the cat: his eyes glow and charge, a thin blinking line from each follows the cat,
+  // then stops following (the moment to move); the beams burn from his eyes along the lines, to the
+  // floor or the walls, sparking where they end (updateShots).
   laser(speed) {
     const l = ROOTBREAKER.laser;
-    const height = l.heights[this.attackCount % l.heights.length];
-    const y = this.floorY - height;
     this.setFace('warn', (l.tellMs + l.fireMs) / speed);
-    const guide = this.scene.add.rectangle(this.left, y, this.right - this.left, 3, 0x7dff6a, 0.6).setOrigin(0, 0.5).setDepth(DEPTH.warn);
-    this.scene.tweens.add({ targets: guide, alpha: 0.15, duration: 120, yoyo: true, repeat: -1 });
     for (const glow of this.eyeGlows) this.scene.tweens.add({ targets: glow, alpha: 0.9, scale: 1.6, duration: l.tellMs / speed });
     this.stateMs = (l.tellMs + l.fireMs) / speed;
-    this.scene.time.delayedCall(l.tellMs / speed, () => {
-      this.scene.tweens.killTweensOf(guide);
-      guide.destroy();
-      if (this.defeated || this.halted) return;
-      const beam = this.scene.add.tileSprite(this.left, y, this.right - this.left, l.thick, rbKey('rb-laser')).setOrigin(0, 0.5).setDepth(DEPTH.laser);
-      this.leftovers.push({ kind: 'laser', image: beam, ms: l.fireMs / speed, y, rect: { left: this.left, right: this.right, top: y - l.thick / 2, bottom: y + l.thick / 2 } });
-      this.scene.audio.playSfx('shot');
-      this.scene.cameras.main.shake(l.fireMs / speed, 0.004);
-    });
+    const guide = this.scene.add.graphics().setDepth(DEPTH.warn);
+    this.leftovers.push({ kind: 'aim', image: guide, ms: l.tellMs / speed, total: l.tellMs / speed, speed, target: { ...this.cat.body.center } });
     this.scene.time.delayedCall((l.tellMs + l.fireMs) / speed, () => {
       for (const glow of this.eyeGlows) this.scene.tweens.add({ targets: glow, alpha: 0, scale: 1, duration: 200 });
     });
+  }
+
+  // Where the arena's edges are, for a beam: its walls, the floor, and the top of the camera's frame.
+  get beamBounds() {
+    return { left: this.left, right: this.right, top: this.frame.top, floor: this.floorY };
   }
 
   // Rockfall: both fists rise over his head, pointing up, then clash together, knuckles in; the
@@ -830,18 +825,55 @@ export class AdventureRootbreaker {
     }
   }
 
-  // Each frame: the balls and rocks fly, the laser burns, each hurting the cat it touches.
+  // Each frame: the balls and rocks fly, the lasers aim and burn, each hurting the cat it touches.
   updateShots(ms) {
     const dt = ms / 1000;
+    const l = ROOTBREAKER.laser;
+    const fired = [];
     this.leftovers = this.leftovers.filter((item) => {
-      if (item.kind === 'laser') {
+      if (item.kind === 'aim') {
+        // The lines follow the cat, a little behind, until they lock; they blink faster near the end.
         item.ms -= ms;
-        item.image.tilePositionX += 30;
-        item.image.setScale(1, 0.85 + Math.random() * 0.3);
-        if (Math.random() < 0.4) this.scene.effects.impact(Phaser.Math.Between(this.left, this.right), item.y, 0.25);
-        this.hurtIfTouching(item.rect, this.x);
+        if (item.ms > item.total * l.lockShare) {
+          const k = Math.min(1, l.follow * dt);
+          item.target.x += (this.cat.body.center.x - item.target.x) * k;
+          item.target.y += (this.cat.body.center.y - item.target.y) * k;
+        }
+        const locked = item.ms <= item.total * l.lockShare;
+        const on = Math.floor(item.ms / (locked ? 60 : 120)) % 2 === 0;
+        item.image.clear().lineStyle(locked ? 4 : 2, 0x7dff6a, on ? 0.8 : 0.3);
+        for (const eye of this.eyes) {
+          const end = beamEnd(eye, item.target, this.beamBounds);
+          item.image.lineBetween(eye.x, eye.y, end.x, end.y);
+        }
         if (item.ms > 0) return true;
         item.image.destroy();
+        if (this.defeated || this.halted) return false;
+        // Fire: a beam from each eye along its line, sized once (the line's locked, so its length
+        // hardly changes; resizing it each frame would redraw it).
+        const beams = this.eyes.map((eye) => {
+          const end = beamEnd(eye, item.target, this.beamBounds);
+          const length = Math.max(1, Math.ceil(Math.hypot(end.x - eye.x, end.y - eye.y)));
+          return this.scene.add.tileSprite(eye.x, eye.y, length, l.thick, rbKey('rb-laser')).setOrigin(0, 0.5).setDepth(DEPTH.laser);
+        });
+        fired.push({ kind: 'laser', image: beams[0], images: beams, ms: l.fireMs / item.speed, target: item.target });
+        this.scene.audio.playSfx('shot');
+        this.scene.cameras.main.shake(l.fireMs / item.speed, 0.004);
+        return false;
+      }
+      if (item.kind === 'laser') {
+        item.ms -= ms;
+        item.images.forEach((beam, i) => {
+          const eye = this.eyes[i];
+          const end = beamEnd(eye, item.target, this.beamBounds);
+          beam.setPosition(eye.x, eye.y).setRotation(Math.atan2(end.y - eye.y, end.x - eye.x));
+          beam.tilePositionX += 30;
+          beam.setScale(1, 0.85 + Math.random() * 0.3);
+          if (Math.random() < 0.3) this.scene.effects.impact(end.x, end.y, 0.35); // sparks where it burns
+          if (beamTouches(eye, end, l.thick, this.cat.body)) this.onHurtCat(eye.x);
+        });
+        if (item.ms > 0) return true;
+        for (const beam of item.images) beam.destroy();
         return false;
       }
       const { image } = item;
@@ -862,10 +894,11 @@ export class AdventureRootbreaker {
       }
       return true;
     });
+    this.leftovers.push(...fired);
   }
 
   clearLeftovers() {
-    for (const item of this.leftovers) item.image.destroy();
+    for (const item of this.leftovers) for (const image of item.images ?? [item.image]) image.destroy();
     this.leftovers = [];
     for (const arm of this.arms) arm.shadow?.destroy();
   }

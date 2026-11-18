@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
-  RB_ART, ROOTBREAKER, armDamage, chainBow, chainHold, chainLinks, coreDamage, fistAngle, fistBox, inReach, nextAttack, pickAttack, rbPath, stoneFlight,
+  RB_ART, ROOTBREAKER, armDamage, beamEnd, beamTouches, chainBow, chainHold, chainLinks, coreDamage, fistAngle, fistBox, inReach, nextAttack, pickAttack, rbPath, stoneFlight,
   rootbreakerPhase,
 } from '../src/data/adventure/rootbreaker.js';
 import { ADVENTURE_LEVELS } from '../src/data/adventure/index.js';
@@ -74,14 +74,30 @@ describe('the Rootbreaker', () => {
     for (const attack of ['smash', 'blast', 'sweep', 'laser', 'rockfall', 'shoulder']) expect(ROOTBREAKER[attack].tellMs).toBeGreaterThanOrEqual(700);
   });
 
-  it('stands in his arena in level 3, his laser passing under a cat on a ledge or over one on the floor', () => {
+  it('stands in his arena in level 3', () => {
     const level = ADVENTURE_LEVELS.find((l) => l.id === 'wood-3');
     const def = level.bosses.find((b) => b.kind === 'rootbreaker');
     expect(def.col).toBeGreaterThan(def.arena.left);
     expect(def.col).toBeLessThan(def.arena.right);
-    const [low, high] = ROOTBREAKER.laser.heights;
-    expect(low).toBeLessThan(90); // a standing cat is 90 px tall: the low one must be jumped
-    expect(high).toBeGreaterThan(90 + ROOTBREAKER.laser.thick); // and the high one passes over him
+  });
+
+  it('fires his lasers from his eyes at the cat, to the floor or the walls', () => {
+    const bounds = { left: 0, right: 1280, top: 0, floor: 700 };
+    const eye = { x: 640, y: 400 };
+    // Down at a cat on the floor: it ends on the floor, past him.
+    const end = beamEnd(eye, { x: 900, y: 650 }, bounds);
+    expect(end.y).toBeCloseTo(700);
+    expect(end.x).toBeGreaterThan(900);
+    // Level: it ends at the wall. Up at a cat on a branch: at the top.
+    expect(beamEnd(eye, { x: 100, y: 400 }, bounds).x).toBeCloseTo(0);
+    expect(beamEnd(eye, { x: 700, y: 100 }, bounds).y).toBeCloseTo(0);
+    // It touches the cat it's aimed at, and not one beside the line.
+    const cat = { left: 870, right: 930, top: 590, bottom: 680 };
+    expect(beamTouches(eye, end, 24, cat)).toBe(true);
+    expect(beamTouches(eye, end, 24, { left: 1100, right: 1160, top: 590, bottom: 680 })).toBe(false);
+    expect(beamTouches(eye, end, 24, { left: 870, right: 930, top: 100, bottom: 190 })).toBe(false);
+    // The lines stop following before the beams fire, so he can be dodged.
+    expect(ROOTBREAKER.laser.lockShare * ROOTBREAKER.laser.tellMs).toBeGreaterThanOrEqual(300);
   });
 });
 
