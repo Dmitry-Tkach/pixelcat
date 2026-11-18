@@ -34,10 +34,11 @@ async function placed(name, scale, origin, x, y, rotation) {
 async function bodyParts(x, floor) {
   const r = ROOTBREAKER, k = r.scale.body;
   const body = await sizeOf('rb-body');
-  const w = body.w * k, h = body.h * k, left = x - w / 2, top = floor - h;
+  const feet = floor + r.sinkPx; // a little into the ground, as in the game
+  const w = body.w * k, h = body.h * k, left = x - w / 2, top = feet - h;
   const on = (at) => ({ x: left + at.x * w, y: top + at.y * h });
   const parts = [
-    await placed('rb-body', k, { x: 0.5, y: 1 }, x, floor, 0),
+    await placed('rb-body', k, { x: 0.5, y: 1 }, x, feet, 0),
     await placed('rb-face-calm', k, { x: 0.5, y: 0.5 }, on(r.faceAt).x, on(r.faceAt).y, 0),
     await placed('rb-core-closed', k, { x: 0.5, y: 0.5 }, on(r.coreAt).x, on(r.coreAt).y, 0),
   ];
@@ -107,6 +108,7 @@ for (const pose of POSES) {
     <text x="${PAD + 16}" y="${PAD + 40}" font-family="Helvetica" font-size="32" fill="#fff">${pose.title}</text>
   </svg>`;
   const over = `<svg xmlns="http://www.w3.org/2000/svg" width="${W + PAD * 2}" height="${H + PAD * 2}">
+    <rect x="${PAD}" y="${PAD + floor}" width="${W}" height="${ARENA.below}" fill="#4a3a28"/>
     ${boxes.map((b) => `<rect x="${PAD + b.left}" y="${PAD + b.top}" width="${b.right - b.left}" height="${b.bottom - b.top}" fill="none" stroke="#ff3b3b" stroke-width="3" stroke-dasharray="10 6"/>`).join('')}
   </svg>`;
   const big = await sharp({ create: { width: W + PAD * 2, height: H + PAD * 2, channels: 4, background: '#00000000' } })

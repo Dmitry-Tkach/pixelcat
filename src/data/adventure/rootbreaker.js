@@ -51,7 +51,7 @@ export const ROOTBREAKER = {
   arm: { scale: 1.1, box: 0.82, hold: 0.6, spin: 0.3 },
   // The stone on each shoulder (the smaller mossy stone, rb-rock-2), over the green ring, his arm's
   // chain coming out from under it: its size, a share of its drawing.
-  shoulderStone: { scale: 0.8 },
+  shoulderStone: { scale: 1.2 },
   // The chain: `links` stone rings, `linkFrom` of the ring's drawn size at the shoulder down to
   // `linkTo` at the fist. It's `length` px long: closer in than that, it bows out (at most `bowMost`
   // px), up and out like an elbow. It trails behind a fast fist (lag: px of bow for each px a
@@ -64,7 +64,9 @@ export const ROOTBREAKER = {
   // Each fist hovers beside him: this far out from his middle and this far up from his feet (px),
   // pointing out and a little down (tilt, degrees: 0 level, 90 straight down), bobbing and swaying.
   fistRest: { out: 470, up: 160, tilt: 50, swayDeg: 6, bobPx: 10 },
-  // Alive between attacks: he breathes, and his eyes follow the cat.
+  // How far his feet sit into the ground (px), so his round rocks rest in it, not on it.
+  sinkPx: 12,
+  // Alive between attacks: he breathes (stretching up from his feet), and his eyes follow the cat.
   idle: { breathePx: 5, breatheMs: 3200, eyesPx: 9, swayDeg: 4 },
   // The camera, while he fights: it frames his whole arena, from this far above his feet to this far
   // below, gliding there in panMs.

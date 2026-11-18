@@ -207,9 +207,15 @@ export class AdventureRootbreaker {
   pose(ms) {
     const r = ROOTBREAKER;
     const breathe = this.defeated ? 0 : Math.sin((2 * Math.PI * this.clock) / r.idle.breatheMs) * r.idle.breathePx;
-    if (!this.defeated) this.body.setPosition(this.x + this.lean.x, this.floorY + breathe + this.lean.y);
-    const top = this.body.y - this.size.h, left = this.body.x - this.size.w / 2;
-    const on = (at) => ({ x: left + at.x * this.size.w, y: top + at.y * this.size.h });
+    // His feet stay planted, a little into the ground: he breathes by stretching up from them, and
+    // leans down into a blow but never lifts off.
+    if (!this.defeated) {
+      this.body.setPosition(this.x + this.lean.x, this.floorY + r.sinkPx + Math.max(0, this.lean.y));
+      this.body.setScale(r.scale.body, r.scale.body * (1 + breathe / this.size.h));
+    }
+    const h = this.body.displayHeight;
+    const top = this.body.y - h, left = this.body.x - this.size.w / 2;
+    const on = (at) => ({ x: left + at.x * this.size.w, y: top + at.y * h });
     const look = this.defeated ? 0 : Phaser.Math.Clamp((this.cat.x - this.x) / 600, -1, 1) * r.idle.eyesPx;
     const faceAt = on(r.faceAt), coreAt = on(r.coreAt);
     if (!this.defeated) {
