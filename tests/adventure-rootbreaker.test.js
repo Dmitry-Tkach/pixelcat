@@ -65,9 +65,8 @@ describe('the Rootbreaker', () => {
     expect(stoneFlight(from, to, 0.5, 150).y).toBeLessThan((from.y + to.y) / 2 - 100); // lifted in its middle
   });
 
-  it('is hurt a little anywhere on his body, fully while his core is open', () => {
-    expect(coreDamage('standard', false)).toBeGreaterThan(0); // his body, a little
-    expect(coreDamage('standard', false)).toBeLessThan(coreDamage('standard', true)); // his open core, fully
+  it('is hurt anywhere on his body, but only while his core is open', () => {
+    expect(coreDamage('standard', false)).toBe(0); // shut: nothing
     expect(coreDamage('standard', true)).toBe(1);
     expect(coreDamage('explosive', true)).toBeGreaterThan(coreDamage('standard', true));
   });

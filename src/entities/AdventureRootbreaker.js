@@ -77,8 +77,8 @@ export class AdventureRootbreaker {
     this.core = scene.add.image(0, 0, rbKey('rb-core-closed')).setScale(r.scale.body).setDepth(DEPTH.core);
     this.eyeGlows = [-1, 1].map(() => scene.add.image(0, 0, 'fx-dot').setTint(0x9dff7a).setBlendMode(Phaser.BlendModes.ADD).setDepth(DEPTH.warn).setAlpha(0));
     // What the cat's rounds and moves hit: his whole body, from the floor to the top of his head
-    // (ROOTBREAKER.bodyTarget), placed in pose. A hit there hurts him a little, fully while his core
-    // is open (takeHit).
+    // (ROOTBREAKER.bodyTarget), placed in pose. A hit there hurts him only while his core is open
+    // (takeHit).
     this.sprite = scene.add.zone(0, 0, 10, 10);
     scene.physics.add.existing(this.sprite);
     this.sprite.body.setAllowGravity(false).setImmovable(true);
@@ -145,7 +145,7 @@ export class AdventureRootbreaker {
     this.brain = {
       get isDefeated() { return self.defeated; },
       get healthShare() { return Math.max(0, self.hp / ROOTBREAKER.health); },
-      get isInvulnerable() { return false; }, // always hurt a little, fully while his core's open
+      get isInvulnerable() { return !self.coreOpen; }, // hurt only while his core's open
     };
     // The arena's own business (the scene updates it, and shakes it).
     this.arena = { update: () => {}, shake: () => scene.cameras.main.shake(200, 0.006) };
@@ -347,24 +347,20 @@ export class AdventureRootbreaker {
   }
 
   // A round, a blast or a move reached his core: it hurts only while open.
-  // A hit on his body: a little damage, his stone flashing; with his core open, the full damage,
-  // his core flashing.
+  // A hit on his body: with his core open, it hurts him, his core flashing; shut, it only sparks.
   takeHit(kind, x, y) {
     if (this.defeated) return;
     const damage = coreDamage(kind, this.coreOpen);
+    if (!damage) {
+      this.spark(x, y);
+      return;
+    }
     const before = this.phase.index;
     this.hp = Math.max(0, this.hp - damage);
-    if (this.coreOpen) {
-      this.core.setTintFill(0xffffff);
-      this.scene.time.delayedCall(FLASH_MS, () => this.core.clearTint());
-      this.scene.effects.impact(x, y, 0.9);
-      this.flinch(4 + damage * 2);
-    } else {
-      this.body.setTintFill(0xffffff);
-      this.scene.time.delayedCall(FLASH_MS / 2, () => this.body.setTint(this.bodyTint));
-      this.spark(x, y);
-      this.flinch(1 + damage);
-    }
+    this.core.setTintFill(0xffffff);
+    this.scene.time.delayedCall(FLASH_MS, () => this.core.clearTint());
+    this.scene.effects.impact(x, y, 0.9);
+    this.flinch(4 + damage * 2);
     if (this.hp === 0) {
       this.die();
       return;
