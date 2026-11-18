@@ -28,7 +28,16 @@ export const RB_PIECES = [
 // His fists are the big mossy stone (rb-rock-1); the tool also makes it cracked (an arm worn down
 // to half).
 export const RB_FIST_LOOKS = ['rb-fist-cracked'];
-export const RB_ART = [...RB_PIECES.flat(), ...RB_FIST_LOOKS].filter((name) => !name.startsWith('_'));
+// His shoulders, from the owner's second sheet (images/levels/forest/guardian-parts.png): a mossy
+// stone shoulder with a hole in its side, drawn for his right (r) and left (l), sitting over the
+// green ring at each shoulder; his arm's chain comes out of the hole. The sheet's other pieces aren't
+// used.
+export const RB_ARM_PIECES = [
+  ['_golem', '_golem-angry'],
+  ['rb-r-shoulder', '_r-upper', '_r-fore', '_r-fist'],
+  ['_l-fist', '_l-fore', '_l-upper', 'rb-l-shoulder'],
+];
+export const RB_ART = [...RB_PIECES.flat(), ...RB_ARM_PIECES.flat(), ...RB_FIST_LOOKS].filter((name) => !name.startsWith('_'));
 export const rbKey = (name) => `adventure-${name}`;
 export const rbPath = (name) => `assets/adventure/bosses/rootbreaker/${name}.png`;
 
@@ -49,6 +58,10 @@ export const ROOTBREAKER = {
   //   the shoulder; spin: how much of its swing the stone turns (a little, so its moss stays on top).
   shoulders: [{ x: 0.13, y: 0.54 }, { x: 0.87, y: 0.54 }],
   arm: { scale: 1.1, box: 0.82, hold: 0.6, spin: 0.3 },
+  // The stone shoulder over each ring: its size (a share of its drawing), the point of it that sits
+  // on the ring (`on`) and its hole (`hole`, where the chain comes out), as shares of the right
+  // shoulder's picture (the left is its mirror); it turns a little toward its chain, at most turnDeg.
+  shoulder: { scale: 0.5, on: { x: 0.45, y: 0.5 }, hole: { x: 0.87, y: 0.42 }, turnDeg: 14 },
   // The chain: `links` stone rings, `linkFrom` of the ring's drawn size at the shoulder down to
   // `linkTo` at the fist. It's `length` px long: closer in than that, it bows out (at most `bowMost`
   // px), up and out like an elbow. It trails behind a fast fist (lag: px of bow for each px a
@@ -157,6 +170,16 @@ export const fistAngle = (tilt, dir) => {
 // The turn (radians) from angle a to angle b, the short way round.
 export const turnBetween = (a, b) => Math.atan2(Math.sin(b - a), Math.cos(b - a));
 
+// A stone shoulder on the ring at `ring`, on side `side`, turned `turn` (radians): where its picture
+// turns (origin, shares of it) and where its hole is (the chain's start). size: the right shoulder's
+// picture { w, h }.
+export function shoulderAt(ring, side, turn, size, { scale, on, hole } = ROOTBREAKER.shoulder) {
+  const origin = { x: side > 0 ? on.x : 1 - on.x, y: on.y };
+  const v = { x: (hole.x - on.x) * size.w * scale * side, y: (hole.y - on.y) * size.h * scale };
+  const c = Math.cos(turn), s = Math.sin(turn);
+  return { origin, hole: { x: ring.x + v.x * c - v.y * s, y: ring.y + v.x * s + v.y * c } };
+}
+
 // Where the chain holds a fist whose middle is at `at`: on its edge toward the shoulder (`mount`).
 // size: the stone's picture { w, h }.
 export function chainHold(at, mount, size, { scale, hold } = ROOTBREAKER.arm) {
@@ -179,6 +202,8 @@ export function chainBow(from, to, side, { length, bowMost, bowLeast } = ROOTBRE
   return { x: way.x * amount, y: way.y * amount };
 }
 
+const CHAIN_ENDS = 0.08; // the first and last links, this share of the way in from each end
+
 // The links of an arm's chain, from `from` to `to`, its middle pushed by `bow` ({ x, y } px): `links`
 // rings spaced along the curve, each turned along it and smaller toward the fist. Returns
 // [{ x, y, rotation, size }] (size: a share of the ring's drawn size).
@@ -190,7 +215,7 @@ export function chainLinks(from, to, bow, { links, linkFrom, linkTo } = ROOTBREA
     y: (1 - t) ** 2 * from.y + 2 * (1 - t) * t * c.y + t * t * to.y,
   });
   return Array.from({ length: links }, (_, i) => {
-    const t = (i + 0.5) / links;
+    const t = CHAIN_ENDS + (1 - 2 * CHAIN_ENDS) * (i / Math.max(1, links - 1)); // first at the shoulder, last at the fist
     const p = at(t), ahead = at(Math.min(1, t + 0.01)), behind = at(Math.max(0, t - 0.01));
     return { ...p, rotation: Math.atan2(ahead.y - behind.y, ahead.x - behind.x), size: linkFrom + (linkTo - linkFrom) * (i / Math.max(1, links - 1)) };
   });

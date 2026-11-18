@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import {
-  ROOTBREAKER, armDamage, chainBow, chainHold, chainLinks, coreDamage, fistAngle, fistBox, inReach, pickAttack, rbKey, rootbreakerPhase, turnBetween,
+  ROOTBREAKER, armDamage, chainBow, chainHold, chainLinks, shoulderAt, coreDamage, fistAngle, fistBox, inReach, pickAttack, rbKey, rootbreakerPhase, turnBetween,
 } from '../data/adventure/rootbreaker.js';
 import { TILE } from '../systems/adventureMap.js';
 import { landsFromAbove } from '../systems/adventurePlatformLanding.js';
@@ -19,7 +19,7 @@ import { landsFromAbove } from '../systems/adventurePlatformLanding.js';
 // stone (the stone itself turning only a little, its moss on top). The chain bows like a rope,
 // trailing behind a fast fist, its links bobbing. His arms can be worn down and broken (hurtArm),
 // and grow back.
-const DEPTH = { glowLine: 1.79, link: 1.795, body: 1.8, face: 1.81, glow: 1.815, core: 1.82, fist: 5.8, shot: 6.3, warn: 6.35, laser: 6.4 };
+const DEPTH = { body: 1.8, face: 1.81, glow: 1.815, core: 1.82, glowLine: 1.824, link: 1.826, shoulder: 1.83, fist: 5.8, shot: 6.3, warn: 6.35, laser: 6.4 };
 const CHAIN_GLOW = { colour: 0x7dff6a, width: 10, alpha: 0.35 }; // the green glow along a chain
 const STOMP_SPEED = 250; // px a second: landing on a stuck fist faster than this stomps it
 const BREAK_SHAKE = { ms: 320, strength: 0.012 }; // the screen, as an arm shatters
@@ -61,6 +61,8 @@ export class AdventureRootbreaker {
     // The fist's size, from its picture.
     const fistImage = scene.textures.get(rbKey(FIST)).getSourceImage();
     this.fistSize = { w: fistImage.width, h: fistImage.height };
+    const shoulderImage = scene.textures.get(rbKey('rb-r-shoulder')).getSourceImage();
+    this.shoulderSize = { w: shoulderImage.width, h: shoulderImage.height };
     this.hitStopMs = 0;
 
     // His body, standing on the floor behind the arena; his face, his core and its glow over it.
@@ -78,9 +80,8 @@ export class AdventureRootbreaker {
     // The camera frames his whole arena while he fights.
     this.frame = { left: this.left, right: this.right, top: this.floorY - r.camera.above, bottom: this.floorY + r.camera.below };
 
-    // His arms: a chain of links (behind his body, so it never hides his core) and the stone fist
-    // (in front). Each fist has an invisible box (`hit`) that hurts, stops rounds, and, stuck, is a
-    // step.
+    // His arms: a stone shoulder over the ring, a chain of links from its hole, and the stone fist.
+    // Each fist has an invisible box (`hit`) that hurts, stops rounds, and, stuck, is a step.
     this.fistGroup = scene.physics.add.group({ allowGravity: false, immovable: true });
     this.arms = [-1, 1].map((side, i) => {
       const hit = scene.add.zone(0, 0, 10, 10);
@@ -91,6 +92,8 @@ export class AdventureRootbreaker {
         health: r.armHealth.full, brokenMs: 0, grow: 1, // grow: 0 to 1 as a broken arm comes back
         dashHit: false, // already hit by this dash
         fist: scene.add.image(0, 0, rbKey(FIST)).setScale(r.arm.scale).setDepth(DEPTH.fist),
+        shoulder: scene.add.image(0, 0, rbKey(`rb-${side > 0 ? 'r' : 'l'}-shoulder`)).setScale(r.shoulder.scale).setDepth(DEPTH.shoulder),
+        shoulderTurn: 0, // radians, easing toward its chain
         links: Array.from({ length: r.chain.links }, () => scene.add.image(0, 0, rbKey('rb-link')).setDepth(DEPTH.link)),
         glowLine: scene.add.graphics().setDepth(DEPTH.glowLine).setBlendMode(Phaser.BlendModes.ADD),
         bow: { x: 0, y: 0 }, // the chain's bow, easing to its shape
@@ -209,11 +212,21 @@ export class AdventureRootbreaker {
 
   // One arm: the stone fist where its goal is, turned a little with its swing, cracked once it's
   // worn down to half; its hit box round it; and the chain from the shoulder ring to its edge,
-  // bowing like a rope and trailing behind it when it moves fast. A broken arm isn't there; one
-  // growing back comes together (grow).
-  poseArm(arm, mount, ms = 16) {
-    if (arm.state === 'dead' || arm.state === 'broken') return;
+  // bowing like a rope and trailing behind it when it moves fast, out of the hole of the stone
+  // shoulder on his ring. A broken arm isn't there (but its shoulder is); one growing back comes
+  // together (grow).
+  poseArm(arm, ring, ms = 16) {
+    if (arm.state === 'dead') return;
     const r = ROOTBREAKER, k = r.arm.scale;
+    // The shoulder, turning a little toward its fist.
+    const base = arm.side > 0 ? 0 : Math.PI;
+    const toward = arm.state === 'broken' ? 0 : turnBetween(base, Math.atan2(arm.goal.y - ring.y, arm.goal.x - ring.x));
+    const most = Phaser.Math.DegToRad(r.shoulder.turnDeg);
+    arm.shoulderTurn += (Phaser.Math.Clamp(toward, -most, most) - arm.shoulderTurn) * (1 - Math.exp(-Math.min(ms, 50) / 120));
+    const shoulder = shoulderAt(ring, arm.side, arm.shoulderTurn, this.shoulderSize);
+    arm.shoulder.setOrigin(shoulder.origin.x, shoulder.origin.y).setPosition(ring.x, ring.y).setRotation(arm.shoulderTurn);
+    if (arm.state === 'broken') return;
+    const mount = shoulder.hole;
     const angle = arm.angle + Phaser.Math.DegToRad(arm.tremble);
     const at = { x: arm.goal.x + arm.shake, y: arm.goal.y };
     const turn = turnBetween(fistAngle(0, arm.side), angle) * r.arm.spin;
@@ -382,7 +395,7 @@ export class AdventureRootbreaker {
       arm.hit.body.enable = false;
       for (const ghost of arm.ghosts) ghost.setAlpha(0);
       arm.glowLine.clear();
-      for (const part of [arm.fist, ...arm.links]) {
+      for (const part of [arm.fist, arm.shoulder, ...arm.links]) {
         this.scene.tweens.add({ targets: part, y: this.floorY + 60, angle: arm.side * Phaser.Math.Between(20, 70), alpha: 0, duration: 1100, ease: 'Quad.easeIn', delay: Phaser.Math.Between(0, 300) });
       }
     }

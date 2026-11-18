@@ -1,7 +1,8 @@
 // Cuts the owner's Rootbreaker sheet (images/levels/forest/boss/root-breacker.png, from
 // prompts/forest-level/16-rootbreaker.md) into his parts (data/adventure/rootbreaker.js), at the
 // size they're drawn on the sheet: the game scales them (ROOTBREAKER.scale). His fists are its big
-// mossy stone, and it also makes that stone cracked. It measures where his
+// mossy stone, and it also makes that stone cracked; his shoulders come from a second sheet
+// (images/levels/forest/guardian-parts.png). It measures where his
 // face and his core sit on his body, and prints them, to copy into rootbreaker.js:
 //   the face: where the calm face matches the body's own face best;
 //   the core: the middle of the hole in his chest.
@@ -10,11 +11,12 @@ import sharp from 'sharp';
 import { existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { RB_ART, RB_PIECES } from '../src/data/adventure/rootbreaker.js';
+import { RB_ARM_PIECES, RB_ART, RB_PIECES } from '../src/data/adventure/rootbreaker.js';
 import { alphaOf, readSheet, savePiece } from './sheetPieces.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SHEET = join(ROOT, 'images', 'levels', 'forest', 'boss', 'root-breacker.png');
+const ARMS = join(ROOT, 'images', 'levels', 'forest', 'guardian-parts.png'); // his shoulders
 const OUT = join(ROOT, 'public', 'assets', 'adventure', 'bosses', 'rootbreaker');
 const REVIEW = process.argv[2];
 // A stone, cracked through: dark cracks from near its middle, with a light edge. Drawn for a stone
@@ -47,6 +49,7 @@ if (!existsSync(SHEET)) {
 }
 mkdirSync(OUT, { recursive: true });
 const piece = await readSheet(SHEET, RB_PIECES);
+Object.assign(piece, await readSheet(ARMS, RB_ARM_PIECES));
 piece['rb-fist-cracked'] = await cracked(piece['rb-rock-1'], { x: 0.5, y: 0.6 }, 1); // under its moss
 for (const name of RB_ART) await savePiece(piece[name], join(OUT, `${name}.png`), piece[name].w, piece[name].h);
 // Pieces no longer used (his old arms, fists and seals) are cleared away.

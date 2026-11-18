@@ -5,7 +5,7 @@
 import sharp from 'sharp';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ROOTBREAKER, chainBow, chainHold, chainLinks, fistAngle, fistBox, rbPath, turnBetween } from '../src/data/adventure/rootbreaker.js';
+import { ROOTBREAKER, chainBow, chainHold, chainLinks, fistAngle, fistBox, rbPath, shoulderAt, turnBetween } from '../src/data/adventure/rootbreaker.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = process.argv[2] ?? 'rootbreaker-preview.png';
@@ -15,7 +15,7 @@ const PAD = 700; // room round each panel, so pieces never fall off the canvas
 
 const file = (name) => join(ROOT, 'public', rbPath(name));
 const sizeOf = async (name) => sharp(file(name)).metadata().then((m) => ({ w: m.width, h: m.height }));
-const sizes = { fist: await sizeOf('rb-rock-1') };
+const sizes = { fist: await sizeOf('rb-rock-1'), shoulder: await sizeOf('rb-r-shoulder') };
 
 // One picture, scaled and turned about its joint, placed so that joint is at (x, y).
 async function placed(name, scale, origin, x, y, rotation) {
@@ -44,9 +44,15 @@ async function bodyParts(x, floor) {
   return { parts, mounts: r.shoulders.map(on) };
 }
 
-// One arm's pictures: its chain behind his body, its fist in front.
-async function armParts(mount, side, goal, tilt, dir, look = '') {
+// One arm's pictures: its chain, then its shoulder and fist, all in front of his body.
+async function armParts(ring, side, goal, tilt, dir, look = '') {
   const angle = fistAngle(tilt, dir);
+  const sh = ROOTBREAKER.shoulder;
+  const base = side > 0 ? 0 : Math.PI;
+  const most = (sh.turnDeg * Math.PI) / 180;
+  const shoulderTurn = Math.max(-most, Math.min(most, turnBetween(base, Math.atan2(goal.y - ring.y, goal.x - ring.x))));
+  const shoulder = shoulderAt(ring, side, shoulderTurn, sizes.shoulder);
+  const mount = shoulder.hole;
   const hold = chainHold(goal, mount, sizes.fist);
   const links = chainLinks(mount, hold, chainBow(mount, hold, side));
   const turn = turnBetween(fistAngle(0, side), angle) * ROOTBREAKER.arm.spin;
@@ -62,7 +68,10 @@ async function armParts(mount, side, goal, tilt, dir, look = '') {
       { input: Buffer.from(glow), left: 0, top: 0 },
       ...await Promise.all(links.map((l) => placed('rb-link', l.size, { x: 0.5, y: 0.5 }, l.x, l.y, l.rotation))),
     ],
-    parts: [await placed(look === '-cracked' ? 'rb-fist-cracked' : 'rb-rock-1', k, { x: 0.5, y: 0.5 }, goal.x, goal.y, turn)],
+    parts: [
+      await placed(`rb-${side > 0 ? 'r' : 'l'}-shoulder`, sh.scale, shoulder.origin, ring.x, ring.y, shoulderTurn),
+      await placed(look === '-cracked' ? 'rb-fist-cracked' : 'rb-rock-1', k, { x: 0.5, y: 0.5 }, goal.x, goal.y, turn),
+    ],
     goal,
   };
 }
@@ -103,7 +112,7 @@ for (const pose of POSES) {
     ${boxes.map((b) => `<rect x="${PAD + b.left}" y="${PAD + b.top}" width="${b.right - b.left}" height="${b.bottom - b.top}" fill="none" stroke="#ff3b3b" stroke-width="3" stroke-dasharray="10 6"/>`).join('')}
   </svg>`;
   const big = await sharp({ create: { width: W + PAD * 2, height: H + PAD * 2, channels: 4, background: '#00000000' } })
-    .composite([{ input: Buffer.from(svg), left: 0, top: 0 }, ...arms.flatMap((a) => a.back), ...parts, ...arms.flatMap((a) => a.parts), { input: Buffer.from(over), left: 0, top: 0 }])
+    .composite([{ input: Buffer.from(svg), left: 0, top: 0 }, ...parts, ...arms.flatMap((a) => a.back), ...arms.flatMap((a) => a.parts), { input: Buffer.from(over), left: 0, top: 0 }])
     .png().toBuffer();
   panels.push(await sharp(big).extract({ left: PAD, top: PAD, width: W, height: H }).resize(Math.round(W / 2)).toBuffer());
 }
