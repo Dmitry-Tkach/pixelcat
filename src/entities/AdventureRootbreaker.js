@@ -620,7 +620,7 @@ export class AdventureRootbreaker {
   // The fight freezes for a moment (the moves, the cat, the shots), so a blow feels heavy.
   hitStop(ms) {
     const { world } = this.scene.physics;
-    if (this.hitStopMs > 0 || world.isPaused) return;
+    if (this.halted || this.hitStopMs > 0 || world.isPaused) return;
     this.hitStopMs = ms;
     world.pause();
     this.scene.tweens.pauseAll();
@@ -634,6 +634,7 @@ export class AdventureRootbreaker {
 
   // The fist hits the floor.
   slam(arm) {
+    if (this.halted || this.defeated) return; // the fight's over: no more blows
     const s = ROOTBREAKER.smash;
     const x = arm.goal.x;
     arm.state = 'stuck';

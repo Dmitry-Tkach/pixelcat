@@ -208,6 +208,7 @@ export class AdventureScene extends Phaser.Scene {
     // bosses (level.bosses, data/adventure/bossArenas.js) wait in their arenas until the cat walks
     // in, and beating one opens his door; the portal finishes the level.
     this.bossFights = [];
+    this.boss = this.bossArena = this.bossBar = null; // a restart forgets the last try's boss
     if (level.boss) this.startBoss(this.buildBoss(level.boss, true));
     for (const def of level.bosses ?? []) this.buildBoss(def, false);
 
