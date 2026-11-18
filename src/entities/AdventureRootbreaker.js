@@ -21,7 +21,9 @@ import { landsFromAbove } from '../systems/adventurePlatformLanding.js';
 // can be worn down and broken (hurtArm), and grow back. The shoulder stones strike too (shoulder).
 const DEPTH = { body: 1.8, face: 1.81, glow: 1.815, core: 1.82, glowLine: 1.824, link: 1.826, shoulder: 1.83, fist: 5.8, shot: 6.3, warn: 6.35, laser: 6.4 };
 const CHAIN_GLOW = { colour: 0x7dff6a, width: 10, alpha: 0.35 }; // the green glow along a chain
-const STOMP_SPEED = 250; // px a second: landing on a stuck fist faster than this stomps it
+const STOMP_SPEED = 250;
+const STRIKING = new Set(['windup', 'tell', 'drop', 'sweepOut', 'sweeping', 'pound']); // a fist mid-blow
+const STUCK_ATTACK_MS = 12000; // an attack lasting longer than this is cut short (unstick) // px a second: landing on a stuck fist faster than this stomps it
 const BREAK_SHAKE = { ms: 320, strength: 0.012 }; // the screen, as an arm shatters
 const FIST = 'rb-rock-1'; // his fists' stone
 const SHOULDER = 'rb-rock-2'; // his shoulders' stone
@@ -58,6 +60,7 @@ export class AdventureRootbreaker {
     this.coreMs = 0;
     this.faceNod = 0;
     this.attackCount = 0;
+    this.attackMs = 0; // how long the attack he's making has lasted
     this.leftovers = [];
     this.lean = { x: 0, y: 0 }; // his body's lean and flinch, easing back (px)
     const r = ROOTBREAKER;
@@ -460,23 +463,38 @@ export class AdventureRootbreaker {
     if (!this.started) return;
     this.stateMs -= ms;
     if (this.state === 'rest' && this.stateMs <= 0) this.beginAttack();
-    else if (this.state !== 'rest' && this.attackDone()) {
-      this.state = 'rest';
-      this.stateMs = ROOTBREAKER.restMs / this.phase.speed;
-    }
+    else if (this.state !== 'rest' && this.attackDone()) this.endAttack();
+    else if (this.state !== 'rest' && (this.attackMs += ms) > STUCK_ATTACK_MS) this.unstick();
+  }
+
+  endAttack() {
+    this.state = 'rest';
+    this.stateMs = ROOTBREAKER.restMs / this.phase.speed;
+  }
+
+  // A fist free to attack: resting, not busy with a move, stuck in the floor, broken or growing back.
+  free(arm) {
+    return arm.state === 'rest';
   }
 
   beginAttack() {
-    const fists = this.arms.filter((arm) => this.whole(arm));
-    const { kind, steps } = pickAttack(this.phase, this.attackCount, fists.length);
+    // Only a free fist attacks: one stuck in the floor stays stuck while the other, his eyes, his
+    // mouth or a shoulder stone carry on.
+    const fists = this.arms.filter((arm) => this.free(arm));
+    const broken = this.arms.filter((arm) => !this.whole(arm)).length;
+    let { kind, steps } = pickAttack(this.phase, this.attackCount, fists.length, broken);
     this.attackCount += steps;
-    this.state = kind;
-    const speed = this.phase.speed;
-    // A smash and a sweep are made by the fist on the cat's side; with that arm gone, by the other.
     const onSide = this.arms[this.cat.x < this.x ? 0 : 1];
-    const near = this.whole(onSide) ? onSide : fists[0];
-    // The shoulder stone strikes from the side whose arm is broken, else the cat's side.
-    if (kind === 'shoulder') this.shoulderStrike(this.arms.find((arm) => !this.whole(arm)) ?? onSide, speed);
+    // The shoulder stone strikes from the side whose arm is broken, else the cat's side: one at home.
+    const stones = this.arms.filter((arm) => arm.stone.state === 'home');
+    const striker = stones.find((arm) => !this.whole(arm)) ?? (stones.includes(onSide) ? onSide : stones[0]);
+    if (kind === 'shoulder' && !striker) kind = 'blast';
+    this.state = kind;
+    this.attackMs = 0;
+    const speed = this.phase.speed;
+    // A smash and a sweep are made by the fist on the cat's side; with that one busy or gone, by the other.
+    const near = fists.includes(onSide) ? onSide : fists[0];
+    if (kind === 'shoulder') this.shoulderStrike(striker, speed);
     if (kind === 'smash') this.smash(near, speed);
     if (kind === 'sweep') this.sweep(near, speed);
     if (kind === 'blast') this.blast(speed);
@@ -484,9 +502,37 @@ export class AdventureRootbreaker {
     if (kind === 'rockfall') this.rockfall(speed);
   }
 
+  // An attack is done once its blow has landed: his fists are past their strike (a stuck one stays
+  // stuck, a lifting one lifts, on their own), a shoulder stone has landed, and his shots are gone.
   attackDone() {
-    return this.stateMs <= 0 && this.arms.every((arm) => (arm.state === 'rest' || !this.whole(arm)) && arm.stone.state === 'home')
+    return this.stateMs <= 0 && this.arms.every((arm) => !STRIKING.has(arm.state) && !['tell', 'fly'].includes(arm.stone.state))
       && this.leftovers.length === 0;
+  }
+
+  // A safety net: an attack that somehow never ends (a move cut short) after STUCK_ATTACK_MS. His
+  // busy fists head back to rest, his stones home, his shots go, and he carries on.
+  unstick() {
+    for (const arm of this.arms) {
+      if (!this.whole(arm) || arm.state === 'rest') continue;
+      this.scene.tweens.killTweensOf(arm.goal);
+      this.scene.tweens.killTweensOf(arm);
+      arm.shadow?.destroy();
+      arm.shadow = null;
+      arm.fist.clearTint();
+      arm.shake = 0;
+      arm.state = 'return';
+      this.aimFist(arm, ROOTBREAKER.fistRest.tilt);
+      const rest = this.restOf(arm);
+      this.scene.tweens.add({ targets: arm.goal, x: rest.x, y: rest.y, duration: 600, ease: 'Sine.easeInOut', onComplete: () => { arm.state = 'rest'; } });
+    }
+    for (const arm of this.arms) {
+      if (arm.stone.state === 'home') continue;
+      arm.stone.state = 'back';
+      arm.stone.t = 0;
+      arm.stone.from = { ...arm.stone.at };
+    }
+    this.clearLeftovers();
+    this.endAttack();
   }
 
   setFace(kind, ms = 0) {
@@ -712,7 +758,7 @@ export class AdventureRootbreaker {
       const wave = this.scene.add.ellipse(x, this.floorY - 8, 70, 22, WAVE_COLOUR, 0.18).setStrokeStyle(5, WAVE_COLOUR, 0.95).setDepth(DEPTH.warn);
       this.scene.tweens.add({ targets: wave, x: x + dir * s.waveReach, scaleY: 0.5, alpha: 0, duration: s.waveMs, ease: 'Quad.easeOut', onComplete: () => wave.destroy() });
     }
-    if (this.phase.index !== 1) this.openCore(ROOTBREAKER.coreOpenMs[`phase${this.phase.index + 1}`]);
+    this.openCore(ROOTBREAKER.coreOpenMs[`phase${this.phase.index + 1}`]); // a missed smash opens his core
   }
 
   // Stones thrown up where a fist lands or a rock breaks.
@@ -779,7 +825,7 @@ export class AdventureRootbreaker {
     this.stateMs = r.tellMs / speed + r.rocks * r.everyMs + 600;
     const top = this.floorY - this.size.h + 20; // just over his head, still on screen
     const raiseMs = (r.tellMs * 0.6) / speed;
-    for (const arm of this.arms.filter((a) => this.whole(a))) {
+    for (const arm of this.arms.filter((a) => this.free(a))) {
       arm.state = 'pound';
       this.aimFist(arm, -80);
       this.scene.tweens.add({
@@ -880,7 +926,8 @@ export class AdventureRootbreaker {
       if (item.kind === 'rock') image.angle += 140 * dt;
       this.hurtIfTouching({ left: image.x - item.r, right: image.x + item.r, top: image.y - item.r, bottom: image.y + item.r }, image.x);
       const landed = item.kind === 'rock' && image.y >= this.floorY - item.r;
-      const gone = image.x < this.left - 100 || image.x > this.right + 100 || image.y > this.floorY + 40;
+      // Gone past a wall, under the floor, or over the top (a ball blasted up at a cat on a branch).
+      const gone = image.x < this.left - 100 || image.x > this.right + 100 || image.y > this.floorY + 40 || image.y < this.frame.top - 100;
       if (landed) {
         this.scene.effects.dust(image.x, this.floorY, 6);
         this.flyStones(image.x, this.floorY, 4);

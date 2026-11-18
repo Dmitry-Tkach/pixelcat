@@ -5,8 +5,9 @@
 // only while it's open:
 //   phase 1, Awakening (100-66%): one fist at a time slams down where the cat is; a missed smash
 //     sticks in the ground, and his core opens for a while. His mouth blasts balls of green energy.
-//   phase 2, Enraged (66-33%): a fist sweeps low across his side of the arena, and his eyes fire
-//     lasers at the cat; a missed smash doesn't open his core: breaking an arm does.
+//   phase 2, Enraged (66-33%): a fist sweeps low across his side of the arena, his eyes fire lasers
+//     at the cat, and his shoulder stones strike.
+// In every phase a missed smash opens his core, and so does breaking an arm.
 // He can be hit anywhere on his body, but only while his core is open.
 // In every phase his arms can be hurt: rounds, blasts, the bolt, the claw, a dash or a stomp on a
 // fist wear its arm down (it cracks at half); broken, it shatters, his core opens, and it grows
@@ -137,12 +138,12 @@ export const nextAttack = (phase, count) => phase.attacks[count % phase.attacks.
 // The attacks that need a fist.
 const FIST_ATTACKS = new Set(['smash', 'sweep']);
 
-// The attack he makes, with `count` attacks made in this phase and `fists` of his fists whole: his
-// list in turn, passing over a fist's attack while he has none. With an arm broken (fists under 2),
-// in a phase that has the shoulder strike, every other attack is one. Returns the attack and how
-// many turns of the list it took (to add to count).
-export function pickAttack(phase, count, fists) {
-  if (fists < 2 && phase.attacks.includes('shoulder') && count % 2 === 0) return { kind: 'shoulder', steps: 1 };
+// The attack he makes, with `count` attacks made in this phase, `fists` of his fists free to strike
+// and `broken` of his arms broken: his list in turn, passing over a fist's attack while no fist is
+// free. With an arm broken, in a phase that has the shoulder strike, every other attack is one.
+// Returns the attack and how many turns of the list it took (to add to count).
+export function pickAttack(phase, count, fists, broken = 0) {
+  if (broken > 0 && phase.attacks.includes('shoulder') && count % 2 === 0) return { kind: 'shoulder', steps: 1 };
   for (let step = 0; step < phase.attacks.length; step++) {
     const kind = nextAttack(phase, count + step);
     if (fists > 0 || !FIST_ATTACKS.has(kind)) return { kind, steps: step + 1 };

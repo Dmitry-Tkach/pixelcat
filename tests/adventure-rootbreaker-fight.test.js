@@ -39,7 +39,7 @@ function standInScene() {
   const tweens = [], timers = [];
   const scene = {
     textures: { get: () => ({ getSourceImage: () => ({ width: 134, height: 138 }) }) },
-    add: new Proxy({}, { get: () => () => thing() }),
+    add: new Proxy({}, { get: () => (x = 0, y = 0) => thing({ x: typeof x === 'number' ? x : 0, y: typeof y === 'number' ? y : 0 }) }),
     physics: {
       add: { group: () => ({ add: (z) => z.body, contains: () => true }), image: () => thing(), existing: () => {}, collider: () => {}, overlap: () => {} },
       world: { isPaused: false, pause() { this.isPaused = true; }, resume() { this.isPaused = false; } },
@@ -83,15 +83,33 @@ describe('the Rootbreaker, in a pretend fight', () => {
     });
     boss.start();
     const attacks = new Set(), stones = new Set(), arms = new Set();
+    const opened = new Set(); // the phases his core opened in
+    let resting = 0, longestRest = 0, attacking = 0, longestAttack = 0, unstuck = 0;
+    const unstick = boss.unstick?.bind(boss);
+    boss.unstick = () => { unstuck++; unstick?.(); };
     for (let frame = 0; frame < 9000; frame++) {
-      cat.x = 204 * 64 + Math.sin(frame / 90) * 500; // running back and forth
+      // Running back and forth on the floor; for a while in phases 1 and 3 up on the top branch,
+      // over his head, where his mouth's blasts go up at him.
+      const onTop = (frame > 400 && frame < 1400) || (frame > 7000 && frame < 8500);
+      // On the branch he stands still, right over his mouth, by the minigun: a ball blasted straight up.
+      cat.x = onTop ? boss.x : 204 * 64 + Math.sin(frame / 90) * 500;
+      const feet = onTop ? 25 * 64 : 34 * 64;
+      Object.assign(cat.body, { left: cat.x - 30, right: cat.x + 30, top: feet - 90, bottom: feet, center: { x: cat.x, y: feet - 45 } });
       if (frame === 1500) boss.hp = 38; // into phase 2
       if (frame === 6000) boss.hp = 15; // into phase 3
-      if (frame % 15 === 0 && frame > 2000 && frame < 2400) boss.strikeParts('explosive', boss.arms[1].box);
-      if (frame % 50 === 0 && boss.coreOpen) boss.takeHit('standard', 0, 0);
+      // His right arm broken in phase 3 (in phase 2 his core must open by itself, from missed smashes).
+      if (frame % 15 === 0 && frame > 6200 && frame < 6600) boss.strikeParts('explosive', boss.arms[1].box);
+      // Shooting his open core, but never so much that he leaves his phase before the test moves him on.
+      const keepAbove = frame < 1500 ? 41 : frame < 6000 ? 21 : Infinity;
+      if (frame % 50 === 0 && boss.coreOpen && boss.hp > keepAbove) boss.takeHit('standard', 0, 0);
       scene.step(16.7);
       boss.update(16.7);
       attacks.add(boss.state);
+      if (boss.coreOpen) opened.add(boss.phase.index);
+      resting = boss.state === 'rest' ? resting + 16.7 : 0;
+      longestRest = Math.max(longestRest, resting);
+      attacking = boss.state !== 'rest' ? attacking + 16.7 : 0;
+      longestAttack = Math.max(longestAttack, attacking);
       for (const arm of boss.arms) {
         stones.add(arm.stone.state);
         arms.add(arm.state);
@@ -99,8 +117,13 @@ describe('the Rootbreaker, in a pretend fight', () => {
         expect(at.every(Number.isFinite), `frame ${frame}`).toBe(true);
       }
     }
-    expect([...attacks]).toEqual(expect.arrayContaining(['smash', 'blast', 'sweep', 'laser', 'rockfall', 'shoulder']));
-    expect([...stones]).toEqual(expect.arrayContaining(['home', 'tell', 'fly', 'wait', 'back']));
-    expect([...arms]).toEqual(expect.arrayContaining(['broken', 'rebuild', 'stuck']));
+    expect([...attacks], `attacks: ${[...attacks]}, hp ${boss.hp}`).toEqual(expect.arrayContaining(['smash', 'blast', 'sweep', 'laser', 'rockfall', 'shoulder']));
+    expect([...stones], `stones: ${[...stones]}, hp ${boss.hp}`).toEqual(expect.arrayContaining(['home', 'tell', 'fly', 'wait', 'back']));
+    expect([...arms], `arms: ${[...arms]}, hp ${boss.hp}`).toEqual(expect.arrayContaining(['broken', 'rebuild', 'stuck']));
+    // He never stops attacking for long, never needs his safety net, and his core opens in every phase.
+    expect(longestRest).toBeLessThan(3000);
+    expect(longestAttack).toBeLessThan(4500); // none waits on a stuck fist, or on a ball that never leaves
+    expect(unstuck).toBe(0);
+    expect([...opened].sort()).toEqual([0, 1, 2]);
   });
 });

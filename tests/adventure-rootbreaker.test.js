@@ -51,8 +51,9 @@ describe('the Rootbreaker', () => {
     expect(rootbreakerPhase(0.2).attacks).toContain('shoulder');
     const enraged = rootbreakerPhase(0.5);
     expect(pickAttack(enraged, 0, 2).kind).toBe('sweep');
-    expect(pickAttack(enraged, 0, 1).kind).toBe('shoulder');
-    expect(pickAttack(enraged, 1, 1).kind).not.toBe('shoulder');
+    expect(pickAttack(enraged, 0, 1, 1).kind).toBe('shoulder'); // an arm broken
+    expect(pickAttack(enraged, 1, 1, 1).kind).not.toBe('shoulder');
+    expect(pickAttack(enraged, 0, 1, 0).kind).toBe('sweep'); // one fist busy, none broken: the other sweeps
     expect(ROOTBREAKER.shoulder.tellMs).toBeGreaterThanOrEqual(700); // a warning as long as the traps'
     expect(ROOTBREAKER.shoulderStone.scale).toBeGreaterThan(0); // the stone's own size, apart from the strike's settings
   });
