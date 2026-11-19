@@ -1,8 +1,8 @@
 // Prepares the adventure's road map (Level Select) from the owner's designs, into
 // public/assets/ui/adventure-roadmap, from the owner's atlas of separate pieces in
 // images/Adventure_Wide_Worlds_Separate_Titles (never changed): the eight worlds' islands (with no
-// words on them), their title plates, the world badges, the level buttons and their states, the cat
-// and two clouds. Its own crops are rough, so each piece is cut here from the atlas, which has real
+// words on them), their title plates, the world badges, the level buttons and their states, and two
+// clouds; and the cat, from the hero's own idle animation. Its own crops are rough, so each piece is cut here from the atlas, which has real
 // transparency: the drawings whose middle is inside the piece's box, so nothing of a neighbour
 // comes along. ui/adventureRoadmap.js puts them together (the layout is in data/adventure/roadmap.js);
 // the sky behind them is CSS.
@@ -11,6 +11,9 @@
 import sharp from 'sharp';
 import { mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
+import { ROADMAP_PIECES } from '../src/data/adventure/roadmap.js';
+
+const CAT_IDLE = ROADMAP_PIECES.catIdle;
 
 const ATLAS = 'images/Adventure_Wide_Worlds_Separate_Titles/00_atlas_reference/full_asset_atlas_reference.png';
 const OUT = 'public/assets/ui/adventure-roadmap';
@@ -82,7 +85,29 @@ for (const [name, [x0, y0, x1, y1]] of Object.entries(PIECES)) {
     .webp({ quality: QUALITY, alphaQuality: 95 }).toFile(join(OUT, `${name}.webp`));
 }
 
-console.log(`The road map's ${Object.keys(PIECES).length} pieces, in ${OUT}`);
+// The cat on the map: the hero's own idle animation (public/assets/sprites/paws-cat, from
+// tools/prepare-assets.mjs), its frames side by side in one strip, all cut to the box that holds
+// every frame, so he stays still on the spot as he breathes. ui/adventureRoadmap.js plays it.
+const CAT_FRAMES = Array.from({ length: CAT_IDLE.frames }, (_, i) => `public/assets/sprites/paws-cat/idle-${i + 1}.png`);
+const frames = await Promise.all(CAT_FRAMES.map((file) => sharp(file).ensureAlpha().raw().toBuffer({ resolveWithObject: true })));
+const box = { x0: Infinity, y0: Infinity, x1: -1, y1: -1 };
+for (const { data: d, info: f } of frames) {
+  for (let y = 0; y < f.height; y++) for (let x = 0; x < f.width; x++) {
+    if (d[(y * f.width + x) * 4 + 3] <= SOLID) continue;
+    box.x0 = Math.min(box.x0, x); box.x1 = Math.max(box.x1, x); box.y0 = Math.min(box.y0, y); box.y1 = Math.max(box.y1, y);
+  }
+}
+const fw = box.x1 - box.x0 + 1 + PAD * 2, fh = box.y1 - box.y0 + 1 + PAD * 2;
+// (Room round it first, then the cut: in one sharp chain they'd run the other way round.)
+const cut = await Promise.all(CAT_FRAMES.map(async (file) => {
+  const roomy = await sharp(file).extend({ top: PAD, bottom: PAD, left: PAD, right: PAD, background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer();
+  return sharp(roomy).extract({ left: box.x0, top: box.y0, width: fw, height: fh }).png().toBuffer();
+}));
+await sharp({ create: { width: fw * cut.length, height: fh, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+  .composite(cut.map((input, i) => ({ input, left: i * fw, top: 0 })))
+  .webp({ quality: QUALITY, alphaQuality: 95 }).toFile(join(OUT, 'cat-idle.webp'));
+
+console.log(`The road map's ${Object.keys(PIECES).length} pieces, and the cat's ${cut.length} idle frames (each ${fw} x ${fh}: ROADMAP_PIECES.catIdle), in ${OUT}`);
 
 // The contact sheet: every piece on white and on dark, to check the cut.
 const sheetAt = process.argv.indexOf('--sheet');

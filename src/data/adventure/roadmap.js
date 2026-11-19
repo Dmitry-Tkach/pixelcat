@@ -54,6 +54,9 @@ export const ROADMAP_PIECES = {
   badge: [71, 77],
   level: [71, 75],
   cat: [182, 203],
+  // The cat on the map: the hero's idle animation, as a strip of frames, each `size` px as cut
+  // (tools/adventure-roadmap-art.mjs prints it), played at `fps`, as in the game.
+  catIdle: { frames: 6, fps: 7, size: [117, 133] },
   clouds: [[139, 65], [128, 57]],
 };
 

@@ -85,13 +85,20 @@ export function adventureRoadmap({ levels, crystals, onBack, overlay }) {
     if (level.current) current = { x, y };
   });
 
-  // The cat, standing on the level the player is up to.
+  // The cat, standing on the level the player is up to, breathing: the hero's own idle animation,
+  // a strip of frames played in steps (adventure-roadmap.css).
   if (current) {
-    const [cw, ch] = ROADMAP_PIECES.cat;
+    const { frames, fps, size: [cw, ch] } = ROADMAP_PIECES.catIdle;
     const height = ROADMAP_LOOK.cat;
     const width = (height * cw) / ch;
     const feet = current.y - layout.button.h * 0.42;
-    map.append(piece('cat', 'roadmap-cat', at({ x: current.x - width / 2, y: feet - height, w: width })));
+    const cat = document.createElement('div');
+    cat.className = 'roadmap-cat';
+    Object.assign(cat.style, at({ x: current.x - width / 2, y: feet - height, w: width }), { aspectRatio: `${cw} / ${ch}` });
+    // The strip, `frames` times as wide as the cat; stepped through, first frame to last, in a loop.
+    cat.style.background = `url(${art('cat-idle')}) 0 0 / ${frames * 100}% 100% no-repeat`;
+    cat.style.animation = `roadmap-cat-idle ${frames / fps}s steps(${frames - 1}, jump-none) infinite`;
+    map.append(cat);
   }
   scroller.append(map);
 
@@ -124,7 +131,7 @@ export function adventureRoadmapPictures() {
   const worlds = ADVENTURE_WORLDS.map((_, i) => i + 1);
   return [
     ...worlds.flatMap((n) => [`island-${n}`, `title-${n}`, `badge-${n}`]),
-    'level-1', 'level-2', 'level-3', 'level-done', 'level-locked', 'cat', 'cloud-1', 'cloud-2',
+    'level-1', 'level-2', 'level-3', 'level-done', 'level-locked', 'cat-idle', 'cloud-1', 'cloud-2',
   ].map(art);
 }
 
