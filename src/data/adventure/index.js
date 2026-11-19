@@ -5,6 +5,7 @@ import { WOOD_MILL_LEVEL } from './wood2.js';
 import { WOOD_HEART_LEVEL } from './wood3.js';
 import { MILL_ART } from './millArt.js';
 import { PTERO_KEYS } from './birds.js';
+import { HERO_JUMP } from './heroJump.js';
 
 export const ADVENTURE_LEVELS = [
   { ...WOOD_LEVEL, music: { track: 'village', bpm: 112 }, sky: '#8fd18f' },
@@ -40,9 +41,9 @@ export const ADVENTURE_ART = {
 
 // Who the hero is, and how big he's shown in the adventure, against the size he's drawn: smaller
 // than in the main game, so the tiles and enemies feel bigger around him. He starts each level with
-// bare paws (character), and becomes `armed` when he finds the minigun. airSpeed: his jumps (and
-// bounces) are this much quicker than the main game's, at the same height (Cat.setAirSpeed).
-export const ADVENTURE_HERO = { character: 'pawsCat', armed: 'pawsCatArmed', scale: 0.8, airSpeed: 1.15 };
+// bare paws (character), and becomes `armed` when he finds the minigun. jump: how he jumps, quicker
+// and higher than the main game's cat (heroJump.js, Cat.setAirSpeed).
+export const ADVENTURE_HERO = { character: 'pawsCat', armed: 'pawsCatArmed', scale: 0.8, jump: HERO_JUMP };
 
 // Where tools/adventure-art.mjs cuts the earth pillar (roots.png, 160px tall) into its cap, middle
 // and base: the rows each starts at. The middle is the narrow twisting trunk.

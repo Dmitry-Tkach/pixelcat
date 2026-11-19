@@ -139,7 +139,7 @@ export class AdventureScene extends Phaser.Scene {
     const place = devPlace();
     this.respawnAt = this.cellFeet(place?.levelIndex === this.levelIndex ? place.cell : start);
     this.cat = new Cat(this, this.respawnAt.x, level.cat.speed, { character: ADVENTURE_HERO.character, y: this.respawnAt.y - 80 });
-    this.cat.setScale(this.cat.scaleX * ADVENTURE_HERO.scale).setAirSpeed(ADVENTURE_HERO.airSpeed);
+    this.cat.setScale(this.cat.scaleX * ADVENTURE_HERO.scale).setAirSpeed(ADVENTURE_HERO.jump.airSpeed, ADVENTURE_HERO.jump.height);
     this.cat.moveMode = 'free';
     this.cat.startRunning();
     this.gates.open(this.cat);

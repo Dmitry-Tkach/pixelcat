@@ -25,6 +25,7 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     this.speedControl = new SpeedController(topSpeed);
     this.body.setGravityY(MOVEMENT.GRAVITY);
     this.airSpeed = 1; // how quick his jumps are (setAirSpeed); the runner's cat keeps 1
+    this.jumpLift = 1; // and how much faster than that he leaves the ground, to jump higher
     this.useHitbox('run');
 
     this.slideLeft = 0;
@@ -82,7 +83,7 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
   startJump() {
     this.jumpBufferMs = 0;
     this.endSlide();
-    this.setVelocityY(MOVEMENT.JUMP_VELOCITY * this.airSpeed);
+    this.setVelocityY(MOVEMENT.JUMP_VELOCITY * this.airSpeed * this.jumpLift);
     this.play(animKey(this.character, 'jump'), true);
     this.emit('jump');
   }
@@ -98,7 +99,7 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     if (this.airJumpsLeft > 0) {
       this.airJumpsLeft -= 1;
       this.jumpBufferMs = 0;
-      this.setVelocityY(MOVEMENT.AIR_JUMP_VELOCITY * this.airSpeed);
+      this.setVelocityY(MOVEMENT.AIR_JUMP_VELOCITY * this.airSpeed * this.jumpLift);
       this.play(animKey(this.character, 'jump'));
       this.emit('doubleJump');
       return;
@@ -144,9 +145,11 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     this.useHitbox('run');
   }
 
-  // Quicker jumps at the same height: his speeds up and down times k, and his gravity times k².
-  setAirSpeed(k) {
+  // Quicker jumps at the same height: his speeds up and down times k, and his gravity times k². And
+  // his jumps (not his bounces) `height` times as high.
+  setAirSpeed(k, height = 1) {
     this.airSpeed = k;
+    this.jumpLift = Math.sqrt(height);
     this.body.setGravityY(MOVEMENT.GRAVITY * k * k);
     return this;
   }

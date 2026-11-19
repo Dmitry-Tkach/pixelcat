@@ -1,4 +1,5 @@
 import { SINGLE_JUMP_HEIGHT } from '../../config/gameConfig.js';
+import { HERO_JUMP } from '../../data/adventure/heroJump.js';
 import { TILE } from '../adventureMap.js';
 import { TRAPS, TRAP_KINDS } from '../../data/adventure/traps.js';
 
@@ -12,10 +13,11 @@ const STANDS = new Set(['idol', 'mushroom']);
 export const STAND_HEIGHT = 90;
 export const SLIDE_HEIGHT = 58;
 // How much room a waiting crusher must leave above the ground it slams onto: a single jump lifts his
-// feet SINGLE_JUMP_HEIGHT, his head STAND_HEIGHT above them. Lower, a plain jump under it would bump
+// feet the adventure cat's jump height (the main game's, times HERO_JUMP.height), his head
+// STAND_HEIGHT above them. Lower, a plain jump under it would bump
 // it, and be under it if it fell.
 const CRUSHER_MARGIN = 20;
-export const CRUSHER_CLEARANCE = Math.ceil(SINGLE_JUMP_HEIGHT + STAND_HEIGHT + CRUSHER_MARGIN);
+export const CRUSHER_CLEARANCE = Math.ceil(SINGLE_JUMP_HEIGHT * HERO_JUMP.height + STAND_HEIGHT + CRUSHER_MARGIN);
 // Where the lowest point of a mace's spikes must swing, above the ground under it (px): high enough
 // for a slide to pass under, low enough to hit him standing, so it's dodged by sliding or timing.
 export const MACE_SWING_LOW = { min: SLIDE_HEIGHT + 12, max: STAND_HEIGHT - 6 };
