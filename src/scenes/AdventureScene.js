@@ -24,6 +24,7 @@ import { AdventureScenery } from '../systems/adventure/AdventureScenery.js';
 import { AdventureBird } from '../entities/AdventureBird.js';
 import { AdventureRootbreaker } from '../entities/AdventureRootbreaker.js';
 import { devPlace } from '../systems/adventure/devPlaces.js';
+import { atBoss, cellKey, restore, snapshot } from '../systems/adventure/bossRetry.js';
 import { AdventureCameraShots } from '../systems/adventure/AdventureCameraShots.js';
 import { FLASH, FLASH_KEY } from '../data/adventure/gunners.js';
 import { BOSS_FIGHTS } from '../data/adventure/bossFights.js';
@@ -98,10 +99,12 @@ export class AdventureScene extends Phaser.Scene {
 
   // A level from the road map by its place in ADVENTURE_LEVELS, or one given whole, such as a boss's
   // test arena (data/adventure/bossArenas.js).
-  init({ levelIndex = 0, level = null } = {}) {
+  // retry: what he'd done before losing at the boss, to start again at the checkpoint (bossRetry.js).
+  init({ levelIndex = 0, level = null, retry = null } = {}) {
     this.levelIndex = level ? -1 : levelIndex;
     this.level = level ?? ADVENTURE_LEVELS[levelIndex];
     this.restartData = level ? { level } : { levelIndex };
+    this.retry = retry;
   }
 
   create() {
@@ -250,6 +253,11 @@ export class AdventureScene extends Phaser.Scene {
     this.fitToScreen();
     this.overlay.hide();
     this.startMusicSoon();
+    // Again after losing at the boss: as he left it, at the checkpoint (bossRetry.js).
+    if (this.retry) {
+      restore(this, this.retry, { armed: ADVENTURE_HERO.armed, openChest: (chest) => chest.setTexture(this.art(chest.silver ? 'chest-silver-open' : 'chest-open')) });
+      this.updateHud();
+    }
   }
 
   // Browsers only allow sound after a key press or a click, so the music waits for the first one.
@@ -410,15 +418,19 @@ export class AdventureScene extends Phaser.Scene {
     // each enemy his, to stand on the ground and find its edges.
     this.enemies = this.physics.add.group({ gravityY: MOVEMENT.GRAVITY, maxVelocityY: MAX_FALL_SPEED });
     this.totals = { coins: 0, gems: 0, enemies: 0 };
+    this.done = new Set(); // the cells of what he's taken, opened and knocked out (bossRetry.js)
+    this.lit = new Set(); // and of the checkpoints he's lit
     this.spikeCells = new Set(this.layout.objects.filter((o) => o.type === 'spike').map(({ col, row }) => `${col},${row}`));
     for (const object of this.layout.objects) {
       const { x, y } = this.cellFeet(object);
       const middle = y - TILE / 2;
+      const cell = cellKey(object);
       switch (object.type) {
         case 'coin': {
           const coin = this.physics.add.staticSprite(x, middle, this.art('coin-1')).play(adventureKey(this.level.world, 'coin-spin'));
           coin.body.setCircle(18, (coin.width - 36) / 2, (coin.height - 36) / 2);
           coin.kind = 'coin';
+          coin.cell = cell;
           this.pickups.push(coin);
           this.totals.coins += 1;
           break;
@@ -437,6 +449,7 @@ export class AdventureScene extends Phaser.Scene {
           const texture = { rage: 'mushroom', weapon: 'minigun' }[object.type] ?? object.type;
           const item = this.physics.add.staticImage(x, middle, this.art(texture)).setDepth(4);
           item.kind = object.type;
+          item.cell = cell;
           this.tweens.add({ targets: item, scale: 1.12, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
           this.pickups.push(item);
           if (object.type === 'gem') this.totals.gems += 1;
@@ -464,6 +477,7 @@ export class AdventureScene extends Phaser.Scene {
         case 'checkpoint': {
           const lantern = this.gates.buildCheckpoint(x, y);
           lantern.respawn = { x, y };
+          lantern.cell = cell;
           this.lanterns.push(lantern);
           break;
         }
@@ -472,12 +486,13 @@ export class AdventureScene extends Phaser.Scene {
           const silver = object.type === 'silver-chest';
           const chest = this.physics.add.staticImage(x, y + 2, this.art(silver ? 'chest-silver-locked' : 'chest-locked')).setOrigin(0.5, 1).setDepth(3);
           chest.silver = silver;
+          chest.cell = cell;
           chest.refreshBody();
           this.chests.push(chest);
           break;
         }
         case 'enemy': {
-          this.makeEnemy(object.kind, x, y);
+          this.makeEnemy(object.kind, x, y).cell = cell;
           this.totals.enemies += 1;
           break;
         }
@@ -486,6 +501,7 @@ export class AdventureScene extends Phaser.Scene {
             groundLayer: this.groundLayer,
             fire: (from, bx, by, angle) => this.fireAtCat(from, bx, by, angle),
           });
+          gunner.cell = cell;
           this.enemies.add(gunner);
           this.totals.enemies += 1;
           break;
@@ -860,6 +876,7 @@ export class AdventureScene extends Phaser.Scene {
   collect(item) {
     if (!item.active) return;
     item.disableBody(true, false);
+    this.done.add(item.cell);
     const { x, y } = item;
     if (item.kind === 'coin') {
       this.coins += 1;
@@ -924,6 +941,7 @@ export class AdventureScene extends Phaser.Scene {
     }
     chest.opened = true;
     chest.setTexture(this.art(chest.silver ? 'chest-silver-open' : 'chest-open'));
+    this.done.add(chest.cell);
     this.chestsOpened += 1;
     this.audio.playSfx('cheer');
     this.effects.confetti(chest.x, chest.y - 50);
@@ -1049,6 +1067,7 @@ export class AdventureScene extends Phaser.Scene {
     if (enemy.dead) return;
     this.effects.impact(enemy.x, enemy.body.center.y);
     enemy.knockOut();
+    if (enemy.cell) this.done.add(enemy.cell);
     this.knockedOut += 1;
     if (this.moves.addCharge()) this.showHint('Beam ready! Press C');
     this.updateHud();
@@ -1057,6 +1076,7 @@ export class AdventureScene extends Phaser.Scene {
   reachCheckpoint(lantern) {
     if (lantern.lit) return;
     lantern.lit = true;
+    this.lit.add(lantern.cell);
     this.gates.raise(lantern);
     this.respawnAt = lantern.respawn;
     this.audio.playSfx('checkpoint');
@@ -1159,7 +1179,10 @@ export class AdventureScene extends Phaser.Scene {
       message: `Coins ${this.coins}, crystals ${this.gems}/${this.totals.gems}${chest}, enemies ${this.knockedOut}/${this.totals.enemies}`,
       actions: [
         ...(won && next ? [{ label: 'Next level', primary: true, onClick: () => this.scene.restart({ levelIndex: this.levelIndex + 1 }) }] : []),
-        { label: won ? 'Play again' : 'Try again', primary: !(won && next), onClick: () => this.restartLevel() },
+        // Lost at the boss: again from the checkpoint before him, as he left it (bossRetry.js).
+        ...(!won && atBoss(this)
+          ? [{ label: 'Try again', primary: true, onClick: () => this.restartLevel(snapshot(this)) }, { label: 'From the start', onClick: () => this.restartLevel() }]
+          : [{ label: won ? 'Play again' : 'Try again', primary: !(won && next), onClick: () => this.restartLevel() }]),
         { label: 'Map', onClick: () => this.goHome('map') },
         { label: 'Home', onClick: () => this.goHome() },
       ],
@@ -1178,10 +1201,10 @@ export class AdventureScene extends Phaser.Scene {
     else leave();
   }
 
-  // The level again, from its start.
-  restartLevel() {
+  // The level again, from its start; or, with `retry`, from the checkpoint as he left it.
+  restartLevel(retry = null) {
     this.endPause();
-    this.scene.restart(this.restartData);
+    this.scene.restart(retry ? { ...this.restartData, retry } : this.restartData);
   }
 
   // Esc, P or the menu button: pauses the game behind the game menu, or carries on.
