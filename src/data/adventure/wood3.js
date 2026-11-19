@@ -114,10 +114,12 @@ export const WOOD_HEART_LEVEL = {
   // crumbles his door.
   bosses: [
     {
-      // His arena is one screen wide (20 cells), so the camera frames it whole; a gate shuts behind
-      // the cat as he wakes.
+      // His arena is one screen wide (20 cells), so the camera frames it whole (rising after a cat
+      // up high); a gate shuts behind the cat as he wakes. Their stones are 8 high, and the walls go
+      // on unseen to row SURFACE - 22, past a double jump from the top branch.
       kind: 'rootbreaker', col: 204, floor: SURFACE, arena: { left: 195, right: 214 },
-      gate: { col: 194, rows: [SURFACE - 8, SURFACE - 1] }, door: { col: 215, rows: [SURFACE - 8, SURFACE - 1] },
+      gate: { col: 194, rows: [SURFACE - 8, SURFACE - 1], wallTo: SURFACE - 22 },
+      door: { col: 215, rows: [SURFACE - 8, SURFACE - 1], wallTo: SURFACE - 22 },
       hint: 'The Rootbreaker!\nMake him miss a smash, then hit his core',
     },
   ],

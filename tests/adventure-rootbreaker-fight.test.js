@@ -55,7 +55,7 @@ function standInScene() {
       resumeAll() { scene.paused = false; },
     },
     time: { delayedCall: (ms, fn) => timers.push({ at: now + ms, fn }), get now() { return now; } },
-    cameras: { main: { shake() {}, worldView: { top: 0 } } },
+    cameras: { main: { shake() {}, worldView: { top: 34 * 64 - 700 } } }, // held on the arena, as the real one is
     audio: { playSfx() {} },
     effects: { dust() {}, impact() {} },
     moves: { bullets: { contains: () => true }, bulletStops() {}, isDashing: false },

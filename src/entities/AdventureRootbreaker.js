@@ -823,7 +823,9 @@ export class AdventureRootbreaker {
 
   // Where the arena's edges are, for a beam: its walls, the floor, and the top of the camera's frame.
   get beamBounds() {
-    return { left: this.left, right: this.right, top: this.frame.top, floor: this.floorY };
+    // The top: the arena's, or the camera's if it has risen after a cat up high.
+    const top = Math.min(this.frame.top, this.scene.cameras.main.worldView.top);
+    return { left: this.left, right: this.right, top, floor: this.floorY };
   }
 
   // Rockfall: both fists rise over his head, pointing up, then clash together, knuckles in; the
@@ -935,7 +937,8 @@ export class AdventureRootbreaker {
       this.hurtIfTouching({ left: image.x - item.r, right: image.x + item.r, top: image.y - item.r, bottom: image.y + item.r }, image.x);
       const landed = item.kind === 'rock' && image.y >= this.floorY - item.r;
       // Gone past a wall, under the floor, or over the top (a ball blasted up at a cat on a branch).
-      const gone = image.x < this.left - 100 || image.x > this.right + 100 || image.y > this.floorY + 40 || image.y < this.frame.top - 100;
+      const top = Math.min(this.frame.top, this.scene.cameras.main.worldView.top); // the camera may have risen after the cat
+      const gone = image.x < this.left - 100 || image.x > this.right + 100 || image.y > this.floorY + 40 || image.y < top - 100;
       if (landed) {
         this.scene.effects.dust(image.x, this.floorY, 6);
         this.flyStones(image.x, this.floorY, 4);

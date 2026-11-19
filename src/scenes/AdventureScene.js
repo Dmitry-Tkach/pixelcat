@@ -54,6 +54,8 @@ const HURT = { invulnerableMs: 1300, knockX: 330, knockY: -640, blinkMs: 90 };
 // A level's boss wakes once the cat stands this many cells inside his arena (updateBossFights).
 const BOSS_WAKE_CELLS = 3;
 const BOSS_CAMERA_PAN_MS = 900; // the camera's glide to frame a boss's arena
+const BOSS_CAMERA_HEADROOM = 120; // px: in a boss fight, the camera rises to keep this much over the cat's head
+const BOSS_CAMERA_EASE_MS = 140; // how fast it rises and settles
 const PENALTY = { speedMultiplier: 0.6, durationMs: 600 };
 const FALL_OUT_BELOW = 160; // below the bottom of the map, the cat has fallen out
 const MOOD_WASH_DEPTH = 90; // the mood's colour over the screen: over the level, under the HUD (100)
@@ -211,7 +213,7 @@ export class AdventureScene extends Phaser.Scene {
     // bosses (level.bosses, data/adventure/bossArenas.js) wait in their arenas until the cat walks
     // in, and beating one opens his door; the portal finishes the level.
     this.bossFights = [];
-    this.boss = this.bossArena = this.bossBar = null; // a restart forgets the last try's boss
+    this.boss = this.bossArena = this.bossBar = this.bossFrame = null; // a restart forgets the last try's boss
     if (level.boss) this.startBoss(this.buildBoss(level.boss, true));
     for (const def of level.bosses ?? []) this.buildBoss(def, false);
 
@@ -588,14 +590,29 @@ export class AdventureScene extends Phaser.Scene {
     this.boss.start();
   }
 
-  // The camera glides to the middle of a boss's arena and stays, until he's beaten.
+  // The camera glides to the middle of a boss's arena and stays, until he's beaten; it only rises
+  // to keep the cat in view when he climbs or jumps high in the arena (liftBossCamera).
   lockCamera(frame) {
     const cam = this.cameras.main;
     cam.stopFollow();
+    this.bossFrame = frame;
     cam.pan((frame.left + frame.right) / 2, (frame.top + frame.bottom) / 2, BOSS_CAMERA_PAN_MS, 'Sine.easeInOut');
   }
 
+  // Each frame of a boss fight: the camera's held on the arena, but never lets the cat's head come
+  // within BOSS_CAMERA_HEADROOM of the top; it rises after him and settles back as he comes down.
+  liftBossCamera(ms) {
+    const cam = this.cameras.main;
+    if (!this.bossFrame || cam.panEffect.isRunning) return;
+    const frame = this.bossFrame;
+    const viewH = cam.height / cam.zoom;
+    const held = (frame.top + frame.bottom) / 2 - viewH / 2; // the arena's own view
+    const target = Math.min(held, this.cat.body.top - BOSS_CAMERA_HEADROOM);
+    cam.scrollY += (target - cam.scrollY) * (1 - Math.exp(-ms / BOSS_CAMERA_EASE_MS));
+  }
+
   unlockCamera() {
+    this.bossFrame = null;
     this.cameras.main.startFollow(this.cat, true, CAMERA.lerp, CAMERA.lerp, this.look.x, this.look.y).setDeadzone(CAMERA.deadzoneW, CAMERA.deadzoneH);
   }
 
@@ -610,13 +627,14 @@ export class AdventureScene extends Phaser.Scene {
   }
 
   // His door: stone blocks across the way out of his arena, solid to the cat, the enemies and the
-  // rounds, until he's beaten.
+  // rounds, until he's beaten. Above them, up to row `wallTo`, the wall goes on unseen, so he can't
+  // jump over it from the arena's high branches.
   buildDoor(door) {
     if (!door) return [];
     const blocks = [];
-    for (let r = door.rows[0]; r <= door.rows[1]; r++) {
+    for (let r = door.wallTo ?? door.rows[0]; r <= door.rows[1]; r++) {
       const block = this.physics.add.staticImage(door.col * TILE + TILE / 2, r * TILE + TILE / 2, this.art('stone')).setDepth(3);
-      block.setDisplaySize(TILE, TILE).refreshBody();
+      block.setDisplaySize(TILE, TILE).refreshBody().setVisible(r >= door.rows[0]);
       blocks.push(block);
       this.solids.push(block);
     }
@@ -1267,6 +1285,7 @@ export class AdventureScene extends Phaser.Scene {
     this.updateEnemyBullets();
     this.updateBossFights();
     if (this.boss) {
+      this.liftBossCamera(ms);
       this.boss.update(ms);
       this.bossArena.update(ms);
       this.bossBar.update(ms, this.boss.brain.healthShare);

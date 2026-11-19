@@ -5,6 +5,8 @@ import {
   rootbreakerPhase,
 } from '../src/data/adventure/rootbreaker.js';
 import { ADVENTURE_LEVELS } from '../src/data/adventure/index.js';
+import { HERO_JUMP } from '../src/data/adventure/heroJump.js';
+import { MOVEMENT } from '../src/config/gameConfig.js';
 
 describe('the Rootbreaker', () => {
   it('has every part of his picture', () => {
@@ -86,6 +88,21 @@ describe('the Rootbreaker', () => {
     expect(height).toBeGreaterThan(ledgeUp + gunUp);
     const ledge = level.map[def.floor - 3].slice(def.arena.left, def.arena.right + 1);
     expect(ledge).toMatch(/=/);
+  });
+
+  it("can't be escaped over his walls, even with a double jump from the arena's top branch", () => {
+    const level = ADVENTURE_LEVELS.find((l) => l.id === 'wood-3');
+    const def = level.bosses.find((b) => b.kind === 'rootbreaker');
+    // The arena's highest branch: the top row with an island in it.
+    let top = def.floor;
+    for (let row = 0; row < def.floor; row++) {
+      if (/=/.test(level.map[row].slice(def.arena.left, def.arena.right + 1))) { top = row; break; }
+    }
+    // His highest jump: a jump and a double jump at its top, as the adventure's cat jumps.
+    const k = HERO_JUMP.airSpeed, lift = Math.sqrt(HERO_JUMP.height), g = MOVEMENT.GRAVITY * k * k;
+    const rise = ((MOVEMENT.JUMP_VELOCITY * k * lift) ** 2 + (MOVEMENT.AIR_JUMP_VELOCITY * k * lift) ** 2) / (2 * g);
+    const head = top * 64 - rise - 90; // his head at the top of it
+    for (const wall of [def.gate, def.door]) expect(wall.wallTo * 64, `wall at column ${wall.col}`).toBeLessThan(head - 64);
   });
 
   it('stands in his arena in level 3', () => {
