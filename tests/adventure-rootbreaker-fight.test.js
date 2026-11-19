@@ -126,4 +126,35 @@ describe('the Rootbreaker, in a pretend fight', () => {
     expect(unstuck).toBe(0);
     expect([...opened].sort()).toEqual([0, 1, 2]);
   });
+
+  it('keeps his core open while both his arms are broken, in phase 2, until one grows back', async () => {
+    const { AdventureRootbreaker } = await import('../src/entities/AdventureRootbreaker.js');
+    const scene = standInScene();
+    const cat = thing({ x: 204 * 64 + 300, onGround: true, body: thing({ left: 0, right: 0, top: 0, bottom: 0, center: { x: 0, y: 0 } }) });
+    const boss = new AdventureRootbreaker(scene, {
+      col: 204, floor: 34, arena: { left: 195, right: 214 }, cat, onHurtCat() {}, onDefeated() {}, onShake() {},
+    });
+    boss.start();
+    boss.hp = 38; // phase 2
+    const step = (frames) => { for (let i = 0; i < frames; i++) { scene.step(16.7); boss.update(16.7); } };
+    step(60);
+    // Both arms shot to pieces.
+    for (let i = 0; i < 40 && boss.arms.some((a) => boss.whole(a)); i++) {
+      for (const arm of boss.arms) if (boss.whole(arm) && arm.box) boss.strikeParts('bolt', arm.box);
+      step(5);
+    }
+    expect(boss.arms.every((a) => a.state === 'broken')).toBe(true);
+    // Long after any one opening would have shut, his core is still open.
+    step(Math.round(12000 / 16.7));
+    expect(boss.arms.every((a) => a.state === 'broken')).toBe(true);
+    expect(boss.coreOpen).toBe(true);
+    // Once an arm is back, it's no longer held open: it shuts at some point (and opens again as
+    // he misses smashes).
+    let shut = false;
+    for (let i = 0; i < Math.round(12000 / 16.7); i++) {
+      step(1);
+      if (boss.arms.some((a) => a.state !== 'broken') && !boss.coreOpen) shut = true;
+    }
+    expect(shut).toBe(true);
+  });
 });

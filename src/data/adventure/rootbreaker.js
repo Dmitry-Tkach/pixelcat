@@ -7,7 +7,8 @@
 //     sticks in the ground, and his core opens for a while. His mouth blasts balls of green energy.
 //   phase 2, Enraged (66-33%): a fist sweeps low across his side of the arena, his eyes fire lasers
 //     at the cat, and his shoulder stones strike.
-// In every phase a missed smash opens his core, and so does breaking an arm.
+// In every phase a missed smash opens his core, and so does breaking an arm; with both arms broken
+// it stays open until one grows back.
 // He can be hit anywhere on his body, but only while his core is open.
 // In every phase his arms can be hurt: rounds, blasts, the bolt, the claw, a dash or a stomp on a
 // fist wear its arm down (it cracks at half); broken, it shatters, his core opens, and it grows

@@ -548,9 +548,12 @@ export class AdventureRootbreaker {
       this.coreMs = Math.max(this.coreMs, ms);
       return;
     }
+    if (this.coreOpening) return; // already opening
+    this.coreOpening = true;
     this.core.setTexture(rbKey('rb-core-opening'));
     this.lean.y = -4;
     this.scene.time.delayedCall(240, () => {
+      this.coreOpening = false;
       if (this.defeated) return;
       this.coreOpen = true;
       this.coreMs = ms;
@@ -576,7 +579,12 @@ export class AdventureRootbreaker {
   }
 
   updateCore(ms) {
+    // With both arms broken he has no fist to smash with, so nothing would open his core: it stays
+    // open, defenceless, until an arm grows back.
+    const defenceless = this.arms.every((arm) => arm.state === 'broken');
+    if (defenceless && !this.coreOpen && !this.coreOpening) this.openCore(CORE_CLOSING_MS * 2);
     if (!this.coreOpen) return;
+    if (defenceless) this.coreMs = Math.max(this.coreMs, CORE_CLOSING_MS * 2);
     this.coreMs -= ms;
     const pulse = 0.5 + 0.5 * Math.sin(this.clock / 110);
     this.coreGlow.setAlpha(0.35 + 0.35 * pulse).setScale(2.4 + 0.5 * pulse);
