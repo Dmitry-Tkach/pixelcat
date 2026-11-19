@@ -40,8 +40,9 @@ export const ADVENTURE_ART = {
 
 // Who the hero is, and how big he's shown in the adventure, against the size he's drawn: smaller
 // than in the main game, so the tiles and enemies feel bigger around him. He starts each level with
-// bare paws (character), and becomes `armed` when he finds the minigun.
-export const ADVENTURE_HERO = { character: 'pawsCat', armed: 'pawsCatArmed', scale: 0.8 };
+// bare paws (character), and becomes `armed` when he finds the minigun. airSpeed: his jumps (and
+// bounces) are this much quicker than the main game's, at the same height (Cat.setAirSpeed).
+export const ADVENTURE_HERO = { character: 'pawsCat', armed: 'pawsCatArmed', scale: 0.8, airSpeed: 1.15 };
 
 // Where tools/adventure-art.mjs cuts the earth pillar (roots.png, 160px tall) into its cap, middle
 // and base: the rows each starts at. The middle is the narrow twisting trunk.

@@ -24,6 +24,7 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     this.topSpeed = topSpeed;
     this.speedControl = new SpeedController(topSpeed);
     this.body.setGravityY(MOVEMENT.GRAVITY);
+    this.airSpeed = 1; // how quick his jumps are (setAirSpeed); the runner's cat keeps 1
     this.useHitbox('run');
 
     this.slideLeft = 0;
@@ -81,7 +82,7 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
   startJump() {
     this.jumpBufferMs = 0;
     this.endSlide();
-    this.setVelocityY(MOVEMENT.JUMP_VELOCITY);
+    this.setVelocityY(MOVEMENT.JUMP_VELOCITY * this.airSpeed);
     this.play(animKey(this.character, 'jump'), true);
     this.emit('jump');
   }
@@ -97,7 +98,7 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     if (this.airJumpsLeft > 0) {
       this.airJumpsLeft -= 1;
       this.jumpBufferMs = 0;
-      this.setVelocityY(MOVEMENT.AIR_JUMP_VELOCITY);
+      this.setVelocityY(MOVEMENT.AIR_JUMP_VELOCITY * this.airSpeed);
       this.play(animKey(this.character, 'jump'));
       this.emit('doubleJump');
       return;
@@ -114,7 +115,7 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     if (this.onGround && this.onPlatform) {
       this.dropMs = MOVEMENT.PLATFORM_DROP_MS;
       this.onPlatform = false;
-      this.body.setVelocityY(MOVEMENT.FAST_FALL_VELOCITY);
+      this.body.setVelocityY(MOVEMENT.FAST_FALL_VELOCITY * this.airSpeed);
       this.slideQueued = true;
       this.emit('dive');
       return;
@@ -123,7 +124,7 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
       this.beginSlide();
     } else {
       // A dive: pressing slide in the air drops the cat quickly, then slides on landing.
-      this.body.setVelocityY(MOVEMENT.FAST_FALL_VELOCITY);
+      this.body.setVelocityY(MOVEMENT.FAST_FALL_VELOCITY * this.airSpeed);
       this.jumpBufferMs = 0;
       this.slideQueued = true;
       this.emit('dive');
@@ -143,9 +144,16 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     this.useHitbox('run');
   }
 
+  // Quicker jumps at the same height: his speeds up and down times k, and his gravity times k².
+  setAirSpeed(k) {
+    this.airSpeed = k;
+    this.body.setGravityY(MOVEMENT.GRAVITY * k * k);
+    return this;
+  }
+
   // Launches the cat from a bouncy obstacle, and gives its double jump back.
   bounce(velocity) {
-    this.setVelocityY(velocity);
+    this.setVelocityY(velocity * this.airSpeed);
     this.airJumpsLeft = 1;
     this.slideQueued = false;
     this.jumpBufferMs = 0;

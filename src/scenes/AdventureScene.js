@@ -139,7 +139,7 @@ export class AdventureScene extends Phaser.Scene {
     const place = devPlace();
     this.respawnAt = this.cellFeet(place?.levelIndex === this.levelIndex ? place.cell : start);
     this.cat = new Cat(this, this.respawnAt.x, level.cat.speed, { character: ADVENTURE_HERO.character, y: this.respawnAt.y - 80 });
-    this.cat.setScale(this.cat.scaleX * ADVENTURE_HERO.scale);
+    this.cat.setScale(this.cat.scaleX * ADVENTURE_HERO.scale).setAirSpeed(ADVENTURE_HERO.airSpeed);
     this.cat.moveMode = 'free';
     this.cat.startRunning();
     this.gates.open(this.cat);
@@ -999,7 +999,7 @@ export class AdventureScene extends Phaser.Scene {
         cat.endSlide();
         boss.takeHit(this.moves.isRaging ? 'rage' : 'dash', body.center.x + away * -body.halfWidth, body.center.y);
         cat.moveVelocity = away * BOSS_TOUCH.bounceOff.x;
-        cat.setVelocity(away * BOSS_TOUCH.bounceOff.x, BOSS_TOUCH.bounceOff.y);
+        cat.setVelocity(away * BOSS_TOUCH.bounceOff.x, BOSS_TOUCH.bounceOff.y * cat.airSpeed);
         this.audio.playSfx('bump');
         break;
       case 'hurt':
@@ -1076,7 +1076,7 @@ export class AdventureScene extends Phaser.Scene {
     this.cat.applyPenalty(PENALTY);
     if (soft) return;
     this.cat.moveVelocity = away * HURT.knockX;
-    this.cat.setVelocity(away * HURT.knockX, HURT.knockY);
+    this.cat.setVelocity(away * HURT.knockX, HURT.knockY * this.cat.airSpeed);
   }
 
   // Falling into the water: a splash as he reaches it, and he's lost a little way under, as if he'd
