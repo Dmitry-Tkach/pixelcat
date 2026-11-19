@@ -9,7 +9,7 @@
 import { mapBuilder } from './mapBuilder.js';
 
 const COLS = 240;
-const ROWS = 40;
+const ROWS = 38; // four rows under the floor, as in the other Wood levels, so the camera shows as much ground
 const SURFACE = 34; // the forest floor's surface row: the cat stands on row 33
 
 const level = mapBuilder(COLS, ROWS).ground(0, COLS - 1, SURFACE);
