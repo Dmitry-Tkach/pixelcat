@@ -8,6 +8,9 @@ import { portalPosts } from './gatePlacement.js';
 //   him in at the end.
 // Every picture stands with its bottom at (x, y + sink), y being the top of the ground it stands on.
 const POST_SPARKS = { tint: [0x9dff6a, 0x5cf08a, 0xe6ffb0], lifespan: 900, frequency: 140, rise: 70 };
+// A locked portal's door (level.portalLocked): it covers the swirl a little past its edge (cover),
+// shakes when the cat tries it without the key, and sinks into the ground as the key opens it.
+const DOOR = { cover: 1.06, shakePx: 4, openMs: 900, depth: 1.85 };
 
 export class AdventureGates {
   // gates: the world's settings. layout: the level's map (systems/adventureMap.js readAdventureMap).
@@ -108,6 +111,33 @@ export class AdventureGates {
         speedX: { min: -12, max: 12 }, scale: { start: 0.35, end: 0 }, tint: POST_SPARKS.tint, blendMode: 'ADD',
       }).setDepth(p.depth + 0.02);
     }
+  }
+
+  // A locked portal: a door over the swirl, until the gold key opens it.
+  lockPortal() {
+    const swirl = this.portalSwirl;
+    if (!swirl) return;
+    this.door = this.scene.add.image(swirl.x, swirl.y, this.art('gate-door')).setDepth(DOOR.depth);
+    this.door.setScale((swirl.displayWidth * DOOR.cover) / this.door.width);
+    this.doorHome = this.door.y;
+  }
+
+  // Tried without the key: the door rattles.
+  rattleDoor() {
+    if (!this.door) return;
+    this.scene.tweens.add({ targets: this.door, x: this.door.x + DOOR.shakePx, duration: 50, yoyo: true, repeat: 3 });
+  }
+
+  // The key turns: the door sinks down out of sight, fading, and the swirl shines through. opened()
+  // is called once it's gone.
+  openDoor(opened) {
+    const door = this.door;
+    if (!door) { opened(); return; }
+    this.door = null;
+    this.scene.tweens.add({
+      targets: door, y: this.doorHome + door.displayHeight, alpha: 0, duration: DOOR.openMs, ease: 'Quad.easeIn',
+      onComplete: () => { door.destroy(); opened(); },
+    });
   }
 
   // At the end: the swirl flares and the cat fades into it.

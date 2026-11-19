@@ -7,9 +7,11 @@ import { PTERO_LOOKS } from '../../data/adventure/birds.js';
 //   waterfalls: { col, top, bottom, veil }: water pouring from a mossy lip at row `top` down to row
 //     `bottom`, in the middle of column col, flowing, with a splash at its foot. Behind the wheels;
 //     a veil is thin water in front of the cat instead, hiding what's behind it.
-//   props: { picture, col, row, hang, front, width }: a picture standing on the bottom of its cell
-//     (or, hang, hanging from its top), in the middle of column col. front: in front of the cat, as a
-//     cover. width: shown this wide (px), if not its own size.
+//   props: { picture, col, row, hang, front, back, width, spinMs }: a picture standing on the bottom
+//     of its cell (or, hang, hanging from its top), in the middle of column col. front: in front of
+//     the cat, as a cover. back: behind the ground, for big scenery (a house, a tree). width: shown
+//     this wide (px), if not its own size. spinMs: it turns round its middle, at the middle of its
+//     cell, once in this long (a mill's wheel turning as scenery).
 //   caves: { cols: [from, to], rows: [from, to] }: the dark inside of a cave in a cliff.
 //   flybys: { col, row, wake, dir, look }: a harmless pterodactyl that takes off from (col, row) as
 //     the cat passes column `wake`, and flies away up and to `dir` (-1 left, 1 right): birds live
@@ -50,12 +52,15 @@ export class AdventureScenery {
       scene.add.rectangle(cols[0] * TILE, rows[0] * TILE, (cols[1] - cols[0] + 1) * TILE, (rows[1] - rows[0] + 1) * TILE, CAVE.colour, CAVE.alpha)
         .setOrigin(0, 0).setDepth(DEPTH.cave);
     }
-    for (const { picture, col, row, hang, front, inWater, width } of level.props ?? []) {
+    for (const { picture, col, row, hang, front, back, inWater, width, spinMs } of level.props ?? []) {
       if (!has(picture)) continue;
       const x = col * TILE + TILE / 2;
-      const image = scene.add.image(x, hang ? row * TILE : (row + 1) * TILE, art(picture)).setOrigin(0.5, hang ? 0 : 1)
-        .setDepth(front ? DEPTH.front : inWater ? DEPTH.inWater : DEPTH.prop);
+      const image = spinMs
+        ? scene.add.image(x, row * TILE + TILE / 2, art(picture))
+        : scene.add.image(x, hang ? row * TILE : (row + 1) * TILE, art(picture)).setOrigin(0.5, hang ? 0 : 1);
+      image.setDepth(front ? DEPTH.front : inWater ? DEPTH.inWater : back ? DEPTH.behind : DEPTH.prop);
       if (width) image.setScale(width / image.width);
+      if (spinMs) scene.tweens.add({ targets: image, angle: 360, duration: spinMs, repeat: -1 });
       if (front) {
         const b = image.getBounds();
         this.covers.push({ parts: [image], full: COVER.alpha, box: { left: b.left, right: b.right, top: b.top, bottom: b.bottom } });

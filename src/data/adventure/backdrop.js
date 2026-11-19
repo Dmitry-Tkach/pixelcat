@@ -30,6 +30,17 @@ export const BACKDROPS = {
     fog: { tint: 0xd9f6ea, alpha: 0.4, height: 0.3, speed: 14, drift: 0.5, depth: -8 },
     front: null,
   },
+  // The Autumn Forest: the pack's two layers (its misty sky and far trees, then its bare trees) until
+  // the owner's sky and middle layers come (prompts/autumn-level). Warm golden rays and peach mist.
+  autumn: {
+    layers: [
+      { picture: 'back-far', drift: 0.08, rise: 0.03, depth: -10 },
+      { picture: 'back-near', drift: 0.3, rise: 0.07, depth: -9 },
+    ],
+    rays: { tint: 0xffd59a, alpha: 0.22, breatheMs: 5200, swayPx: 18, depth: -7 },
+    fog: { tint: 0xffe0c0, alpha: 0.35, height: 0.3, speed: 14, drift: 0.5, depth: -8 },
+    front: null,
+  },
 };
 
 // The share of the screen's height each layer is drawn taller than the screen, so it has room to

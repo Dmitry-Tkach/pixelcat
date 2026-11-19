@@ -22,6 +22,19 @@ export const DECOR = {
       chance: 0.5, jitter: 10, sink: 10, depth: 1.9,
     },
   },
+  // The Autumn Forest: dry grass, piles of leaves and stumps, the Wood world's tufts and vines
+  // turned orange and gold (tools/adventure-autumn-art.mjs). Vines hang a little less: the trees
+  // are thinning.
+  autumn: {
+    tops: {
+      pictures: ['decor-tuft-1', 'decor-tuft-2', 'bush-1', 'plant-1', 'decor-flowers-1', 'stump'],
+      chance: 0.4, jitter: 14, sink: 6, depth: 2.1,
+    },
+    under: {
+      pictures: ['decor-vine-1', 'decor-vine-2', 'decor-vine-3'],
+      chance: 0.35, jitter: 10, sink: 10, depth: 1.9,
+    },
+  },
 };
 
 // Cells kept clear of plants on top: where these stand, so they're always easy to see.

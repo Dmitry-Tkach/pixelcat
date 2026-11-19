@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AMMO } from '../src/data/adventure/ammo.js';
-import { ADVENTURE_ART } from '../src/data/adventure/index.js';
+import { ADVENTURE_ART, adventureArtWorld } from '../src/data/adventure/index.js';
 import { SOUNDS } from '../src/data/sounds.js';
 
 describe('ammunition crates', () => {
@@ -17,8 +17,8 @@ describe('ammunition crates', () => {
   });
 
   it('loads every kind of crate in every world', () => {
-    for (const [world, names] of Object.entries(ADVENTURE_ART)) {
-      for (const { crate } of Object.values(AMMO)) expect(names, `${world}: ${crate}`).toContain(crate);
+    for (const world of Object.keys(ADVENTURE_ART)) {
+      for (const { crate } of Object.values(AMMO)) expect(ADVENTURE_ART[adventureArtWorld(world, crate)], `${world}: ${crate}`).toContain(crate);
     }
   });
 });

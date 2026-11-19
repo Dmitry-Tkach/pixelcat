@@ -3,6 +3,7 @@
 // Phaser, so tests can check levels.
 import { trapProblems } from './adventure/trapLogic.js';
 import { wheelProblems } from './adventure/wheels.js';
+import { drawbridgeProblems } from './adventure/drawbridges.js';
 
 export const TILE = 64;
 // How deep into a tile the cat can sink in one physics step and still be pushed back out. Phaser's
@@ -49,6 +50,7 @@ export const OBJECTS = {
   j: 'silver-key',
   U: 'silver-chest',
   '%': 'leaves', // a crumbling leafy ledge: it falls soon after the cat lands, and grows back
+  Z: 'cracked', // cracked floor in the ground: it breaks when the cat lands on it, into a secret below, for good
   '?': 'bonus',
   B: 'box',
   X: 'stone',
@@ -103,6 +105,8 @@ export function pillarFoot(tiles, col, row) {
 }
 
 const isGround = (ch) => ch === '#';
+// Cracked floor (Z) sits in the ground's surface, so the ground beside it joins it as if it were ground.
+const shapesGround = (ch) => isGround(ch) || ch === 'Z';
 const isIsland = (ch) => ch === '=';
 
 export function readAdventureMap(map) {
@@ -121,8 +125,8 @@ export function readAdventureMap(map) {
       const ch = at(c, r);
       let tile = -1;
       if (isGround(ch)) {
-        const open = (dc) => !isGround(at(c + dc, r));
-        if (!isGround(at(c, r - 1))) {
+        const open = (dc) => !shapesGround(at(c + dc, r));
+        if (!shapesGround(at(c, r - 1))) {
           tile = open(-1) && !open(1) ? TILES.groundTopLeft : open(1) && !open(-1) ? TILES.groundTopRight : TILES.groundTop;
         } else {
           tile = open(-1) && !open(1) ? TILES.soilLeft : open(1) && !open(-1) ? TILES.soilRight : TILES.soil;
@@ -185,6 +189,9 @@ export function checkAdventureLevel(level) {
   // The moving traps must stand on something, hang from something, and clear the ground.
   errors.push(...trapProblems(level, readAdventureMap(map)));
   errors.push(...wheelProblems(level));
+  errors.push(...drawbridgeProblems(level));
+  // A locked portal (the Guardian Gate) opens only with the gold key, so the level needs one.
+  if (level.portalLocked && count('key') < 1) errors.push('a locked portal needs a key, k');
   // A ladder's top must be on an island or the ground, so the cat has somewhere to step off.
   const byCol = new Map();
   for (const { col, row } of ladders) byCol.set(col, [...(byCol.get(col) ?? []), row]);

@@ -11,7 +11,7 @@
     "test:play": "node tests/play/run.mjs",
     "test:balance": "node tests/play/balance.mjs",
     "test:realtime": "node tests/realtime/run.mjs",
-    "assets": "node tools/prepare-assets.mjs && node tools/street-art.mjs && node tools/world-art.mjs && node tools/home-art.mjs && node tools/adventure-art.mjs && node tools/adventure-paws-home-art.mjs && node tools/adventure-roadmap-art.mjs && node tools/adventure-boss-art.mjs && node tools/adventure-shot-art.mjs && node tools/adventure-backdrop-art.mjs && node tools/adventure-decor-art.mjs && node tools/adventure-gates-art.mjs && node tools/adventure-traps-art.mjs && node tools/adventure-guardian-art.mjs && node tools/adventure-mill-art.mjs && node tools/adventure-ptero-art.mjs && node tools/outline-art.mjs"
+    "assets": "node tools/prepare-assets.mjs && node tools/street-art.mjs && node tools/world-art.mjs && node tools/home-art.mjs && node tools/adventure-art.mjs && node tools/adventure-paws-home-art.mjs && node tools/adventure-roadmap-art.mjs && node tools/adventure-boss-art.mjs && node tools/adventure-rootbreaker-art.mjs && node tools/adventure-shot-art.mjs && node tools/adventure-backdrop-art.mjs && node tools/adventure-decor-art.mjs && node tools/adventure-gates-art.mjs && node tools/adventure-traps-art.mjs && node tools/adventure-guardian-art.mjs && node tools/adventure-mill-art.mjs && node tools/adventure-ptero-art.mjs && node tools/adventure-autumn-art.mjs && node tools/outline-art.mjs"
   },
   "dependencies": {
     "phaser": "^3.90.0"

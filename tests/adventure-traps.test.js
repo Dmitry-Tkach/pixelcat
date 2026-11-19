@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync } from 'node:fs';
 import { TRAPS, TRAP_KINDS } from '../src/data/adventure/traps.js';
-import { ADVENTURE_ART, ADVENTURE_LEVELS, adventurePath } from '../src/data/adventure/index.js';
+import { ADVENTURE_ART, adventureArtWorld, ADVENTURE_LEVELS, adventurePath } from '../src/data/adventure/index.js';
 import { mapBuilder } from '../src/data/adventure/mapBuilder.js';
 import {
   MACE_SWING_LOW, SLIDE_HEIGHT, STAND_HEIGHT, circleHitsRect, crusherAngry, crusherContact, crusherCrushes, crusherStart,
@@ -31,8 +31,10 @@ describe('the traps', () => {
     for (const [world, rules] of Object.entries(TRAPS)) {
       expect(Object.keys(rules).sort()).toEqual([...TRAP_KINDS].sort());
       for (const picture of pictures(rules)) {
-        expect(ADVENTURE_ART[world], picture).toContain(picture);
-        expect(existsSync(`public/${adventurePath(world, picture)}`), picture).toBe(true);
+        // A world's own picture, or the one it borrows from the base world.
+        const owner = adventureArtWorld(world, picture);
+        expect(ADVENTURE_ART[owner], picture).toContain(picture);
+        expect(existsSync(`public/${adventurePath(owner, picture)}`), picture).toBe(true);
       }
     }
   });

@@ -7,7 +7,8 @@
 import sharp from 'sharp';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { ADVENTURE_LEVELS, adventurePath } from '../src/data/adventure/index.js';
+import { ADVENTURE_LEVELS, adventureArtWorld, adventurePath } from '../src/data/adventure/index.js';
+import { drawbridgeCells } from '../src/systems/adventure/drawbridges.js';
 import { BOSS_ARENAS } from '../src/data/adventure/bossArenas.js';
 import { bossLayout, bossPath } from '../src/data/adventure/bosses.js';
 import { enemyLayout } from '../src/data/adventure/enemies.js';
@@ -34,7 +35,8 @@ const SCALE = level.boss ? 0.5 : 0.25; // an arena is small, so it's drawn bigge
 const CELL = TILE * SCALE;
 const layout = readAdventureMap(level.map);
 const { rows, cols, tiles, ladders, objects } = layout;
-const art = (name) => join('public', adventurePath(level.world, name));
+// A world's own picture, or the one it borrows from the Wood world.
+const art = (name) => join('public', adventurePath(adventureArtWorld(level.world, name), name));
 const image = async (file, scale = SCALE) => {
   const { width } = await sharp(file).metadata();
   return sharp(file).resize({ width: Math.max(1, Math.round(width * scale)) }).toBuffer();
@@ -106,13 +108,23 @@ if (level.water) {
   }
 }
 const ladder = await sharp(art('ladder')).resize(CELL, CELL).toBuffer();
-for (const { col, row } of ladders) comps.push({ input: ladder, left: col * CELL, top: row * CELL });
+const vine = await sharp(art('vine')).resize(CELL, CELL).toBuffer();
+const vineCells = new Set((level.vines ?? []).map(({ col, row }) => `${col},${row}`));
+for (const { col, row } of ladders) comps.push({ input: vineCells.has(`${col},${row}`) ? vine : ladder, left: col * CELL, top: row * CELL });
+// Drawbridges (systems/adventure/drawbridges.js): the switch, and the bridge drawn faint, as it's not
+// there until the switch is hit.
+for (const bridge of level.drawbridges ?? []) {
+  const plank = await sharp(art('bridge')).resize(CELL, CELL).ensureAlpha(0.45).png().toBuffer();
+  const faint = await sharp(plank).composite([{ input: Buffer.from([255, 255, 255, 115]), raw: { width: 1, height: 1, channels: 4 }, tile: true, blend: 'dest-in' }]).png().toBuffer();
+  for (const { col, row } of drawbridgeCells(bridge)) comps.push({ input: faint, left: col * CELL, top: row * CELL });
+  comps.push({ input: await sharp(art('switch-off')).resize(CELL, CELL).toBuffer(), left: bridge.switch.col * CELL, top: bridge.switch.row * CELL });
+}
 
 const ICON = {
   coin: 'coin-1', gem: 'gem', heart: 'heart', key: 'key', rage: 'mushroom', weapon: 'minigun',
   'ammo-standard': 'ammo-standard', 'ammo-explosive': 'ammo-explosive', 'ammo-laser': 'ammo-laser', 'ammo-freeze': 'ammo-freeze', 'ammo-fire': 'ammo-fire',
   bonus: 'bonus', box: 'box', stone: 'stone', spike: 'spike', chest: 'chest-locked', checkpoint: 'lantern', portal: 'portal',
-  'silver-key': 'silver-key', 'silver-chest': 'chest-silver-locked', leaves: 'leaves',
+  'silver-key': 'silver-key', 'silver-chest': 'chest-silver-locked', leaves: 'leaves', cracked: 'cracked',
 };
 // The gates (data/adventure/gates.js), each put together into one picture at its size in the game:
 // a gate with its swirl in its hole, and the flag post with its flag raised.
@@ -282,9 +294,12 @@ if (millArt) {
       comps.push(await at(seat, x, y - MILL_SEAT.top, 0.5, 0));
     }
   }
-  for (const { picture, col, row, hang, front, width } of level.props ?? []) {
+  for (const { picture, col, row, hang, front, width, spinMs } of level.props ?? []) {
     const { width: own } = await sharp(art(picture)).metadata();
-    const piece = await at(await scaled(art(picture), width ? width / own : 1), col * TILE + TILE / 2, hang ? row * TILE : (row + 1) * TILE, 0.5, hang ? 0 : 1);
+    const scaledPicture = await scaled(art(picture), width ? width / own : 1);
+    const piece = spinMs
+      ? await at(scaledPicture, col * TILE + TILE / 2, row * TILE + TILE / 2, 0.5, 0.5)
+      : await at(scaledPicture, col * TILE + TILE / 2, hang ? row * TILE : (row + 1) * TILE, 0.5, hang ? 0 : 1);
     (front ? fronts : comps).push(piece);
   }
   comps.push(...fronts);

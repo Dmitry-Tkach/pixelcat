@@ -18,7 +18,8 @@ import { MILL_SEAT } from '../data/adventure/millArt.js';
 //   arrow stones (a log with { arrow: true }, adventure/arrowStones.js) are logs of stone with a green
 //   arrow showing which way they go next: a round turns one back; three freeze rounds stop it.
 //   crumbling leaves (map letter %) shake when he lands, fall soon after, and grow back. Leaves side
-//   by side are one ledge, and go together.
+//   by side are one ledge, and go together. Cracked floor (map letter Z) is the same, but in the
+//   ground, and once broken it's gone for good: the secret under it stays open.
 // The scene calls update every frame. `canLand()` says whether the cat may land on one now (not
 // while he's climbing a ladder or pulling himself up).
 
@@ -97,9 +98,10 @@ export class AdventurePlatforms {
     // Crumbling leaves: one picture a cell, with a body, grouped into ledges by the cells they share.
     this.leaves = scene.physics.add.staticGroup();
     const byCell = new Map();
-    for (const { col, row } of leaves) {
+    for (const { col, row, type } of leaves) {
       // Its top where an island's would be, at the top of its cell.
-      const leaf = this.leaves.create(col * TILE + TILE / 2, row * TILE, art('leaves')).setDepth(LEAVES.depth);
+      const leaf = this.leaves.create(col * TILE + TILE / 2, row * TILE, art(type === 'cracked' ? 'cracked' : 'leaves')).setDepth(LEAVES.depth);
+      leaf.cracked = type === 'cracked';
       leaf.setY(row * TILE + leaf.height / 2).refreshBody();
       leaf.home = { x: leaf.x, y: leaf.y };
       byCell.set(`${col},${row}`, leaf);
@@ -107,8 +109,8 @@ export class AdventurePlatforms {
     for (const [cell, leaf] of byCell) {
       if (leaf.ledge) continue;
       const [col, row] = cell.split(',').map(Number);
-      const ledge = { leaves: [], state: 'still' };
-      for (let c = col; byCell.has(`${c},${row}`); c++) {
+      const ledge = { leaves: [], state: 'still', forGood: leaf.cracked };
+      for (let c = col; byCell.get(`${c},${row}`)?.cracked === leaf.cracked; c++) {
         byCell.get(`${c},${row}`).ledge = ledge;
         ledge.leaves.push(byCell.get(`${c},${row}`));
       }
@@ -332,6 +334,7 @@ export class AdventurePlatforms {
       leaf.disableBody(false, false);
       this.scene.tweens.add({ targets: leaf, y: leaf.home.y + TILE, alpha: 0, duration: LEAVES.fallMs, ease: 'Quad.easeIn' });
     }
+    if (ledge.forGood) return;
     this.scene.time.delayedCall(LEAVES.backMs, () => {
       for (const leaf of ledge.leaves) {
         leaf.setPosition(leaf.home.x, leaf.home.y).setAlpha(0);

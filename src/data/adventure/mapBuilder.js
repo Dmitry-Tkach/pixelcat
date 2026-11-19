@@ -4,6 +4,10 @@
 //   gap(from, to)          no ground there at all: falling in loses a heart and goes back to the checkpoint
 //   island(from, to, row)  a floating island; bridge(from, to, row) a thin one
 //   ladder(col, top, bottom)  from the island at `top` down to `bottom`
+//   vine(col, top, bottom)  a climbing vine: a ladder that looks like a vine. vines() lists its cells.
+//   cracked(from, to, row)  cracked floor in the ground's surface: it breaks for good when landed on
+//   drawbridge(switchCol, switchRow, from, to, row)  a bridge that drops into place when its switch
+//                          is shot or touched (systems/adventure/drawbridges.js). drawbridges() lists them.
 //   put(col, row, letter)  one thing: a coin, an enemy, a sign...
 //   coins(from, to, row)   a line of coins; arc(from, to, row, rise) coins over a jump
 //   mover(col, row, { across, up, width, speed })  a moving log: it starts at (col, row), its left
@@ -23,6 +27,8 @@ export function mapBuilder(cols, rows) {
   const traps = [];
   const wheels = [];
   const birds = [];
+  const vines = [];
+  const drawbridges = [];
   const inside = (c, r) => {
     if (!Number.isInteger(c) || !Number.isInteger(r) || c < 0 || c >= cols || r < 0 || r >= rows) throw new Error(`(${c}, ${r}) is outside the map`);
   };
@@ -48,6 +54,19 @@ export function mapBuilder(cols, rows) {
       for (let r = top; r <= bottom; r++) place(col, r, 'H', r === top ? '=.' : '.');
       return builder;
     },
+    vine(col, top, bottom) {
+      builder.ladder(col, top, bottom);
+      for (let r = top; r <= bottom; r++) vines.push({ col, row: r });
+      return builder;
+    },
+    drawbridge(switchCol, switchRow, from, to, row) {
+      inside(switchCol, switchRow);
+      inside(from, row);
+      inside(to, row);
+      drawbridges.push({ switch: { col: switchCol, row: switchRow }, from, to, row });
+      return builder;
+    },
+    cracked(from, to, row) { span(from, to, (c) => place(c, row, 'Z', '#.')); return builder; },
     put(col, row, letter) { place(col, row, letter); return builder; },
     coins(from, to, row) { span(from, to, (c) => place(c, row, 'o')); return builder; },
     // Coins rising and falling over a jump: `rise` rows higher in the middle than at the ends.
@@ -89,6 +108,8 @@ export function mapBuilder(cols, rows) {
     traps: () => traps.map((t) => ({ ...t })),
     wheels: () => wheels.map((w) => ({ ...w })),
     birds: () => birds.map((b) => ({ ...b })),
+    vines: () => vines.map((v) => ({ ...v })),
+    drawbridges: () => drawbridges.map((d) => ({ ...d, switch: { ...d.switch } })),
   };
   return builder;
 }

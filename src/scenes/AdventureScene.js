@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { GAME, MOVEMENT } from '../config/gameConfig.js';
-import { ADVENTURE_HERO, ADVENTURE_LEVELS, PILLAR, adventureKey } from '../data/adventure/index.js';
+import { ADVENTURE_HERO, ADVENTURE_LEVELS, PILLAR, adventureArtKey, adventureArtWorld, adventureKey } from '../data/adventure/index.js';
 import { CHARACTERS, animKey } from '../data/characters.js';
 import { AMMO } from '../data/adventure/ammo.js';
 import { isFrozen } from '../systems/adventure/iceBlocks.js';
@@ -42,6 +42,7 @@ import { AdventureBossBar } from '../ui/AdventureBossBar.js';
 import { addMenuButton, showGameMenu } from '../ui/adventureGameMenu.js';
 import { Effects } from '../ui/Effects.js';
 import { showDizzyStars } from '../systems/adventure/dizzyStars.js';
+import { AdventureDrawbridges } from '../systems/adventure/AdventureDrawbridges.js';
 
 // reach: how far from a ladder's middle it can be grabbed. standStill: slower than this, the cat counts
 // as standing at a ladder, so Down climbs down it rather than sliding past.
@@ -116,7 +117,9 @@ export class AdventureScene extends Phaser.Scene {
     this.screenFx = this.registry.get('screenFx');
     this.screenFx?.reveal(); // the home screen covered over to come here
     this.effects = new Effects(this);
-    this.art = (name) => adventureKey(level.world, name);
+    // A world's own pictures, or the Wood world's where it has none (data/adventure/index.js).
+    this.art = (name) => adventureArtKey(level.world, name);
+    this.coinSpin = adventureKey(adventureArtWorld(level.world, 'coin-1'), 'coin-spin');
     this.layout = readAdventureMap(level.map);
     this.worldW = this.layout.cols * TILE;
     this.worldH = this.layout.rows * TILE;
@@ -155,6 +158,7 @@ export class AdventureScene extends Phaser.Scene {
     this.physics.add.overlap(this.cat, this.spikes, (cat, spike) => this.hurt(spike.x));
     this.physics.add.overlap(this.cat, this.lanterns, (cat, lantern) => this.reachCheckpoint(lantern));
     this.physics.add.overlap(this.cat, this.portalZone, () => {
+      if (this.portalLocked && !this.tryPortalLock()) return;
       if (this.playing) this.gates.enter(this.cat);
       this.complete();
     });
@@ -179,7 +183,7 @@ export class AdventureScene extends Phaser.Scene {
       art: this.art,
       movers: level.movers,
       wheels: level.wheels,
-      leaves: this.layout.objects.filter((o) => o.type === 'leaves'),
+      leaves: this.layout.objects.filter((o) => o.type === 'leaves' || o.type === 'cracked'),
       canLand: () => !this.climbing && !this.pullingUp,
     });
     this.traps.addColliders(this.cat, this.enemies, () => !this.climbing && !this.pullingUp);
@@ -208,6 +212,11 @@ export class AdventureScene extends Phaser.Scene {
     this.traps.watchShots(() => this.moves.bullets.getChildren(), (bullet) => (bullet.ammo.freeze ? this.moves.freezeLands(bullet) : this.moves.bulletStops(bullet)));
     // A round into a water wheel's hub reverses it, or freezes it (systems/AdventurePlatforms.js).
     this.platforms.watchShots(() => this.moves.bullets.getChildren(), (bullet) => (bullet.ammo.freeze ? this.moves.freezeLands(bullet) : this.moves.bulletStops(bullet)));
+    // Drawbridges: a round into the switch, or the cat touching it, lowers the bridge
+    // (systems/adventure/AdventureDrawbridges.js).
+    this.drawbridges = new AdventureDrawbridges(this, this.cat, level.drawbridges ?? [], {
+      art: this.art, canLand: () => !this.climbing && !this.pullingUp, spend: (bullet) => this.moves.bulletStops(bullet),
+    });
 
     // Bosses: a test arena's one boss fights at once, and beating him finishes it. A level's own
     // bosses (level.bosses, data/adventure/bossArenas.js) wait in their arenas until the cat walks
@@ -222,6 +231,9 @@ export class AdventureScene extends Phaser.Scene {
     this.gems = 0;
     this.hasKey = false;
     this.hasSilverKey = false;
+    this.portalLocked = Boolean(level.portalLocked);
+    this.portalHinted = false;
+    this.portalOpening = false;
     this.chestsOpened = 0;
     this.knockedOut = 0;
     this.climbing = false;
@@ -324,8 +336,11 @@ export class AdventureScene extends Phaser.Scene {
 
   buildLadders() {
     this.ladderCells = new Set(this.layout.ladders.map(({ col, row }) => `${col},${row}`));
+    // A climbing vine (level.vines) is a ladder that looks like a vine.
+    const vines = new Set((this.level.vines ?? []).map(({ col, row }) => `${col},${row}`));
     for (const { col, row } of this.layout.ladders) {
-      this.add.image(col * TILE + TILE / 2, row * TILE, this.art('ladder')).setOrigin(0.5, 0).setDepth(3);
+      const picture = vines.has(`${col},${row}`) ? 'vine' : 'ladder';
+      this.add.image(col * TILE + TILE / 2, row * TILE, this.art(picture)).setOrigin(0.5, 0).setDepth(3);
     }
   }
 
@@ -429,7 +444,7 @@ export class AdventureScene extends Phaser.Scene {
       const cell = cellKey(object);
       switch (object.type) {
         case 'coin': {
-          const coin = this.physics.add.staticSprite(x, middle, this.art('coin-1')).play(adventureKey(this.level.world, 'coin-spin'));
+          const coin = this.physics.add.staticSprite(x, middle, this.art('coin-1')).play(this.coinSpin);
           coin.body.setCircle(18, (coin.width - 36) / 2, (coin.height - 36) / 2);
           coin.kind = 'coin';
           coin.cell = cell;
@@ -510,6 +525,8 @@ export class AdventureScene extends Phaser.Scene {
         }
         case 'portal': {
           this.gates.buildPortal(x, y, object);
+          // The Guardian Gate: locked until the cat brings the gold key.
+          if (this.level.portalLocked) this.gates.lockPortal();
           this.portalZone = this.add.zone(x, y - 60, 70, 110);
           this.physics.add.existing(this.portalZone, true);
           break;
@@ -922,7 +939,7 @@ export class AdventureScene extends Phaser.Scene {
     } else if (item.kind === 'key') {
       this.hasKey = true;
       this.audio.playSfx('pawPickup');
-      this.showHint('You found the key! Now find the chest');
+      this.showHint(this.level.keyHint ?? 'You found the key! Now find the chest');
     } else if (item.kind === 'silver-key') {
       this.hasSilverKey = true;
       this.audio.playSfx('pawPickup');
@@ -942,11 +959,31 @@ export class AdventureScene extends Phaser.Scene {
     this.audio.playSfx('bump');
     this.tweens.add({ targets: block, y: block.y - 10, duration: 80, yoyo: true });
     for (let i = 0; i < BONUS_COINS; i++) {
-      const coin = this.add.sprite(block.x, block.y - TILE / 2, this.art('coin-1')).play(adventureKey(this.level.world, 'coin-spin')).setDepth(4);
+      const coin = this.add.sprite(block.x, block.y - TILE / 2, this.art('coin-1')).play(this.coinSpin).setDepth(4);
       this.tweens.add({ targets: coin, y: coin.y - 70 - i * 18, alpha: 0, delay: i * 90, duration: 420, onComplete: () => coin.destroy() });
     }
     this.coins += BONUS_COINS;
     this.updateHud();
+  }
+
+  // A locked portal opens with the gold key: true once it's open. Without the key, its door rattles,
+  // and a hint says what to find.
+  tryPortalLock() {
+    if (!this.hasKey) {
+      if (!this.portalHinted) {
+        this.gates.rattleDoor();
+        this.audio.playSfx('bump');
+        this.showHint('The gate is locked. Find the key!');
+      }
+      this.portalHinted = true;
+      return false;
+    }
+    if (!this.portalOpening) {
+      this.portalOpening = true;
+      this.gates.openDoor(() => { this.portalLocked = false; }); // he goes in once it's gone
+      this.audio.playSfx('cheer');
+    }
+    return false;
   }
 
   // The gold chest takes the gold key, and the silver chest the silver one.
@@ -1291,6 +1328,7 @@ export class AdventureScene extends Phaser.Scene {
       this.bossBar.update(ms, this.boss.brain.healthShare);
     }
     this.platforms.update(ms);
+    this.drawbridges.update(this.cat, this.moves.bullets.getChildren());
     this.scenery.update(ms, this.cat);
     this.traps.update(ms, this.cat);
     this.updateLook(ms);

@@ -10,7 +10,9 @@
 //   climb any ladder he's at, up to the island at its top or down to its foot;
 //   ride a moving log: anywhere along its path counts as somewhere to stand, as he can wait for it;
 //   the same for a water wheel's seats, all the way round (systems/adventure/wheels.js);
-//   stand on crumbling leaves, which hold him long enough to jump on;
+//   stand on crumbling leaves, which hold him long enough to jump on, or fall through them once
+//   they crumble; cracked floor the same, but it breaks for good;
+//   walk a drawbridge, once it's down (systems/adventure/drawbridges.js);
 //   bounce off a mushroom (data/adventure/traps.js), much higher than a jump (see mushroomReach).
 // Enemies and gunners don't block him: he can always knock them out or get past them.
 import { MOVEMENT } from '../config/gameConfig.js';
@@ -18,6 +20,7 @@ import { TRAPS } from '../data/adventure/traps.js';
 import { TILE, moverCells, readAdventureMap } from './adventureMap.js';
 import { guardianSolid } from './adventure/trapLogic.js';
 import { wheelCells } from './adventure/wheels.js';
+import { drawbridgeCells } from './adventure/drawbridges.js';
 
 // How many cells across he can jump, with a double jump, for each number of cells up (or down, as
 // negative). He really reaches about 6 up and 8 across at full speed; these leave a margin, so a
@@ -48,7 +51,8 @@ const SOLID_OBJECTS = new Set(['box', 'stone', 'bonus']);
 const PICKUPS = new Set(['coin', 'gem', 'heart', 'rage', 'weapon', 'ammo-standard', 'ammo-explosive', 'ammo-laser', 'ammo-freeze', 'ammo-fire', 'key', 'chest', 'silver-key', 'silver-chest', 'checkpoint']);
 
 // closed: cell rectangles ({ cols, rows }) to treat as solid, to check one path of a level on its own.
-export function adventureRoutes(level, { closed = [] } = {}) {
+// bridgesUp: the drawbridges not lowered yet, to check their switches can be reached without them.
+export function adventureRoutes(level, { closed = [], bridgesUp = false } = {}) {
   const { rows, cols, tiles, ladders, objects } = readAdventureMap(level.map);
   const key = (c, r) => `${c},${r}`;
   const blocks = new Set(objects.filter((o) => SOLID_OBJECTS.has(o.type)).map((o) => key(o.col, o.row)));
@@ -70,7 +74,9 @@ export function adventureRoutes(level, { closed = [] } = {}) {
     ...(level.movers ?? []).flatMap((mover) => [...moverCells(mover)]),
     ...(level.wheels ?? []).flatMap((wheel) => [...wheelCells(wheel)]),
   ]);
-  const leaves = new Set(objects.filter((o) => o.type === 'leaves').map((o) => key(o.col, o.row)));
+  const leaves = new Set(objects.filter((o) => o.type === 'leaves' || o.type === 'cracked').map((o) => key(o.col, o.row)));
+  // Drawbridges, once down, are bridges.
+  for (const bridge of bridgesUp ? [] : level.drawbridges ?? []) for (const { col, row } of drawbridgeCells(bridge)) logs.add(key(col, row));
   const mushrooms = new Set((level.traps ?? []).filter((t) => t.kind === 'mushroom').map((t) => key(t.col, t.row)));
   const bounce = mushroomReach(level.world);
   const floor = (c, r) => inside(c, r) && (tiles[r][c] >= 0 || blocks.has(key(c, r)) || logs.has(key(c, r)) || leaves.has(key(c, r)));
@@ -110,6 +116,8 @@ export function adventureRoutes(level, { closed = [] } = {}) {
         if (standable(c + dc, r)) visit(key(c + dc, r));
         else if (!solid(c + dc, r) && !solid(c + dc, r - 1)) visit(landing(c + dc, r));
       }
+      // Crumbling leaves or cracked floor under him give way, and he falls through.
+      if (leaves.has(key(c, r + 1))) visit(landing(c, r + 1));
       for (let up = JUMP_UP; up >= -12; up--) {
         const across = reachAcross(up);
         for (let dc = -across; dc <= across; dc++) {

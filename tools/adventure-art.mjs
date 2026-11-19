@@ -11,6 +11,7 @@ import { ENEMIES, PACK_FRAMES, enemyLayout } from '../src/data/adventure/enemies
 import { FLASH, GUNNERS, gunnerLayout } from '../src/data/adventure/gunners.js';
 import { PILLAR } from '../src/data/adventure/index.js';
 import { EXPLOSION } from '../src/data/adventure/ammo.js';
+import { backdropLayer, buildTileStrip, shrinkPieces, soilVariants } from './adventureTileArt.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const WORLDS = join(ROOT, 'images', 'assets', 'worlds');
@@ -74,29 +75,11 @@ const WOOD = {
 
 rmSync(OUT, { recursive: true, force: true });
 const out = join(OUT, 'wood');
-const FADED_EDGE = 0.8; // an edge column this much fainter than its neighbour is cut off (see trimFadedEdges)
 mkdirSync(out, { recursive: true });
-// Things that stand on the ground. Some pack images leave empty rows under the drawing, which would
-// float it above the grass, so those rows are cut off: the picture's bottom is where it stands.
+// Things that stand on the ground: their empty rows below are cut off (see shrinkPieces).
 const STANDS = new Set(['chest-locked', 'chest-open', 'chest-silver-locked', 'chest-silver-open', 'portal', 'statue', 'bush-1', 'bush-2', 'plant-1', 'plant-2',
   'fence', 'sign-right', 'sign-up', 'rock', 'lantern', 'spike']);
-const emptyRowsBelow = async (png) => {
-  const { data, info } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-  for (let y = info.height - 1; y >= 0; y--) {
-    for (let x = 0; x < info.width; x++) if (data[(y * info.width + x) * 4 + 3] > 20) return info.height - 1 - y;
-  }
-  return 0;
-};
-for (const [name, [file, scale]] of Object.entries(WOOD)) {
-  const { width } = await sharp(file).metadata();
-  let png = await sharp(file).resize({ width: Math.round(width * scale) }).png().toBuffer();
-  const empty = STANDS.has(name) ? await emptyRowsBelow(png) : 0;
-  if (empty > 0) {
-    const { width: w, height: h } = await sharp(png).metadata();
-    png = await sharp(png).extract({ left: 0, top: 0, width: w, height: h - empty }).png().toBuffer();
-  }
-  await sharp(png).png({ compressionLevel: 9 }).toFile(join(out, `${name}.png`));
-}
+await shrinkPieces(WOOD, out, STANDS);
 // The minigun the battle cat can find, in a power-up box: the gun is cut from the frame of him
 // standing with it, the barrel and the gold housing, without his paws and chin, which are grey,
 // white or red.
@@ -173,65 +156,14 @@ for (const [name, top, bottom] of [['pillar-cap', PILLAR.capFrom, PILLAR.middleF
   await sharp(roots).extract({ left: 0, top, width, height: bottom - top }).png({ compressionLevel: 9 }).toFile(join(out, `${name}.png`));
 }
 
-// The ground, islands and bridge as one strip of 64px tiles, for the game's tilemap, in this order.
-// data/adventure/tiles.js names each tile's place in the strip.
-const TILESET = ['ground-top-left', 'ground-top', 'ground-top-right', 'soil-left', 'soil', 'soil-right',
-  'ledge-left', 'ledge', 'ledge-right', 'bridge'];
-const TILE = 64;
-await sharp({ create: { width: TILE * TILESET.length, height: TILE, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
-  .composite(await Promise.all(TILESET.map(async (name, i) => ({
-    input: await sharp(join(out, `${name}.png`)).resize(TILE, TILE, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).toBuffer(),
-    left: i * TILE,
-    top: 0,
-  }))))
-  .png({ compressionLevel: 9 }).toFile(join(out, 'tiles.png'));
+// The ground, islands and bridge as one strip of 64px tiles, with variants of the plainest: the
+// soil with pebbles, a buried root or a darker patch, and the ground's top with a pebble or two in
+// its earth. The level picks them now and then, so the ground doesn't look like one tile repeated.
+await buildTileStrip(out, soilVariants({ pebble: '#4d4535', shine: '#615843', dark: '#241f17', root: '#2a2219', rootLight: '#4a3a28' }));
 
-// Variants of the plainest tiles, appended to the strip after the ten above (data/adventure/
-// tileVariants.js says which stands in for which): the soil with pebbles, a buried root or a darker
-// patch, and the ground's top with a pebble or two in its earth. Each is the tile with a little
-// drawn over it, inside its edges, so it still joins its neighbours. The level picks them now and
-// then, so the ground doesn't look like one tile repeated.
-const SOIL = { pebble: '#4d4535', shine: '#615843', dark: '#241f17', root: '#2a2219', rootLight: '#4a3a28' };
-const pebble = (x, y, rx, ry) => `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${SOIL.pebble}" stroke="${SOIL.dark}" stroke-width="2"/>
-  <ellipse cx="${x - rx * 0.3}" cy="${y - ry * 0.35}" rx="${rx * 0.4}" ry="${ry * 0.3}" fill="${SOIL.shine}"/>`;
-const VARIANTS = [
-  ['soil', pebble(18, 22, 7, 5) + pebble(42, 44, 9, 6) + pebble(30, 50, 4, 3)],
-  ['soil', `<path d="M8 20 Q24 30 34 26 Q46 22 56 34" stroke="${SOIL.root}" stroke-width="6" fill="none" stroke-linecap="round"/>
-    <path d="M8 20 Q24 30 34 26 Q46 22 56 34" stroke="${SOIL.rootLight}" stroke-width="2" fill="none" stroke-linecap="round"/>
-    <path d="M34 26 Q36 38 30 46" stroke="${SOIL.root}" stroke-width="4" fill="none" stroke-linecap="round"/>`],
-  ['soil', `<ellipse cx="32" cy="34" rx="20" ry="13" fill="${SOIL.dark}" opacity="0.45"/>` + pebble(24, 30, 4, 3)],
-  ['ground-top', pebble(20, 44, 6, 4) + pebble(44, 52, 4, 3)],
-  ['ground-top', pebble(38, 42, 8, 5)],
-];
-const variantTiles = await Promise.all(VARIANTS.map(async ([name, svg]) => {
-  const base = await sharp(join(out, `${name}.png`)).resize(TILE, TILE, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer();
-  return sharp(base).composite([{ input: Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${TILE}" height="${TILE}">${svg}</svg>`) }]).png().toBuffer();
-}));
-const plain = join(out, 'tiles.png');
-const strip = await sharp(plain).toBuffer();
-await sharp({ create: { width: TILE * (TILESET.length + VARIANTS.length), height: TILE, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
-  .composite([{ input: strip, left: 0, top: 0 }, ...variantTiles.map((input, i) => ({ input, left: (TILESET.length + i) * TILE, top: 0 }))])
-  .png({ compressionLevel: 9 }).toFile(plain);
+// The two background layers, at the game's height.
+for (const [name, layer] of [['back-far', '00'], ['back-near', '01']]) await backdropLayer(wood('Background', `Layer ${layer}`), out, name);
 
-// The two background layers, at the game's height. Shrinking one leaves its last column faded
-// (nearly see-through), and repeated side by side, that column showed as a thin light line over a
-// bright sky behind it: faded edge columns are cut off.
-for (const [name, layer] of [['back-far', '00'], ['back-near', '01']]) {
-  const shrunk = await sharp(wood('Background', `Layer ${layer}`)).resize({ height: 720 }).png().toBuffer();
-  await (await trimFadedEdges(shrunk)).png({ compressionLevel: 9 }).toFile(join(out, `${name}.png`));
-}
-
-// A picture with its faded edge columns cut off: a left or right column whose average opacity is
-// under FADED_EDGE of the column next to it, inward.
-async function trimFadedEdges(input) {
-  const { data, info } = await sharp(input).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-  const { width, height } = info;
-  const opacity = (x) => { let sum = 0; for (let y = 0; y < height; y++) sum += data[(y * width + x) * 4 + 3]; return sum / height; };
-  let left = 0, right = width - 1;
-  while (left < 3 && opacity(left) < opacity(left + 1) * FADED_EDGE) left += 1;
-  while (right > width - 4 && opacity(right) < opacity(right - 1) * FADED_EDGE) right -= 1;
-  return sharp(input).extract({ left, top: 0, width: right - left + 1, height });
-}
 // The enemies and gunners, from the gangsta cats pack: each one's animations as a Phaser atlas (a
 // grid of frames and a JSON list of where each frame is), keeping every step-th frame of the pack's.
 const GANGSTA = join(ROOT, 'images', 'assets', 'worlds', 'characters', 'gangsta-cats', 'Png');

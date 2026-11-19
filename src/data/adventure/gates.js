@@ -42,3 +42,5 @@ export const GATES = {
     },
   },
 };
+// The Autumn Forest has the Wood world's gates until its own are drawn (prompts/autumn-level).
+GATES.autumn = GATES.wood;

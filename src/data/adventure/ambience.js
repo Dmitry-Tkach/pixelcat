@@ -18,4 +18,10 @@ export const AMBIENCE = {
     leaves: { everyMs: 900, lifeMs: [5000, 7500], fall: [40, 70], across: [-45, -10], size: [0.7, 1.1], colours: [0x8fd14a, 0x6cbf2e, 0xd8c040], depth: 4 },
     sway: null,
   },
+  // The Autumn Forest: more leaves, falling in reds and golds, and fewer, warmer fireflies.
+  autumn: {
+    fireflies: { everyMs: 700, lifeMs: [2600, 4200], drift: 22, size: [0.22, 0.34], colours: [0xffd27a, 0xffb84a, 0xfff0b0], depth: -6 },
+    leaves: { everyMs: 420, lifeMs: [5000, 7500], fall: [45, 80], across: [-60, -15], size: [0.8, 1.2], colours: [0xe8892a, 0xd4562a, 0xf0c040, 0xb8452a], depth: 4 },
+    sway: null,
+  },
 };
