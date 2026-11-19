@@ -133,6 +133,12 @@
   transform: scale(1.15);
 }
 
+/* The level pointed at comes to the front, its name with it, over the cat standing on the map. */
+.roadmap-level:hover,
+.roadmap-level:focus-visible {
+  z-index: 3;
+}
+
 .roadmap-level:focus-visible {
   outline: none;
 }
