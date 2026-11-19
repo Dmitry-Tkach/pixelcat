@@ -202,8 +202,9 @@ The owner may ask you to review a level, as a second opinion to Claude Code's le
   numbers, what to review, and the two-part report.
 - **A review changes nothing.** Don't edit code, levels, data, art or this file, and don't commit.
   Pictures go in a temp folder (`mktemp -d`), never in the project.
+- **Save the report** in `reviews/` (git ignores it), named like `reviews/wood-3-codex-2026-11-19.md`.
 - **No browser,** as always: the preview tool, the level files and the unit tests are enough.
-- **Reply with the report** in the chat, in the guide's two parts. Part 1 is for the owner: short,
+- **Reply with the report** in the chat too, in the guide's two parts. Part 1 is for the owner: short,
   plain sentences.
 
 ## When you finish

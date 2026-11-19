@@ -38,6 +38,7 @@ Never invent a problem. If you aren't sure, say so.
 2. **Never change** code, levels, data, art or config. You only read, run the preview tool and the
    unit tests, and report.
 3. **Write pictures only to a temp folder** (make one with `mktemp -d`), never inside the project.
+   The one file you write in the project is your report (section 7), in `reviews/`.
 4. Keep the level's creative direction. Improve it; don't redesign it.
 5. Use what the game already has (section 4). An idea that needs a new mechanic, enemy or art is
    allowed, but mark it **new work**.
@@ -187,7 +188,12 @@ Say only what the picture shows, and put the rest in the playtest list.
 
 ## 7. The report
 
-Reply in two parts.
+**Save it** as a Markdown file in the project's `reviews/` folder (git ignores it: reviews stay on the
+owner's Mac), named `<level id>-<who you are>-<date>.md`, for example
+`reviews/wood-3-codex-2026-11-19.md` or `reviews/wood-3-claude-2026-11-19.md`. Make the folder if it
+isn't there. Then reply with the same report, and the file's name.
+
+The report has two parts.
 
 ### Part 1: For the owner
 
