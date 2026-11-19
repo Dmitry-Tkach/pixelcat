@@ -191,11 +191,12 @@
   background: linear-gradient(180deg, #bff0ff, #2f8cff);
 }
 
-/* The level's name, on a tag above it when it's pointed at or chosen with the keys. */
+/* The level's name, on a tag under it when it's pointed at or chosen with the keys (above it stands
+   the cat). */
 .roadmap-name {
   position: absolute;
   left: 50%;
-  bottom: 108%;
+  top: 108%;
   z-index: 2;
   padding: 0.3em 0.7em;
   border: 3px solid #3b1d0c;
