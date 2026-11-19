@@ -83,15 +83,8 @@
   opacity: 0.95;
 }
 
-/* The cat, breathing: the hero's idle frames side by side in one picture, shown one at a time
-   (its picture and its steps are set by ui/adventureRoadmap.js). */
-@keyframes roadmap-cat-idle {
-  to { background-position-x: 100%; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .roadmap-cat { animation: none !important; }
-}
+/* The cat, breathing: the hero's idle frames side by side in one picture, shown one at a time by
+   ui/adventureRoadmap.js. */
 
 /* The islands, a little shadow under each, so they stand off the landscape behind them. */
 .roadmap-island {

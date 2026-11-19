@@ -95,9 +95,24 @@ export function adventureRoadmap({ levels, crystals, onBack, overlay }) {
     const cat = document.createElement('div');
     cat.className = 'roadmap-cat';
     Object.assign(cat.style, at({ x: current.x - width / 2, y: feet - height, w: width }), { aspectRatio: `${cw} / ${ch}` });
-    // The strip, `frames` times as wide as the cat; stepped through, first frame to last, in a loop.
+    // The strip, `frames` times as wide as the cat: one frame shows at a time, the next every
+    // 1/fps of a second, as the game plays it (a timer, not a CSS animation, which some browsers
+    // slide smoothly through the strip). It stops once the map is closed, and with reduced motion
+    // asked for, he stands still.
     cat.style.background = `url(${art('cat-idle')}) 0 0 / ${frames * 100}% 100% no-repeat`;
-    cat.style.animation = `roadmap-cat-idle ${frames / fps}s steps(${frames - 1}, jump-none) infinite`;
+    const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (!still) {
+      let frame = 0, shown = false;
+      const timer = setInterval(() => {
+        shown ||= cat.isConnected;
+        if (shown && !cat.isConnected) { // the map's been closed
+          clearInterval(timer);
+          return;
+        }
+        frame = (frame + 1) % frames;
+        cat.style.backgroundPositionX = `${(frame / (frames - 1)) * 100}%`;
+      }, 1000 / fps);
+    }
     map.append(cat);
   }
   scroller.append(map);
