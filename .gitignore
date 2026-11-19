@@ -2,6 +2,7 @@ node_modules
 dist
 .DS_Store
 prompts
+reviews
 
 # Downloaded art packs (CraftPix and others): their licences forbid sharing them, and the repo is public.
 images/assets/
