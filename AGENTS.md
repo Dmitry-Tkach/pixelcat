@@ -27,8 +27,10 @@ page of its own, which loads only that game:
    fights and explores fantasy worlds, eight of them (see below).
    - **Scenes:** `AdventureBootScene` (loading), `AdventureMenuScene` (its menus) and
      `AdventureScene` (a level), in `src/scenes/`. Levels: `src/data/adventure/`.
-   - **Built so far:** two levels, `wood-1` "Into the Roots" and `wood-2` "The Canopy", and the
-     troll's fight in a test arena (`docs/adventure-boss-troll.md`).
+   - **Built so far:** the Wood world's three levels: `wood-1` "Into the Roots", `wood-2` "Mill
+     Falls" and `wood-3` "Heart of the Tree", with its boss, the Rootbreaker
+     (`src/data/adventure/rootbreaker.js`); and the troll's fight in a test arena
+     (`docs/adventure-boss-troll.md`). In development, `?at=rootbreaker` starts at his arena.
    - **Planned:** 8 worlds of 3 levels, 24 in all, the third of each a boss level, on the road map in
      `src/data/adventure/roadmap.js`: Wood, Autumn Forest, Graveyard, Crystal Caves, Ancient, Sky
      Ruins, Execution Grounds, Medieval. Their tile packs are in `images/assets/worlds/`.
@@ -190,6 +192,19 @@ They keep separate progress and share nothing but the home screen and the menus'
   numbers, and every piece must fit inside the canvas: clip it first.
 - **Empty rows under pack images.** Some pack images have empty rows under the drawing, which
   floats them above the ground. The art tool trims those for things that stand.
+
+## Level reviews
+
+The owner may ask you to review a level, as a second opinion to Claude Code's level reviewer.
+
+- **Follow `docs/level-review.md`, all of it.** It's the same guide Claude Code's reviewer follows, so
+  the two reviews can be compared: its limits, its hard rules, how to look at a level, the game's
+  numbers, what to review, and the two-part report.
+- **A review changes nothing.** Don't edit code, levels, data, art or this file, and don't commit.
+  Pictures go in a temp folder (`mktemp -d`), never in the project.
+- **No browser,** as always: the preview tool, the level files and the unit tests are enough.
+- **Reply with the report** in the chat, in the guide's two parts. Part 1 is for the owner: short,
+  plain sentences.
 
 ## When you finish
 
