@@ -139,3 +139,14 @@ await save('gate-door', svg(128, 128, `
   <circle cx="64" cy="64" r="60" fill="none" stroke="#3e220f" stroke-width="5"/>
   <circle cx="64" cy="62" r="17" fill="#c9a23a" stroke="#6a5212" stroke-width="3"/>
   <circle cx="64" cy="57" r="5" fill="#1a1208"/><path d="M60 59 L68 59 L66 72 L62 72z" fill="#1a1208"/>`));
+
+// A small orange fish, facing left, in two poses: its tail flicked up, then down.
+const fish = (tail) => svg(72, 44, `
+  <path d="M54 22 L70 ${22 - tail} L70 ${22 + tail * 0.2} L66 22 L70 ${22 + tail} z" fill="#e0662a" stroke="#8a3412" stroke-width="2" stroke-linejoin="round"/>
+  <ellipse cx="32" cy="22" rx="25" ry="14" fill="#f08a3a" stroke="#8a3412" stroke-width="2.5"/>
+  <path d="M28 9 Q34 2 42 10" fill="#e0662a" stroke="#8a3412" stroke-width="2"/>
+  <ellipse cx="34" cy="27" rx="14" ry="6" fill="#ffc07a" opacity="0.8"/>
+  <circle cx="16" cy="19" r="4.5" fill="#ffffff" stroke="#3a1a08" stroke-width="1.5"/><circle cx="15" cy="19" r="2.2" fill="#1a0a04"/>
+  <path d="M8 25 Q11 27 13 25" stroke="#8a3412" stroke-width="2" fill="none"/>`);
+await save('fish-1', fish(14));
+await save('fish-2', fish(-14));

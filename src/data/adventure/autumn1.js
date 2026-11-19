@@ -4,7 +4,8 @@
 //   1. Village Entrance: the cottage, a safe start, the minigun, a ? block with a crystal over it,
 //      and a secret: cracked floor that breaks into a cave with the silver key.
 //   2. The Old Mill: a wooden walkway past the mill and its turning wheel, over the mill pool, with
-//      stepping stones in the pool below (the way on from the secret cave).
+//      stepping stones in the pool below (the way on from the secret cave). Fish leap out of the
+//      pool, up through the walkway: they hurt, and a round knocks one out (data/adventure/fish.js).
 //   3. Forest Outpost: tall islands climbed by ladders.
 //   4. The Ruined Bridge: a vine up to the stone ruins, where a switch lowers the drawbridge over the
 //      chasm. A mace swings over the bridge.
@@ -122,6 +123,13 @@ export const AUTUMN_VILLAGE_LEVEL = {
   map: level.rows(),
   traps: level.traps(),
   birds: level.birds(),
+  // Fish leaping out of the mill pool (data/adventure/fish.js): a low one over the jump from the bank
+  // to the first stepping stone, then two high ones, up through the walkway, taking turns.
+  fish: [
+    { col: 38, rise: 4, across: 2, phaseMs: 0 },
+    { col: 43, rise: 8, across: -2, phaseMs: 1000 },
+    { col: 55, rise: 8, across: 2, phaseMs: 2000 },
+  ],
   vines: level.vines(),
   drawbridges: level.drawbridges(),
   // Its set dressing (systems/adventure/AdventureScenery.js).
@@ -129,7 +137,7 @@ export const AUTUMN_VILLAGE_LEVEL = {
     { col: 48, top: 12, bottom: WATER },
     { col: 51, top: 14, bottom: WATER },
   ],
-  caves: [{ cols: [22, 33], rows: [27, 29] }, { cols: [100, 126], rows: [22, 25] }, { cols: [118, 127], rows: [27, 29] }],
+  caves: [{ cols: [22, 33], rows: [27, 29] }, { cols: [28, 29], rows: [26, 26] }, { cols: [100, 126], rows: [22, 25] }, { cols: [118, 127], rows: [27, 29] }],
   props: [
     { picture: 'house', col: 5, row: 26, back: true },
     { picture: 'torch', col: 8, row: 26 },

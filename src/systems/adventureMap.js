@@ -4,6 +4,7 @@
 import { trapProblems } from './adventure/trapLogic.js';
 import { wheelProblems } from './adventure/wheels.js';
 import { drawbridgeProblems } from './adventure/drawbridges.js';
+import { fishProblems } from '../data/adventure/fish.js';
 
 export const TILE = 64;
 // How deep into a tile the cat can sink in one physics step and still be pushed back out. Phaser's
@@ -190,6 +191,7 @@ export function checkAdventureLevel(level) {
   errors.push(...trapProblems(level, readAdventureMap(map)));
   errors.push(...wheelProblems(level));
   errors.push(...drawbridgeProblems(level));
+  errors.push(...fishProblems(level));
   // A locked portal (the Guardian Gate) opens only with the gold key, so the level needs one.
   if (level.portalLocked && count('key') < 1) errors.push('a locked portal needs a key, k');
   // A ladder's top must be on an island or the ground, so the cat has somewhere to step off.

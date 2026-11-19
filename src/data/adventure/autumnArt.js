@@ -18,6 +18,8 @@ export const AUTUMN_ART = [
   'standing-stone', 'barrel',
   ...AUTUMN_FROM_WOOD,
   // Stand-ins drawn by the tool, until the owner's pictures come: the climbing vine, the cracked
-  // floor, the switch, and the Guardian Gate's door.
+  // floor, the switch, the Guardian Gate's door and the fish.
   'vine', 'cracked', 'switch-off', 'switch-on', 'gate-door',
+  // The leaping fish (data/adventure/fish.js), in two poses: its tail one way, then the other.
+  'fish-1', 'fish-2',
 ];

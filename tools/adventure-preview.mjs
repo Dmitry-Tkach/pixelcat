@@ -9,6 +9,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ADVENTURE_LEVELS, adventureArtWorld, adventurePath } from '../src/data/adventure/index.js';
 import { drawbridgeCells } from '../src/systems/adventure/drawbridges.js';
+import { FISH, fishAt } from '../src/data/adventure/fish.js';
 import { BOSS_ARENAS } from '../src/data/adventure/bossArenas.js';
 import { bossLayout, bossPath } from '../src/data/adventure/bosses.js';
 import { enemyLayout } from '../src/data/adventure/enemies.js';
@@ -303,6 +304,17 @@ if (millArt) {
     (front ? fronts : comps).push(piece);
   }
   comps.push(...fronts);
+}
+// Leaping fish (data/adventure/fish.js): each one's leap dotted, and the fish at its top.
+if (level.fish?.length && level.water) {
+  const surfaceY = level.water.row * TILE;
+  for (const fish of level.fish) {
+    const points = Array.from({ length: 17 }, (_, i) => fishAt({ ...fish, phaseMs: 0 }, (FISH.leapMs * i) / 16 * 0.999, surfaceY, TILE));
+    const path = points.map((p, i) => `${i ? 'L' : 'M'}${(p.x * SCALE).toFixed(1)} ${(p.y * SCALE).toFixed(1)}`).join(' ');
+    comps.push({ input: Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${cols * CELL}" height="${rows * CELL}"><path d="${path}" stroke="#ff9a3c" stroke-width="2" stroke-dasharray="4 3" fill="none"/></svg>`), left: 0, top: 0 });
+    const top = fishAt({ ...fish, phaseMs: 0 }, FISH.leapMs / 2, surfaceY, TILE);
+    comps.push(await at(await scaled(art('fish-1'), 1), top.x, top.y, 0.5, 0.5));
+  }
 }
 // Pterodactyls: where each waits, and a patrolling one's beat dotted.
 if (existsSync(art('ptero-fly-0'))) {

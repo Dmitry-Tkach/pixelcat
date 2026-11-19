@@ -4,6 +4,7 @@ import { mapBuilder } from '../src/data/adventure/mapBuilder.js';
 import { TILES, checkAdventureLevel, readAdventureMap } from '../src/systems/adventureMap.js';
 import { adventureRoutes } from '../src/systems/adventureRoutes.js';
 import { drawbridgeCells, drawbridgeProblems, hitsSwitch } from '../src/systems/adventure/drawbridges.js';
+import { FISH, fishAt, fishProblems, touchesFish } from '../src/data/adventure/fish.js';
 
 // The Autumn Forest (world 2) and what its first level brought: borrowed art, vines, cracked floor,
 // drawbridges and the locked Guardian Gate.
@@ -106,5 +107,44 @@ describe('The Forgotten Village', () => {
     const { objects } = readAdventureMap(village.map);
     expect(objects.filter((o) => o.type === 'gem')).toHaveLength(3);
     expect(adventureRoutes(village).unreachable).toEqual([]);
+  });
+});
+
+describe('leaping fish', () => {
+  const surfaceY = 31 * 64;
+  const fish = { col: 10, rise: 4, across: 2, restMs: 1000 };
+
+  it('arc out of the water and back, highest halfway', () => {
+    const leapMs = FISH.leapMs;
+    const start = fishAt(fish, 0, surfaceY, 64);
+    const top = fishAt(fish, leapMs / 2, surfaceY, 64);
+    expect(start.y).toBeCloseTo(surfaceY);
+    expect(top.y).toBeCloseTo(surfaceY - 4 * 64);
+    expect(top.x).toBeCloseTo(10 * 64 + 32);
+    expect(start.angle).toBeLessThan(0); // nose up as it leaves the water, travelling right
+    expect(fishAt(fish, leapMs * 0.9, surfaceY, 64).angle).toBeGreaterThan(0); // nose down as it dives
+  });
+
+  it('rest under water between leaps, and count their leaps', () => {
+    expect(fishAt(fish, FISH.leapMs + 10, surfaceY, 64)).toBeNull();
+    const cycle = FISH.leapMs + fish.restMs;
+    expect(fishAt(fish, cycle + 10, surfaceY, 64).leap).toBe(1);
+  });
+
+  it('take turns, by their phase', () => {
+    expect(fishAt({ ...fish, phaseMs: FISH.leapMs + 10 }, 0, surfaceY, 64)).toBeNull();
+  });
+
+  it('touch only what is close', () => {
+    const place = { x: 100, y: 100 };
+    expect(touchesFish(place, 110, 105)).toBe(true);
+    expect(touchesFish(place, 160, 100)).toBe(false);
+  });
+
+  it('must leap from open water', () => {
+    const level = { map: ['....', '##..'], water: { row: 1 } };
+    expect(fishProblems({ ...level, fish: [{ col: 3 }] })).toEqual([]);
+    expect(fishProblems({ ...level, fish: [{ col: 0 }] })).toEqual(["fish 1 must leap from open water, not from column 0's ground"]);
+    expect(fishProblems({ map: level.map, fish: [{ col: 3 }] })).toEqual(['fish need water: the level has none']);
   });
 });

@@ -43,6 +43,7 @@ import { addMenuButton, showGameMenu } from '../ui/adventureGameMenu.js';
 import { Effects } from '../ui/Effects.js';
 import { showDizzyStars } from '../systems/adventure/dizzyStars.js';
 import { AdventureDrawbridges } from '../systems/adventure/AdventureDrawbridges.js';
+import { AdventureFish } from '../systems/adventure/AdventureFish.js';
 
 // reach: how far from a ladder's middle it can be grabbed. standStill: slower than this, the cat counts
 // as standing at a ladder, so Down climbs down it rather than sliding past.
@@ -216,6 +217,10 @@ export class AdventureScene extends Phaser.Scene {
     // (systems/adventure/AdventureDrawbridges.js).
     this.drawbridges = new AdventureDrawbridges(this, this.cat, level.drawbridges ?? [], {
       art: this.art, canLand: () => !this.climbing && !this.pullingUp, spend: (bullet) => this.moves.bulletStops(bullet),
+    });
+    // Fish leaping out of the water: they hurt the cat, and a round knocks one out (data/adventure/fish.js).
+    this.fish = new AdventureFish(this, level.fish ?? [], {
+      art: this.art, water: this.water, hurt: (fromX) => this.hurt(fromX), spend: (bullet) => this.moves.bulletStops(bullet),
     });
 
     // Bosses: a test arena's one boss fights at once, and beating him finishes it. A level's own
@@ -1329,6 +1334,7 @@ export class AdventureScene extends Phaser.Scene {
     }
     this.platforms.update(ms);
     this.drawbridges.update(this.cat, this.moves.bullets.getChildren());
+    this.fish.update(ms, this.cat, this.moves.bullets.getChildren());
     this.scenery.update(ms, this.cat);
     this.traps.update(ms, this.cat);
     this.updateLook(ms);
