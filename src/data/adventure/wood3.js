@@ -27,8 +27,8 @@ level.put(2, 33, '@').put(4, 33, '>').put(7, 33, 'b')
 // a closed green bud that a round opens into a bounce mushroom for a few seconds. Built up:
 // (J1) a bounce mushroom to play with, then the first bud, the only way over a trunk; (J2) thorn pits,
 // crumbling leaves and a dart idol, a crystal on an arch a bud reaches; (J3) a breather in old ruins:
-// maces swinging under arches, a rifle gunner, a heart; (J4) buds in a chain, high over a floor of
-// thorns, a pterodactyl over the gap, a crystal on the chain and a secret one out of sight above.
+// maces swinging under arches, a rifle gunner, a heart; (J4) buds in a chain, high over water, a
+// pterodactyl over the gap, a crystal on the chain and a secret one out of sight above.
 // Then the Rootbreaker's arena, and on to the Heart of the Tree.
 const thorns = (from, to) => { // a thorn pit in the ground: two cells deep, spikes at its bottom
   level.hollow(from, to, SURFACE, SURFACE + 1);
@@ -41,41 +41,47 @@ level.island(25, 29, 26).ladder(28, 26, 33)
   .island(33, 36, 31).island(41, 45, 30) // low branches over the river: somewhere to land, in view from the edges
   .coins(33, 34, 23).coins(39, 40, 22).coins(45, 46, 24);
 
-// ----- J1. Vine Gate: a bounce mushroom to a ledge, to play with; then a trunk too high to climb,
-// and the first spore bud, closed, by it: shoot it, and bounce.
-level.trap('mushroom', 52, 33).island(51, 54, 25).coins(52, 53, 24).coins(52, 52, 29)
-  .trap('mushroom', 60, 33, { bud: true }).island(59, 62, 25).coins(60, 61, 24)
+// ----- J1. Vine Gate: a bounce mushroom to play with, a column of coins over it and no ledge; then
+// a cone head, and a trunk too high to climb with the first spore bud, closed, by it: shoot it, and
+// bounce to its branch, the only way over. The play mushroom is 11 cells from the bud's branch, past
+// a bounce and a double jump (about 9), so the bud can't be skipped.
+level.trap('mushroom', 49, 33).coins(49, 49, 29).coins(49, 49, 26).coins(49, 49, 23)
+  .put(56, 33, 'c') // a cone head: a reason to stand and shoot by the bud
+  .trap('mushroom', 62, 33, { bud: true }).island(61, 63, 25).coins(62, 62, 24)
   .fill(64, 65, 22, SURFACE - 1).coins(64, 65, 20) // the trunk
   .island(67, 69, 27); // a step down from it
 
-// ----- J2. Broken Aqueduct: a checkpoint, thorn pits, crumbling leaves over the widest, and a dart
-// idol firing across the landing. A crystal on an arch, reached from a bud.
+// ----- J2. Broken Aqueduct: a checkpoint, thorn pits, crumbling leaves over the widest, and past
+// them a dart idol, its darts dying out before the leaves. A crystal on an arch, reached from a bud.
 level.put(67, 33, 'C');
 thorns(72, 74);
 thorns(80, 82);
 thorns(86, 92);
 level.put(88, 33, '%').put(89, 33, '%').put(90, 33, '%')
   .coins(73, 73, 31).coins(81, 81, 31).coins(88, 90, 31)
-  .trap('idol', 99, 33, { facing: -1 })
+  .trap('idol', 101, 33, { facing: -1 }) // its darts fall away (640 px) at column 91, past the leaves: met alone first
   .trap('mushroom', 102, 33, { bud: true }).island(103, 106, 25).put(104, 24, '*');
 
 // ----- J3. Bell Ruins: a checkpoint, two maces swinging under ruined arches over firm ground, a heart,
-// and a rifle gunner on a ruined tower.
+// and a rifle gunner on a low ruined tower, four cells up: he can be shot from a jump, or from up on
+// the tower.
 level.put(110, 33, 'C')
   .island(118, 122, 27).trap('mace', 120, 28, { hanging: true, chain: 237, swingDeg: 30 })
   .island(130, 134, 27).trap('mace', 132, 28, { hanging: true, chain: 237, swingDeg: 30, phaseMs: 1600 })
   .put(126, 33, '+').coins(119, 121, 31).coins(131, 133, 31)
-  .island(138, 141, 26).put(139, 25, '3');
+  .island(137, 140, 30).put(138, 29, '3');
 
 // ----- J4. Spore Lift: a checkpoint, then a tall trunk, crossed by two buds in a chain: one on the
-// ground to a branch, one on the branch to a branch above, by the trunk's top. Beyond it, a floor of thorns: high branches
+// ground to a branch, one on the branch to a branch above, by the trunk's top. Beyond it, water, as
+// the river (a fall costs a heart, back to the checkpoint, not a pit of thorns to climb out of): high branches
 // over it, crumbling leaves over the widest gap with a pterodactyl hovering by them; a bud to a crystal
 // above; and, out of sight over the last branch, a secret crystal one odd coin hints at.
 level.put(145, 33, 'C')
   .trap('mushroom', 149, 33, { bud: true }).island(148, 151, 25).trap('mushroom', 150, 24, { bud: true })
   .island(148, 151, 17) // the second bud throws him straight up to this branch, by the trunk's top
+  .island(143, 146, 23) // a branch under its left end: a step off it lands in view
   .fill(152, 153, 19, SURFACE - 1).coins(152, 153, 17); // the tall trunk
-thorns(154, 185);
+level.gap(154, 185);
 level.island(157, 160, 19).trap('mushroom', 159, 18, { bud: true }).island(160, 163, 10).put(161, 9, '*')
   .put(163, 19, '%').put(164, 19, '%')
   .bird('hover', 166, 16)
