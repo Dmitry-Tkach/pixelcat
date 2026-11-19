@@ -148,7 +148,7 @@ export const WOOD_LEVEL = {
   id: 'wood-1',
   title: 'Into the Roots',
   world: 'wood',
-  cat: { speed: 380 },
+  cat: { speed: 420 },
   hearts: 3,
   // Water in its bottomless gaps, its surface a row under the forest floor (data/adventure/water.js).
   water: { row: FLOOR + 1 },

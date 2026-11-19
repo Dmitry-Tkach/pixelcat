@@ -24,7 +24,7 @@ export const BOSS_ARENAS = {
     title: 'The Troll',
     world: 'wood',
     test: true,
-    cat: { speed: 380 },
+    cat: { speed: 420 },
     hearts: 3,
     music: { track: 'chase', bpm: 138 },
     sky: '#86c98a',

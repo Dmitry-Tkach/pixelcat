@@ -31,7 +31,7 @@ export const BIRD = {
   reach: { across: [2 * TILE, 9 * TILE], below: [TILE, 7 * TILE] }, // where the cat must be, from it, for it to dive
   firstAfterMs: 1000, // once awake, it's seen this long before its first warning
   warnMs: 700, // screech and flash, its aim locked
-  diveSpeed: 620, // px a second: faster than his run (380), a little faster than a dart (560)
+  diveSpeed: 620, // px a second: faster than his run (420), a little faster than a dart (560)
   angle: { minDeg: 20, maxDeg: 45 }, // below level: never straight down from above him
   overshoot: TILE * 1.5, // it flies on this far past where it aimed, then climbs back
   returnSpeed: 220, // px a second, back home

@@ -102,7 +102,7 @@ export const WOOD_HEART_LEVEL = {
   id: 'wood-3',
   title: 'Heart of the Tree',
   world: 'wood',
-  cat: { speed: 380 },
+  cat: { speed: 420 },
   hearts: 3,
   hint: 'Heart of the Tree\nGreen means shoot it: open the spore buds',
   water: { row: SURFACE + 1 },

@@ -136,7 +136,7 @@ export const WOOD_MILL_LEVEL = {
   id: 'wood-2',
   title: 'Mill Falls',
   world: 'wood',
-  cat: { speed: 380 },
+  cat: { speed: 420 },
   hearts: 3,
   hint: 'Mill Falls\nRide the wheels: shoot a green hub to turn it back',
   // Water in the river's gaps, its surface a row under the bank (data/adventure/water.js).
