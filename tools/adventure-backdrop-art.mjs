@@ -7,6 +7,7 @@
 //    owner's pictures are left alone.
 // Run: node tools/adventure-backdrop-art.mjs (part of npm run assets).
 import sharp from 'sharp';
+import { emptyRowsBelow } from './adventureTileArt.mjs';
 import { existsSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -26,8 +27,12 @@ const OWNER_LAYERS = {
     sky: { name: 'layer-sky', cropTop: 0.22 }, far: { name: 'layer-far' }, middle: { name: 'layer-middle' },
     near: { name: 'layer-near' }, foreground: { name: 'layer-front' },
   },
+  // The Autumn Forest (prompts/autumn-level 01 and 02): its sky, with a little of the leaves at its
+  // top cut off, and its big trees, standing on the picture's bottom (bottomFlush: the empty rows
+  // drawn under them are cut off).
+  autumn: { sky: { name: 'layer-sky', cropTop: 0.06 }, middle: { name: 'layer-middle', bottomFlush: true } },
 };
-const SOURCE_FOLDER = { wood: 'forest' };
+const SOURCE_FOLDER = { wood: 'forest', autumn: 'autumn' };
 const FRONT_HEIGHT = 300; // the leaves in front, cut to the bottom of the picture, this tall
 const SEAM = 0.04; // the share of a picture's width blended across its join
 const JOIN_SEARCH = 0.22; // how far in from each side (a share of the width) the best join is looked for
@@ -163,13 +168,15 @@ async function bestJoin(input) {
 
 let made = 0;
 for (const [world, layers] of Object.entries(OWNER_LAYERS)) {
-  for (const [file, { name, cropTop = 0 }] of Object.entries(layers)) {
+  mkdirSync(join(ART_OUT, world), { recursive: true });
+  for (const [file, { name, cropTop = 0, bottomFlush = false }] of Object.entries(layers)) {
     const source = join(LEVEL_ART, SOURCE_FOLDER[world], `${file}.png`);
     if (!existsSync(source)) continue;
     const front = file === 'foreground';
     const whole = await sharp(source).metadata();
     const top = Math.round(whole.height * cropTop);
-    const cropped = await sharp(source).extract({ left: 0, top, width: whole.width, height: whole.height - top }).png().toBuffer();
+    const below = bottomFlush ? await emptyRowsBelow(source) : 0;
+    const cropped = await sharp(source).extract({ left: 0, top, width: whole.width, height: whole.height - top - below }).png().toBuffer();
     let picture = cropped;
     if (front) {
       // The leaves: only the bottom of the picture, where they are.

@@ -103,8 +103,10 @@ export class AdventureGates {
     this.portalSwirl = this.swirlIn(arch, p.swirl, p.hole, p.depth - 0.01);
     this.spin(this.portalSwirl, p.spinMs);
     this.scene.tweens.add({ targets: this.portalSwirl, alpha: 0.75, duration: p.pulseMs, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    this.portalArch = arch;
     for (const postX of portalPosts(this.layout, cell, p)) {
       const post = this.stand(p.post, postX, y, p.postHeight, p.sink, p.depth);
+      if (p.sparks === false) continue; // a statue, not a flame
       // Green sparks rising from its flame.
       this.scene.add.particles(postX, post.y - post.displayHeight * 0.85, 'fx-dot', {
         lifespan: POST_SPARKS.lifespan, frequency: POST_SPARKS.frequency, speedY: { min: -POST_SPARKS.rise, max: -POST_SPARKS.rise / 2 },
@@ -113,12 +115,20 @@ export class AdventureGates {
     }
   }
 
-  // A locked portal: a door over the swirl, until the gold key opens it.
+  // A locked portal: a door over the swirl, until the gold key opens it. A portal with a doorBox (the
+  // Guardian Gate) has the door fill that box of its opening; otherwise a round door covers the swirl.
   lockPortal() {
-    const swirl = this.portalSwirl;
+    const swirl = this.portalSwirl, arch = this.portalArch, box = this.gates.portal.doorBox;
     if (!swirl) return;
-    this.door = this.scene.add.image(swirl.x, swirl.y, this.art('gate-door')).setDepth(DOOR.depth);
-    this.door.setScale((swirl.displayWidth * DOOR.cover) / this.door.width);
+    if (box && arch) {
+      const left = arch.x - arch.displayWidth / 2, top = arch.y - arch.displayHeight;
+      const w = (box.x1 - box.x0) * arch.displayWidth, h = (box.y1 - box.y0) * arch.displayHeight;
+      this.door = this.scene.add.image(left + ((box.x0 + box.x1) / 2) * arch.displayWidth, top + ((box.y0 + box.y1) / 2) * arch.displayHeight, this.art('gate-door'))
+        .setDepth(DOOR.depth).setDisplaySize(w, h);
+    } else {
+      this.door = this.scene.add.image(swirl.x, swirl.y, this.art('gate-door')).setDepth(DOOR.depth);
+      this.door.setScale((swirl.displayWidth * DOOR.cover) / this.door.width);
+    }
     this.doorHome = this.door.y;
   }
 

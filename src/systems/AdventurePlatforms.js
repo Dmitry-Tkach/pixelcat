@@ -29,11 +29,15 @@ const LOG = { speed: 110, pauseMs: 700, plankTop: 13, plankHeight: 22, depth: 2.
 // shakeMs: how long leaves shake before they fall. fallMs: how long they take to fall away.
 // backMs: how long until they grow back. shake: how far they shake.
 const LEAVES = { shakeMs: 520, fallMs: 320, backMs: 3200, shake: 3, depth: 2.6 };
+// Cracked floor's chunks as it breaks: pictures, how far apart they fly (px), how high they're thrown
+// and how far they then fall, and how long it all takes.
+const CHUNKS = { pictures: ['chunk-1', 'chunk-2', 'chunk-3'], spread: 22, rise: 40, fall: 180, ms: 700 };
 
 export class AdventurePlatforms {
   constructor(scene, cat, { art, movers = [], wheels = [], leaves = [], canLand }) {
     this.scene = scene;
     this.cat = cat;
+    this.art = art;
     this.canLand = canLand;
     this.riding = null;
     // Leaves don't move, and keep no earlier place: theirs is where they are.
@@ -316,6 +320,24 @@ export class AdventurePlatforms {
     return { left: hub.x - r, right: hub.x + r, top: hub.y - r, bottom: hub.y + r };
   }
 
+  // Cracked floor breaking: rock chunks (the Autumn world's, the owner's) fly up and fall, from each
+  // cell. A world without them shows none.
+  burst(ledge) {
+    const chunks = CHUNKS.pictures.map((name) => this.art(name)).filter((key) => this.scene.textures.exists(key));
+    if (!chunks.length) return;
+    for (const cell of ledge.leaves) {
+      chunks.forEach((key, i) => {
+        const chunk = this.scene.add.image(cell.x, cell.y, key).setDepth(LEAVES.depth + 0.1);
+        const across = (i - (chunks.length - 1) / 2) * CHUNKS.spread;
+        this.scene.tweens.add({ targets: chunk, x: chunk.x + across, angle: across * 4, duration: CHUNKS.ms, ease: 'Linear' });
+        this.scene.tweens.add({
+          targets: chunk, y: chunk.y - CHUNKS.rise, duration: CHUNKS.ms * 0.3, ease: 'Quad.easeOut',
+          onComplete: () => this.scene.tweens.add({ targets: chunk, y: chunk.y + CHUNKS.fall, alpha: 0, duration: CHUNKS.ms * 0.7, ease: 'Quad.easeIn', onComplete: () => chunk.destroy() }),
+        });
+      });
+    }
+  }
+
   // Leaves he's landed on shake, fall away, and grow back.
   crumble(ledge) {
     if (ledge.state !== 'still') return;
@@ -330,6 +352,7 @@ export class AdventurePlatforms {
   fall(ledge) {
     ledge.state = 'fallen';
     this.scene.audio.playSfx('collapse');
+    if (ledge.forGood) this.burst(ledge);
     for (const leaf of ledge.leaves) {
       leaf.disableBody(false, false);
       this.scene.tweens.add({ targets: leaf, y: leaf.home.y + TILE, alpha: 0, duration: LEAVES.fallMs, ease: 'Quad.easeIn' });

@@ -33,7 +33,8 @@ describe('the gates', () => {
         expect(hole.x - hole.size / 2).toBeGreaterThanOrEqual(0);
         expect(hole.x + hole.size / 2).toBeLessThanOrEqual(1);
       }
-      expect(checkpoint.flag.upY).toBeLessThan(checkpoint.flag.downY);
+      // A flag runs up its pole; a banner (the Autumn world's) unrolls where it hangs.
+      expect(checkpoint.flag.upY).toBeLessThanOrEqual(checkpoint.flag.downY);
     }
   });
 });

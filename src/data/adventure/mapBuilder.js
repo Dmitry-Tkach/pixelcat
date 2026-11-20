@@ -6,8 +6,9 @@
 //   ladder(col, top, bottom)  from the island at `top` down to `bottom`
 //   vine(col, top, bottom)  a climbing vine: a ladder that looks like a vine. vines() lists its cells.
 //   cracked(from, to, row)  cracked floor in the ground's surface: it breaks for good when landed on
-//   drawbridge(switchCol, switchRow, from, to, row)  a bridge that drops into place when its switch
-//                          is shot or touched (systems/adventure/drawbridges.js). drawbridges() lists them.
+//   drawbridge(switchCol, switchRow, from, to, row, { shot })  a bridge that drops into place when its
+//                          switch is shot or touched (systems/adventure/drawbridges.js); shot: its
+//                          switch is out of reach, to be shot from across. drawbridges() lists them.
 //   put(col, row, letter)  one thing: a coin, an enemy, a sign...
 //   coins(from, to, row)   a line of coins; arc(from, to, row, rise) coins over a jump
 //   mover(col, row, { across, up, width, speed })  a moving log: it starts at (col, row), its left
@@ -59,11 +60,11 @@ export function mapBuilder(cols, rows) {
       for (let r = top; r <= bottom; r++) vines.push({ col, row: r });
       return builder;
     },
-    drawbridge(switchCol, switchRow, from, to, row) {
+    drawbridge(switchCol, switchRow, from, to, row, { shot = false } = {}) {
       inside(switchCol, switchRow);
       inside(from, row);
       inside(to, row);
-      drawbridges.push({ switch: { col: switchCol, row: switchRow }, from, to, row });
+      drawbridges.push({ switch: { col: switchCol, row: switchRow }, from, to, row, ...(shot ? { shot } : {}) });
       return builder;
     },
     cracked(from, to, row) { span(from, to, (c) => place(c, row, 'Z', '#.')); return builder; },
@@ -112,4 +113,15 @@ export function mapBuilder(cols, rows) {
     drawbridges: () => drawbridges.map((d) => ({ ...d, switch: { ...d.switch } })),
   };
   return builder;
+}
+
+// A level's vine cells (vines()) as runs, one for each vine: { col, top, bottom }.
+export function vineRuns(cells) {
+  const runs = [];
+  for (const { col, row } of [...cells].sort((a, b) => a.col - b.col || a.row - b.row)) {
+    const last = runs.at(-1);
+    if (last && last.col === col && last.bottom === row - 1) last.bottom = row;
+    else runs.push({ col, top: row, bottom: row });
+  }
+  return runs;
 }

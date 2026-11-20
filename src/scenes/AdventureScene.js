@@ -44,6 +44,7 @@ import { Effects } from '../ui/Effects.js';
 import { showDizzyStars } from '../systems/adventure/dizzyStars.js';
 import { AdventureDrawbridges } from '../systems/adventure/AdventureDrawbridges.js';
 import { AdventureFish } from '../systems/adventure/AdventureFish.js';
+import { vineRuns } from '../data/adventure/mapBuilder.js';
 
 // reach: how far from a ladder's middle it can be grabbed. standStill: slower than this, the cat counts
 // as standing at a ladder, so Down climbs down it rather than sliding past.
@@ -341,11 +342,16 @@ export class AdventureScene extends Phaser.Scene {
 
   buildLadders() {
     this.ladderCells = new Set(this.layout.ladders.map(({ col, row }) => `${col},${row}`));
-    // A climbing vine (level.vines) is a ladder that looks like a vine.
+    // A climbing vine (level.vines) is a ladder that looks like a vine: one picture repeated down its
+    // whole length, at the vine picture's own width.
     const vines = new Set((this.level.vines ?? []).map(({ col, row }) => `${col},${row}`));
     for (const { col, row } of this.layout.ladders) {
-      const picture = vines.has(`${col},${row}`) ? 'vine' : 'ladder';
-      this.add.image(col * TILE + TILE / 2, row * TILE, this.art(picture)).setOrigin(0.5, 0).setDepth(3);
+      if (vines.has(`${col},${row}`)) continue;
+      this.add.image(col * TILE + TILE / 2, row * TILE, this.art('ladder')).setOrigin(0.5, 0).setDepth(3);
+    }
+    for (const { col, top, bottom } of vineRuns(this.level.vines ?? [])) {
+      const width = this.textures.get(this.art('vine')).getSourceImage().width;
+      this.add.tileSprite(col * TILE + TILE / 2, top * TILE, width, (bottom - top + 1) * TILE, this.art('vine')).setOrigin(0.5, 0).setDepth(3);
     }
   }
 

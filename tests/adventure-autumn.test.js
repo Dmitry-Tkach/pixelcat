@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ADVENTURE_ART, ADVENTURE_LEVELS, adventureArtKey, adventureArtWorld } from '../src/data/adventure/index.js';
-import { mapBuilder } from '../src/data/adventure/mapBuilder.js';
+import { mapBuilder, vineRuns } from '../src/data/adventure/mapBuilder.js';
 import { TILES, checkAdventureLevel, readAdventureMap } from '../src/systems/adventureMap.js';
 import { adventureRoutes } from '../src/systems/adventureRoutes.js';
 import { drawbridgeCells, drawbridgeProblems, hitsSwitch } from '../src/systems/adventure/drawbridges.js';
@@ -61,6 +61,9 @@ describe('cracked floor', () => {
   });
 });
 
+// How far (cells) the cat can shoot a switch from: well within the minigun's range.
+const SHOT_RANGE = 12;
+
 describe('drawbridges', () => {
   it('cover the cells from their start to their end', () => {
     expect(drawbridgeCells({ from: 3, to: 5, row: 7 })).toEqual([{ col: 3, row: 7 }, { col: 4, row: 7 }, { col: 5, row: 7 }]);
@@ -86,15 +89,31 @@ describe('drawbridges', () => {
 
   it.each(ADVENTURE_LEVELS.filter((level) => level.drawbridges?.length).map((level) => [level.id, level]))(
     '%s: every switch can be reached before its bridge is down', (_id, level) => {
-      const { reached } = adventureRoutes(level, { bridgesUp: true });
-      for (const { switch: at } of level.drawbridges) expect(reached.has(`${at.col},${at.row}`), `switch at ${at.col},${at.row}`).toBe(true);
+      for (const bridge of level.drawbridges) {
+        // Only this bridge up: the others are down, as the cat lowered them on his way.
+        const { reached } = adventureRoutes({ ...level, drawbridges: level.drawbridges.filter((other) => other !== bridge) });
+        const { switch: at, shot } = bridge;
+        // A switch to be shot from across: somewhere he stands on its row, in front of it, with no
+        // ground between. Any other, he walks to.
+        const seen = shot && [...reached].some((cell) => {
+          const [c, r] = cell.split(',').map(Number);
+          if (r !== at.row || Math.abs(c - at.col) > SHOT_RANGE) return false;
+          const [a, b] = c < at.col ? [c, at.col] : [at.col, c];
+          for (let x = a + 1; x < b; x++) if (level.map[r][x] === '#') return false;
+          return true;
+        });
+        expect(shot ? seen : reached.has(`${at.col},${at.row}`), `switch at ${at.col},${at.row}`).toBe(true);
+      }
     },
   );
 });
 
 describe('The Forgotten Village', () => {
-  it('needs its drawbridge: the chasm is too wide to jump', () => {
-    expect(adventureRoutes(village, { bridgesUp: true }).portal).toBe(false);
+  it('needs each of its drawbridges: neither chasm can be jumped', () => {
+    for (const bridge of village.drawbridges) {
+      const others = village.drawbridges.filter((other) => other !== bridge);
+      expect(adventureRoutes({ ...village, drawbridges: others }).portal, `the bridge from column ${bridge.from}`).toBe(false);
+    }
   });
 
   it('locks its gate, and has the gold key for it', () => {
@@ -146,5 +165,12 @@ describe('leaping fish', () => {
     expect(fishProblems({ ...level, fish: [{ col: 3 }] })).toEqual([]);
     expect(fishProblems({ ...level, fish: [{ col: 0 }] })).toEqual(["fish 1 must leap from open water, not from column 0's ground"]);
     expect(fishProblems({ map: level.map, fish: [{ col: 3 }] })).toEqual(['fish need water: the level has none']);
+  });
+});
+
+describe('vine runs', () => {
+  it('group a level\'s vine cells into one run for each vine', () => {
+    const cells = [{ col: 4, row: 5 }, { col: 4, row: 3 }, { col: 4, row: 4 }, { col: 9, row: 1 }, { col: 9, row: 2 }];
+    expect(vineRuns(cells)).toEqual([{ col: 4, top: 3, bottom: 5 }, { col: 9, top: 1, bottom: 2 }]);
   });
 });

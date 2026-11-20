@@ -1,16 +1,16 @@
 // Prepares the Autumn Forest world's art (world 2) into public/assets/adventure/autumn: the tiles,
-// backdrop, pickups and scenery from the free Autumn Forest pack (images/assets/worlds/autumn-forest),
+// pickups and scenery from the free Autumn Forest pack (images/assets/worlds/autumn-forest),
 // a few things recoloured from the Wood world for autumn, and stand-ins drawn here for what the
 // owner will draw (prompts/autumn-level): the climbing vine, the cracked floor, the switch and the
 // Guardian Gate's door. Anything the Autumn world doesn't have of its own comes from the Wood
 // world's art (data/adventure/index.js, ADVENTURE_ART_OWN).
 // Runs after the Wood world's tools, as it reads some of their art: npm run assets.
 import sharp from 'sharp';
-import { mkdirSync, rmSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AUTUMN_FROM_WOOD } from '../src/data/adventure/autumnArt.js';
-import { TILE, backdropLayer, buildTileStrip, shrinkPieces, soilVariants } from './adventureTileArt.mjs';
+import { TILE, buildTileStrip, shrinkPieces, soilVariants } from './adventureTileArt.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const PACK = join(ROOT, 'images', 'assets', 'worlds', 'autumn-forest', 'PNG');
@@ -82,13 +82,13 @@ const SOIL = { pebble: '#6b4330', shine: '#8a5a40', dark: '#2e1a12', root: '#3a2
 // How far the Wood world's green is turned round the colour wheel to make it autumn's orange and gold.
 const TO_AUTUMN_HUE = -75;
 
-rmSync(OUT, { recursive: true, force: true });
+// Not emptied first: tools/adventure-backdrop-art.mjs has put the owner's layers in it already (and
+// tools/adventure-art.mjs empties all the adventure's art at the start of npm run assets).
 mkdirSync(OUT, { recursive: true });
 await shrinkPieces(AUTUMN, OUT, STANDS);
 
 // No earth pillar (map letter R): the pack's cuts badly, so this world's levels don't use one.
 await buildTileStrip(OUT, soilVariants(SOIL));
-for (const [name, layer] of [['back-far', '00'], ['back-near', '01']]) await backdropLayer(pack('Background', `Layer ${layer}`), OUT, name);
 
 // The Wood world's leaves and plants, turned autumn: the crumbling leaves, and the grass, flowers
 // and vines the decoration places.
