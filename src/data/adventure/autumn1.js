@@ -181,10 +181,13 @@ export const AUTUMN_VILLAGE_LEVEL = {
   // The caves' insides, deep in the earth: the village cave and its shaft, the mine and the hole down
   // into it, and the secret room under it, its shaft and its trapdoor.
   caves: [
-    { cols: [22, 33], rows: [28, 31] }, { cols: [28, 29], rows: [26, 27] },
+    { cols: [22, 33], rows: [28, 31] }, { cols: [28, 29], rows: [25, 27] }, // the cracked floor's cells too: once broken, the cave shows through
     { cols: [98, 127], rows: [28, 31] }, { cols: [99, 100], rows: [26, 27] },
-    { cols: [113, 126], rows: [34, 35] }, { cols: [118, 119], rows: [33, 33] }, { cols: [125, 126], rows: [32, 33] },
+    { cols: [113, 126], rows: [34, 35] }, { cols: [118, 119], rows: [32, 33] }, { cols: [125, 126], rows: [32, 33] },
   ],
+  // The secret caves, hidden under the earth until the cat is inside: the village's cave and its
+  // shaft, and the secret room under the mine (systems/adventure/AdventureScenery.js).
+  secrets: [{ cols: [22, 33], rows: [26, 31] }, { cols: [113, 126], rows: [33, 35] }],
   // The owner's scenery (images/levels/autumn, cut by tools/adventure-autumn-scenery.mjs) and the
   // pack's trees, fences and barrels.
   // Earth columns behind the level, holding its islands up from the ground, as in the owner's

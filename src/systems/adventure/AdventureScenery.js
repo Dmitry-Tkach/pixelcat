@@ -24,6 +24,9 @@ import { PTERO_LOOKS } from '../../data/adventure/birds.js';
 //   columns: { col, width, top, bottom }: an earth column behind the level, holding an island up
 //     from the ground: `width` cells wide (2 or 3, the world's column-<width> picture) from column
 //     col, from row top to row bottom. Scenery only: the cat passes in front of it.
+//   secrets: { cols: [from, to], rows: [from, to] }: a secret cave, hidden under a cover of the
+//     world's earth (its soil tile) in front of everything, which fades away while the cat is inside,
+//     so the camera never gives it away from above.
 //   caves: { cols: [from, to], rows: [from, to] }: the dark inside of a cave in a cliff: the world's
 //     'cave-back' picture repeated, or a dark wash in a world without one.
 //   flybys: { col, row, wake, dir, look }: a harmless pterodactyl that takes off from (col, row) as
@@ -69,6 +72,12 @@ export class AdventureScenery {
       for (const part of parts) part.setAlpha(veil ? VEIL_ALPHA : WATERFALL.alpha);
       this.flows.push(flow);
       if (veil) this.covers.push({ parts, full: VEIL_ALPHA, box: { left: x - width / 2, right: x + width / 2, top: topY, bottom: bottomY } });
+    }
+    for (const { cols, rows } of level.secrets ?? []) {
+      if (!has('soil')) break;
+      const [x, y, w, h] = [cols[0] * TILE, rows[0] * TILE, (cols[1] - cols[0] + 1) * TILE, (rows[1] - rows[0] + 1) * TILE];
+      const earth = scene.add.tileSprite(x, y, w, h, art('soil')).setOrigin(0, 0).setTilePosition(x, y).setDepth(DEPTH.front);
+      this.covers.push({ parts: [earth], full: 1, seen: 0, box: { left: x, right: x + w, top: y, bottom: y + h } });
     }
     for (const { col, width, top, bottom } of level.columns ?? []) {
       if (!has(`column-${width}`)) continue;
@@ -181,7 +190,7 @@ export class AdventureScenery {
     for (const cover of this.covers) {
       const { box } = cover;
       const behind = body.right > box.left && body.left < box.right && body.bottom > box.top && body.top < box.bottom;
-      const target = behind ? COVER.seen : cover.full;
+      const target = behind ? cover.seen ?? COVER.seen : cover.full;
       for (const part of cover.parts) {
         const step = COVER.fadePerMs * ms;
         part.setAlpha(part.alpha + Math.max(-step, Math.min(step, target - part.alpha)));
