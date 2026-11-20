@@ -11,6 +11,8 @@ import { cameraBottom } from '../src/systems/adventure/cameraFloor.js';
 import { caveRuns } from '../src/systems/adventure/caveFill.js';
 import { secretCoverTiles } from '../src/systems/adventure/secretCover.js';
 import { COLUMN_REACH, columnSpan } from '../src/systems/adventure/earthColumns.js';
+import { pillarLayout } from '../src/systems/adventure/pillarLayout.js';
+import { PILLAR } from '../src/data/adventure/pillars.js';
 import { feetOnStairs, holdsOnStairs, stairBox, stairSurface } from '../src/systems/adventure/stairSteps.js';
 
 // The Autumn Forest (world 2) and what its first level brought: borrowed art, vines, cracked floor,
@@ -370,5 +372,26 @@ describe('an earth column', () => {
   });
   it('stops at its own cells over or under empty air', () => {
     expect(columnSpan({ col: 2, width: 2, top: 3, bottom: 4 }, map, 64)).toEqual({ x: 128, y: 3 * 64, w: 128, h: 2 * 64 });
+  });
+});
+
+describe('an earth pillar from the kit', () => {
+  // A 4-cell island on row 1 (columns 1 to 4), the ground from row 9; a pillar under the island.
+  const map = ['........', '.====...', ...Array(7).fill('........'), '########'];
+  const sizes = { top: { w: 600, h: 300 }, trunk: { w: 240, h: 500 }, foot: { w: 470, h: 250 } };
+  const pillar = pillarLayout({ col: 2, width: 2, top: 2, bottom: 8 }, map, 64, sizes);
+
+  it('is never shown bigger than cut', () => {
+    expect(pillarLayout({ col: 2, width: 3, top: 2, bottom: 8 }, ['.' + '='.repeat(20), ...map.slice(1).map((r) => r.padEnd(21, r.at(-1)))], 64, sizes).scale).toBeLessThanOrEqual(1);
+  });
+
+  it('is made small enough for its flare to fit under the island', () => {
+    expect(pillar.scale * sizes.top.w).toBeLessThanOrEqual(4 * 64 - 2 * PILLAR.margin + 0.001);
+    expect(pillar.x - (pillar.scale * sizes.top.w) / 2).toBeGreaterThanOrEqual(64 + PILLAR.margin - 0.001);
+  });
+
+  it('has a flare and a foot against something solid, and reaches into them', () => {
+    expect(pillar).toMatchObject({ flare: true, foot: true, top: 2 * 64 - COLUMN_REACH, bottom: 9 * 64 + COLUMN_REACH });
+    expect(pillarLayout({ col: 2, width: 2, top: 3, bottom: 7 }, map, 64, sizes)).toMatchObject({ flare: false, foot: false });
   });
 });

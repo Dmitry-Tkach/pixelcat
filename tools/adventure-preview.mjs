@@ -11,6 +11,8 @@ import { ADVENTURE_LEVELS, adventureArtWorld, adventurePath } from '../src/data/
 import { drawbridgeCells } from '../src/systems/adventure/drawbridges.js';
 import { caveRuns } from '../src/systems/adventure/caveFill.js';
 import { columnSpan } from '../src/systems/adventure/earthColumns.js';
+import { pillarLayout } from '../src/systems/adventure/pillarLayout.js';
+import { PILLAR_ART } from '../src/data/adventure/pillars.js';
 import { stairBox } from '../src/systems/adventure/stairSteps.js';
 import { FISH, fishAt } from '../src/data/adventure/fish.js';
 import { BOSS_ARENAS } from '../src/data/adventure/bossArenas.js';
@@ -102,7 +104,23 @@ if (millArt) {
     (veil ? fronts : comps).push(...pieces);
   }
   // Earth columns behind the level (AdventureScenery's columns): the world's column picture, stacked.
+  const pillarKit = Object.values(PILLAR_ART).every((name) => existsSync(art(name)));
+  const pillarSizes = {};
+  if (pillarKit) for (const [part, name] of Object.entries(PILLAR_ART)) { const { width: w, height: h } = await sharp(art(name)).metadata(); pillarSizes[part] = { w, h }; }
   for (const column of level.columns ?? []) {
+    if (pillarKit) {
+      // As AdventureScenery draws them: the trunk the whole way, the flare and the foot over it.
+      const { x, top, bottom, scale, flare, foot } = pillarLayout(column, level.map, TILE, pillarSizes);
+      const k = scale * SCALE;
+      const tw = Math.max(1, Math.round(pillarSizes.trunk.w * k)), th = Math.max(1, Math.round((bottom - top) * SCALE));
+      const trunkTile = await sharp(art(PILLAR_ART.trunk)).resize(tw, Math.max(1, Math.round(pillarSizes.trunk.h * k))).png().toBuffer();
+      const trunk = await sharp({ create: { width: tw, height: th, channels: 4, background: '#0000' } }).composite([{ input: await fitTile(trunkTile, tw, th), tile: true, left: 0, top: 0 }]).png().toBuffer();
+      comps.push({ input: trunk, left: Math.round(x * SCALE - tw / 2), top: Math.round(top * SCALE) });
+      const piece = async (name) => sharp(art(name)).resize(Math.max(1, Math.round(pillarSizes[name === PILLAR_ART.top ? 'top' : 'foot'].w * k))).png().toBuffer();
+      if (flare) comps.push(await at(await piece(PILLAR_ART.top), x, top, 0.5, 0));
+      if (foot) comps.push(await at(await piece(PILLAR_ART.foot), x, bottom, 0.5, 1));
+      continue;
+    }
     if (!existsSync(art(`column-${column.width}`))) continue;
     const { x, y, w, h } = columnSpan(column, level.map, TILE);
     const [pw, ph] = [Math.round(w * SCALE), Math.round(h * SCALE)];

@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 import { TILE } from '../adventureMap.js';
 import { caveRuns } from './caveFill.js';
 import { columnSpan } from './earthColumns.js';
+import { pillarLayout } from './pillarLayout.js';
+import { PILLAR_ART } from '../../data/adventure/pillars.js';
 import { WATERFALL } from '../../data/adventure/millArt.js';
 import { makeStandIn } from '../../entities/AdventureBird.js';
 import { PTERO_LOOKS } from '../../data/adventure/birds.js';
@@ -26,9 +28,10 @@ import { PTERO_LOOKS } from '../../data/adventure/birds.js';
 //     this wide (px), if not its own size. spinMs: it turns round its middle, at the middle of its
 //     cell, once in this long (a mill's wheel turning as scenery). glow: a lantern's warm light round
 //     it, flickering, lighting the cave wall behind it (LANTERN_GLOW).
-//   columns: { col, width, top, bottom }: an earth column behind the level, holding an island up
-//     from the ground: `width` cells wide (2 or 3, the world's column-<width> picture) from column
-//     col, from row top to row bottom. Scenery only: the cat passes in front of it.
+//   columns: { col, width, top, bottom }: an earth pillar behind the level, holding an island up
+//     from the ground: `width` cells wide from column col, from row top to row bottom: from the
+//     world's pillar kit (a flared top, a trunk, a foot: systems/adventure/pillarLayout.js), or its
+//     plain column-<width> picture (2 or 3). Scenery only: the cat passes in front of it.
 //   caves: { cols: [from, to], rows: [from, to] }: the dark inside of a cave in a cliff: the world's
 //     'cave-back' picture repeated, or a dark wash in a world without one.
 //   flybys: { col, row, wake, dir, look }: a harmless pterodactyl that takes off from (col, row) as
@@ -88,7 +91,21 @@ export class AdventureScenery {
       this.flows.push(flow);
       if (veil) this.covers.push({ parts, full: VEIL_ALPHA, box: { left: x - width / 2, right: x + width / 2, top: topY, bottom: bottomY } });
     }
+    // Earth pillars from the world's pillar kit (data/adventure/pillars.js): the trunk the whole
+    // way, the flare and the foot over its ends; else the world's plain column picture, repeated.
+    const kit = has(PILLAR_ART.trunk) && has(PILLAR_ART.top) && has(PILLAR_ART.foot);
+    const sizeOf = (name) => { const { width: w, height: h } = scene.textures.get(art(name)).getSourceImage(); return { w, h }; };
+    const sizes = kit ? { top: sizeOf(PILLAR_ART.top), trunk: sizeOf(PILLAR_ART.trunk), foot: sizeOf(PILLAR_ART.foot) } : null;
     for (const column of level.columns ?? []) {
+      if (kit) {
+        const { x, top, bottom, scale, flare, foot } = pillarLayout(column, level.map, TILE, sizes);
+        const w = sizes.trunk.w * scale;
+        scene.add.tileSprite(x - w / 2, top, sizes.trunk.w, (bottom - top) / scale, art(PILLAR_ART.trunk))
+          .setOrigin(0, 0).setScale(scale).setDepth(DEPTH.column);
+        if (flare) scene.add.image(x, top, art(PILLAR_ART.top)).setOrigin(0.5, 0).setScale(scale).setDepth(DEPTH.column + 0.001);
+        if (foot) scene.add.image(x, bottom, art(PILLAR_ART.foot)).setOrigin(0.5, 1).setScale(scale).setDepth(DEPTH.column + 0.001);
+        continue;
+      }
       if (!has(`column-${column.width}`)) continue;
       const { x, y, w, h } = columnSpan(column, level.map, TILE); // into the island and the ground, behind them
       scene.add.tileSprite(x, y, w, h, art(`column-${column.width}`)).setOrigin(0, 0).setTilePosition(0, y).setDepth(DEPTH.column);
