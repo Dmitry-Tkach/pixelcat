@@ -184,6 +184,14 @@ export const AUTUMN_VILLAGE_LEVEL = {
   // ledges), between the ledges the cat climbs. Each starts under its piece (head: false), with the
   // owner's splash at its foot. Each strip starts behind its piece's solid part, so its top doesn't
   // show through where the piece fades out.
+  // The waterfall cliff, built from the rock kit (data/adventure/rocks.js): three steps rising to
+  // the right, as in the owner's picture, standing in the pool: a low step the first fall spills
+  // from, the high one over the rope bridge the other two pour from, and the top the big tree stands
+  // on. Scenery only. Until the kit's art comes (prompts 16 to 19) it draws nothing, and the owner's
+  // cliff picture (props, big-cliff) stands in for it.
+  rocks: [
+    { parts: [{ cols: [34, 50], rows: [16, 30] }, { cols: [40, 50], rows: [12, 30] }, { cols: [43, 47], rows: [11, 30] }], foot: 'water' },
+  ],
   waterfalls: [
     { col: 38, top: 15, bottom: WATER, width: 112, head: false, foamAt: [RAISED] }, // off the middle ledge, by the mill's wheel
     { col: 43, top: 12, bottom: 15, width: 130, head: false, splash: false }, // off the top ledge, onto the middle one

@@ -45,6 +45,7 @@ import { showDizzyStars } from '../systems/adventure/dizzyStars.js';
 import { AdventureDrawbridges } from '../systems/adventure/AdventureDrawbridges.js';
 import { AdventureFish } from '../systems/adventure/AdventureFish.js';
 import { AdventureStairs } from '../systems/adventure/AdventureStairs.js';
+import { AdventureRocks } from '../systems/adventure/AdventureRocks.js';
 import { AdventureMole } from '../entities/AdventureMole.js';
 import { ENEMIES } from '../data/adventure/enemies.js';
 import { cameraBottom } from '../systems/adventure/cameraFloor.js';
@@ -142,6 +143,7 @@ export class AdventureScene extends Phaser.Scene {
     // Water in the bottomless gaps, if the level has it (data/adventure/water.js).
     this.water = new AdventureWater(this, level.water, this.layout, this.worldH + FALL_OUT_BELOW);
     this.scenery = new AdventureScenery(this, level, this.art); // waterfalls, caves, covers (Mill Falls)
+    this.rocks = new AdventureRocks(this, level.rocks ?? [], { art: this.art }); // cliffs from the rock kit
     this.buildSecretCovers();
     this.splashed = false;
     this.buildLadders();
