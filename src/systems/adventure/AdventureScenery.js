@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { TILE } from '../adventureMap.js';
 import { caveRuns } from './caveFill.js';
+import { columnSpan } from './earthColumns.js';
 import { WATERFALL } from '../../data/adventure/millArt.js';
 import { makeStandIn } from '../../entities/AdventureBird.js';
 import { PTERO_LOOKS } from '../../data/adventure/birds.js';
@@ -87,10 +88,10 @@ export class AdventureScenery {
       this.flows.push(flow);
       if (veil) this.covers.push({ parts, full: VEIL_ALPHA, box: { left: x - width / 2, right: x + width / 2, top: topY, bottom: bottomY } });
     }
-    for (const { col, width, top, bottom } of level.columns ?? []) {
-      if (!has(`column-${width}`)) continue;
-      scene.add.tileSprite(col * TILE, top * TILE, width * TILE, (bottom - top + 1) * TILE, art(`column-${width}`))
-        .setOrigin(0, 0).setDepth(DEPTH.column);
+    for (const column of level.columns ?? []) {
+      if (!has(`column-${column.width}`)) continue;
+      const { x, y, w, h } = columnSpan(column, level.map, TILE); // into the island and the ground, behind them
+      scene.add.tileSprite(x, y, w, h, art(`column-${column.width}`)).setOrigin(0, 0).setTilePosition(0, y).setDepth(DEPTH.column);
     }
     // A world with its own cave wall picture (the Autumn world's dark earth and stones) has it
     // repeated over the cave, lined up across the whole level so the strips join; another, a dark

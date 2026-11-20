@@ -10,6 +10,7 @@ import { MOLE, moleStep } from '../src/systems/adventure/moleLogic.js';
 import { cameraBottom } from '../src/systems/adventure/cameraFloor.js';
 import { caveRuns } from '../src/systems/adventure/caveFill.js';
 import { secretCoverTiles } from '../src/systems/adventure/secretCover.js';
+import { COLUMN_REACH, columnSpan } from '../src/systems/adventure/earthColumns.js';
 import { feetOnStairs, holdsOnStairs, stairBox, stairSurface } from '../src/systems/adventure/stairSteps.js';
 
 // The Autumn Forest (world 2) and what its first level brought: borrowed art, vines, cracked floor,
@@ -358,5 +359,16 @@ describe('a secret cave\'s cover', () => {
   it('reaches one cell round the cave, and no further', () => {
     expect(at(0, 3)).toBeUndefined();
     expect(at(3, 1)).toBeUndefined(); // air over the ground stays air
+  });
+});
+
+describe('an earth column', () => {
+  // An island on row 1 (columns 1 to 4), the ground from row 6; a column under the island.
+  const map = ['......', '.====.', '......', '......', '......', '......', '######'];
+  it('reaches into the island over it and the ground under it, so there\'s no gap', () => {
+    expect(columnSpan({ col: 2, width: 2, top: 2, bottom: 5 }, map, 64)).toEqual({ x: 128, y: 2 * 64 - COLUMN_REACH, w: 128, h: 4 * 64 + 2 * COLUMN_REACH });
+  });
+  it('stops at its own cells over or under empty air', () => {
+    expect(columnSpan({ col: 2, width: 2, top: 3, bottom: 4 }, map, 64)).toEqual({ x: 128, y: 3 * 64, w: 128, h: 2 * 64 });
   });
 });

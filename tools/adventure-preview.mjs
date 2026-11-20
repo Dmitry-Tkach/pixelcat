@@ -10,6 +10,7 @@ import { join } from 'node:path';
 import { ADVENTURE_LEVELS, adventureArtWorld, adventurePath } from '../src/data/adventure/index.js';
 import { drawbridgeCells } from '../src/systems/adventure/drawbridges.js';
 import { caveRuns } from '../src/systems/adventure/caveFill.js';
+import { columnSpan } from '../src/systems/adventure/earthColumns.js';
 import { stairBox } from '../src/systems/adventure/stairSteps.js';
 import { FISH, fishAt } from '../src/data/adventure/fish.js';
 import { BOSS_ARENAS } from '../src/data/adventure/bossArenas.js';
@@ -101,10 +102,13 @@ if (millArt) {
     (veil ? fronts : comps).push(...pieces);
   }
   // Earth columns behind the level (AdventureScenery's columns): the world's column picture, stacked.
-  for (const { col, width, top, bottom } of level.columns ?? []) {
-    if (!existsSync(art(`column-${width}`))) continue;
-    const piece = await sharp(art(`column-${width}`)).resize(Math.round(width * CELL), Math.round(CELL)).png().toBuffer();
-    for (let r = top; r <= bottom; r++) comps.push({ input: piece, left: Math.round(col * CELL), top: Math.round(r * CELL) });
+  for (const column of level.columns ?? []) {
+    if (!existsSync(art(`column-${column.width}`))) continue;
+    const { x, y, w, h } = columnSpan(column, level.map, TILE);
+    const [pw, ph] = [Math.round(w * SCALE), Math.round(h * SCALE)];
+    const piece = await sharp(art(`column-${column.width}`)).resize(pw, Math.round(CELL)).png().toBuffer();
+    const input = await sharp({ create: { width: pw, height: ph, channels: 4, background: '#0000' } }).composite([{ input: await fitTile(piece, pw, ph), tile: true, left: 0, top: 0 }]).png().toBuffer();
+    comps.push({ input, left: Math.round(x * SCALE), top: Math.round(y * SCALE) });
   }
   // A world's own cave wall picture, repeated, or a dark wash (systems/adventure/AdventureScenery.js).
   const caveWall = existsSync(art('cave-back')) ? await sharp(art('cave-back')).resize(Math.round(160 * SCALE)).png().toBuffer() : null;
