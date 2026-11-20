@@ -51,11 +51,12 @@ export class AdventureWater {
   }
 
   // Something hits the water at x: drops fly up, a ring spreads on the surface, and it sounds.
-  splash(x) {
+  // sound: its sound (data/adventure/sounds.js): a fish's are its own, smaller than the cat's.
+  splash(x, sound = 'splash') {
     const { splash } = WATER;
     this.drops.explode(splash.drops, x, this.surfaceY);
     const ring = this.scene.add.ellipse(x, this.surfaceY, 50, 12, 0xffffff, 0).setStrokeStyle(3, 0xffffff, 0.9).setDepth(WATER.front.depth + 0.2);
     this.scene.tweens.add({ targets: ring, scaleX: 3.2, scaleY: 2, alpha: 0, duration: splash.ringMs, ease: 'Quad.easeOut', onComplete: () => ring.destroy() });
-    this.scene.audio.playSfx('splash');
+    this.scene.audio.playSfx(sound);
   }
 }

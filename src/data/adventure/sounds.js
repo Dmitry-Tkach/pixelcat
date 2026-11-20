@@ -96,4 +96,17 @@ export const ADVENTURE_SOUNDS = {
     { kind: 'noise', filter: 'highpass', at: 0.05, cutoff: 4000, duration: 0.3, gain: 0.15 },
     { wave: 'sine', from: 300, to: 120, duration: 0.2, gain: 0.2 },
   ],
+  // A fish leaping out of the water (data/adventure/fish.js): small and light, as fish leap often.
+  // A quick bright spray, and the "bloop" of a bubble (water's own note: a sine sliding quickly up).
+  fishLeap: [
+    { kind: 'noise', filter: 'bandpass', cutoff: 2600, sweepTo: 1300, q: 1.4, duration: 0.13, gain: 0.16, attack: 0.005 },
+    { wave: 'sine', from: 520, to: 1150, duration: 0.05, gain: 0.12, attack: 0.004 },
+    { kind: 'noise', filter: 'highpass', at: 0.04, cutoff: 5000, duration: 0.12, gain: 0.05 },
+  ],
+  // A fish diving back in: a "plop", a lower bubble note with a soft splash, then a tiny bubble.
+  fishDive: [
+    { wave: 'sine', from: 330, to: 880, duration: 0.07, gain: 0.16, attack: 0.004 },
+    { kind: 'noise', filter: 'lowpass', cutoff: 1900, sweepTo: 700, duration: 0.16, gain: 0.14, attack: 0.005 },
+    { wave: 'sine', at: 0.08, from: 760, to: 1500, duration: 0.035, gain: 0.06, attack: 0.003 },
+  ],
 };

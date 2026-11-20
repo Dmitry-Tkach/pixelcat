@@ -30,10 +30,11 @@ export class AdventureFish {
     for (const f of this.fish) {
       const place = fishAt(f.def, this.ms, this.water.surfaceY, TILE);
       const up = Boolean(place);
-      // Leaving the water or diving back in, it splashes, if it's where the camera can see.
+      // Leaving the water or diving back in, it splashes, with its own small sounds, if it's where
+      // the camera can see.
       if (up !== f.wasUp) {
         const x = place?.x ?? f.look.x;
-        if (x > view.left && x < view.right) this.water.splash(x);
+        if (x > view.left && x < view.right) this.water.splash(x, up ? 'fishLeap' : 'fishDive');
         f.wasUp = up;
       }
       if (!place || f.out === place.leap) {
