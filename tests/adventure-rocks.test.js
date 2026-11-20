@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { rockCells, rockLayout, rockProblems } from '../src/systems/adventure/rockLayout.js';
+import { fillBox, rockCells, rockLayout, rockProblems } from '../src/systems/adventure/rockLayout.js';
+import { ROCK } from '../src/data/adventure/rocks.js';
 import { ADVENTURE_LEVELS } from '../src/data/adventure/index.js';
 
 // A stepped cliff: a low step (columns 0 to 9, from row 5) and a high one on its right (columns 4
@@ -16,7 +17,25 @@ describe('the rock kit\'s layout', () => {
     }
     expect([...seen.values()].every((n) => n === 1)).toBe(true);
     expect(new Set(seen.keys())).toEqual(rockCells(cliff));
-    expect(fills).toHaveLength(2); // the high step's top rows, then the full width under
+    // The high step down to the low step's top, the low step's top row, then the full width under:
+    // each box's sides all outline or all inside.
+    expect(fills.map(({ cols, rows }) => ({ cols, rows }))).toEqual([
+      { cols: [0, 3], rows: [5, 5] },
+      { cols: [4, 9], rows: [2, 5] },
+      { cols: [0, 9], rows: [6, 8] },
+    ]);
+  });
+
+  it('knows which sides of each fill box are the rock\'s outline', () => {
+    const open = (c0, r0) => fills.find(({ cols, rows }) => cols[0] === c0 && rows[0] === r0).open;
+    expect(open(0, 5)).toEqual({ left: true, right: false, top: true, bottom: false }); // the high step on its right, rock under
+    expect(open(4, 2)).toEqual({ left: true, right: true, top: true, bottom: false });
+    expect(open(0, 6)).toEqual({ left: true, right: true, top: false, bottom: true });
+  });
+
+  it('keeps the fill short of the outline, where the edges draw it', () => {
+    const box = fillBox(fills[0], 64);
+    expect(box).toEqual({ x: ROCK.inset, y: 5 * 64 + ROCK.inset, w: 4 * 64 - ROCK.inset, h: 64 - ROCK.inset });
   });
 
   it('runs the top along each step, with the right corners', () => {

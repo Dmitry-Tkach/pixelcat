@@ -30,6 +30,7 @@ import { seatPlace, wheelHub, wheelWith } from '../src/systems/adventure/wheels.
 import { MILL_SEAT, MILL_STAND, MILL_WHEEL, standScale } from '../src/data/adventure/millArt.js';
 import { PTERO_LOOKS, birdHome } from '../src/data/adventure/birds.js';
 import { existsSync } from 'node:fs';
+import { rockPicture } from './rockPicture.mjs';
 
 const [out, index = '0'] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const routes = process.argv.includes('--routes');
@@ -69,6 +70,13 @@ const millArt = existsSync(art('mill-wheel'));
 const fronts = [];
 const at_ = (input, p) => at(input, p.x, p.y, 0.5, 0.5);
 if (millArt) {
+  // Rocks from the world's rock kit (tools/rockPicture.mjs draws them the game's way, at full size).
+  for (const rock of level.rocks ?? []) {
+    const picture = await rockPicture(rock, art, TILE);
+    if (!picture) continue;
+    const { width } = await sharp(picture.input).metadata();
+    comps.push({ input: await sharp(picture.input).resize(Math.round(width * SCALE)).png().toBuffer(), left: Math.max(0, Math.round(picture.left * SCALE)), top: Math.max(0, Math.round(picture.top * SCALE)) });
+  }
   // Pictures rising out of the water (a cliff the falls pour down): behind the falls, as in the game.
   for (const { picture, col, row, width, fromWater } of level.props ?? []) {
     if (!fromWater) continue;

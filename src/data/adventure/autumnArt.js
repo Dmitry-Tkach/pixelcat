@@ -2,6 +2,7 @@
 // public/assets/adventure/autumn (its characters by tools/adventure-autumn-characters.mjs). Every other picture a level asks for (the minigun, the traps, the
 // gates, the water wheel...) is the Wood world's (data/adventure/index.js, adventureArtKey).
 import { OWL_KEYS } from './birds.js';
+import { rockKitArt } from './rocks.js';
 
 // The squirrel's acorn: cut from its sheet's cell (row, col, from 0), shrunk to `width` px long.
 export const ACORN = { sheet: 'images/levels/autumn/squirrel.png', row: 3, col: 0, width: 28 };
@@ -74,6 +75,7 @@ export const AUTUMN_ART = [
   'standing-stone', 'barrel', 'cave-back', 'column-2', 'column-3', 'start-sign',
   'soil', // the earth over a secret cave (systems/adventure/AdventureScenery.js, secrets)
   'fall-middle', 'fall-head', 'fall-foam', 'fall-splash', // the softer waterfalls
+  ...rockKitArt('autumn'), // its rock kit, for cliffs (data/adventure/rocks.js)
   ...AUTUMN_FROM_WOOD,
   // Stand-ins drawn by the tool, until the owner's pictures come: the climbing vine, the cracked
   // floor, the switch, the Guardian Gate's door and the fish.

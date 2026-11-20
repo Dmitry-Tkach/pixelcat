@@ -187,16 +187,15 @@ export const AUTUMN_VILLAGE_LEVEL = {
   // The waterfall cliff, built from the rock kit (data/adventure/rocks.js): three steps rising to
   // the right, as in the owner's picture, standing in the pool: a low step the first fall spills
   // from, the high one over the rope bridge the other two pour from, and the top the big tree stands
-  // on. Scenery only. Until the kit's art comes (prompts 16 to 19) it draws nothing, and the owner's
-  // cliff picture (props, big-cliff) stands in for it.
+  // on. Scenery only: the cat's way over it is the ledges and the rope bridge.
   rocks: [
-    { parts: [{ cols: [34, 50], rows: [16, 30] }, { cols: [40, 50], rows: [12, 30] }, { cols: [43, 47], rows: [11, 30] }], foot: 'water' },
+    { parts: [{ cols: [34, 50], rows: [16, 30] }, { cols: [40, 50], rows: [10, 30] }, { cols: [43, 47], rows: [9, 30] }], foot: 'water' },
   ],
   waterfalls: [
-    { col: 38, top: 15, bottom: WATER, width: 112, head: false, foamAt: [RAISED] }, // off the middle ledge, by the mill's wheel
-    { col: 43, top: 12, bottom: 15, width: 130, head: false, splash: false }, // off the top ledge, onto the middle one
-    { col: 43, top: 14, bottom: WATER, width: 140, head: false }, // and on, from its foam, into the pool
-    { col: 48, top: 12, bottom: WATER, width: 140, head: false, foamAt: [RAISED] }, // off the top ledge's far end
+    // Spilling over the rock's step edges (rocks), down its face, past the pier into the pool.
+    { col: 38, top: 16, bottom: WATER, width: 112, foamAt: [RAISED] }, // off the low step, by the mill's wheel
+    { col: 41, top: 10, bottom: WATER, width: 140, foamAt: [RAISED] }, // off the high step, beside the tree's rock
+    { col: 49, top: 10, bottom: WATER, width: 140, foamAt: [RAISED] }, // off the high step's far end
   ],
   // The caves' insides, deep in the earth: the village cave and its shaft, the mine and the hole down
   // into it, and the secret room under it, its shaft and its trapdoor.
@@ -237,9 +236,9 @@ export const AUTUMN_VILLAGE_LEVEL = {
     { picture: 'lamp-post', col: 8, row: 26 },
     { picture: 'barrel', col: 22, row: 24 },
     { picture: 'boulder-big', col: 34, row: 29 }, // on the pool's bank
-    { picture: 'fall-mist', col: 37, row: 30, dy: 40, back: true, free: true }, // at the falls' foot
-    { picture: 'fall-mist', col: 43, row: 30, dy: 40, back: true, free: true },
-    { picture: 'fall-mist', col: 48, row: 30, dy: 40, back: true, free: true },
+    { picture: 'fall-mist', col: 38, row: 30, dy: 40, back: true, free: true }, // at the falls' foot
+    { picture: 'fall-mist', col: 41, row: 30, dy: 40, back: true, free: true },
+    { picture: 'fall-mist', col: 49, row: 30, dy: 40, back: true, free: true },
     { picture: 'fall-trickle', col: 53, row: 30, dy: 10, inWater: true }, // a trickle at the cliff's end
     // A rock column holding up the spiked ball's island, from the chasm's water to its underside, as
     // the rock pillars hold up the high bridge in the owner's picture (behind the moving block).
@@ -250,23 +249,8 @@ export const AUTUMN_VILLAGE_LEVEL = {
     { picture: 'hang-lantern', col: 30, row: 28, hang: true, glow: true },
     { picture: 'crystal-purple', col: 24, row: 31 },
     { picture: 'crystal-purple', col: 32, row: 29 },
-    // The waterfall cliff, drawn big by the owner (prompt 15), scenery only, rising to the right (its
-    // ledges at about 53%, 28% and 3% of its height, measured), 1095 x 768 px. It stands high, its top
-    // at 680 px (row 10.6), over the rope bridge, as in the owner's picture, on the owner's boulder
-    // wall (the rocky cliff of sheet 11), two side by side from the pool up behind its foot; mossy
-    // rocks along the waterline.
-    ...[2434, 2981].map((x) => ({
-      picture: 'cliff', col: Math.floor(x / 64), dx: x - (Math.floor(x / 64) * 64 + 32), row: 30, width: 548, fromWater: true,
-    })),
-    { picture: 'big-cliff', col: 41, row: 30, dx: 51, dy: -535, fromWater: true },
-    ...[37, 41, 45, 49].map((col) => ({ picture: 'pool-rocks', col, row: 30, inWater: true })),
-    { picture: 'fall-spill', col: 37, row: 16, dx: 38, dy: -31, back: true, free: true }, // off the middle ledge
-    { picture: 'fall-spill', col: 42, row: 13, dx: 38, dy: -31, back: true, free: true }, // off the top ledge
-    { picture: 'fall-spill', col: 47, row: 13, dx: 38, dy: -31, back: true, free: true }, // off the top ledge's far end
-    { picture: 'fall-landing', col: 43, row: 15, dx: -8, dy: -22, back: true, free: true }, // on the middle ledge
-    // Growing on the cliff's top between its falls, as in the owner's picture: between the two
-    // spills' rocks, and after them, so its trunk stands in front of them.
-    { picture: 'big-tree', col: 45, row: 10, dy: -1, back: true, free: true },
+    // Growing on the cliff's top (the rock's highest step, row 9), as in the owner's picture.
+    { picture: 'big-tree', col: 45, row: 8, back: true, free: true },
     { picture: 'mill-wheel', col: 35, row: 24, back: true, width: 300, spinMs: 9000 }, // fixed to the mill house's side, at the pier
     { picture: 'big-tree', col: 62, row: 25, back: true },
     { picture: 'ruin-arch', col: 70, row: 17, back: true }, // two arches, the crystal between them
