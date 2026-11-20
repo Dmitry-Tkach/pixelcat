@@ -119,14 +119,18 @@ describe('drawbridges', () => {
 });
 
 describe('The Forgotten Village', () => {
-  it('needs each of its drawbridges: for the portal, or for the gold key that opens it', () => {
+  it('needs each of its drawbridges: for the portal, for the gold key, or for a way of its own', () => {
     const key = readAdventureMap(village.map).objects.find((o) => o.type === 'key');
-    for (const bridge of village.drawbridges.filter((b) => b.switch)) {
+    const needed = (bridge) => {
       const others = village.drawbridges.filter((other) => other !== bridge);
       const { portal, unreachable } = adventureRoutes({ ...village, drawbridges: others });
-      const keyLost = unreachable.some((o) => o.col === key.col && o.row === key.row);
-      expect(!portal || keyLost, `the bridge from column ${bridge.from}`).toBe(true);
-    }
+      return { forGate: !portal || unreachable.some((o) => o.col === key.col && o.row === key.row), forAny: !portal || unreachable.length > 0 };
+    };
+    const switched = village.drawbridges.filter((b) => b.switch);
+    // Every switch opens the way to something: no switch for nothing.
+    for (const bridge of switched) expect(needed(bridge).forAny, `the bridge from column ${bridge.from}`).toBe(true);
+    // The ruins' and the gate's are on the way to the portal; the high rope bridge is the mill's other way.
+    expect(switched.filter((b) => needed(b).forGate).map((b) => b.from)).toEqual([77, 155]);
   });
 
   it('locks its gate, and has the gold key for it', () => {

@@ -81,9 +81,11 @@ level.gap(34, 60)
   .bird('diver', 58, 21, { wake: 52, look: 'owl' }) // over the pier's end, past the fish (never both at once), below the rope bridge's reach
   // The high way, as in the owner's picture: from the left, the village's high coin ledge (over the
   // boar), across two small ledges over the mill house, a jump over the top of the waterfalls (an
-  // arc of coins), and the rope bridge to the ruins. The waterfall cliff is scenery only.
+  // arc of coins), and the rope bridge to the ruins. The waterfall cliff is scenery only. The rope
+  // bridge isn't there until the cat touches its switch on the second ledge: then its planks drop
+  // in one by one across the falls, in view (the ruins' switch and bridge, met high up first).
   .island(28, 30, 14).island(34, 36, 13)
-  .ropeBridge(41, 67, 13)
+  .drawbridge(36, 12, 41, 67, 13, { look: 'rope-plank' })
   .coins(28, 30, 13).arc(37, 40, 11, 1).coins(45, 62, 12);
 
 // ----- 3. Forest Outpost: firm ground again, a checkpoint, and a long island climbed by a ladder,
@@ -320,7 +322,7 @@ export const AUTUMN_VILLAGE_LEVEL = {
     secretCave: { col: 26, row: 31 },
     mill: { col: 32, row: 24 },
     highWay: { col: 29, row: 13 }, // the first small ledge over the mill house
-    bridgeStart: { col: 36, row: 12 }, // the second small ledge, before the jump to the rope bridge
+    bridgeStart: { col: 35, row: 12 }, // the second small ledge, by the rope bridge's switch
     ropeBridge: { col: 55, row: 12 }, // on the rope bridge
     arches: { col: 73, row: 17 }, // the ruins (named so, as the Wood world has a place called ruins)
     keyIsland: { col: 86, row: 14 },
