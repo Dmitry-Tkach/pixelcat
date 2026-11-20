@@ -9,7 +9,7 @@ import { FISH, fishAt, fishProblems, touchesFish } from '../src/data/adventure/f
 import { MOLE, moleStep } from '../src/systems/adventure/moleLogic.js';
 import { cameraBottom } from '../src/systems/adventure/cameraFloor.js';
 import { caveRuns } from '../src/systems/adventure/caveFill.js';
-import { STAIRS, stairBox, stairSteps, stepsUp } from '../src/systems/adventure/stairSteps.js';
+import { feetOnStairs, holdsOnStairs, stairBox, stairSurface } from '../src/systems/adventure/stairSteps.js';
 
 // The Autumn Forest (world 2) and what its first level brought: borrowed art, vines, cracked floor,
 // drawbridges and the locked Guardian Gate.
@@ -296,27 +296,35 @@ describe('cave walls', () => {
 });
 
 describe('stairs', () => {
-  const flight = { at: 10, row: 5, dir: 1 };
+  const flight = { at: 10, row: 5, dir: 1 }; // the higher ground begins at column 10, two rows up
+  const box = stairBox(flight, 64);
 
-  it('rise in small steps from the floor to the higher ground', () => {
-    const steps = stairSteps(flight, 64);
-    expect(steps).toHaveLength(STAIRS.steps);
-    expect(steps[0].left).toBe(10 * 64 - STAIRS.width);
-    expect(steps.at(-1).left + steps.at(-1).width).toBeCloseTo(10 * 64);
-    expect(steps.at(-1).top).toBe(6 * 64 - 2 * 64); // as high as the ground two rows up
-    for (const step of steps) expect(step.height / (steps.indexOf(step) + 1)).toBeLessThanOrEqual(STAIRS.stepUp);
+  it('slope smoothly from the floor at their foot to the higher ground at their top', () => {
+    expect(stairSurface(flight, box.left, 64)).toBe(6 * 64);
+    expect(stairSurface(flight, box.right, 64)).toBe(4 * 64);
+    expect(stairSurface(flight, (box.left + box.right) / 2, 64)).toBe(5 * 64);
+    expect(stairSurface(flight, box.left - 1, 64)).toBeNull();
   });
 
-  it('rise the other way for stairs going up to the left', () => {
-    const steps = stairSteps({ ...flight, dir: -1 }, 64);
-    expect(steps[0].left + steps[0].width).toBeCloseTo(10 * 64 + STAIRS.width);
-    expect(steps.at(-1).left).toBeCloseTo(10 * 64);
+  it('slope the other way for stairs rising to the left', () => {
+    const left = { ...flight, dir: -1 };
+    const b = stairBox(left, 64);
+    expect(stairSurface(left, b.left, 64)).toBe(4 * 64);
+    expect(stairSurface(left, b.right, 64)).toBe(6 * 64);
   });
 
-  it('let the cat step up a small step as he walks, but not a wall, nor while he jumps', () => {
-    expect(stepsUp({ feet: 400, vy: 0 }, 384)).toBe(16);
-    expect(stepsUp({ feet: 400, vy: 0 }, 300)).toBe(0);
-    expect(stepsUp({ feet: 400, vy: -300 }, 384)).toBe(0);
+  it('put his feet where the front of his body is, level with the higher ground at the top', () => {
+    const atTop = { left: box.right - 60, right: box.right };
+    expect(feetOnStairs(flight, atTop, 64)).toBe(4 * 64);
+    expect(feetOnStairs(flight, { left: box.left - 200, right: box.left - 140 }, 64)).toBeNull();
+  });
+
+  it('hold him on while he walks, but not while he jumps, and catch him as he falls onto them', () => {
+    expect(holdsOnStairs({ feet: 310, prevFeet: 300, vy: 50, wasOn: true }, 300)).toBe(true); // a little under: walking up
+    expect(holdsOnStairs({ feet: 292, prevFeet: 290, vy: 20, wasOn: true }, 300)).toBe(true); // a little over: walking down
+    expect(holdsOnStairs({ feet: 292, prevFeet: 290, vy: 20, wasOn: false }, 300)).toBe(false); // in the air over them
+    expect(holdsOnStairs({ feet: 305, prevFeet: 300, vy: -400, wasOn: true }, 300)).toBe(false); // jumping off
+    expect(holdsOnStairs({ feet: 360, prevFeet: 280, vy: 2000, wasOn: false }, 300)).toBe(true); // falling through: caught
   });
 
   it.each(ADVENTURE_LEVELS.filter((level) => level.stairs?.length).map((level) => [level.id, level]))(

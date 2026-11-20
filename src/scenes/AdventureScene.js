@@ -223,10 +223,8 @@ export class AdventureScene extends Phaser.Scene {
     this.drawbridges = new AdventureDrawbridges(this, this.cat, level.drawbridges ?? [], {
       art: this.art, canLand: () => !this.climbing && !this.pullingUp, spend: (bullet) => this.moves.bulletStops(bullet),
     });
-    // Stairs he walks up, stepping up their small steps (systems/adventure/AdventureStairs.js).
-    this.stairs = new AdventureStairs(this, this.cat, level.stairs ?? [], {
-      art: this.art, enemies: this.enemies, canStand: () => !this.climbing && !this.pullingUp,
-    });
+    // Stairs he walks up and down, his feet kept on their slope (systems/adventure/AdventureStairs.js).
+    this.stairs = new AdventureStairs(this, level.stairs ?? [], { art: this.art });
     // Fish leaping out of the water: they hurt the cat, and a round knocks one out (data/adventure/fish.js).
     this.fish = new AdventureFish(this, level.fish ?? [], {
       art: this.art, water: this.water, hurt: (fromX) => this.hurt(fromX), spend: (bullet) => this.moves.bulletStops(bullet),
@@ -1352,6 +1350,7 @@ export class AdventureScene extends Phaser.Scene {
     if (this.climbing) {
       this.updateClimbing();
     } else if (!this.pullingUp) {
+      this.stairs.update(this.cat); // before he moves, so on the stairs he counts as standing
       this.cat.move(this.moves.isFiringSpecial || this.shots.update(this.cat) ? 0 : this.controls.steer);
       this.cat.tick(ms);
       // Holding Up as the cat reaches a ladder grabs it.

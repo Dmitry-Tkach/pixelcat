@@ -1,7 +1,7 @@
 // Stairs the cat walks up (systems/adventure/AdventureStairs.js): a staircase picture over a rise of
-// ground, with small invisible steps under it. As he walks into a step no higher than STAIRS.stepUp,
-// he steps up onto it, so he climbs the stairs without jumping; going down, he drops step by step.
-// Plain code, no Phaser, so tests can check the steps.
+// ground, with a smooth slope under it that his feet keep to, so he walks up and down without
+// jumping. (Small solid steps were tried first: his body is wider than a step, so he touched the
+// next ones too and was pushed about, glitching, as the owner saw.) Plain code, no Phaser.
 //
 // A level lists them as stairs: [{ at, row, dir, rows, width }]:
 //   at: the column where the higher ground begins (dir 1, rising to the right) or the column after it
@@ -9,9 +9,11 @@
 //   row: the row the cat stands on at their foot; rows: how many rows they climb (2 by default);
 //   width: how wide they're shown (px), if not the picture's own width.
 
-// steps: how many invisible steps a staircase has. stepUp: the highest step (px) he steps up onto
-// as he walks. depth: in front of the ground, over the higher ground's edge.
-export const STAIRS = { steps: 8, stepUp: 24, depth: 2.05, width: 221 };
+// below: how far (px) under the slope his feet can be and still be put on it (he sinks a little
+// each step as he walks up). above: how far over it they can be and still be held to it, while he
+// was on it a moment ago (walking down, he'd lift off it a little each step). depth: in front of the
+// ground, over the higher ground's edge.
+export const STAIRS = { below: 28, above: 14, depth: 2.05, width: 221 };
 
 // The staircase's box in the world (px): left, right, the foot's floor (bottom) and its top.
 export function stairBox({ at, row, dir, rows = 2, width = STAIRS.width }, tile) {
@@ -21,21 +23,31 @@ export function stairBox({ at, row, dir, rows = 2, width = STAIRS.width }, tile)
   return { left, right, bottom, top: bottom - rows * tile };
 }
 
-// Its invisible steps, each a box (px) from its own height down to the floor, rising the way the
-// stairs rise. The highest is as high as the higher ground.
-export function stairSteps(stairs, tile, steps = STAIRS.steps) {
+// The slope's height (px, a world y) at x, or null off the stairs. It runs straight from the floor
+// at the foot to the higher ground's top.
+export function stairSurface(stairs, x, tile) {
   const { left, right, bottom, top } = stairBox(stairs, tile);
-  const run = (right - left) / steps, rise = (bottom - top) / steps;
-  return Array.from({ length: steps }, (_, i) => {
-    const height = rise * (i + 1);
-    const x = stairs.dir > 0 ? left + run * i : right - run * (i + 1);
-    return { left: x, top: bottom - height, width: run, height };
-  });
+  if (x < left || x > right) return null;
+  const up = stairs.dir > 0 ? (x - left) / (right - left) : (right - x) / (right - left);
+  return bottom - up * (bottom - top);
 }
 
-// Whether the cat, walking into a step, steps up onto it: its top no higher above his feet than
-// stepUp, and he isn't rising (jumping). rise: how far up he goes.
-export function stepsUp({ feet, vy }, stepTop, stepUp = STAIRS.stepUp) {
-  const rise = feet - stepTop;
-  return rise > 0 && rise <= stepUp && vy >= 0 ? rise : 0;
+// Where his feet stand on the stairs: the slope's height under the front of his body (the side the
+// stairs rise to), so at their top his feet are level with the higher ground, clear of its edge.
+// left, right: his body's sides. Null if he's off them.
+export function feetOnStairs(stairs, { left, right }, tile) {
+  const front = stairs.dir > 0 ? right : left;
+  const box = stairBox(stairs, tile);
+  const x = Math.min(box.right, Math.max(box.left, front));
+  const middle = (left + right) / 2;
+  if (middle < box.left || middle > box.right) return null;
+  return stairSurface(stairs, x, tile);
+}
+
+// Whether he's put on the stairs this frame: not rising (jumping), and his feet a little under the
+// slope, or just over it if he was on it a moment ago, or crossing it as he falls.
+export function holdsOnStairs({ feet, prevFeet, vy, wasOn }, surface) {
+  if (surface === null || vy < 0) return false;
+  if (feet >= surface - (wasOn ? STAIRS.above : 1) && feet <= surface + STAIRS.below) return true;
+  return prevFeet <= surface + 1 && feet >= surface;
 }
