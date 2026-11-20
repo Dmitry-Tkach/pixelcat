@@ -114,10 +114,13 @@ describe('drawbridges', () => {
 });
 
 describe('The Forgotten Village', () => {
-  it('needs each of its drawbridges: neither chasm can be jumped', () => {
+  it('needs each of its drawbridges: for the portal, or for the gold key that opens it', () => {
+    const key = readAdventureMap(village.map).objects.find((o) => o.type === 'key');
     for (const bridge of village.drawbridges) {
       const others = village.drawbridges.filter((other) => other !== bridge);
-      expect(adventureRoutes({ ...village, drawbridges: others }).portal, `the bridge from column ${bridge.from}`).toBe(false);
+      const { portal, unreachable } = adventureRoutes({ ...village, drawbridges: others });
+      const keyLost = unreachable.some((o) => o.col === key.col && o.row === key.row);
+      expect(!portal || keyLost, `the bridge from column ${bridge.from}`).toBe(true);
     }
   });
 

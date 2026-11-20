@@ -89,32 +89,34 @@ level.ground(59, 80, 26)
   .island(64, 75, 22).ladder(64, 22, 25).coins(65, 66, 21).put(68, 21, 'U').put(73, 21, 'P')
   .put(79, 25, '/');
 
-// ----- 4. The Ruined Bridge: the vine up to the ruins, a cliff of earth with two stone arches and a
-// crystal between them, as in the owner's picture. At their end, the switch: it lets down a rope
-// bridge across the chasm below (a drawbridge, systems/adventure/drawbridges.js), the switch's
-// lesson. The ruins are low enough that the bridge is on screen as it comes down. The chasm is too
-// wide to jump without it. The spiked ball hangs from a small high island over the bridge, too high
-// to reach from it; on top, the gold key and a ? block, reached on the moving stone block from the
-// ruins' end, as in the owner's picture, with the bridge already down to catch a fall.
+// ----- 4. The Ruined Bridge, as in the owner's picture: the vine up to the ruins, a cliff of earth
+// with two stone arches and a crystal between them. At their end, the switch: it lets down a rope
+// bridge high across to the spiked ball's island (a drawbridge, systems/adventure/drawbridges.js),
+// the switch's lesson, both on screen together. On that island, too high to reach otherwise, the
+// gold key and a ? block. Below, the moving stone block ferries the cat over the chasm, the spiked
+// ball swinging down over its path from the island above.
 level.island(68, 76, 18).vine(70, 18, 21)
   .put(72, 17, '*').coins(73, 74, 17) // the crystal between the arches
-  .drawbridge(76, 17, 81, 94, 26, { look: 'rope-plank' })
-  .mover(77, 18, { across: 3, picture: 'move-block' }) // the moving block, out to the spiked ball's island
+  .drawbridge(76, 17, 77, 82, 18, { look: 'rope-plank' }) // the rope bridge, high
+  .island(83, 87, 15).put(85, 14, 'k').put(84, 11, '?').coins(86, 87, 14) // the spiked ball's island, out of reach from the block below: the key
   .gap(81, 94)
-  .island(83, 86, 19).put(85, 18, 'k').put(84, 15, '?').coins(83, 84, 18) // the mace's roof, seven cells over the bridge: the key
-  .trap('mace', 86, 20, { hanging: true, chain: 237, swingDeg: 30 });
+  .mover(80, 22, { across: 10, picture: 'move-block' }) // the moving block, across the chasm
+  .trap('mace', 86, 16, { hanging: true, chain: 239, swingDeg: 35 }) // swinging down over the block's path
+  .arc(88, 91, 20, 1);
 
-// ----- 5. The Mineshaft: two ways on. Along the path, two crushers slamming in turn, the mine's
-// stamps, with coins under them. Or down a hole in the path into the mine: a chamber under the
+// ----- 5. The Mineshaft: two ways on. Over a hill, as in the owner's picture, stone stairs up and
+// down its sides, spikes on its top and two crushers slamming in turn, the mine's stamps, with coins
+// under them. Or down a hole in the path into the mine: a chamber under the
 // ground, as in the owner's picture, with beams, a minecart and lanterns, a crate of freeze rounds,
 // a mole popping out of its floor and a squirrel throwing acorns down its length. It opens at its far
 // end onto the low meadow. Cracked floor in the mine, coins on it, breaks into a secret room deeper
 // still, with a heart and a crystal; its way out is up through a trapdoor in the mine's floor.
-level.ground(95, 127, 26)
-  .hollow(98, 127, 28, 31).hollow(99, 100, 26, 27) // the mine, two rows under the path, and the hole down into it
+level.ground(95, 127, 26).ground(104, 121, 24) // the path, and the hill over the mine
+  .hollow(98, 127, 28, 31).hollow(99, 100, 26, 27) // the mine, under the path, and the hole down into it
   .put(97, 25, 'C')
-  .trap('crusher', 108, 18, { phaseMs: 0 }).trap('crusher', 116, 18, { phaseMs: 1100 })
-  .coins(107, 109, 24).coins(115, 117, 24).coins(120, 122, 24)
+  .trap('crusher', 107, 16, { phaseMs: 0 }).trap('crusher', 118, 16, { phaseMs: 1100 })
+  .coins(106, 108, 22).coins(117, 119, 22)
+  .put(112, 23, '^').put(113, 23, '^').arc(111, 114, 21, 1) // spikes on the hill's top
   .put(102, 31, 'f').coins(103, 106, 30).put(110, 31, 'M')
   .put(124, 31, '4') // the squirrel, throwing down the mine at whoever comes in
   .cracked(118, 119, 32).coins(118, 119, 31)
@@ -127,7 +129,8 @@ level.ground(95, 127, 26)
 // checkpoint, a boar, and a spike pit, as in the owner's picture: its wooden bridge is a drawbridge
 // whose switch is on the far side, so it must be shot from across (the switch, learnt at the ruins,
 // now tested). Fall in, and the near end of the pit is safe to climb out from. Past it, the gate: its
-// door opens only with the key, found on the spiked ball's island.
+// door opens only with the key, found on the spiked ball's island. It stands raised, up stairs, on
+// a rock wall hung with paw banners, as in the owner's picture.
 level.ground(128, 141, 32)
   .put(132, 31, '^').put(133, 31, '^').arc(131, 134, 29, 2)
   .island(135, 141, 18).vine(138, 18, 31).put(136, 17, 'T').coins(139, 141, 17)
@@ -140,7 +143,8 @@ level.ground(128, 141, 32)
   .put(161, 28, '^').put(162, 28, '^').put(163, 28, '^').put(164, 28, '^')
   .drawbridge(166, 25, 155, 164, 26, { shot: true })
   .put(167, 25, 'V')
-  .put(174, 25, 'E');
+  .ground(169, COLS - 1, 24) // the gate's raised stone step, stairs up to it
+  .put(174, 23, 'E');
 
 export const AUTUMN_VILLAGE_LEVEL = {
   id: 'autumn-1',
@@ -241,7 +245,9 @@ export const AUTUMN_VILLAGE_LEVEL = {
     { picture: 'stake-tall', col: 35, row: 29 },
     { picture: 'stake-small', col: 36, row: 29 },
     { picture: 'post-cross', col: 60, row: 25 },
-    { picture: 'post-candle', col: 106, row: 25, glow: true },
+    { picture: 'post-candle', col: 102, row: 25, glow: true },
+    { picture: 'stairs-up-right', col: 103, row: 25, back: true }, // up the hill
+    { picture: 'stairs-up-left', col: 122, row: 25, back: true }, // down the hill
     { picture: 'post-candle', col: 117, row: 35, glow: true },
     { picture: 'post-cross', col: 134, row: 31 },
     { picture: 'stake-tall', col: 144, row: 25 },
@@ -273,8 +279,14 @@ export const AUTUMN_VILLAGE_LEVEL = {
     { picture: 'torch', col: 143, row: 25, width: 84, glow: true },
     { picture: 'fence', col: 150, row: 25 },
     { picture: 'sign-skull', col: 153, row: 25 },
-    { picture: 'fire-bowl', col: 171, row: 25, glow: true }, // the gate's fire bowls
-    { picture: 'fire-bowl', col: 177, row: 25, glow: true },
+    // The gate: stairs up to its step, the rock wall behind it hung with paw banners, its fire bowls.
+    { picture: 'stairs-up-right', col: 167, row: 25, back: true },
+    { picture: 'cliff', col: 171, row: 23, back: true, width: 371 },
+    { picture: 'cliff', col: 177, row: 23, back: true, width: 371 },
+    { picture: 'banner-open', col: 169, row: 19, hang: true },
+    { picture: 'banner-open', col: 179, row: 19, hang: true },
+    { picture: 'fire-bowl', col: 171, row: 23, glow: true },
+    { picture: 'fire-bowl', col: 177, row: 23, glow: true },
   ],
   // Places to start at while developing, with /adventure.html?at=<name> (systems/adventure/devPlaces.js).
   places: {
