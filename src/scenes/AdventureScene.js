@@ -94,6 +94,7 @@ const ENEMY_BULLET = { range: 14 * TILE, size: 14, depth: 5 };
 const END_SCREEN_MS = 1100;
 const DROP = { fromY: TILE, ms: 700 }; // a pickup the arena drops falls from here, this long
 const STARS = 3; // a level's stars are its crystals, up to this many
+const HINT_AT_MS = 3200; // how long a hint along the way stays (level.hintsAt)
 const BEAM_PIPS = { x: 98, y: 128, gap: 26, r: 8 };
 // An earth pillar starts this far up inside the island it holds, and stands this far into the ground.
 const PILLAR_FIT = { underIsland: 6, intoGround: 6, depth: 1 };
@@ -244,6 +245,7 @@ export class AdventureScene extends Phaser.Scene {
     this.hasKey = false;
     this.hasSilverKey = false;
     this.portalLocked = Boolean(level.portalLocked);
+    this.hintsShown = new Set();
     this.portalHinted = false;
     this.portalOpening = false;
     this.chestsOpened = 0;
@@ -1010,6 +1012,16 @@ export class AdventureScene extends Phaser.Scene {
     this.updateHud();
   }
 
+  // A level's hints along the way (level.hintsAt: { col, text }): each shown once, the first time the
+  // cat reaches its column, to explain what to do there (the bridge to shoot down).
+  showHintsAt() {
+    for (const hint of this.level.hintsAt ?? []) {
+      if (this.hintsShown.has(hint) || this.cat.x < hint.col * TILE) continue;
+      this.hintsShown.add(hint);
+      this.showHint(hint.text, HINT_AT_MS);
+    }
+  }
+
   // A locked portal opens with the gold key: true once it's open. Without the key, its door rattles,
   // and a hint says what to find.
   tryPortalLock() {
@@ -1381,6 +1393,7 @@ export class AdventureScene extends Phaser.Scene {
     }
     this.platforms.update(ms);
     this.drawbridges.update(this.cat, this.moves.bullets.getChildren());
+    this.showHintsAt();
     this.fish.update(ms, this.cat, this.moves.bullets.getChildren());
     this.scenery.update(ms, this.cat);
     this.traps.update(ms, this.cat);

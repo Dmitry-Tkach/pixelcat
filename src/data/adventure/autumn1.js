@@ -149,7 +149,6 @@ level.ground(128, 141, 32)
   .put(156, 28, '^').put(157, 28, '^').put(158, 28, '^').put(159, 28, '^').put(160, 28, '^')
   .put(161, 28, '^').put(162, 28, '^').put(163, 28, '^').put(164, 28, '^')
   .drawbridge(165, 25, 155, 164, 26, { shot: true })
-  .put(172, 23, 'V')
   .ground(169, COLS - 1, 24) // the gate's raised stone step, stairs up to it
   .put(174, 23, 'E');
 
@@ -161,6 +160,8 @@ export const AUTUMN_VILLAGE_LEVEL = {
   hearts: 3,
   hint: 'The Forgotten Village\nFind the gold key: the Guardian Gate is locked',
   keyHint: 'The gold key! It opens the Guardian Gate, and the gold chest',
+  // A hint at the spike pit's edge: its bridge is down only once the switch across it is shot.
+  hintsAt: [{ col: 152, text: 'The bridge is up!\nShoot the switch across the pit' }],
   // Water in the mill pool and the chasm (data/adventure/water.js).
   water: { row: WATER },
   portalLocked: true,
@@ -332,6 +333,10 @@ export const AUTUMN_VILLAGE_LEVEL = {
     arches: { col: 73, row: 17 }, // the ruins (named so, as the Wood world has a place called ruins)
     keyIsland: { col: 86, row: 14 },
     mineInside: { col: 106, row: 31 },
+    meadow: { col: 130, row: 31 },
+    goldChest: { col: 139, row: 17 }, // on top of the vine's cliff
+    spikePit: { col: 153, row: 25 },
+    gateStep: { col: 171, row: 23 },
     outpost: { col: 61, row: 25 },
     mine: { col: 97, row: 25 },
     gate: { col: 148, row: 25 },
