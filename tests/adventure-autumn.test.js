@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { ADVENTURE_ART, ADVENTURE_LEVELS, adventureArtKey, adventureArtWorld } from '../src/data/adventure/index.js';
+import sharp from 'sharp';
+import { ADVENTURE_ART, ADVENTURE_LEVELS, adventureArtKey, adventureArtWorld, adventurePath } from '../src/data/adventure/index.js';
 import { mapBuilder, vineRuns } from '../src/data/adventure/mapBuilder.js';
 import { TILES, checkAdventureLevel, readAdventureMap } from '../src/systems/adventureMap.js';
 import { adventureRoutes } from '../src/systems/adventureRoutes.js';
 import { drawbridgeCells, drawbridgeProblems, hitsSwitch } from '../src/systems/adventure/drawbridges.js';
 import { FISH, fishAt, fishProblems, touchesFish } from '../src/data/adventure/fish.js';
 import { MOLE, moleStep } from '../src/systems/adventure/moleLogic.js';
+import { cameraBottom } from '../src/systems/adventure/cameraFloor.js';
 
 // The Autumn Forest (world 2) and what its first level brought: borrowed art, vines, cracked floor,
 // drawbridges and the locked Guardian Gate.
@@ -201,5 +203,54 @@ describe('the mole', () => {
   it('goes down after its swings', () => {
     const up = { state: 'up', ms: 0, swings: MOLE.swings };
     expect(moleStep(up, 16, { near: true, attacking: false }).changed).toBe('sinking');
+  });
+});
+
+describe('the camera over deep ground', () => {
+  // Ground from row 3 down to the map's bottom (row 9), a cracked cell in it, and a gap.
+  const map = ['......', '......', '......', '####.#', '####.#', '####.#', '####.#', '####.#', '####.#', '####.#'];
+  map[3] = '#Z##.#';
+
+  it('stops four rows under the ground below the cat, not at the map\'s bottom', () => {
+    expect(cameraBottom(map, 0, 3, 4, 64, 0)).toBe(7 * 64);
+  });
+
+  it('counts cracked floor as ground, so the secret under it stays hidden', () => {
+    expect(cameraBottom(map, 1, 3, 4, 64, 0)).toBe(7 * 64);
+  });
+
+  it('stops at the map\'s bottom over a gap, and never past it', () => {
+    expect(cameraBottom(map, 4, 3, 4, 64)).toBe(10 * 64);
+    expect(cameraBottom(map, 0, 8, 4, 64)).toBe(10 * 64);
+  });
+
+  it('looks down past the edge of a cliff it stands near', () => {
+    // Column 0 is solid ground; the gap at column 4 is three columns away.
+    expect(cameraBottom(map, 1, 3, 4, 64, 3)).toBe(10 * 64);
+    expect(cameraBottom(map, 0, 3, 4, 64, 3)).toBe(7 * 64);
+  });
+});
+
+describe('scenery in every level', () => {
+  // A picture standing in a level (a house, a tree) stands on ground or an island under the middle
+  // of its width (UNDER_SHARE), never on a bridge or over a gap, and not inside the ground. Hanging,
+  // turning, in-water and in-front pictures aren't standing.
+  const UNDER_SHARE = 0.6;
+  it.each(ADVENTURE_LEVELS.map((level) => [level.id, level]))('%s stands its pictures on the ground', async (_id, level) => {
+    for (const prop of level.props ?? []) {
+      if (prop.hang || prop.spinMs || prop.inWater || prop.front) continue;
+      const file = `public/${adventurePath(adventureArtWorld(level.world, prop.picture), prop.picture)}`;
+      const width = prop.width ?? (await sharp(file).metadata()).width;
+      const half = (width * UNDER_SHARE) / 2 / 64;
+      const name = `${prop.picture} at (${prop.col}, ${prop.row})`;
+      expect(level.map[prop.row][prop.col], `${name} is inside the ground`).not.toBe('#');
+      // Ground or an island as the game reads them (a ladder's top on an island is island), or
+      // cracked floor; not a bridge.
+      const { tiles } = readAdventureMap(level.map);
+      const holds = (c) => level.map[prop.row + 1]?.[c] === 'Z' || ((tiles[prop.row + 1]?.[c] ?? -1) >= 0 && tiles[prop.row + 1][c] !== TILES.bridge);
+      for (let c = Math.floor(prop.col + 0.5 - half); c <= Math.floor(prop.col + 0.5 + half); c++) {
+        expect(holds(c), `${name} has no ground under column ${c}`).toBe(true);
+      }
+    }
   });
 });

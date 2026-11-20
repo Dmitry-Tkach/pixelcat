@@ -153,17 +153,16 @@ export const AUTUMN_VILLAGE_LEVEL = {
   props: [
     { picture: 'cottage', col: 5, row: 26, back: true },
     { picture: 'lamp-post', col: 8, row: 26 },
-    { picture: 'fence', col: 18, row: 26 },
+    { picture: 'fence', col: 17, row: 26 },
     { picture: 'barrel', col: 26, row: 24 },
+    { picture: 'mill-house', col: 30, row: 24, back: true }, // on the ground by the pool, beside the walkway
     { picture: 'hang-lantern', col: 26, row: 27, hang: true },
     { picture: 'crystal-purple', col: 24, row: 29 },
     { picture: 'crystal-purple', col: 32, row: 29 },
-    { picture: 'mill-house', col: 37, row: 24, back: true },
     { picture: 'mill-wheel', col: 44, row: 27, back: true, width: 300, spinMs: 9000 },
     { picture: 'tree-1', col: 62, row: 25, back: true },
-    { picture: 'ruin-pillar', col: 68, row: 17, back: true },
+    { picture: 'ruin-pillar', col: 69, row: 17, back: true },
     { picture: 'ruin-arch', col: 73, row: 17, back: true },
-    { picture: 'tree-2', col: 90, row: 25, back: true },
     { picture: 'mine-frame', col: 100, row: 25, width: 640, back: true },
     { picture: 'mine-rail', col: 104, row: 25 },
     { picture: 'minecart', col: 104, row: 25 },
@@ -171,9 +170,10 @@ export const AUTUMN_VILLAGE_LEVEL = {
     { picture: 'crystal-blue', col: 111, row: 25 },
     { picture: 'hang-lantern', col: 112, row: 20, hang: true },
     { picture: 'crystal-blue', col: 122, row: 29 },
-    { picture: 'mine-frame', col: 126, row: 25, width: 640, back: true },
+    { picture: 'mine-frame', col: 124, row: 25, width: 420, back: true }, // the tunnel's way out, on its floor
     { picture: 'tree-1', col: 130, row: 29, back: true },
     { picture: 'lamp-post', col: 146, row: 25 },
+    { picture: 'tree-2', col: 153, row: 25, back: true },
     { picture: 'lamp-post', col: 166, row: 25 },
   ],
   // Places to start at while developing, with /adventure.html?at=<name> (systems/adventure/devPlaces.js).

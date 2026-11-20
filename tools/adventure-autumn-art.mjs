@@ -90,6 +90,16 @@ await shrinkPieces(AUTUMN, OUT, STANDS);
 // No earth pillar (map letter R): the pack's cuts badly, so this world's levels don't use one.
 await buildTileStrip(OUT, soilVariants(SOIL));
 
+// The inside of a cave: the pack's square of dark earth with stones, cut to its plain middle (its top
+// rows are see-through and its bottom has a dark outline, which showed as lines where it repeats).
+const CAVE_WALL = { top: 24, bottom: 312 };
+{
+  const file = pack('Platfromer', 'Ground Additional 07');
+  const { width } = await sharp(file).metadata();
+  await sharp(await sharp(file).extract({ left: 0, top: CAVE_WALL.top, width, height: CAVE_WALL.bottom - CAVE_WALL.top }).png().toBuffer())
+    .resize({ width: Math.round(width * HALF) }).png({ compressionLevel: 9 }).toFile(join(OUT, 'cave-back.png'));
+}
+
 // The Wood world's leaves and plants, turned autumn: the crumbling leaves, and the grass, flowers
 // and vines the decoration places.
 for (const name of AUTUMN_FROM_WOOD) {

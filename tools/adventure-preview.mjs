@@ -72,9 +72,19 @@ if (millArt) {
     const pieces = [await at(flow, x, top * TILE + lipH * 0.8, 0.5, 0), await at(lip, x, top * TILE, 0.5, 0), await at(await scaled(art('fall-splash'), 1), x, bottom * TILE + 10, 0.5, 1)];
     (veil ? fronts : comps).push(...pieces);
   }
+  // A tile no bigger than the cave it fills (sharp can't tile a bigger one).
+  const fitTile = async (tile, w, h) => {
+    const { width, height } = await sharp(tile).metadata();
+    return width <= w && height <= h ? tile : sharp(tile).extract({ left: 0, top: 0, width: Math.min(width, w), height: Math.min(height, h) }).png().toBuffer();
+  };
+  // A world's own cave wall picture, repeated, or a dark wash (systems/adventure/AdventureScenery.js).
+  const caveWall = existsSync(art('cave-back')) ? await sharp(art('cave-back')).resize(Math.round(160 * SCALE)).png().toBuffer() : null;
   for (const { cols: [c0, c1], rows: [r0, r1] } of level.caves ?? []) {
-    const w = (c1 - c0 + 1) * CELL, h = (r1 - r0 + 1) * CELL;
-    comps.push({ input: Buffer.from(`<svg width="${w}" height="${h}"><rect width="${w}" height="${h}" fill="#0f1a12" fill-opacity="0.88"/></svg>`), left: c0 * CELL, top: r0 * CELL });
+    const w = Math.round((c1 - c0 + 1) * CELL), h = Math.round((r1 - r0 + 1) * CELL);
+    const input = caveWall
+      ? await sharp({ create: { width: w, height: h, channels: 4, background: '#0000' } }).composite([{ input: await fitTile(caveWall, w, h), tile: true, left: 0, top: 0 }]).png().toBuffer()
+      : Buffer.from(`<svg width="${w}" height="${h}"><rect width="${w}" height="${h}" fill="#0f1a12" fill-opacity="0.88"/></svg>`);
+    comps.push({ input, left: Math.round(c0 * CELL), top: Math.round(r0 * CELL) });
   }
   for (const options of level.wheels ?? []) {
     const wheel = wheelWith(options);

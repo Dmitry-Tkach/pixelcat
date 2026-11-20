@@ -46,6 +46,7 @@ import { AdventureDrawbridges } from '../systems/adventure/AdventureDrawbridges.
 import { AdventureFish } from '../systems/adventure/AdventureFish.js';
 import { AdventureMole } from '../entities/AdventureMole.js';
 import { ENEMIES } from '../data/adventure/enemies.js';
+import { cameraBottom } from '../systems/adventure/cameraFloor.js';
 import { vineRuns } from '../data/adventure/mapBuilder.js';
 
 // reach: how far from a ladder's middle it can be grabbed. standStill: slower than this, the cat counts
@@ -782,6 +783,18 @@ export class AdventureScene extends Phaser.Scene {
     look.x += (x - look.x) * ease;
     look.y += (y - look.y) * ease;
     this.cameras.main.setFollowOffset(look.x, look.y);
+    this.lowerCameraEdge(ease);
+  }
+
+  // The camera stops a few rows under the ground below the cat, in every level (systems/adventure/
+  // cameraFloor.js). The edge moves with the same easing as the camera, so it never jumps. A camera
+  // shot may look anywhere: the edge goes back to the map's bottom while one plays.
+  lowerCameraEdge(ease) {
+    const { body } = this.cat;
+    const target = this.shots.playing ? this.worldH
+      : cameraBottom(this.level.map, Math.floor(body.center.x / TILE), Math.floor(body.bottom / TILE), this.level.camera?.groundRows, TILE);
+    this.look.bottom = this.look.bottom === undefined ? target : this.look.bottom + (target - this.look.bottom) * ease;
+    this.cameras.main.setBounds(0, 0, this.worldW, Math.min(this.worldH, Math.round(this.look.bottom)));
   }
 
   // ----- Moving -----

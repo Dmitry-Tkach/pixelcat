@@ -12,7 +12,8 @@ import { PTERO_LOOKS } from '../../data/adventure/birds.js';
 //     the cat, as a cover. back: behind the ground, for big scenery (a house, a tree). width: shown
 //     this wide (px), if not its own size. spinMs: it turns round its middle, at the middle of its
 //     cell, once in this long (a mill's wheel turning as scenery).
-//   caves: { cols: [from, to], rows: [from, to] }: the dark inside of a cave in a cliff.
+//   caves: { cols: [from, to], rows: [from, to] }: the dark inside of a cave in a cliff: the world's
+//     'cave-back' picture repeated, or a dark wash in a world without one.
 //   flybys: { col, row, wake, dir, look }: a harmless pterodactyl that takes off from (col, row) as
 //     the cat passes column `wake`, and flies away up and to `dir` (-1 left, 1 right): birds live
 //     here. look: 'orange' or 'green' (data/adventure/birds.js, PTERO_LOOKS).
@@ -48,9 +49,12 @@ export class AdventureScenery {
       this.flows.push(flow);
       if (veil) this.covers.push({ parts, full: VEIL_ALPHA, box: { left: x - width / 2, right: x + width / 2, top: topY, bottom: bottomY } });
     }
+    // A world with its own cave wall picture (the Autumn world's dark earth and stones) has it
+    // repeated over the cave; another, a dark wash.
     for (const { cols, rows } of level.caves ?? []) {
-      scene.add.rectangle(cols[0] * TILE, rows[0] * TILE, (cols[1] - cols[0] + 1) * TILE, (rows[1] - rows[0] + 1) * TILE, CAVE.colour, CAVE.alpha)
-        .setOrigin(0, 0).setDepth(DEPTH.cave);
+      const [x, y, w, h] = [cols[0] * TILE, rows[0] * TILE, (cols[1] - cols[0] + 1) * TILE, (rows[1] - rows[0] + 1) * TILE];
+      const cave = has('cave-back') ? scene.add.tileSprite(x, y, w, h, art('cave-back')) : scene.add.rectangle(x, y, w, h, CAVE.colour, CAVE.alpha);
+      cave.setOrigin(0, 0).setDepth(DEPTH.cave);
     }
     for (const { picture, col, row, hang, front, back, inWater, width, spinMs } of level.props ?? []) {
       if (!has(picture)) continue;
