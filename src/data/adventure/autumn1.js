@@ -224,6 +224,10 @@ export const AUTUMN_VILLAGE_LEVEL = {
     { picture: 'fall-mist', col: 42, row: 30, dy: 40, back: true, free: true },
     { picture: 'pool-rocks', col: 45, row: 30, dy: 20, inWater: true },
     { picture: 'pool-rocks-small', col: 39, row: 30, dy: 20, inWater: true },
+    { picture: 'fall-trickle', col: 47, row: 30, dx: 20, dy: 10, inWater: true }, // a trickle at the cliff's end
+    // A rock column holding up the spiked ball's island, from the chasm's water to its underside, as
+    // the rock pillars hold up the high bridge in the owner's picture (behind the moving block).
+    { picture: 'rock-column', col: 85, row: 30, stack: 15, back: true, free: true },
     { picture: 'bush-1', col: 36, row: 29 },
     { picture: 'mill-house', col: 30, row: 24, back: true }, // the mill: the house on the ground, its wheel at its side over the pool
     { picture: 'hang-lantern', col: 25, row: 28, hang: true, glow: true },
