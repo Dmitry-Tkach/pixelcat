@@ -335,10 +335,14 @@ describe('stairs', () => {
     expect(holdsOnStairs({ feet: 360, prevFeet: 280, vy: 2000, wasOn: false }, 300)).toBe(true); // falling through: caught
   });
 
-  it('lift him onto them from the floor under them, however far under he is', () => {
-    expect(holdsOnStairs({ feet: 400, prevFeet: 400, vy: 0, wasOn: false, onFloor: true }, 300)).toBe(true);
-    expect(holdsOnStairs({ feet: 400, prevFeet: 400, vy: 0, wasOn: false }, 300)).toBe(false); // in the air, not on the floor
-    expect(holdsOnStairs({ feet: 400, prevFeet: 400, vy: -300, wasOn: false, onFloor: true }, 300)).toBe(false); // jumping
+  it('lift him onto them from their own floor under them, however far under he is', () => {
+    expect(holdsOnStairs({ feet: 400, prevFeet: 400, vy: 0, wasOn: false, onFloor: true }, 300, 400)).toBe(true);
+    expect(holdsOnStairs({ feet: 400, prevFeet: 400, vy: 0, wasOn: false }, 300, 400)).toBe(false); // in the air, not on the floor
+    expect(holdsOnStairs({ feet: 400, prevFeet: 400, vy: -300, wasOn: false, onFloor: true }, 300, 400)).toBe(false); // jumping
+  });
+
+  it('leave him on a floor of his own under them (a cave under the stairs)', () => {
+    expect(holdsOnStairs({ feet: 640, prevFeet: 640, vy: 0, wasOn: false, onFloor: true }, 300, 400)).toBe(false);
   });
 
   it('rise to the higher ground\'s edge, the picture tucked on behind its wavy edge', () => {

@@ -1,5 +1,5 @@
 import { TILE } from '../adventureMap.js';
-import { STAIRS, feetOnStairs, holdsOnStairs, stairPicture, stairWall } from './stairSteps.js';
+import { STAIRS, feetOnStairs, holdsOnStairs, stairBox, stairPicture, stairWall } from './stairSteps.js';
 
 // A level's stairs (systems/adventure/stairSteps.js): the world's staircase picture (stairs-up-right
 // or stairs-up-left) over a smooth slope. Each frame, after the physics, a cat on the slope has his
@@ -31,7 +31,8 @@ export class AdventureStairs {
     for (const flight of this.stairs) {
       const surface = feetOnStairs(flight, body, TILE);
       const onFloor = body.blocked.down && !this.wasOn; // standing on the floor, not on the slope
-      if (!holdsOnStairs({ feet: body.bottom, prevFeet, vy: body.velocity.y, wasOn: this.wasOn, onFloor }, surface)) continue;
+      const { bottom: floor } = stairBox(flight, TILE);
+      if (!holdsOnStairs({ feet: body.bottom, prevFeet, vy: body.velocity.y, wasOn: this.wasOn, onFloor }, surface, floor)) continue;
       // As the moving logs do: his picture is moved, and the physics takes it up on its next step.
       cat.y -= body.bottom - surface;
       body.velocity.y = 0;

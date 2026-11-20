@@ -67,12 +67,14 @@ export function feetOnStairs(stairs, { left, right }, tile) {
 
 // Whether he's put on the stairs this frame: not rising (jumping), and his feet a little under the
 // slope, or just over it if he was on it a moment ago, or crossing it as he falls. Standing on the
-// floor under the slope (onFloor: after a knock-back, a dash, a slow frame, or starting there), he's
-// lifted onto it however far under it he is: no one stands inside a staircase, or walks under it
-// into the wall at its top.
-export function holdsOnStairs({ feet, prevFeet, vy, wasOn, onFloor = false }, surface) {
+// stairs' own floor under the slope (onFloor; floor: that floor's height, the stairs' foot), after a
+// knock-back, a dash, a slow frame, or starting there, he's lifted onto it however far under it he
+// is: no one stands inside a staircase, or walks under it into the wall at its top. Only on that
+// floor: a cave under the stairs has a floor of its own, far lower, and he stays in it.
+export const ON_FLOOR = 6; // px: how near the stairs' floor his feet must be to stand on it
+export function holdsOnStairs({ feet, prevFeet, vy, wasOn, onFloor = false }, surface, floor = Infinity) {
   if (surface === null || vy < 0) return false;
-  if (onFloor && feet > surface) return true;
+  if (onFloor && feet > surface && Math.abs(feet - floor) <= ON_FLOOR) return true;
   if (feet >= surface - (wasOn ? STAIRS.above : 1) && feet <= surface + STAIRS.below) return true;
   return prevFeet <= surface + 1 && feet >= surface;
 }
