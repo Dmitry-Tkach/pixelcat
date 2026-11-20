@@ -128,6 +128,13 @@ export function rockDecorAt({ col, row, place }, tile) {
   return { x, y: row * tile + tile / 2, ox: 0.5, oy: 0.5 };
 }
 
+// A rock's tops as ledges the cat stands on ({ cols: [from, to], row }, one per top run), for a
+// level whose rock is to be stood on: it puts an island on each, hidden under the rock's own
+// picture (level.hiddenTiles), so what looks solid is solid.
+export function rockLedges(rock) {
+  return rockLayout(rock).tops.map(({ row, from, to }) => ({ cols: [from, to], row }));
+}
+
 // What's wrong with a level's rocks, as messages.
 export function rockProblems(level) {
   const errors = [];

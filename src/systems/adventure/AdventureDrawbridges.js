@@ -39,11 +39,13 @@ export class AdventureDrawbridges {
     }));
   }
 
-  // Rounds into a switch, and the cat touching one, open its bridge.
-  update(cat, shots) {
+  // Rounds into a switch, the magic bolt passing it (bolt: its picture, while it flies), and the cat
+  // touching one, open its bridge. A round is spent; the bolt flies on.
+  update(cat, shots, bolt) {
     for (const bridge of this.bridges) {
       if (bridge.down) continue;
       if (hitsSwitch(bridge.switch, cat.body.center.x, cat.body.center.y, TILE)) { this.lower(bridge); continue; }
+      if (bolt && hitsSwitch(bridge.switch, bolt.x, bolt.y, TILE)) { this.lower(bridge); continue; }
       const shot = shots.find((round) => round.active && hitsSwitch(bridge.switch, round.x, round.y, TILE));
       if (shot) {
         this.spend(shot);

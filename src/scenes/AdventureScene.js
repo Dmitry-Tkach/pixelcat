@@ -1417,7 +1417,7 @@ export class AdventureScene extends Phaser.Scene {
       this.bossBar.update(ms, this.boss.brain.healthShare);
     }
     this.platforms.update(ms);
-    this.drawbridges.update(this.cat, this.moves.bullets.getChildren());
+    this.drawbridges.update(this.cat, this.moves.bullets.getChildren(), this.moves.beam?.sprite);
     this.showHintsAt();
     this.fish.update(ms, this.cat, this.moves.bullets.getChildren());
     this.scenery.update(ms, this.cat);

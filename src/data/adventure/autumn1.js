@@ -25,12 +25,17 @@
 // ? bonus block, B crate, X stone, C checkpoint, E portal, @ start, w the minigun, a f ammunition
 // crates (standard, freeze), enemies P pumpkin, V boar, M mole, gunner 4 squirrel, signs > and /.
 import { mapBuilder } from './mapBuilder.js';
+import { rockLedges } from '../../systems/adventure/rockLayout.js';
 
 const COLS = 180;
 const ROWS = 38; // deep, for the caves under the ground (the camera still shows four rows of it)
 const VILLAGE = 27; // the village's ground row: the cat stands on row 26
 const RAISED = 25; // the raised ground past the village, level with the mill's walkway
 const WATER = 31; // the mill pool's and the chasm's water surface
+
+// The waterfall cliff (rocks): three steps rising to the right, as in the owner's picture,
+// standing in the pool. Its tops are ledges (rockLedges): what looks solid is solid.
+const CLIFF = { parts: [{ cols: [34, 50], rows: [16, 30] }, { cols: [40, 50], rows: [10, 30] }, { cols: [43, 47], rows: [9, 30] }], foot: 'water' };
 
 const level = mapBuilder(COLS, ROWS).ground(0, 17, VILLAGE).ground(18, 33, RAISED);
 // A pillar of stone blocks (X) from row `top` down into the water, columns `from` to `to`: a stepping
@@ -53,7 +58,8 @@ level.put(2, 26, '@').put(9, 26, '>')
   .put(12, 26, 'P')
   .trap('mushroom', 13, 26)
   .island(3, 6, 21).vine(4, 21, 26).coins(3, 5, 20).put(6, 20, '+') // the ledge by the cottage
-  .island(10, 16, 19).ladder(10, 19, 26).put(11, 18, 'w')
+  .island(10, 16, 19).ladder(10, 19, 26).coins(11, 12, 18)
+  .put(16, 25, 'w') // the minigun on the path, so every cat has it: the gate's switch must be shot
   .put(13, 15, '?').put(13, 14, '*')
   .island(20, 25, 20).put(23, 19, 'V').coins(21, 22, 19)
   .island(21, 24, 15).ladder(24, 15, 19).coins(21, 23, 14) // the high ledge over the boar
@@ -86,14 +92,21 @@ level.gap(34, 60)
   // in one by one across the falls, in view (the ruins' switch and bridge, met high up first).
   .island(28, 30, 14).island(34, 36, 13)
   .drawbridge(36, 12, 41, 67, 13, { look: 'rope-plank' })
+  // The cliff's tops are ledges, hidden under its picture: the high way's reward, a crystal by the
+  // big tree on its top. Over the bridge's middle, an owl hovers: run under its coins as it rises,
+  // or shoot it.
+  .bird('hover', 55, 10, { look: 'owl' })
+  .put(45, 8, '*')
   .coins(28, 30, 13).arc(37, 40, 11, 1).coins(45, 62, 12);
+
+for (const { cols: [from, to], row } of rockLedges(CLIFF)) level.island(from, to, row); // the cliff's tops
 
 // ----- 3. Forest Outpost: firm ground again, a checkpoint, and a long island climbed by a ladder,
 // its pumpkin well away from the ladder's top. On it, under the ruins, the silver chest (its key is
 // in the village's secret cave), with candles and a lantern, as in the owner's picture. A vine from
 // it climbs to the ruins.
 level.ground(59, 80, 26)
-  .put(61, 25, 'C')
+  .put(69, 17, 'C') // where the mill's two ways meet, on the ruins (out of the owl's reach)
   .island(64, 75, 22).ladder(64, 22, 25).coins(65, 66, 21).put(68, 21, 'U').put(73, 21, 'P')
   .put(79, 25, '/');
 
@@ -104,7 +117,7 @@ level.ground(59, 80, 26)
 // gold key and a ? block. Below, the moving stone block ferries the cat over the chasm, the spiked
 // ball swinging down over its path from the island above.
 level.island(68, 76, 18).vine(70, 18, 21)
-  .put(72, 17, '*').coins(73, 74, 17) // the crystal between the arches
+  .coins(72, 74, 17) // coins between the arches (the crystal is now on the cliff's top)
   .drawbridge(76, 17, 77, 82, 18, { look: 'rope-plank' }) // the rope bridge, high
   .island(83, 87, 15).put(85, 14, 'k').put(84, 11, '?').coins(86, 87, 14) // the spiked ball's island, out of reach from the block below: the key
   .gap(81, 94)
@@ -145,7 +158,7 @@ level.ground(128, 141, 32)
   .island(140, 141, 28) // the step up to the gate's high ground
   .bird('diver', 140, 11, { look: 'owl' })
   .ground(142, COLS - 1, 26)
-  .put(148, 25, 'C').put(151, 25, 'V').coins(149, 152, 24)
+  .put(148, 25, 'C').put(146, 25, 'a').put(153, 25, 'V').coins(149, 152, 24) // rounds by the checkpoint, for the shot switch
   .gap(155, 164).ground(155, 164, 29) // the spike pit, three cells deep
   .put(156, 28, '^').put(157, 28, '^').put(158, 28, '^').put(159, 28, '^').put(160, 28, '^')
   .put(161, 28, '^').put(162, 28, '^').put(163, 28, '^').put(164, 28, '^')
@@ -189,10 +202,12 @@ export const AUTUMN_VILLAGE_LEVEL = {
   // The waterfall cliff, built from the rock kit (data/adventure/rocks.js): three steps rising to
   // the right, as in the owner's picture, standing in the pool: a low step the first fall spills
   // from, the high one over the rope bridge the other two pour from, and the top the big tree stands
-  // on. Scenery only: the cat's way over it is the ledges and the rope bridge.
+  // on. Its tops are ledges too (hiddenTiles): the high way's prize, a crystal, waits by the tree.
   rocks: [
-    { parts: [{ cols: [34, 50], rows: [16, 30] }, { cols: [40, 50], rows: [10, 30] }, { cols: [43, 47], rows: [9, 30] }], foot: 'water' },
+    CLIFF,
   ],
+  // The cliff's tops: islands the cat stands on, not shown, the rock's own picture being the ledge.
+  hiddenTiles: rockLedges(CLIFF),
   waterfalls: [
     // Spilling over the rock's step edges (rocks), down its face, past the pier into the pool.
     { col: 38, top: 16, bottom: WATER, width: 112, foamAt: [RAISED] }, // off the low step, by the mill's wheel
@@ -323,6 +338,7 @@ export const AUTUMN_VILLAGE_LEVEL = {
     mill: { col: 32, row: 24 },
     highWay: { col: 29, row: 13 }, // the first small ledge over the mill house
     bridgeStart: { col: 35, row: 12 }, // the second small ledge, by the rope bridge's switch
+    cliffTop: { col: 44, row: 8 }, // on the waterfall cliff's top, by the tree and its crystal
     ropeBridge: { col: 55, row: 12 }, // on the rope bridge
     arches: { col: 73, row: 17 }, // the ruins (named so, as the Wood world has a place called ruins)
     keyIsland: { col: 86, row: 14 },
