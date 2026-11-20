@@ -244,10 +244,11 @@ export const AUTUMN_VILLAGE_LEVEL = {
     { picture: 'crystal-purple', col: 32, row: 29 },
     // The waterfall cliff, drawn big by the owner (prompt 15), scenery only, rising to the right (its
     // ledges at about 53%, 28% and 3% of its height, measured), 1095 x 768 px. It stands high, its top
-    // at 680 px (row 10.6), over the rope bridge, as in the owner's picture, on a wall of the owner's
-    // rock columns from the pool up under it; mossy rocks along the waterline.
-    ...[2230, 2370, 2510, 2650, 2790, 2930, 3070, 3210].map((x) => ({
-      picture: 'rock-column', col: Math.floor(x / 64), dx: x - (Math.floor(x / 64) * 64 + 32), row: 30, stack: 9, fromWater: true,
+    // at 680 px (row 10.6), over the rope bridge, as in the owner's picture, on the owner's boulder
+    // wall (the rocky cliff of sheet 11), two side by side from the pool up behind its foot; mossy
+    // rocks along the waterline.
+    ...[2434, 2981].map((x) => ({
+      picture: 'cliff', col: Math.floor(x / 64), dx: x - (Math.floor(x / 64) * 64 + 32), row: 30, width: 548, fromWater: true,
     })),
     { picture: 'big-cliff', col: 41, row: 30, dx: 51, dy: -535, fromWater: true },
     ...[37, 41, 45, 49].map((col) => ({ picture: 'pool-rocks', col, row: 30, inWater: true })),
