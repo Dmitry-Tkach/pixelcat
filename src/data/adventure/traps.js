@@ -117,5 +117,6 @@ export const TRAPS = {
     },
   },
 };
-// The Autumn Forest's traps are the Wood world's: the same maces, crushers and mushrooms.
-TRAPS.autumn = TRAPS.wood;
+// The Autumn Forest's traps are the Wood world's: the same crushers and mushrooms. Its mace is the
+// owner's spiked ball (data/adventure/autumnArt.js), with no ring on top: its middle is its middle.
+TRAPS.autumn = { ...TRAPS.wood, mace: { ...TRAPS.wood.mace, ballMiddle: 0.5 } };

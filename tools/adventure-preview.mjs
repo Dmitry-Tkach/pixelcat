@@ -51,6 +51,11 @@ const atlasFrame = async (folder, kind, frame, w) => {
 
 const comps = [];
 // Behind the tiles: waterfalls, caves' dark insides, and the wheels' stands and wheels (Mill Falls).
+// A tile no bigger than the space it fills (sharp can't tile a bigger one).
+const fitTile = async (tile, w, h) => {
+  const { width, height } = await sharp(tile).metadata();
+  return width <= w && height <= h ? tile : sharp(tile).extract({ left: 0, top: 0, width: Math.min(width, w), height: Math.min(height, h) }).png().toBuffer();
+};
 const scaled = async (file, factor) => {
   const { width } = await sharp(file).metadata();
   return sharp(file).resize({ width: Math.max(1, Math.round(width * factor * SCALE)) }).toBuffer();
@@ -79,11 +84,6 @@ if (millArt) {
     const piece = await sharp(art(`column-${width}`)).resize(Math.round(width * CELL), Math.round(CELL)).png().toBuffer();
     for (let r = top; r <= bottom; r++) comps.push({ input: piece, left: Math.round(col * CELL), top: Math.round(r * CELL) });
   }
-  // A tile no bigger than the cave it fills (sharp can't tile a bigger one).
-  const fitTile = async (tile, w, h) => {
-    const { width, height } = await sharp(tile).metadata();
-    return width <= w && height <= h ? tile : sharp(tile).extract({ left: 0, top: 0, width: Math.min(width, w), height: Math.min(height, h) }).png().toBuffer();
-  };
   // A world's own cave wall picture, repeated, or a dark wash (systems/adventure/AdventureScenery.js).
   const caveWall = existsSync(art('cave-back')) ? await sharp(art('cave-back')).resize(Math.round(160 * SCALE)).png().toBuffer() : null;
   for (const { row, from, to } of caveRuns(level.map, level.caves)) {
@@ -313,7 +313,16 @@ if (millArt) {
       comps.push(await at(seat, x, y - MILL_SEAT.top, 0.5, 0));
     }
   }
-  for (const { picture, col, row, hang, front, width, spinMs, glow } of level.props ?? []) {
+  for (const { picture, col, row, hang, front, width, spinMs, glow, stack } of level.props ?? []) {
+    // A stacked picture (a pier's post): repeated up `stack` rows, at its own width.
+    if (stack) {
+      const piece = await scaled(art(picture), 1);
+      const { width: pw } = await sharp(piece).metadata();
+      const h = Math.round(stack * CELL);
+      const column = await sharp({ create: { width: pw, height: h, channels: 4, background: '#0000' } }).composite([{ input: await fitTile(piece, pw, h), tile: true, left: 0, top: 0 }]).png().toBuffer();
+      comps.push({ input: column, left: Math.round((col * TILE + TILE / 2) * SCALE - pw / 2), top: Math.round((row + 1) * CELL - h) });
+      continue;
+    }
     const { width: own, height: ownH } = await sharp(art(picture)).metadata();
     // A lantern's warm glow (AdventureScenery's LANTERN_GLOW), under it.
     if (glow) {

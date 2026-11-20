@@ -15,6 +15,8 @@ export const AUTUMN_SHEETS = {
   'ruins-gate': [['ruin-arch', 'ruin-pillar'], ['guardian-gate', 'gate-door', 'cat-statue'], ['switch-off', 'switch-on', 'drawbridge']],
   'mine-secrets': [['mine-frame', 'minecart', 'mine-rail'], ['cracked', 'chunk-1', 'chunk-2', 'chunk-3'], ['vine'], ['crystal-purple', 'crystal-blue']],
   'cliff-stairs-posts': [['cliff', 'stairs-up-right', 'stairs-up-left'], ['post-cross', 'post-rope', 'stake-tall', 'stake-small', 'post-candle'], ['boulder-big', 'boulder-small']],
+  // The spiked ball is the Autumn world's mace (trap-mace); the pier deck becomes its bridge tile.
+  'bridges-fire': [['pier-deck', 'pier-post'], ['rope-plank', 'move-block', 'trap-mace'], ['fire-bowl', 'big-tree', 'small-tree']],
 };
 // The size (px) each piece is cut to, as it's shown in the game: its width, its height, or both.
 // The banners are cut at the pole's scale (withPole), so they hang from it at the size drawn.
@@ -31,7 +33,13 @@ export const AUTUMN_PIECES = {
   cliff: { height: 700 }, 'stairs-up-right': { height: 128 }, 'stairs-up-left': { height: 128 },
   'post-cross': { height: 70 }, 'post-rope': { height: 70 }, 'stake-tall': { height: 60 }, 'stake-small': { height: 42 }, 'post-candle': { height: 70 },
   'boulder-big': { width: 130 }, 'boulder-small': { width: 90 },
+  'pier-deck': { width: 136 }, 'pier-post': { width: 40 }, 'rope-plank': { width: 64 }, 'move-block': { width: 192 },
+  'trap-mace': { height: 84 }, 'fire-bowl': { height: 120 }, 'big-tree': { width: 440 }, 'small-tree': { width: 260 },
 };
+
+// The pier deck as the bridge tile (the strip's tenth, systems/adventureMap.js TILES.bridge): its
+// middle, `slice` px wide, at the top of the tile, so walkways and bridges are the owner's pier.
+export const PIER_TILE = { slice: 64 };
 
 // The Wood world's leaves and plants, turned from green to autumn's orange and gold.
 export const AUTUMN_FROM_WOOD = [

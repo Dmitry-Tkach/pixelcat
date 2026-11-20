@@ -25,7 +25,8 @@ describe('the Autumn Forest', () => {
   it('uses its own pictures, and borrows the rest from the Wood world', () => {
     expect(adventureArtWorld('autumn', 'tiles')).toBe('autumn');
     expect(adventureArtWorld('autumn', 'minigun')).toBe('wood');
-    expect(adventureArtKey('autumn', 'trap-mace')).toBe('adventure-wood-trap-mace');
+    expect(adventureArtKey('autumn', 'trap-crusher')).toBe('adventure-wood-trap-crusher');
+    expect(adventureArtKey('autumn', 'trap-mace')).toBe('adventure-autumn-trap-mace'); // the owner's spiked ball
     expect(adventureArtWorld('wood', 'tiles')).toBe('wood');
     // Nothing in its own list is something the Wood world must lend it: they'd be loaded twice.
     expect(new Set(ADVENTURE_ART.autumn).size).toBe(ADVENTURE_ART.autumn.length);

@@ -176,6 +176,7 @@ export const AUTUMN_VILLAGE_LEVEL = {
     { col: 139, width: 3, top: 19, bottom: 32 }, // under the key's island, down to the meadow
   ],
   props: [
+    { picture: 'big-tree', col: 3, row: 26, back: true }, // behind the cottage
     { picture: 'cottage', col: 5, row: 26, back: true },
     { picture: 'lamp-post', col: 8, row: 26 },
     { picture: 'fence', col: 17, row: 26 },
@@ -186,8 +187,10 @@ export const AUTUMN_VILLAGE_LEVEL = {
     { picture: 'crystal-purple', col: 24, row: 31 },
     { picture: 'crystal-purple', col: 32, row: 29 },
     { picture: 'cliff', col: 50, row: 30, fromWater: true }, // the falls pour from its top
+    // The pier's posts, from the water up under the walkway's deck.
+    ...[35, 39, 47, 50, 57].map((col) => ({ picture: 'pier-post', col, row: 30, inWater: true, stack: 6 })),
     { picture: 'mill-wheel', col: 44, row: 27, back: true, width: 300, spinMs: 9000 },
-    { picture: 'tree-1', col: 62, row: 25, back: true },
+    { picture: 'big-tree', col: 62, row: 25, back: true },
     { picture: 'ruin-pillar', col: 69, row: 17, back: true },
     { picture: 'ruin-arch', col: 73, row: 17, back: true },
     { picture: 'mine-frame', col: 104, row: 31, width: 420, back: true }, // beams holding up the mine
@@ -202,9 +205,9 @@ export const AUTUMN_VILLAGE_LEVEL = {
     { picture: 'hang-lantern', col: 119, row: 34, hang: true, glow: true },
     { picture: 'crystal-blue', col: 123, row: 35 },
     { picture: 'crystal-purple', col: 114, row: 35 },
-    { picture: 'tree-1', col: 130, row: 31, back: true },
+    { picture: 'small-tree', col: 130, row: 31, back: true },
     { picture: 'lamp-post', col: 146, row: 25 },
-    { picture: 'tree-2', col: 153, row: 25, back: true },
+    { picture: 'big-tree', col: 152, row: 25, back: true },
     { picture: 'lamp-post', col: 166, row: 25 },
     // Stone stairs up the village's step, wooden posts along the ledges (one with a lit candle),
     // and boulders half-buried in the earth, as in the owner's picture.
@@ -245,8 +248,8 @@ export const AUTUMN_VILLAGE_LEVEL = {
     { picture: 'torch', col: 143, row: 25, width: 84, glow: true },
     { picture: 'fence', col: 150, row: 25 },
     { picture: 'sign-skull', col: 153, row: 25 },
-    { picture: 'torch', col: 171, row: 25, width: 84, glow: true },
-    { picture: 'torch', col: 177, row: 25, width: 84, glow: true },
+    { picture: 'fire-bowl', col: 171, row: 25, glow: true }, // the gate's fire bowls
+    { picture: 'fire-bowl', col: 177, row: 25, glow: true },
   ],
   // Places to start at while developing, with /adventure.html?at=<name> (systems/adventure/devPlaces.js).
   places: {

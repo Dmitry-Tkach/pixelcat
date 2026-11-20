@@ -9,12 +9,13 @@ import { PTERO_LOOKS } from '../../data/adventure/birds.js';
 //   waterfalls: { col, top, bottom, veil }: water pouring from a mossy lip at row `top` down to row
 //     `bottom`, in the middle of column col, flowing, with a splash at its foot. Behind the wheels;
 //     a veil is thin water in front of the cat instead, hiding what's behind it.
-//   props: { picture, col, row, hang, front, back, inGround, fromWater, width, spinMs, glow }: a picture
+//   props: { picture, col, row, hang, front, back, inGround, fromWater, width, stack, spinMs, glow }: a picture
 //     standing on the bottom
 //     of its cell (or, hang, hanging from its top), in the middle of column col. front: in front of
 //     the cat, as a cover. back: behind the ground, for big scenery (a house, a tree). inGround: in
 //     the earth, just in front of the ground (a boulder half-buried). fromWater: rising out of the
-//     water, behind the waterfalls (a cliff they pour from). width: shown
+//     water, behind the waterfalls (a cliff they pour from). stack: the picture repeated up `stack`
+//     rows tall, at its width (a pier's post, from the water up to the deck). width: shown
 //     this wide (px), if not its own size. spinMs: it turns round its middle, at the middle of its
 //     cell, once in this long (a mill's wheel turning as scenery). glow: a lantern's warm light round
 //     it, flickering, lighting the cave wall behind it (LANTERN_GLOW).
@@ -80,14 +81,16 @@ export class AdventureScenery {
         : scene.add.rectangle(x, y, w, TILE, CAVE.colour, CAVE.alpha);
       cave.setOrigin(0, 0).setDepth(DEPTH.cave);
     }
-    for (const { picture, col, row, hang, front, back, inWater, inGround, fromWater, width, spinMs, glow } of level.props ?? []) {
+    for (const { picture, col, row, hang, front, back, inWater, inGround, fromWater, width, stack, spinMs, glow } of level.props ?? []) {
       if (!has(picture)) continue;
       const x = col * TILE + TILE / 2;
-      const image = spinMs
+      const image = stack
+        ? scene.add.tileSprite(x, (row + 1) * TILE, scene.textures.get(art(picture)).getSourceImage().width, stack * TILE, art(picture)).setOrigin(0.5, 1)
+        : spinMs
         ? scene.add.image(x, row * TILE + TILE / 2, art(picture))
         : scene.add.image(x, hang ? row * TILE : (row + 1) * TILE, art(picture)).setOrigin(0.5, hang ? 0 : 1);
       image.setDepth(front ? DEPTH.front : inWater ? DEPTH.inWater : inGround ? DEPTH.inGround : fromWater ? DEPTH.fromWater : back ? DEPTH.behind : DEPTH.prop);
-      if (width) image.setScale(width / image.width);
+      if (width && !stack) image.setScale(width / image.width);
       if (spinMs) scene.tweens.add({ targets: image, angle: 360, duration: spinMs, repeat: -1 });
       if (glow) this.glowAround(image, hang);
       if (front) {
