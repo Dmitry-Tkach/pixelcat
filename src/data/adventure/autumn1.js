@@ -50,7 +50,7 @@ level.put(2, 26, '@').put(9, 26, '>')
   .coins(5, 8, 25)
   .put(12, 26, 'P')
   .trap('mushroom', 14, 26)
-  .island(10, 16, 19).ladder(16, 19, 26).put(11, 18, 'w').put(13, 18, '+')
+  .island(10, 16, 19).ladder(10, 19, 26).put(11, 18, 'w').put(13, 18, '+')
   .put(13, 15, '?').put(13, 14, '*')
   .island(20, 25, 20).put(23, 19, 'V').coins(21, 22, 19)
   .put(20, 24, 'X') // a stone at the top of the step
@@ -152,10 +152,10 @@ export const AUTUMN_VILLAGE_LEVEL = {
   vines: level.vines(),
   drawbridges: level.drawbridges(),
   // Its set dressing (systems/adventure/AdventureScenery.js).
-  // The waterfalls pour from high above the walkway, out of sight.
+  // The waterfalls pour from the top of the rocky cliff rising out of the pool (a prop).
   waterfalls: [
-    { col: 48, top: 6, bottom: WATER },
-    { col: 51, top: 7, bottom: WATER },
+    { col: 48, top: 20, bottom: WATER },
+    { col: 51, top: 21, bottom: WATER },
   ],
   // The caves' insides, deep in the earth: the village cave and its shaft, the mine and the hole down
   // into it, and the secret room under it, its shaft and its trapdoor.
@@ -185,6 +185,7 @@ export const AUTUMN_VILLAGE_LEVEL = {
     { picture: 'hang-lantern', col: 30, row: 28, hang: true, glow: true },
     { picture: 'crystal-purple', col: 24, row: 31 },
     { picture: 'crystal-purple', col: 32, row: 29 },
+    { picture: 'cliff', col: 50, row: 30, fromWater: true }, // the falls pour from its top
     { picture: 'mill-wheel', col: 44, row: 27, back: true, width: 300, spinMs: 9000 },
     { picture: 'tree-1', col: 62, row: 25, back: true },
     { picture: 'ruin-pillar', col: 69, row: 17, back: true },
@@ -205,6 +206,27 @@ export const AUTUMN_VILLAGE_LEVEL = {
     { picture: 'lamp-post', col: 146, row: 25 },
     { picture: 'tree-2', col: 153, row: 25, back: true },
     { picture: 'lamp-post', col: 166, row: 25 },
+    // Stone stairs up the village's step, wooden posts along the ledges (one with a lit candle),
+    // and boulders half-buried in the earth, as in the owner's picture.
+    { picture: 'stairs-up-right', col: 17, row: 26, back: true },
+    { picture: 'post-rope', col: 31, row: 24 },
+    { picture: 'stake-tall', col: 35, row: 29 },
+    { picture: 'stake-small', col: 36, row: 29 },
+    { picture: 'post-cross', col: 60, row: 25 },
+    { picture: 'post-candle', col: 106, row: 25, glow: true },
+    { picture: 'post-candle', col: 117, row: 35, glow: true },
+    { picture: 'post-cross', col: 134, row: 31 },
+    { picture: 'stake-tall', col: 144, row: 25 },
+    { picture: 'post-rope', col: 168, row: 25 },
+    { picture: 'boulder-big', col: 5, row: 30, inGround: true },
+    { picture: 'boulder-small', col: 14, row: 32, inGround: true },
+    { picture: 'boulder-small', col: 19, row: 29, inGround: true },
+    { picture: 'boulder-big', col: 63, row: 29, inGround: true },
+    { picture: 'boulder-small', col: 77, row: 31, inGround: true },
+    { picture: 'boulder-big', col: 104, row: 35, inGround: true },
+    { picture: 'boulder-small', col: 131, row: 35, inGround: true },
+    { picture: 'boulder-big', col: 147, row: 30, inGround: true },
+    { picture: 'boulder-small', col: 171, row: 31, inGround: true },
     // Torches and fences on the ledges, lit, as in the owner's picture; fire bowls either side of the
     // gate, between it and its statues.
     { picture: 'torch', col: 15, row: 18, width: 84, glow: true },

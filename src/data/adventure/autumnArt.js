@@ -14,6 +14,7 @@ export const AUTUMN_SHEETS = {
   'village-props': [['cottage', 'mill-house'], ['banner-pole', 'banner-rolled', 'banner-open'], ['lamp-post', 'hang-lantern', 'fish-1', 'fish-2']],
   'ruins-gate': [['ruin-arch', 'ruin-pillar'], ['guardian-gate', 'gate-door', 'cat-statue'], ['switch-off', 'switch-on', 'drawbridge']],
   'mine-secrets': [['mine-frame', 'minecart', 'mine-rail'], ['cracked', 'chunk-1', 'chunk-2', 'chunk-3'], ['vine'], ['crystal-purple', 'crystal-blue']],
+  'cliff-stairs-posts': [['cliff', 'stairs-up-right', 'stairs-up-left'], ['post-cross', 'post-rope', 'stake-tall', 'stake-small', 'post-candle'], ['boulder-big', 'boulder-small']],
 };
 // The size (px) each piece is cut to, as it's shown in the game: its width, its height, or both.
 // The banners are cut at the pole's scale (withPole), so they hang from it at the size drawn.
@@ -27,6 +28,9 @@ export const AUTUMN_PIECES = {
   'mine-frame': { width: 520 }, minecart: { width: 150 }, 'mine-rail': { width: 128 },
   cracked: { width: 64, height: 64 }, 'chunk-1': { width: 26 }, 'chunk-2': { width: 22 }, 'chunk-3': { width: 18 },
   vine: { width: 48 }, 'crystal-purple': { width: 80 }, 'crystal-blue': { width: 80 },
+  cliff: { height: 700 }, 'stairs-up-right': { height: 128 }, 'stairs-up-left': { height: 128 },
+  'post-cross': { height: 70 }, 'post-rope': { height: 70 }, 'stake-tall': { height: 60 }, 'stake-small': { height: 42 }, 'post-candle': { height: 70 },
+  'boulder-big': { width: 130 }, 'boulder-small': { width: 90 },
 };
 
 // The Wood world's leaves and plants, turned from green to autumn's orange and gold.
