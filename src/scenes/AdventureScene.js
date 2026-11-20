@@ -98,6 +98,7 @@ const DROP = { fromY: TILE, ms: 700 }; // a pickup the arena drops falls from he
 const STARS = 3; // a level's stars are its crystals, up to this many
 const HINT_AT_MS = 3200; // how long a hint along the way stays (level.hintsAt)
 const SECRET_COVER_DEPTH = 7; // in front of everything, the cat too, until he's inside
+const SECRET_BEHIND_DEPTH = 1.99; // its earth behind an island over the shaft: over the cave wall, under the tiles
 const BEAM_PIPS = { x: 98, y: 128, gap: 26, r: 8 };
 // An earth pillar starts this far up inside the island it holds, and stands this far into the ground.
 const PILLAR_FIT = { underIsland: 6, intoGround: 6, depth: 1 };
@@ -352,14 +353,16 @@ export class AdventureScene extends Phaser.Scene {
   buildSecretCovers() {
     const tileset = this.groundLayer.tileset[0];
     (this.level.secrets ?? []).forEach((secret, i) => {
+      // In front of everything; and behind the level's own tiles over the secret's shaft (an island).
       const layer = this.groundLayer.tilemap.createBlankLayer(`secret-${i}`, tileset).setDepth(SECRET_COVER_DEPTH);
-      for (const { col, row, tile } of secretCoverTiles(this.level.map, secret)) {
+      const under = this.groundLayer.tilemap.createBlankLayer(`secret-${i}-behind`, tileset).setDepth(SECRET_BEHIND_DEPTH);
+      for (const { col, row, tile, behind } of secretCoverTiles(this.level.map, secret, this.level.caves ?? [])) {
         const variants = TILE_VARIANTS[tile];
         const shown = variants && cellRandom(col, row, 9) < TILE_VARIANT_SHARE ? variants[Math.floor(cellRandom(col, row, 10) * variants.length)] : tile;
-        layer.putTileAt(shown, col, row);
+        (behind ? under : layer).putTileAt(shown, col, row);
       }
       const { cols: [c0, c1], rows: [r0, r1] } = secret;
-      this.scenery.addCover([layer], { left: c0 * TILE, right: (c1 + 1) * TILE, top: r0 * TILE, bottom: (r1 + 1) * TILE });
+      this.scenery.addCover([layer, under], { left: c0 * TILE, right: (c1 + 1) * TILE, top: r0 * TILE, bottom: (r1 + 1) * TILE });
     });
   }
 

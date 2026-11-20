@@ -40,7 +40,8 @@ export async function shrinkPieces(pieces, out, stands) {
 }
 
 // The tile strip, tiles.png in `out`, from the TILESET pictures already saved there, with variants
-// of the plainest tiles after them (data/adventure/tileVariants.js says which stands in for which).
+// of the plainest tiles after them (data/adventure/tileVariants.js says which stands in for which),
+// and the undersides last.
 // variants: [[tile name, svg drawn over it]], each inside the tile's edges, so it still joins its
 // neighbours.
 export async function buildTileStrip(out, variants) {
@@ -50,10 +51,64 @@ export async function buildTileStrip(out, variants) {
     const base = await fit(name).png().toBuffer();
     return sharp(base).composite([{ input: Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${TILE}" height="${TILE}">${svg}</svg>`) }]).png().toBuffer();
   }));
-  const all = [...plain, ...extra];
+  const all = [...plain, ...extra, ...await undersides(out)];
   await sharp({ create: { width: TILE * all.length, height: TILE, channels: 4, background: CLEAR } })
     .composite(all.map((input, i) => ({ input, left: i * TILE, top: 0 })))
     .png({ compressionLevel: 9 }).toFile(join(out, 'tiles.png'));
+}
+
+// The undersides (systems/adventureMap.js, TILES.underLeft, under, underRight): earth with open air
+// under it, so an overhang or a cave's roof ends in a wavy edge, not a straight line. Each is the
+// soil's top (its left, middle or right) over the bottom of an island tile (its rounded left, middle
+// or right), from the same pack, blended where they meet. The island's earth is tinted to the soil's
+// colour, and a corner's island moved sideways so its side lines up with the soil's.
+const UNDERSIDE = { seam: 30, blend: 12 }; // px down the tile where the island's bottom takes over
+async function undersides(out) {
+  const raw = async (name) => (await sharp(join(out, `${name}.png`)).resize(TILE, TILE, { fit: 'contain', background: CLEAR }).ensureAlpha().raw().toBuffer());
+  const px = (x, y) => (y * TILE + x) * 4;
+  // The mean colour of a tile's solid earth between rows y0 and y1 (not its dark outline).
+  const earth = (tile, y0, y1) => {
+    const sum = [0, 0, 0];
+    let n = 0;
+    for (let y = y0; y < y1; y++) for (let x = 8; x < TILE - 8; x++) {
+      const i = px(x, y);
+      if (tile[i + 3] < 250 || tile[i] + tile[i + 1] + tile[i + 2] < 90) continue;
+      for (let c = 0; c < 3; c++) sum[c] += tile[i + c];
+      n++;
+    }
+    return sum.map((v) => v / Math.max(1, n));
+  };
+  // Where a tile's side is (its first solid pixel from that side), round the seam.
+  const sideAt = (tile, fromRight) => {
+    const xs = [];
+    for (let y = UNDERSIDE.seam - 6; y <= UNDERSIDE.seam + 6; y++) {
+      for (let k = 0; k < TILE; k++) {
+        const x = fromRight ? TILE - 1 - k : k;
+        if (tile[px(x, y) + 3] >= 128) { xs.push(x); break; }
+      }
+    }
+    return xs.length ? xs.reduce((a, b) => a + b) / xs.length : 0;
+  };
+  const soilColour = earth(await raw('soil'), 0, TILE);
+  const islandColour = earth(await raw('ledge'), UNDERSIDE.seam, TILE - 12);
+  const tint = soilColour.map((v, c) => v - islandColour[c]);
+  const made = [];
+  for (const [soil, island, side] of [['soil-left', 'ledge-left', 'left'], ['soil', 'ledge', null], ['soil-right', 'ledge-right', 'right']]) {
+    const top = await raw(soil), drawn = await raw(island);
+    const shift = side ? Math.round(sideAt(top, side === 'right') - sideAt(drawn, side === 'right')) : 0;
+    const tile = Buffer.alloc(TILE * TILE * 4);
+    for (let y = 0; y < TILE; y++) {
+      const t = Math.min(1, Math.max(0, (y - UNDERSIDE.seam + UNDERSIDE.blend / 2) / UNDERSIDE.blend)); // 0: soil, 1: island
+      for (let x = 0; x < TILE; x++) {
+        const i = px(x, y), sx = x - shift;
+        const from = sx >= 0 && sx < TILE ? px(sx, y) : -1;
+        const under = from < 0 ? [0, 0, 0, 0] : [0, 1, 2].map((c) => Math.max(0, Math.min(255, drawn[from + c] + tint[c]))).concat(drawn[from + 3]);
+        for (let c = 0; c < 4; c++) tile[i + c] = Math.round(top[i + c] * (1 - t) + under[c] * t);
+      }
+    }
+    made.push(await sharp(tile, { raw: { width: TILE, height: TILE, channels: 4 } }).png().toBuffer());
+  }
+  return made;
 }
 
 // The pebbles, roots and dark patches the variants draw, in a world's soil colours: { pebble,

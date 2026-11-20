@@ -28,6 +28,11 @@ export const TILES = {
   ledge: 7,
   ledgeRight: 8,
   bridge: 9,
+  // Earth with open air under it (an overhang, a cave's roof): soil with an island's wavy bottom,
+  // after the soil's and the top's variants in the strip (data/adventure/tileVariants.js).
+  underLeft: 15,
+  under: 16,
+  underRight: 17,
 };
 // Tiles the cat lands on from above but passes through from below and from the sides.
 export const ONE_WAY = new Set([TILES.ledgeLeft, TILES.ledge, TILES.ledgeRight, TILES.bridge]);
@@ -134,6 +139,8 @@ export function readAdventureMap(map) {
         const open = (dc) => !shapesGround(at(c + dc, r));
         if (!shapesGround(at(c, r - 1))) {
           tile = open(-1) && !open(1) ? TILES.groundTopLeft : open(1) && !open(-1) ? TILES.groundTopRight : TILES.groundTop;
+        } else if (r + 1 < rows && !shapesGround(at(c, r + 1))) {
+          tile = open(-1) && !open(1) ? TILES.underLeft : open(1) && !open(-1) ? TILES.underRight : TILES.under;
         } else {
           tile = open(-1) && !open(1) ? TILES.soilLeft : open(1) && !open(-1) ? TILES.soilRight : TILES.soil;
         }

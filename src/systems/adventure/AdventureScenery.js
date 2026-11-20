@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { TILE } from '../adventureMap.js';
-import { caveRuns } from './caveFill.js';
+import { caveShades } from './caveFill.js';
 import { columnSpan } from './earthColumns.js';
 import { pillarLayout } from './pillarLayout.js';
 import { PILLAR_ART } from '../../data/adventure/pillars.js';
@@ -114,12 +114,18 @@ export class AdventureScenery {
     // repeated over the cave, lined up across the whole level so the strips join; another, a dark
     // wash. It reaches under the ground round the cave, filling the gaps at its wavy edges
     // (systems/adventure/caveFill.js).
-    for (const { row, from, to } of caveRuns(level.map, level.caves)) {
-      const [x, y, w] = [from * TILE, row * TILE, (to - from + 1) * TILE];
-      const cave = has('cave-back')
-        ? scene.add.tileSprite(x, y, w, TILE, art('cave-back')).setTilePosition(x, y)
-        : scene.add.rectangle(x, y, w, TILE, CAVE.colour, CAVE.alpha);
-      cave.setOrigin(0, 0).setDepth(DEPTH.cave);
+    // Where a cave opens to the air (a mine's end, a hole down into it), its wall fades out over
+    // its last cells, each corner as see-through as it is near the air (caveShades), so it melts
+    // into the daylight instead of stopping in a straight line.
+    const { runs: caveCells, fades: caveMouths } = caveShades(level.map, level.caves);
+    const caveWall = (x, y, w) => (has('cave-back')
+      ? scene.add.tileSprite(x, y, w, TILE, art('cave-back')).setTilePosition(x, y)
+      : scene.add.rectangle(x, y, w, TILE, CAVE.colour, CAVE.alpha)).setOrigin(0, 0).setDepth(DEPTH.cave);
+    for (const { row, from, to } of caveCells) caveWall(from * TILE, row * TILE, (to - from + 1) * TILE);
+    for (const { col, row, alpha } of caveMouths) {
+      const cell = caveWall(col * TILE, row * TILE, TILE);
+      if (cell.type === 'TileSprite') cell.setAlpha(...alpha);
+      else cell.setFillStyle(CAVE.colour, CAVE.alpha * (alpha.reduce((a, b) => a + b) / 4)); // a wash has one alpha
     }
     for (const { picture, col, row, hang, front, back, inWater, inGround, fromWater, width, stack, spinMs, glow, smoke, dx = 0, dy = 0 } of level.props ?? []) {
       if (!has(picture)) continue;

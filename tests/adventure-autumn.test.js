@@ -8,7 +8,7 @@ import { drawbridgeCells, drawbridgeProblems, hitsSwitch } from '../src/systems/
 import { FISH, fishAt, fishProblems, touchesFish } from '../src/data/adventure/fish.js';
 import { MOLE, moleStep } from '../src/systems/adventure/moleLogic.js';
 import { cameraBottom } from '../src/systems/adventure/cameraFloor.js';
-import { caveRuns } from '../src/systems/adventure/caveFill.js';
+import { caveRuns, caveShades } from '../src/systems/adventure/caveFill.js';
 import { secretCoverTiles } from '../src/systems/adventure/secretCover.js';
 import { COLUMN_REACH, columnSpan } from '../src/systems/adventure/earthColumns.js';
 import { pillarLayout } from '../src/systems/adventure/pillarLayout.js';
@@ -358,6 +358,15 @@ describe('a secret cave\'s cover', () => {
     expect(at(3, 2)).toBe(TILES.groundTop); // over it: the ground's top
   });
 
+  it('under a shaft\'s island, is plain earth, and leaves the island the level\'s own', () => {
+    // An island (=) over a shaft (a cave) down into the secret, as under the mine.
+    const shaft = ['.......', '.......', '###=###', '##...##', '##...##', '#######'];
+    const over = secretCoverTiles(shaft, { cols: [2, 4], rows: [3, 4] }, [{ cols: [3, 3], rows: [2, 3] }]);
+    const tile = (c, r) => over.find((t) => t.col === c && t.row === r)?.tile;
+    expect(tile(3, 3)).toBe(TILES.soil); // under the island: earth, not a grassy top
+    expect(over.find((t) => t.col === 3 && t.row === 2)?.behind).toBe(true); // the island: the level draws it, earth behind it
+  });
+
   it('reaches one cell round the cave, and no further', () => {
     expect(at(0, 3)).toBeUndefined();
     expect(at(3, 1)).toBeUndefined(); // air over the ground stays air
@@ -393,5 +402,57 @@ describe('an earth pillar from the kit', () => {
   it('has a flare and a foot against something solid, and reaches into them', () => {
     expect(pillar).toMatchObject({ flare: true, foot: true, top: 2 * 64 - COLUMN_REACH, bottom: 9 * 64 + COLUMN_REACH });
     expect(pillarLayout({ col: 2, width: 2, top: 3, bottom: 7 }, map, 64, sizes)).toMatchObject({ flare: false, foot: false });
+  });
+});
+
+describe('a cave\'s mouth', () => {
+  // Ground with a cave in rows 2 and 3, columns 1 to 5, open to the air on its right (columns 6, 7).
+  const map = ['........', '#######.', '#.......', '#.......', '########'];
+  const { runs, fades } = caveShades(map, [{ cols: [1, 5], rows: [2, 3] }]);
+  const fade = (c, r) => fades.find((f) => f.col === c && f.row === r)?.alpha;
+
+  it('fades the wall out towards the air, clear at its edge', () => {
+    expect(fade(5, 2)).toEqual([0.5, 0, 0.5, 0]); // the last cell: half at its inner side, clear at the air
+    expect(fade(4, 2)).toEqual([1, 0.5, 1, 0.5]);
+  });
+
+  it('is solid further in', () => {
+    const solid = new Set(runs.flatMap(({ row, from, to }) => Array.from({ length: to - from + 1 }, (_, i) => `${from + i},${row}`)));
+    expect(solid.has('2,2') && solid.has('1,3')).toBe(true);
+    expect(solid.has('5,2')).toBe(false);
+  });
+});
+
+describe('a hole down into a cave', () => {
+  // A hole (column 3) through the ground (rows 1, 2) into a cave (row 3).
+  const map = ['.......', '###.###', '###.###', '#.....#', '#######'];
+  const { runs, fades } = caveShades(map, [{ cols: [3, 3], rows: [1, 2] }, { cols: [1, 5], rows: [3, 3] }]);
+  const all = new Set([...runs.flatMap(({ row, from, to }) => Array.from({ length: to - from + 1 }, (_, i) => `${from + i},${row}`)), ...fades.map((f) => `${f.col},${f.row}`)]);
+
+  it('has the wall behind the ground at its edges, faded like the hole, so no sky shows in a box', () => {
+    expect(all.has('2,1') && all.has('4,1')).toBe(true);
+    expect(fades.find((f) => f.col === 2 && f.row === 1).alpha.slice(0, 2)).toEqual([0, 0]); // clear at the air
+  });
+});
+
+describe('a cave under a thin roof', () => {
+  // A one-row roof (row 1) between the sky and a cave (row 2), closed at both ends.
+  const map = ['.......', '#######', '#.....#', '#######'];
+  it('stays solid: the sky over the hill isn\'t its mouth', () => {
+    expect(caveShades(map, [{ cols: [1, 5], rows: [2, 2] }]).fades).toEqual([]);
+  });
+});
+
+describe('the ground\'s underside', () => {
+  // An overhang (rows 1, 2, columns 0 to 3) over open air, ground under all from row 4.
+  const map = ['......', '####..', '####..', '......', '######'];
+  const { tiles } = readAdventureMap(map);
+  it('ends earth with open air under it in a wavy underside, its corner rounded', () => {
+    expect(tiles[2].slice(0, 4)).toEqual([TILES.underLeft, TILES.under, TILES.under, TILES.underRight]); // the map's edge counts as open, as for every tile
+    expect(tiles[1][1]).toBe(TILES.groundTop); // its top is still the top
+  });
+  it('keeps the map\'s bottom row plain soil', () => {
+    expect(tiles[4][2]).toBe(TILES.groundTop);
+    expect(readAdventureMap(['####', '####']).tiles[1][1]).toBe(TILES.soil);
   });
 });

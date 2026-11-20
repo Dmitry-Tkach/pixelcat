@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ADVENTURE_LEVELS, adventureArtWorld, adventurePath } from '../src/data/adventure/index.js';
 import { drawbridgeCells } from '../src/systems/adventure/drawbridges.js';
-import { caveRuns } from '../src/systems/adventure/caveFill.js';
+import { caveShades } from '../src/systems/adventure/caveFill.js';
 import { columnSpan } from '../src/systems/adventure/earthColumns.js';
 import { pillarLayout } from '../src/systems/adventure/pillarLayout.js';
 import { PILLAR_ART } from '../src/data/adventure/pillars.js';
@@ -130,13 +130,16 @@ if (millArt) {
   }
   // A world's own cave wall picture, repeated, or a dark wash (systems/adventure/AdventureScenery.js).
   const caveWall = existsSync(art('cave-back')) ? await sharp(art('cave-back')).resize(Math.round(160 * SCALE)).png().toBuffer() : null;
-  for (const { row, from, to } of caveRuns(level.map, level.caves)) {
+  // The cave wall, fading at its mouths (caveShades); a fading cell drawn at its corners' mean alpha.
+  const { runs: caveCells, fades: caveMouths } = caveShades(level.map, level.caves);
+  for (const { row, from, to, see = 1 } of [...caveCells, ...caveMouths.map(({ col, row, alpha }) => ({ row, from: col, to: col, see: alpha.reduce((a, b) => a + b) / 4 }))]) {
     const [c0, r0] = [from, row];
     const w = Math.round((to - from + 1) * CELL), h = Math.round(CELL);
     const input = caveWall
       ? await sharp({ create: { width: w, height: h, channels: 4, background: '#0000' } }).composite([{ input: await fitTile(caveWall, w, h), tile: true, left: 0, top: 0 }]).png().toBuffer()
       : Buffer.from(`<svg width="${w}" height="${h}"><rect width="${w}" height="${h}" fill="#0f1a12" fill-opacity="0.88"/></svg>`);
-    comps.push({ input, left: Math.round(c0 * CELL), top: Math.round(r0 * CELL) });
+    const faded = see < 1 ? await sharp(input).ensureAlpha().composite([{ input: Buffer.from([255, 255, 255, Math.round(255 * see)]), raw: { width: 1, height: 1, channels: 4 }, tile: true, blend: 'dest-in' }]).png().toBuffer() : input;
+    comps.push({ input: faded, left: Math.round(c0 * CELL), top: Math.round(r0 * CELL) });
   }
   for (const options of level.wheels ?? []) {
     const wheel = wheelWith(options);
