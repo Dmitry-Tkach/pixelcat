@@ -171,3 +171,11 @@ const fish = (tail) => svg(72, 44, `
   <path d="M8 25 Q11 27 13 25" stroke="#8a3412" stroke-width="2" fill="none"/>`);
 await save('fish-1', fish(14));
 await save('fish-2', fish(-14));
+
+// A wooden START sign on a post, as at the start of the owner's picture (a stand-in drawn here).
+await save('start-sign', svg(150, 130, `
+  <rect x="68" y="50" width="14" height="78" rx="3" fill="#7a4a24" stroke="#4a2a12" stroke-width="3"/>
+  <rect x="6" y="8" width="138" height="56" rx="8" fill="#e8b45a" stroke="#6a3e18" stroke-width="4"/>
+  <rect x="12" y="14" width="126" height="44" rx="5" fill="none" stroke="#b07a32" stroke-width="2"/>
+  <circle cx="16" cy="18" r="3" fill="#6a3e18"/><circle cx="134" cy="18" r="3" fill="#6a3e18"/>
+  <text x="75" y="48" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="30" text-anchor="middle" fill="#3a2410">START</text>`));

@@ -54,7 +54,7 @@ export const AUTUMN_ART = [
   'bush-1', 'plant-1', 'sign-right', 'sign-up',
   // Its own scenery, for a level's props (systems/adventure/AdventureScenery.js).
   'stump', 'sign-skull', 'sign-warn', 'fence', 'fence-2', 'torch', 'house', 'tree-1', 'tree-2', 'rock', 'rock-2',
-  'standing-stone', 'barrel', 'cave-back', 'column-2', 'column-3',
+  'standing-stone', 'barrel', 'cave-back', 'column-2', 'column-3', 'start-sign',
   ...AUTUMN_FROM_WOOD,
   // Stand-ins drawn by the tool, until the owner's pictures come: the climbing vine, the cracked
   // floor, the switch, the Guardian Gate's door and the fish.

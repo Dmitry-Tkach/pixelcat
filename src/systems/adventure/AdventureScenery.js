@@ -9,13 +9,15 @@ import { PTERO_LOOKS } from '../../data/adventure/birds.js';
 //   waterfalls: { col, top, bottom, veil }: water pouring from a mossy lip at row `top` down to row
 //     `bottom`, in the middle of column col, flowing, with a splash at its foot. Behind the wheels;
 //     a veil is thin water in front of the cat instead, hiding what's behind it.
-//   props: { picture, col, row, hang, front, back, inGround, fromWater, width, stack, spinMs, glow }: a picture
+//   props: { picture, col, row, hang, front, back, inGround, fromWater, width, stack, spinMs, glow, smoke, dy }: a picture
 //     standing on the bottom
 //     of its cell (or, hang, hanging from its top), in the middle of column col. front: in front of
 //     the cat, as a cover. back: behind the ground, for big scenery (a house, a tree). inGround: in
 //     the earth, just in front of the ground (a boulder half-buried). fromWater: rising out of the
 //     water, behind the waterfalls (a cliff they pour from). stack: the picture repeated up `stack`
-//     rows tall, at its width (a pier's post, from the water up to the deck). width: shown
+//     rows tall, at its width (a pier's post, from the water up to the deck). smoke: { x, y }, where
+//     on the picture (shares of its width and height) a chimney's smoke rises from (CHIMNEY_SMOKE).
+//     dy: moved this far (px) down. width: shown
 //     this wide (px), if not its own size. spinMs: it turns round its middle, at the middle of its
 //     cell, once in this long (a mill's wheel turning as scenery). glow: a lantern's warm light round
 //     it, flickering, lighting the cave wall behind it (LANTERN_GLOW).
@@ -39,6 +41,9 @@ const CAVE = { colour: 0x0f1a12, alpha: 0.88 };
 // ground. It flickers between its two brightnesses, each flicker taking between flickerMs.
 const LANTERN_GLOW = { size: 300, tint: 0xffa63d, alpha: [0.42, 0.62], flickerMs: [600, 1200], flame: 0.72, standingFlame: 0.2, depth: 1.58 };
 const GLOW_KEY = 'adventure-lantern-glow';
+// A chimney's smoke: soft grey puffs rising and drifting, growing and fading. everyMs: how often a
+// puff comes; lifeMs: how long it lasts; rise and drift: px a second; size: its scale, from and to.
+const CHIMNEY_SMOKE = { everyMs: 260, lifeMs: 2600, rise: [30, 50], drift: [6, 22], size: [0.5, 1.6], tint: 0xd8d0c8, alpha: 0.45, depth: 1.62 };
 const FLYBY = { ms: 2600, across: 900, up: 700, scale: 0.85, flapMs: 110, depth: 1.5 }; // behind the level
 
 export class AdventureScenery {
@@ -81,7 +86,7 @@ export class AdventureScenery {
         : scene.add.rectangle(x, y, w, TILE, CAVE.colour, CAVE.alpha);
       cave.setOrigin(0, 0).setDepth(DEPTH.cave);
     }
-    for (const { picture, col, row, hang, front, back, inWater, inGround, fromWater, width, stack, spinMs, glow } of level.props ?? []) {
+    for (const { picture, col, row, hang, front, back, inWater, inGround, fromWater, width, stack, spinMs, glow, smoke, dy = 0 } of level.props ?? []) {
       if (!has(picture)) continue;
       const x = col * TILE + TILE / 2;
       const image = stack
@@ -92,7 +97,9 @@ export class AdventureScenery {
       image.setDepth(front ? DEPTH.front : inWater ? DEPTH.inWater : inGround ? DEPTH.inGround : fromWater ? DEPTH.fromWater : back ? DEPTH.behind : DEPTH.prop);
       if (width && !stack) image.setScale(width / image.width);
       if (spinMs) scene.tweens.add({ targets: image, angle: 360, duration: spinMs, repeat: -1 });
+      if (dy) image.y += dy;
       if (glow) this.glowAround(image, hang);
+      if (smoke) this.smokeFrom(image, smoke);
       if (front) {
         const b = image.getBounds();
         this.covers.push({ parts: [image], full: COVER.alpha, box: { left: b.left, right: b.right, top: b.top, bottom: b.bottom } });
@@ -100,8 +107,21 @@ export class AdventureScenery {
     }
   }
 
+  // Smoke rising from a chimney at { x, y } on a standing picture (shares of its width and height).
+  smokeFrom(house, { x, y }) {
+    const { scene } = this;
+    if (!scene.textures.exists(GLOW_KEY)) this.glowAround(house, false, false); // makes the soft round puff
+    const { everyMs, lifeMs, rise, drift, size, tint, alpha, depth } = CHIMNEY_SMOKE;
+    const left = house.x - house.displayWidth / 2, top = house.y - house.displayHeight;
+    scene.add.particles(left + x * house.displayWidth, top + y * house.displayHeight, GLOW_KEY, {
+      frequency: everyMs, lifespan: lifeMs, speedY: { min: -rise[1], max: -rise[0] }, speedX: { min: drift[0], max: drift[1] },
+      scale: { start: size[0] * 0.3, end: size[1] * 0.3 }, alpha: { start: alpha, end: 0 }, tint,
+    }).setDepth(depth);
+  }
+
   // A lantern's warm light: the soft round glow, added light, flickering like a flame.
-  glowAround(lantern, hang) {
+  // show: false only makes the glow's picture, for the smoke's puffs.
+  glowAround(lantern, hang, show = true) {
     const { scene } = this;
     if (!scene.textures.exists(GLOW_KEY)) {
       const size = 128, canvas = scene.textures.createCanvas(GLOW_KEY, size, size);
@@ -114,6 +134,7 @@ export class AdventureScenery {
       ctx.fillRect(0, 0, size, size);
       canvas.refresh();
     }
+    if (!show) return;
     const top = hang ? lantern.y : lantern.y - lantern.displayHeight;
     const { size, tint, alpha, flickerMs, flame, standingFlame, depth } = LANTERN_GLOW;
     const glow = scene.add.image(lantern.x, top + lantern.displayHeight * (hang ? flame : standingFlame), GLOW_KEY)
