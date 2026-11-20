@@ -244,7 +244,7 @@ describe('scenery in every level', () => {
   const UNDER_SHARE = 0.6;
   it.each(ADVENTURE_LEVELS.map((level) => [level.id, level]))('%s stands its pictures on the ground', async (_id, level) => {
     for (const prop of level.props ?? []) {
-      if (prop.hang || prop.spinMs || prop.inWater || prop.front || prop.fromWater) continue;
+      if (prop.hang || prop.spinMs || prop.inWater || prop.front || prop.fromWater || prop.free) continue;
       // A boulder half-buried in the earth sits in the ground.
       if (prop.inGround) {
         expect(level.map[prop.row][prop.col], `${prop.picture} at (${prop.col}, ${prop.row}) isn't in the ground`).toBe('#');

@@ -337,7 +337,7 @@ if (millArt) {
       comps.push(await at(seat, x, y - MILL_SEAT.top, 0.5, 0));
     }
   }
-  for (const { picture, col, row, hang, front, width, spinMs, glow, stack, fromWater } of level.props ?? []) {
+  for (const { picture, col, row, hang, front, width, spinMs, glow, stack, fromWater, dx = 0, dy = 0 } of level.props ?? []) {
     if (fromWater) continue; // drawn behind the falls
     // A stacked picture (a pier's post): repeated up `stack` rows, at its own width.
     if (stack) {
@@ -358,7 +358,7 @@ if (millArt) {
     const scaledPicture = await scaled(art(picture), width ? width / own : 1);
     const piece = spinMs
       ? await at(scaledPicture, col * TILE + TILE / 2, row * TILE + TILE / 2, 0.5, 0.5)
-      : await at(scaledPicture, col * TILE + TILE / 2, hang ? row * TILE : (row + 1) * TILE, 0.5, hang ? 0 : 1);
+      : await at(scaledPicture, col * TILE + TILE / 2 + dx, (hang ? row * TILE : (row + 1) * TILE) + dy, 0.5, hang ? 0 : 1);
     (front ? fronts : comps).push(piece);
   }
   comps.push(...fronts);

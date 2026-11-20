@@ -172,11 +172,14 @@ export const AUTUMN_VILLAGE_LEVEL = {
   vines: level.vines(),
   drawbridges: level.drawbridges(),
   // Its set dressing (systems/adventure/AdventureScenery.js).
-  // The waterfalls spill over the top of the rocky cliff rising out of the pool (a prop), the wide one
-  // onto the mill's wheel, foaming where they hit the pier, as in the owner's picture.
+  // The waterfalls pour down the stepped rock cliff rising out of the pool, as in the owner's picture
+  // (their spill and landing pieces are props, placed on the cliff's ledges): one spills from its top
+  // ledge down behind the mill's wheel; the other spills onto its middle ledge, foams there, and
+  // falls on into the pool. Each starts under its piece (head: false), with the owner's splash at
+  // its foot.
   waterfalls: [
-    { col: 36, top: 20, bottom: WATER, width: 190, foamAt: [RAISED] }, // wide, onto the mill's wheel
-    { col: 41, top: 21, bottom: WATER, width: 130, foamAt: [RAISED] },
+    { col: 36, top: 23, bottom: WATER, width: 130, head: false, foamAt: [RAISED] }, // onto the mill's wheel
+    { col: 42, top: 25, bottom: WATER, width: 140, head: false },
   ],
   // The caves' insides, deep in the earth: the village cave and its shaft, the mine and the hole down
   // into it, and the secret room under it, its shaft and its trapdoor.
@@ -217,13 +220,23 @@ export const AUTUMN_VILLAGE_LEVEL = {
     { picture: 'lamp-post', col: 8, row: 26 },
     { picture: 'barrel', col: 22, row: 24 },
     { picture: 'boulder-big', col: 34, row: 29 }, // on the pool's bank
+    { picture: 'fall-mist', col: 36, row: 30, dy: 40, back: true, free: true }, // at the falls' foot
+    { picture: 'fall-mist', col: 42, row: 30, dy: 40, back: true, free: true },
+    { picture: 'pool-rocks', col: 45, row: 30, dy: 20, inWater: true },
+    { picture: 'pool-rocks-small', col: 39, row: 30, dy: 20, inWater: true },
     { picture: 'bush-1', col: 36, row: 29 },
     { picture: 'mill-house', col: 30, row: 24, back: true }, // the mill: the house on the ground, its wheel at its side over the pool
     { picture: 'hang-lantern', col: 25, row: 28, hang: true, glow: true },
     { picture: 'hang-lantern', col: 30, row: 28, hang: true, glow: true },
     { picture: 'crystal-purple', col: 24, row: 31 },
     { picture: 'crystal-purple', col: 32, row: 29 },
-    { picture: 'cliff', col: 40, row: 30, fromWater: true }, // the falls pour from its top
+    // The stepped cliff (ledges at 4%, 27% and 57% of its height, across 0-45%, 45-75%, 75-100%
+    // of its width), the spills on its top ledge, the foamy landing on its middle one; mist and rocks
+    // at its foot. Placed to the pixel (dx, dy), as measured by tools/adventure-autumn-scenery.mjs.
+    { picture: 'cliff-steps-right', col: 41, row: 30, fromWater: true },
+    { picture: 'fall-spill', col: 35, row: 23, dx: 38, dy: -4, back: true, free: true }, // over the wheel
+    { picture: 'fall-spill', col: 41, row: 23, dx: 8, dy: -4, back: true, free: true }, // onto the middle ledge
+    { picture: 'fall-landing', col: 42, row: 24, dx: -8, dy: 24, back: true, free: true },
     // The pier's posts, from the water up under the walkway's deck.
     ...[35, 39, 47, 50, 57].map((col) => ({ picture: 'pier-post', col, row: 30, inWater: true, stack: 6 })),
     { picture: 'mill-wheel', col: 35, row: 24, back: true, width: 300, spinMs: 9000 }, // fixed to the mill house's side, at the pier

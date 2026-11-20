@@ -17,6 +17,10 @@ export const AUTUMN_SHEETS = {
   'cliff-stairs-posts': [['cliff', 'stairs-up-right', 'stairs-up-left'], ['post-cross', 'post-rope', 'stake-tall', 'stake-small', 'post-candle'], ['boulder-big', 'boulder-small']],
   // The spiked ball is the Autumn world's mace (trap-mace); the pier deck becomes its bridge tile.
   'bridges-fire': [['pier-deck', 'pier-post'], ['rope-plank', 'move-block', 'trap-mace'], ['fire-bowl', 'big-tree', 'small-tree']],
+  // The waterfall steps: the falling strip becomes the world's fall-middle (made to loop), the big
+  // splash its fall-splash; the stepped cliff, ledges and rocks they pour over.
+  'waterfall-steps': [['fall-strip', 'fall-strip-narrow'], ['fall-spill', 'fall-landing', 'fall-splash'], ['fall-mist', 'fall-trickle']],
+  'waterfall-rocks': [['cliff-steps-right', 'cliff-steps-left'], ['ledge-wide', 'ledge-narrow', 'rock-column'], ['pool-rocks', 'pool-rocks-small']],
 };
 // The size (px) each piece is cut to, as it's shown in the game: its width, its height, or both.
 // The banners are cut at the pole's scale (withPole), so they hang from it at the size drawn.
@@ -35,7 +39,16 @@ export const AUTUMN_PIECES = {
   'boulder-big': { width: 130 }, 'boulder-small': { width: 90 },
   'pier-deck': { width: 136 }, 'pier-post': { width: 40 }, 'rope-plank': { width: 64 }, 'move-block': { width: 192 },
   'trap-mace': { height: 84 }, 'fire-bowl': { height: 120 }, 'big-tree': { width: 440 }, 'small-tree': { width: 260 },
+  'fall-strip': { width: 150 }, 'fall-strip-narrow': { width: 120 }, 'fall-spill': { width: 220 }, 'fall-landing': { width: 260 },
+  'fall-splash': { width: 260 }, 'fall-mist': { width: 300 }, 'fall-trickle': { height: 200 },
+  'cliff-steps-right': { height: 640 }, 'cliff-steps-left': { height: 640 }, 'ledge-wide': { width: 260 }, 'ledge-narrow': { width: 150 },
+  'rock-column': { width: 140 }, 'pool-rocks': { width: 300 }, 'pool-rocks-small': { width: 180 },
 };
+
+// The falling strip, made to loop as the world's fall-middle: its bright top band (topCut of its
+// height) is cut off, and its bottom (blend of what's left) faded into its top, then dropped, so
+// stacked copies join with no line.
+export const FALL_STRIP = { topCut: 0.08, blend: 0.15 };
 
 // The pier deck as the bridge tile (the strip's tenth, systems/adventureMap.js TILES.bridge): its
 // middle, `slice` px wide, at the top of the tile, so walkways and bridges are the owner's pier.
@@ -56,7 +69,7 @@ export const AUTUMN_ART = [
   'stump', 'sign-skull', 'sign-warn', 'fence', 'fence-2', 'torch', 'house', 'tree-1', 'tree-2', 'rock', 'rock-2',
   'standing-stone', 'barrel', 'cave-back', 'column-2', 'column-3', 'start-sign',
   'soil', // the earth over a secret cave (systems/adventure/AdventureScenery.js, secrets)
-  'fall-middle', 'fall-head', 'fall-foam', // the softer waterfalls
+  'fall-middle', 'fall-head', 'fall-foam', 'fall-splash', // the softer waterfalls
   ...AUTUMN_FROM_WOOD,
   // Stand-ins drawn by the tool, until the owner's pictures come: the climbing vine, the cracked
   // floor, the switch, the Guardian Gate's door and the fish.
@@ -68,5 +81,5 @@ export const AUTUMN_ART = [
   // The owner's backdrop layers (tools/adventure-backdrop-art.mjs), and the scenery cut from the
   // sheets that has no stand-in: a stand-in's piece is listed above, under its name.
   'layer-sky', 'layer-middle',
-  ...Object.keys(AUTUMN_PIECES).filter((name) => !['vine', 'cracked', 'switch-off', 'switch-on', 'gate-door', 'fish-1', 'fish-2'].includes(name)),
+  ...Object.keys(AUTUMN_PIECES).filter((name) => !['vine', 'cracked', 'switch-off', 'switch-on', 'gate-door', 'fish-1', 'fish-2', 'fall-splash', 'fall-strip'].includes(name)),
 ];

@@ -8,7 +8,7 @@ import sharp from 'sharp';
 import { existsSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { AUTUMN_PIECES, AUTUMN_SHEETS, PIER_TILE } from '../src/data/adventure/autumnArt.js';
+import { AUTUMN_PIECES, AUTUMN_SHEETS, FALL_STRIP, PIER_TILE } from '../src/data/adventure/autumnArt.js';
 import { TILES } from '../src/systems/adventureMap.js';
 import { readSheet, savePiece } from './sheetPieces.mjs';
 
@@ -63,6 +63,27 @@ for (const [name, p] of Object.entries(piece)) {
   clearStrays(p);
   const { w, h } = sizeOf(name, p);
   await savePiece(p, join(OUT, `${name}.png`), w, h);
+}
+
+// The owner's falling strip, made to loop, as the world's fall-middle (FALL_STRIP).
+if (piece['fall-strip']) {
+  const file = join(OUT, 'fall-strip.png');
+  const { data, info } = await sharp(file).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { width: w, height: h } = info;
+  const y0 = Math.round(h * FALL_STRIP.topCut);
+  const rows = h - y0, blend = Math.round(rows * FALL_STRIP.blend), keep = rows - blend;
+  const out = Buffer.alloc(w * keep * 4);
+  for (let y = 0; y < keep; y++) {
+    for (let x = 0; x < w; x++) {
+      const to = (y * w + x) * 4, from = ((y0 + y) * w + x) * 4;
+      if (y < blend) {
+        // The first rows fade from the rows past the end into their own, so the loop has no seam.
+        const t = y / blend, under = ((y0 + keep + y) * w + x) * 4;
+        for (let c = 0; c < 4; c++) out[to + c] = Math.round(data[under + c] * (1 - t) + data[from + c] * t);
+      } else data.copy(out, to, from, from + 4);
+    }
+  }
+  await sharp(out, { raw: { width: w, height: keep, channels: 4 } }).png({ compressionLevel: 9 }).toFile(join(OUT, 'fall-middle.png'));
 }
 
 // The moving block: shown as a moving log (systems/AdventurePlatforms.js), whose top the cat stands

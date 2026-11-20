@@ -6,11 +6,12 @@ import { makeStandIn } from '../../entities/AdventureBird.js';
 import { PTERO_LOOKS } from '../../data/adventure/birds.js';
 
 // A level's set dressing that isn't on its map (Mill Falls' art, data/adventure/millArt.js):
-//   waterfalls: { col, top, bottom, veil, width, foamAt }: water pouring from a mossy lip (or, in the
+//   waterfalls: { col, top, bottom, veil, width, foamAt, head, splash }: water pouring from a mossy lip (or, in the
 //     Autumn world, spilling over a cliff's edge under foam) at row `top` down to row
 //     `bottom`, in the middle of column col, flowing, with a splash at its foot. Behind the wheels;
 //     a veil is thin water in front of the cat instead, hiding what's behind it. width: the fall's
 //     own width (px). foamAt: rows where it hits something on its way down (the pier), with foam.
+//     head: false for no head or lip (a spill piece over its top); splash: false for none at its foot.
 //   props: { picture, col, row, hang, front, back, inGround, fromWater, width, stack, spinMs, glow, smoke, dy }: a picture
 //     standing on the bottom
 //     of its cell (or, hang, hanging from its top), in the middle of column col. front: in front of
@@ -19,7 +20,8 @@ import { PTERO_LOOKS } from '../../data/adventure/birds.js';
 //     water, behind the waterfalls (a cliff they pour from). stack: the picture repeated up `stack`
 //     rows tall, at its width (a pier's post, from the water up to the deck). smoke: { x, y }, where
 //     on the picture (shares of its width and height) a chimney's smoke rises from (CHIMNEY_SMOKE).
-//     dy: moved this far (px) down. width: shown
+//     dx, dy: moved this far (px) across and down. free: placed on something drawn (a waterfall's
+//     rocks), not on the map's ground (the scenery test lets it be). width: shown
 //     this wide (px), if not its own size. spinMs: it turns round its middle, at the middle of its
 //     cell, once in this long (a mill's wheel turning as scenery). glow: a lantern's warm light round
 //     it, flickering, lighting the cave wall behind it (LANTERN_GLOW).
@@ -59,7 +61,7 @@ export class AdventureScenery {
     this.covers = [];
     this.flows = [];
     const has = (name) => scene.textures.exists(art(name));
-    for (const { col, top, bottom, veil, width: shown, foamAt = [] } of level.waterfalls ?? []) {
+    for (const { col, top, bottom, veil, width: shown, foamAt = [], head = true, splash: splashes = true } of level.waterfalls ?? []) {
       if (!has('fall-middle')) break;
       const x = col * TILE + TILE / 2, topY = top * TILE, bottomY = bottom * TILE;
       const depth = veil ? DEPTH.front : DEPTH.behind;
@@ -69,14 +71,15 @@ export class AdventureScenery {
       const width = shown ?? own; // shown: a fall's own width (px), its water stretched across
       // A world with a soft head (the Autumn world's) has the water spill over the cliff's edge,
       // fading in under foam, the flow starting under it; another, a mossy lip the water pours from.
+      // head: false starts the water at `top` with no head or lip (a spill piece placed over it).
       const soft = has('fall-head');
-      const lip = scene.add.image(x, topY, art(soft ? 'fall-head' : 'fall-top')).setOrigin(0.5, 0).setDepth(depth + 0.01);
-      if (soft) lip.setDisplaySize(width, lip.height);
-      const from = topY + lip.height * (soft ? WATERFALL.headFlow : 0.8);
+      const lip = head ? scene.add.image(x, topY, art(soft ? 'fall-head' : 'fall-top')).setOrigin(0.5, 0).setDepth(depth + 0.01) : null;
+      if (lip && soft) lip.setDisplaySize(width, lip.height);
+      const from = lip ? topY + lip.height * (soft ? WATERFALL.headFlow : 0.8) : topY;
       const flow = scene.add.tileSprite(x, from, width, Math.max(1, bottomY - from), art(middle)).setOrigin(0.5, 0).setDepth(depth)
         .setTileScale(width / own, 1);
-      const splash = scene.add.image(x, bottomY + 10, art('fall-splash')).setOrigin(0.5, 1).setDepth(depth + 0.02);
-      parts.push(lip, flow, splash);
+      const splash = splashes ? scene.add.image(x, bottomY + 10, art('fall-splash')).setOrigin(0.5, 1).setDepth(depth + 0.02) : null;
+      parts.push(...[lip, flow, splash].filter(Boolean));
       // Foam where the fall hits something on its way down (foamAt: the rows it hits, at their top).
       for (const row of has('fall-foam') ? foamAt : []) {
         const foam = scene.add.image(x, row * TILE + 4, art('fall-foam')).setOrigin(0.5, 1).setDepth(depth + 0.03);
@@ -109,7 +112,7 @@ export class AdventureScenery {
         : scene.add.rectangle(x, y, w, TILE, CAVE.colour, CAVE.alpha);
       cave.setOrigin(0, 0).setDepth(DEPTH.cave);
     }
-    for (const { picture, col, row, hang, front, back, inWater, inGround, fromWater, width, stack, spinMs, glow, smoke, dy = 0 } of level.props ?? []) {
+    for (const { picture, col, row, hang, front, back, inWater, inGround, fromWater, width, stack, spinMs, glow, smoke, dx = 0, dy = 0 } of level.props ?? []) {
       if (!has(picture)) continue;
       const x = col * TILE + TILE / 2;
       const image = stack
@@ -120,6 +123,7 @@ export class AdventureScenery {
       image.setDepth(front ? DEPTH.front : inWater ? DEPTH.inWater : inGround ? DEPTH.inGround : fromWater ? DEPTH.fromWater : back ? DEPTH.behind : DEPTH.prop);
       if (width && !stack) image.setScale(width / image.width);
       if (spinMs) scene.tweens.add({ targets: image, angle: 360, duration: spinMs, repeat: -1 });
+      image.x += dx;
       if (dy) image.y += dy;
       if (glow) this.glowAround(image, hang);
       if (smoke) this.smokeFrom(image, smoke);
