@@ -178,7 +178,8 @@ if (level.water) {
   }
 }
 const ladder = await sharp(art('ladder')).resize(CELL, CELL).toBuffer();
-const vine = await sharp(art('vine')).resize(CELL, CELL).toBuffer();
+// A climbing vine, in a level that has them (a world without its picture has none).
+const vine = level.vines?.length ? await sharp(art('vine')).resize(CELL, CELL).toBuffer() : null;
 const vineCells = new Set((level.vines ?? []).map(({ col, row }) => `${col},${row}`));
 for (const { col, row } of ladders) comps.push({ input: vineCells.has(`${col},${row}`) ? vine : ladder, left: col * CELL, top: row * CELL });
 // Drawbridges (systems/adventure/drawbridges.js): the switch, and the bridge drawn faint, as it's not
