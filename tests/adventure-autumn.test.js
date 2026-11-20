@@ -9,6 +9,7 @@ import { FISH, fishAt, fishProblems, touchesFish } from '../src/data/adventure/f
 import { MOLE, moleStep } from '../src/systems/adventure/moleLogic.js';
 import { cameraBottom } from '../src/systems/adventure/cameraFloor.js';
 import { caveRuns } from '../src/systems/adventure/caveFill.js';
+import { STAIRS, stairBox, stairSteps, stepsUp } from '../src/systems/adventure/stairSteps.js';
 
 // The Autumn Forest (world 2) and what its first level brought: borrowed art, vines, cracked floor,
 // drawbridges and the locked Guardian Gate.
@@ -292,4 +293,43 @@ describe('cave walls', () => {
   it('come as runs along each row', () => {
     expect(caveRuns(map, [{ cols: [2, 4], rows: [2, 3] }]).filter((run) => run.row === 2)).toEqual([{ row: 2, from: 2, to: 4 }]);
   });
+});
+
+describe('stairs', () => {
+  const flight = { at: 10, row: 5, dir: 1 };
+
+  it('rise in small steps from the floor to the higher ground', () => {
+    const steps = stairSteps(flight, 64);
+    expect(steps).toHaveLength(STAIRS.steps);
+    expect(steps[0].left).toBe(10 * 64 - STAIRS.width);
+    expect(steps.at(-1).left + steps.at(-1).width).toBeCloseTo(10 * 64);
+    expect(steps.at(-1).top).toBe(6 * 64 - 2 * 64); // as high as the ground two rows up
+    for (const step of steps) expect(step.height / (steps.indexOf(step) + 1)).toBeLessThanOrEqual(STAIRS.stepUp);
+  });
+
+  it('rise the other way for stairs going up to the left', () => {
+    const steps = stairSteps({ ...flight, dir: -1 }, 64);
+    expect(steps[0].left + steps[0].width).toBeCloseTo(10 * 64 + STAIRS.width);
+    expect(steps.at(-1).left).toBeCloseTo(10 * 64);
+  });
+
+  it('let the cat step up a small step as he walks, but not a wall, nor while he jumps', () => {
+    expect(stepsUp({ feet: 400, vy: 0 }, 384)).toBe(16);
+    expect(stepsUp({ feet: 400, vy: 0 }, 300)).toBe(0);
+    expect(stepsUp({ feet: 400, vy: -300 }, 384)).toBe(0);
+  });
+
+  it.each(ADVENTURE_LEVELS.filter((level) => level.stairs?.length).map((level) => [level.id, level]))(
+    '%s ends each staircase against its higher ground, standing on the floor', (_id, level) => {
+      for (const s of level.stairs) {
+        const name = `the stairs at column ${s.at}`;
+        const top = s.row + 1 - (s.rows ?? 2); // the higher ground's surface row
+        expect(level.map[top][s.dir > 0 ? s.at : s.at - 1], `${name}: no higher ground`).toBe('#');
+        const { left, right } = stairBox(s, 64);
+        for (let c = Math.floor(left / 64); c <= Math.floor((right - 1) / 64); c++) {
+          expect('#Z', `${name}: no floor under column ${c}`).toContain(level.map[s.row + 1][c]);
+        }
+      }
+    },
+  );
 });

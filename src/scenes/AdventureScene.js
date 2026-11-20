@@ -44,6 +44,7 @@ import { Effects } from '../ui/Effects.js';
 import { showDizzyStars } from '../systems/adventure/dizzyStars.js';
 import { AdventureDrawbridges } from '../systems/adventure/AdventureDrawbridges.js';
 import { AdventureFish } from '../systems/adventure/AdventureFish.js';
+import { AdventureStairs } from '../systems/adventure/AdventureStairs.js';
 import { AdventureMole } from '../entities/AdventureMole.js';
 import { ENEMIES } from '../data/adventure/enemies.js';
 import { cameraBottom } from '../systems/adventure/cameraFloor.js';
@@ -221,6 +222,10 @@ export class AdventureScene extends Phaser.Scene {
     // (systems/adventure/AdventureDrawbridges.js).
     this.drawbridges = new AdventureDrawbridges(this, this.cat, level.drawbridges ?? [], {
       art: this.art, canLand: () => !this.climbing && !this.pullingUp, spend: (bullet) => this.moves.bulletStops(bullet),
+    });
+    // Stairs he walks up, stepping up their small steps (systems/adventure/AdventureStairs.js).
+    this.stairs = new AdventureStairs(this, this.cat, level.stairs ?? [], {
+      art: this.art, enemies: this.enemies, canStand: () => !this.climbing && !this.pullingUp,
     });
     // Fish leaping out of the water: they hurt the cat, and a round knocks one out (data/adventure/fish.js).
     this.fish = new AdventureFish(this, level.fish ?? [], {

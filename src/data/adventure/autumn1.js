@@ -51,7 +51,7 @@ level.stones = (from, to, top) => {
 level.put(2, 26, '@').put(9, 26, '>')
   .coins(5, 8, 25)
   .put(12, 26, 'P')
-  .trap('mushroom', 14, 26)
+  .trap('mushroom', 13, 26)
   .island(3, 6, 21).vine(4, 21, 26).coins(3, 5, 20).put(6, 20, '+') // the ledge by the cottage
   .island(10, 16, 19).ladder(10, 19, 26).put(11, 18, 'w')
   .put(13, 15, '?').put(13, 14, '*')
@@ -112,7 +112,7 @@ level.island(68, 76, 18).vine(70, 18, 21)
 // end onto the low meadow. Cracked floor in the mine, coins on it, breaks into a secret room deeper
 // still, with a heart and a crystal; its way out is up through a trapdoor in the mine's floor.
 level.ground(95, 127, 26).ground(104, 121, 24) // the path, and the hill over the mine
-  .hollow(98, 127, 28, 31).hollow(99, 100, 26, 27) // the mine, under the path, and the hole down into it
+  .hollow(98, 127, 28, 31).hollow(98, 99, 26, 27) // the mine, under the path, and the hole down into it
   .put(97, 25, 'C')
   .trap('crusher', 107, 16, { phaseMs: 0 }).trap('crusher', 118, 16, { phaseMs: 1100 })
   .coins(106, 108, 22).coins(117, 119, 22)
@@ -141,8 +141,8 @@ level.ground(128, 141, 32)
   .gap(155, 164).ground(155, 164, 29) // the spike pit, three cells deep
   .put(156, 28, '^').put(157, 28, '^').put(158, 28, '^').put(159, 28, '^').put(160, 28, '^')
   .put(161, 28, '^').put(162, 28, '^').put(163, 28, '^').put(164, 28, '^')
-  .drawbridge(166, 25, 155, 164, 26, { shot: true })
-  .put(167, 25, 'V')
+  .drawbridge(165, 25, 155, 164, 26, { shot: true })
+  .put(172, 23, 'V')
   .ground(169, COLS - 1, 24) // the gate's raised stone step, stairs up to it
   .put(174, 23, 'E');
 
@@ -182,7 +182,7 @@ export const AUTUMN_VILLAGE_LEVEL = {
   // into it, and the secret room under it, its shaft and its trapdoor.
   caves: [
     { cols: [22, 33], rows: [28, 31] }, { cols: [28, 29], rows: [25, 27] }, // the cracked floor's cells too: once broken, the cave shows through
-    { cols: [98, 127], rows: [28, 31] }, { cols: [99, 100], rows: [26, 27] },
+    { cols: [98, 127], rows: [28, 31] }, { cols: [98, 99], rows: [26, 27] },
     { cols: [113, 126], rows: [34, 35] }, { cols: [118, 119], rows: [32, 33] }, { cols: [125, 126], rows: [32, 33] },
   ],
   // The secret caves, hidden under the earth until the cat is inside: the village's cave and its
@@ -202,12 +202,19 @@ export const AUTUMN_VILLAGE_LEVEL = {
     { col: 22, width: 2, top: 16, bottom: 19 }, // under the high ledge, down to the boar's island
     { col: 139, width: 3, top: 19, bottom: 32 }, // under the key's island, down to the meadow
   ],
+  // Stone stairs the cat walks up (systems/adventure/stairSteps.js): the village's step, up and down
+  // the mine's hill, and up to the gate.
+  stairs: [
+    { at: 18, row: 26, dir: 1 },
+    { at: 104, row: 25, dir: 1 },
+    { at: 122, row: 25, dir: -1 },
+    { at: 169, row: 25, dir: 1, width: 170 }, // narrower, clear of the switch
+  ],
   props: [
     { picture: 'big-tree', col: 3, row: 26, back: true }, // behind the cottage
     { picture: 'cottage', col: 5, row: 26, back: true, smoke: { x: 0.33, y: 0.08 } }, // its chimney smokes
     { picture: 'start-sign', col: 1, row: 26 },
     { picture: 'lamp-post', col: 8, row: 26 },
-    { picture: 'fence', col: 17, row: 26 },
     { picture: 'barrel', col: 22, row: 24 },
     { picture: 'boulder-big', col: 34, row: 29 }, // on the pool's bank
     { picture: 'bush-1', col: 36, row: 29 },
@@ -240,21 +247,15 @@ export const AUTUMN_VILLAGE_LEVEL = {
     { picture: 'small-tree', col: 130, row: 31, back: true },
     { picture: 'lamp-post', col: 146, row: 25 },
     { picture: 'big-tree', col: 152, row: 25, back: true },
-    { picture: 'lamp-post', col: 166, row: 25 },
     // Stone stairs up the village's step, wooden posts along the ledges (one with a lit candle),
     // and boulders half-buried in the earth, as in the owner's picture.
-    { picture: 'stairs-up-right', col: 17, row: 26, back: true },
     { picture: 'post-rope', col: 31, row: 24 },
     { picture: 'stake-tall', col: 35, row: 29 },
     { picture: 'stake-small', col: 36, row: 29 },
     { picture: 'post-cross', col: 60, row: 25 },
-    { picture: 'post-candle', col: 102, row: 25, glow: true },
-    { picture: 'stairs-up-right', col: 103, row: 25, back: true }, // up the hill
-    { picture: 'stairs-up-left', col: 122, row: 25, back: true }, // down the hill
     { picture: 'post-candle', col: 117, row: 35, glow: true },
     { picture: 'post-cross', col: 134, row: 31 },
     { picture: 'stake-tall', col: 144, row: 25 },
-    { picture: 'post-rope', col: 168, row: 25 },
     { picture: 'boulder-big', col: 5, row: 30, inGround: true },
     { picture: 'boulder-small', col: 14, row: 32, inGround: true },
     { picture: 'boulder-small', col: 19, row: 29, inGround: true },
@@ -283,7 +284,6 @@ export const AUTUMN_VILLAGE_LEVEL = {
     { picture: 'fence', col: 150, row: 25 },
     { picture: 'sign-skull', col: 153, row: 25 },
     // The gate: stairs up to its step, the rock wall behind it hung with paw banners, its fire bowls.
-    { picture: 'stairs-up-right', col: 167, row: 25, back: true },
     { picture: 'cliff', col: 171, row: 23, back: true, width: 371 },
     { picture: 'cliff', col: 177, row: 23, back: true, width: 371 },
     { picture: 'banner-open', col: 169, row: 19, hang: true },
