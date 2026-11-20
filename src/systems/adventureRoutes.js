@@ -76,7 +76,8 @@ export function adventureRoutes(level, { closed = [], bridgesUp = false } = {}) 
   ]);
   const leaves = new Set(objects.filter((o) => o.type === 'leaves' || o.type === 'cracked').map((o) => key(o.col, o.row)));
   // Drawbridges, once down, are bridges.
-  for (const bridge of bridgesUp ? [] : level.drawbridges ?? []) for (const { col, row } of drawbridgeCells(bridge)) logs.add(key(col, row));
+  // A bridge with no switch is always down.
+  for (const bridge of (level.drawbridges ?? []).filter((b) => !bridgesUp || !b.switch)) for (const { col, row } of drawbridgeCells(bridge)) logs.add(key(col, row));
   const mushrooms = new Set((level.traps ?? []).filter((t) => t.kind === 'mushroom').map((t) => key(t.col, t.row)));
   const bounce = mushroomReach(level.world);
   const floor = (c, r) => inside(c, r) && (tiles[r][c] >= 0 || blocks.has(key(c, r)) || logs.has(key(c, r)) || leaves.has(key(c, r)));

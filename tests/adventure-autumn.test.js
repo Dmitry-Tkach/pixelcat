@@ -93,9 +93,9 @@ describe('drawbridges', () => {
     expect(adventureRoutes(level, { bridgesUp: true }).portal).toBe(false);
   });
 
-  it.each(ADVENTURE_LEVELS.filter((level) => level.drawbridges?.length).map((level) => [level.id, level]))(
+  it.each(ADVENTURE_LEVELS.filter((level) => level.drawbridges?.some((b) => b.switch)).map((level) => [level.id, level]))(
     '%s: every switch can be reached before its bridge is down', (_id, level) => {
-      for (const bridge of level.drawbridges) {
+      for (const bridge of level.drawbridges.filter((b) => b.switch)) {
         // Only this bridge up: the others are down, as the cat lowered them on his way.
         const { reached } = adventureRoutes({ ...level, drawbridges: level.drawbridges.filter((other) => other !== bridge) });
         const { switch: at, shot } = bridge;
@@ -117,7 +117,7 @@ describe('drawbridges', () => {
 describe('The Forgotten Village', () => {
   it('needs each of its drawbridges: for the portal, or for the gold key that opens it', () => {
     const key = readAdventureMap(village.map).objects.find((o) => o.type === 'key');
-    for (const bridge of village.drawbridges) {
+    for (const bridge of village.drawbridges.filter((b) => b.switch)) {
       const others = village.drawbridges.filter((other) => other !== bridge);
       const { portal, unreachable } = adventureRoutes({ ...village, drawbridges: others });
       const keyLost = unreachable.some((o) => o.col === key.col && o.row === key.row);

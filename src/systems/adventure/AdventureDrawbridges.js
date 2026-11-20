@@ -20,17 +20,19 @@ export class AdventureDrawbridges {
       // Its own planks (bridge.look: a rope bridge's), or the world's drawbridge plank.
       const plankPicture = bridge.look ?? 'drawbridge';
       const own = scene.textures.exists(art(plankPicture));
-      const { col, row } = bridge.switch;
-      const look = scene.add.image(col * TILE + TILE / 2, row * TILE + TILE / 2, art('switch-off')).setDepth(DRAWBRIDGE.switchDepth);
+      // No switch: down from the start.
+      const look = bridge.switch
+        ? scene.add.image(bridge.switch.col * TILE + TILE / 2, bridge.switch.row * TILE + TILE / 2, art('switch-off')).setDepth(DRAWBRIDGE.switchDepth)
+        : null;
       const planks = drawbridgeCells(bridge).map((cell) => {
         const plank = this.planks.create(cell.col * TILE + TILE / 2, cell.row * TILE, art(own ? plankPicture : 'bridge')).setDepth(DRAWBRIDGE.depth);
         if (!own) plank.setDisplaySize(TILE, TILE);
         plank.setY(cell.row * TILE + plank.displayHeight / 2).refreshBody();
         plank.home = plank.y;
-        plank.disableBody(false, true); // not there yet
+        if (bridge.switch) plank.disableBody(false, true); // not there yet
         return plank;
       });
-      return { ...bridge, look, planks, art, down: false };
+      return { ...bridge, look, planks, art, down: !bridge.switch };
     });
     scene.physics.add.collider(cat, this.planks, null, (cat_, plank) => canLand() && landsFromAbove({
       bottom: cat.body.bottom, prevBottom: cat.body.prev.y + cat.body.height, top: plank.body.top, vy: cat.body.velocity.y,

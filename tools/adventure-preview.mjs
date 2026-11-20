@@ -131,7 +131,9 @@ const decorPiece = async ({ picture, x, y, hang, flip }) => {
   return { input, left: Math.max(0, Math.round(x * SCALE - width / 2)), top: Math.max(0, Math.round(y * SCALE - (hang ? 0 : height))) };
 };
 for (const item of decor.filter((d) => d.hang)) comps.push(await decorPiece(item));
-for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) if (tiles[r][c] >= 0) comps.push({ input: tileImages[tiles[r][c]], left: c * CELL, top: r * CELL });
+// Islands drawn by a picture instead (level.hiddenTiles) aren't shown.
+const hiddenTile = (c, r) => (level.hiddenTiles ?? []).some(({ cols: [from, to], row }) => r === row && c >= from && c <= to);
+for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) if (tiles[r][c] >= 0 && !hiddenTile(c, r)) comps.push({ input: tileImages[tiles[r][c]], left: c * CELL, top: r * CELL });
 for (const item of decor.filter((d) => !d.hang)) comps.push(await decorPiece(item));
 // The water in the bottomless gaps (data/adventure/water.js), from its surface down.
 if (level.water) {
@@ -150,8 +152,8 @@ for (const bridge of level.drawbridges ?? []) {
   const pictureOf = existsSync(art(bridge.look ?? 'drawbridge')) ? art(bridge.look ?? 'drawbridge') : art('bridge');
   const plank = await sharp(pictureOf).resize(CELL, null).ensureAlpha(0.45).png().toBuffer();
   const faint = await sharp(plank).composite([{ input: Buffer.from([255, 255, 255, 115]), raw: { width: 1, height: 1, channels: 4 }, tile: true, blend: 'dest-in' }]).png().toBuffer();
-  for (const { col, row } of drawbridgeCells(bridge)) comps.push({ input: faint, left: col * CELL, top: row * CELL });
-  comps.push({ input: await sharp(art('switch-off')).resize(CELL, CELL).toBuffer(), left: bridge.switch.col * CELL, top: bridge.switch.row * CELL });
+  for (const { col, row } of drawbridgeCells(bridge)) comps.push({ input: bridge.switch ? faint : plank, left: col * CELL, top: row * CELL });
+  if (bridge.switch) comps.push({ input: await sharp(art('switch-off')).resize(CELL, CELL).toBuffer(), left: bridge.switch.col * CELL, top: bridge.switch.row * CELL });
 }
 
 const ICON = {

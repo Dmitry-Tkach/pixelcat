@@ -78,7 +78,14 @@ level.gap(34, 60)
   .coins(40, 41, 27).coins(46, 47, 27).coins(52, 53, 26)
   .put(38, 24, 'a').put(49, 24, 'P')
   .arc(42, 45, 23, 1).arc(52, 55, 23, 1)
-  .bird('diver', 60, 18, { wake: 54, look: 'owl' }); // within 7 cells above the pier's end, past the fish: never both at once
+  .bird('diver', 60, 18, { wake: 54, look: 'owl' }) // within 7 cells above the pier's end, past the fish: never both at once
+  // The high way, as in the owner's picture: up the waterfall cliff's ledges, jumping across the
+  // falling water, to its top, then over a rope bridge to the ruins. The middle ledge, reached from
+  // the pier; the top ledge in two, a fall between them to jump across; the rope bridge from it.
+  .island(38, 43, 20)
+  .island(44, 46, 17).island(49, 51, 17)
+  .ropeBridge(52, 67, 17)
+  .coins(39, 41, 19).arc(46, 49, 15, 1).coins(55, 64, 16);
 
 // ----- 3. Forest Outpost: firm ground again, a checkpoint, and a long island climbed by a ladder,
 // its pumpkin well away from the ladder's top. On it, under the ruins, the silver chest (its key is
@@ -172,14 +179,18 @@ export const AUTUMN_VILLAGE_LEVEL = {
   vines: level.vines(),
   drawbridges: level.drawbridges(),
   // Its set dressing (systems/adventure/AdventureScenery.js).
-  // The waterfalls pour down the stepped rock cliff rising out of the pool, as in the owner's picture
-  // (their spill and landing pieces are props, placed on the cliff's ledges): one spills from its top
-  // ledge down behind the mill's wheel; the other spills onto its middle ledge, foams there, and
-  // falls on into the pool. Each starts under its piece (head: false), with the owner's splash at
-  // its foot.
+  // The waterfalls pour down the tall stepped rock cliff rising out of the pool, high over the mill
+  // house, as in the owner's picture (their spill and landing pieces are props, on the cliff's
+  // ledges), between the ledges the cat climbs. Each starts under its piece (head: false), with the
+  // owner's splash at its foot.
+  // The waterfall cliff's ledges the cat stands on are islands, but the cliff's own rock shows them:
+  // their tiles are hidden (the middle ledge, and the top ledge's two halves).
+  hiddenTiles: [{ cols: [38, 43], row: 20 }, { cols: [44, 46], row: 17 }, { cols: [49, 51], row: 17 }],
   waterfalls: [
-    { col: 36, top: 23, bottom: WATER, width: 130, head: false, foamAt: [RAISED] }, // onto the mill's wheel
-    { col: 42, top: 25, bottom: WATER, width: 140, head: false },
+    { col: 37, top: 22, bottom: WATER, width: 130, head: false, foamAt: [RAISED] }, // off the middle ledge, onto the mill's wheel
+    { col: 43, top: 18, bottom: 21, width: 130, head: false, splash: false }, // off the top ledge, onto the middle one
+    { col: 43, top: 21, bottom: WATER, width: 140, head: false }, // and on, from its foam, into the pool
+    { col: 48, top: 18, bottom: WATER, width: 140, head: false, foamAt: [RAISED] }, // between the top ledge's two halves
   ],
   // The caves' insides, deep in the earth: the village cave and its shaft, the mine and the hole down
   // into it, and the secret room under it, its shaft and its trapdoor.
@@ -220,11 +231,12 @@ export const AUTUMN_VILLAGE_LEVEL = {
     { picture: 'lamp-post', col: 8, row: 26 },
     { picture: 'barrel', col: 22, row: 24 },
     { picture: 'boulder-big', col: 34, row: 29 }, // on the pool's bank
-    { picture: 'fall-mist', col: 36, row: 30, dy: 40, back: true, free: true }, // at the falls' foot
-    { picture: 'fall-mist', col: 42, row: 30, dy: 40, back: true, free: true },
+    { picture: 'fall-mist', col: 37, row: 30, dy: 40, back: true, free: true }, // at the falls' foot
+    { picture: 'fall-mist', col: 43, row: 30, dy: 40, back: true, free: true },
+    { picture: 'fall-mist', col: 48, row: 30, dy: 40, back: true, free: true },
     { picture: 'pool-rocks', col: 45, row: 30, dy: 20, inWater: true },
     { picture: 'pool-rocks-small', col: 39, row: 30, dy: 20, inWater: true },
-    { picture: 'fall-trickle', col: 47, row: 30, dx: 20, dy: 10, inWater: true }, // a trickle at the cliff's end
+    { picture: 'fall-trickle', col: 53, row: 30, dy: 10, inWater: true }, // a trickle at the cliff's end
     // A rock column holding up the spiked ball's island, from the chasm's water to its underside, as
     // the rock pillars hold up the high bridge in the owner's picture (behind the moving block).
     { picture: 'rock-column', col: 85, row: 30, stack: 15, back: true, free: true },
@@ -234,15 +246,15 @@ export const AUTUMN_VILLAGE_LEVEL = {
     { picture: 'hang-lantern', col: 30, row: 28, hang: true, glow: true },
     { picture: 'crystal-purple', col: 24, row: 31 },
     { picture: 'crystal-purple', col: 32, row: 29 },
-    // The stepped cliff (ledges at 4%, 27% and 57% of its height, across 0-45%, 45-75%, 75-100%
-    // of its width), the spills on its top ledge, the foamy landing on its middle one; mist and rocks
-    // at its foot. Placed to the pixel (dx, dy), as measured by tools/adventure-autumn-scenery.mjs.
-    { picture: 'cliff-steps-right', col: 41, row: 30, fromWater: true },
-    { picture: 'fall-spill', col: 35, row: 23, dx: 38, dy: -4, back: true, free: true }, // over the wheel
-    { picture: 'fall-spill', col: 41, row: 23, dx: 8, dy: -4, back: true, free: true }, // onto the middle ledge
-    { picture: 'fall-landing', col: 42, row: 24, dx: -8, dy: 24, back: true, free: true },
-    // The pier's posts, from the water up under the walkway's deck.
-    ...[35, 39, 47, 50, 57].map((col) => ({ picture: 'pier-post', col, row: 30, inWater: true, stack: 6 })),
+    // The stepped cliff, rising to the right towards the ruins (its ledges at 57%, 27% and 4% of its
+    // height, across 0-25%, 25-55% and 55-100% of its width): the lowest at the pier, the middle one
+    // at row 20, the top one at row 17, matching the islands the cat stands on. The spills on its
+    // ledges' lips and the foamy landing on its middle ledge, placed to the pixel (dx, dy).
+    { picture: 'cliff-steps-left', col: 42, row: 30, width: 1185, dy: 13, fromWater: true }, // its ledges a little under where he stands
+    { picture: 'fall-spill', col: 37, row: 22, dx: -26, dy: -27, back: true, free: true }, // off the middle ledge
+    { picture: 'fall-spill', col: 42, row: 18, dx: 38, dy: 8, back: true, free: true }, // off the top ledge
+    { picture: 'fall-spill', col: 47, row: 18, dx: 38, dy: 8, back: true, free: true }, // between the top ledge's halves
+    { picture: 'fall-landing', col: 43, row: 21, dx: -8, dy: -18, back: true, free: true }, // on the middle ledge
     { picture: 'mill-wheel', col: 35, row: 24, back: true, width: 300, spinMs: 9000 }, // fixed to the mill house's side, at the pier
     { picture: 'big-tree', col: 62, row: 25, back: true },
     { picture: 'ruin-arch', col: 70, row: 17, back: true }, // two arches, the crystal between them

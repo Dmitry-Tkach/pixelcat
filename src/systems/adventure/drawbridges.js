@@ -4,7 +4,8 @@
 //
 // A level lists them as drawbridges: [{ switch: { col, row }, from, to, row }]: the switch stands
 // in its cell, and the bridge runs from column `from` to `to` along `row`, as a thin bridge (map
-// letter -) would. Both must be in empty cells of the map.
+// letter -) would. Both must be in empty cells of the map. One with no switch is down from the
+// start (a rope bridge that's simply there, with its own planks).
 
 // plankMs: the time between one plank dropping in and the next. dropPx: how far above its place a
 // plank starts as it drops in. dropMs: how long one plank takes to drop. hit: how far (px) round the
@@ -28,7 +29,7 @@ export function drawbridgeProblems(level) {
   const empty = (c, r) => r >= 0 && r < map.length && c >= 0 && c < map[0].length && map[r][c] === '.';
   for (const [i, bridge] of (level.drawbridges ?? []).entries()) {
     const name = `drawbridge ${i + 1}`;
-    if (!bridge.switch || !empty(bridge.switch.col, bridge.switch.row)) errors.push(`${name}'s switch must be in an empty cell`);
+    if (bridge.switch && !empty(bridge.switch.col, bridge.switch.row)) errors.push(`${name}'s switch must be in an empty cell`);
     if (!(bridge.from <= bridge.to)) errors.push(`${name} must run from a column to one at or after it`);
     else if (drawbridgeCells(bridge).some(({ col, row }) => !empty(col, row))) errors.push(`${name} must be in empty cells`);
   }

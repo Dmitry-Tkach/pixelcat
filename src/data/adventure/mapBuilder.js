@@ -10,6 +10,8 @@
 //                          switch is shot or touched (systems/adventure/drawbridges.js); shot: its
 //                          switch is out of reach, to be shot from across; look: its planks' picture
 //                          (the world's drawbridge plank if none). drawbridges() lists them.
+//   ropeBridge(from, to, row, look)  a bridge that's simply there, of rope planks: a drawbridge with
+//                          no switch, down from the start.
 //   put(col, row, letter)  one thing: a coin, an enemy, a sign...
 //   coins(from, to, row)   a line of coins; arc(from, to, row, rise) coins over a jump
 //   mover(col, row, { across, up, width, speed })  a moving log: it starts at (col, row), its left
@@ -69,6 +71,13 @@ export function mapBuilder(cols, rows) {
       return builder;
     },
     cracked(from, to, row) { span(from, to, (c) => place(c, row, 'Z', '#.')); return builder; },
+    // A rope bridge that's simply there: a drawbridge with no switch, down from the start.
+    ropeBridge(from, to, row, look = 'rope-plank') {
+      inside(from, row);
+      inside(to, row);
+      drawbridges.push({ from, to, row, look });
+      return builder;
+    },
     put(col, row, letter) { place(col, row, letter); return builder; },
     coins(from, to, row) { span(from, to, (c) => place(c, row, 'o')); return builder; },
     // Coins rising and falling over a jump: `rise` rows higher in the middle than at the ends.
@@ -111,7 +120,7 @@ export function mapBuilder(cols, rows) {
     wheels: () => wheels.map((w) => ({ ...w })),
     birds: () => birds.map((b) => ({ ...b })),
     vines: () => vines.map((v) => ({ ...v })),
-    drawbridges: () => drawbridges.map((d) => ({ ...d, switch: { ...d.switch } })),
+    drawbridges: () => drawbridges.map((d) => ({ ...d, ...(d.switch ? { switch: { ...d.switch } } : {}) })),
   };
   return builder;
 }

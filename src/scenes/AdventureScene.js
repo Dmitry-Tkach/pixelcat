@@ -332,12 +332,23 @@ export class AdventureScene extends Phaser.Scene {
       if (!variants || cellRandom(tile.x, tile.y, 9) >= TILE_VARIANT_SHARE) return;
       tile.index = variants[Math.floor(cellRandom(tile.x, tile.y, 10) * variants.length)];
     });
+    // Islands drawn by a picture instead (level.hiddenTiles: { cols, row }, a waterfall cliff's
+    // ledges): still stood on, but not shown, so the picture's rock is the ledge.
+    for (const { cols: [from, to], row } of this.level.hiddenTiles ?? []) {
+      for (let c = from; c <= to; c++) this.groundLayer.getTileAt(c, row)?.setVisible(false);
+    }
+  }
+
+  // Whether a point (px) is by a hidden island (hiddenTiles), where no plants grow.
+  byHiddenTiles(x, y) {
+    const col = Math.floor(x / TILE), row = Math.floor(y / TILE);
+    return (this.level.hiddenTiles ?? []).some(({ cols: [from, to], row: r }) => col >= from && col <= to && Math.abs(row - r) <= 1);
   }
 
   // The plants the level grows by itself: grass and flowers on the tops, vines under the islands
   // (data/adventure/decor.js, placed by systems/adventure/decorPlacement.js).
   buildDecor() {
-    this.decor = placeDecor(this.layout, DECOR[this.level.world]).map(({ picture, x, y, hang, depth, flip }) => {
+    this.decor = placeDecor(this.layout, DECOR[this.level.world]).filter(({ x, y }) => !this.byHiddenTiles(x, y)).map(({ picture, x, y, hang, depth, flip }) => {
       const image = this.add.image(x, y, this.art(picture)).setOrigin(0.5, hang ? 0 : 1).setDepth(depth).setFlipX(flip);
       image.hang = hang;
       return image;
