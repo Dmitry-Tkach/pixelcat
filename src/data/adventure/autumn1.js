@@ -63,7 +63,7 @@ level.gap(34, 60)
   .put(38, 24, 'a').put(50, 24, 'g')
   .coins(44, 47, 23)
   .island(46, 53, 11) // the rocky ledge the waterfalls pour from, high over the pool
-  .bird('diver', 55, 16);
+  .bird('diver', 50, 18, { wake: 40 }); // low enough to dive at the walkway: within 7 cells above it
 
 // ----- 3. Forest Outpost: firm ground again, a checkpoint, and islands climbed by ladders: a low
 // one with coins, and a tall one up to the ruins' vine.
