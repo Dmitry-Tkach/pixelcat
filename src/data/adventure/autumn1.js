@@ -251,7 +251,8 @@ export const AUTUMN_VILLAGE_LEVEL = {
     // and its top one at row 17, where the cat stands (seen in the game's screenshots): 800 px tall,
     // its foot 120 px over the pool, mossy rocks along the waterline under it. The spills on its
     // ledges' lips and the foamy landing on its middle ledge, placed to the pixel (dx, dy).
-    { picture: 'cliff-steps-left', col: 42, row: 30, width: 988, dy: -120, fromWater: true },
+    { picture: 'cliff-steps-left', col: 42, row: 30, dy: -120, fromWater: true }, // cut at the size shown (988 px), sharp
+    { picture: 'big-tree', col: 46, row: 16, back: true, free: true }, // growing on the cliff's top, between its falls, as in the owner's picture
     ...[37, 41, 45, 49].map((col) => ({ picture: 'pool-rocks', col, row: 30, inWater: true })),
     { picture: 'fall-spill', col: 37, row: 22, dx: -26, dy: -30, back: true, free: true }, // off the middle ledge
     { picture: 'fall-spill', col: 42, row: 19, dx: 38, dy: -30, back: true, free: true }, // off the top ledge

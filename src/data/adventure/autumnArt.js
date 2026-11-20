@@ -41,7 +41,9 @@ export const AUTUMN_PIECES = {
   'trap-mace': { height: 84 }, 'fire-bowl': { height: 120 }, 'big-tree': { width: 440 }, 'small-tree': { width: 260 },
   'fall-strip': { width: 150 }, 'fall-strip-narrow': { width: 120 }, 'fall-spill': { width: 220 }, 'fall-landing': { width: 260 },
   'fall-splash': { width: 260 }, 'fall-mist': { width: 300 }, 'fall-trickle': { height: 200 },
-  'cliff-steps-right': { height: 640 }, 'cliff-steps-left': { height: 640 }, 'ledge-wide': { width: 260 }, 'ledge-narrow': { width: 150 },
+  // The stepped cliffs are shown bigger than drawn: cut straight to the size shown, sharpened, so
+  // they're resized once, not twice (cut, then scaled in the game), which blurred them.
+  'cliff-steps-right': { width: 988, sharpen: true }, 'cliff-steps-left': { width: 988, sharpen: true }, 'ledge-wide': { width: 260 }, 'ledge-narrow': { width: 150 },
   'rock-column': { width: 140 }, 'pool-rocks': { width: 300 }, 'pool-rocks-small': { width: 180 },
 };
 

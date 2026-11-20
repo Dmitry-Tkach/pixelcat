@@ -62,7 +62,7 @@ function sizeOf(name, p) {
 for (const [name, p] of Object.entries(piece)) {
   clearStrays(p);
   const { w, h } = sizeOf(name, p);
-  await savePiece(p, join(OUT, `${name}.png`), w, h);
+  await savePiece(p, join(OUT, `${name}.png`), w, h, { sharpen: Boolean(AUTUMN_PIECES[name]?.sharpen) });
 }
 
 // The owner's falling strip, made to loop, as the world's fall-middle (FALL_STRIP).
