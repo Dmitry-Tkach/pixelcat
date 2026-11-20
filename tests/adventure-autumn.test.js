@@ -8,6 +8,7 @@ import { drawbridgeCells, drawbridgeProblems, hitsSwitch } from '../src/systems/
 import { FISH, fishAt, fishProblems, touchesFish } from '../src/data/adventure/fish.js';
 import { MOLE, moleStep } from '../src/systems/adventure/moleLogic.js';
 import { cameraBottom } from '../src/systems/adventure/cameraFloor.js';
+import { caveRuns } from '../src/systems/adventure/caveFill.js';
 
 // The Autumn Forest (world 2) and what its first level brought: borrowed art, vines, cracked floor,
 // drawbridges and the locked Guardian Gate.
@@ -252,5 +253,34 @@ describe('scenery in every level', () => {
         expect(holds(c), `${name} has no ground under column ${c}`).toBe(true);
       }
     }
+  });
+});
+
+describe('cave walls', () => {
+  // A hill (#) with a cave inside it (rows 2 and 3, columns 2 to 4), open air (.) round the hill.
+  const map = [
+    '.......',
+    '.#####.',
+    '.#...#.',
+    '.#...#.',
+    '.#####.',
+  ];
+  const cells = (runs) => runs.flatMap(({ row, from, to }) => Array.from({ length: to - from + 1 }, (_, i) => `${from + i},${row}`));
+
+  it('fill the cave', () => {
+    const filled = cells(caveRuns(map, [{ cols: [2, 4], rows: [2, 3] }]));
+    for (const cell of ['2,2', '3,2', '4,2', '2,3', '4,3']) expect(filled).toContain(cell);
+  });
+
+  it('reach under ground round the cave, but not ground facing the open air outside', () => {
+    const wide = ['.........', '.#######.', '.##...##.', '.##...##.', '.#######.', '.#######.'];
+    const filled = cells(caveRuns(wide, [{ cols: [3, 5], rows: [2, 3] }]));
+    expect(filled).toContain('2,2'); // the cave's side wall, with ground beyond it
+    expect(filled).toContain('3,4'); // its floor
+    expect(filled).not.toContain('1,2'); // the hill's outside
+  });
+
+  it('come as runs along each row', () => {
+    expect(caveRuns(map, [{ cols: [2, 4], rows: [2, 3] }]).filter((run) => run.row === 2)).toEqual([{ row: 2, from: 2, to: 4 }]);
   });
 });

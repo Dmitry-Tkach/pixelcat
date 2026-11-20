@@ -9,6 +9,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ADVENTURE_LEVELS, adventureArtWorld, adventurePath } from '../src/data/adventure/index.js';
 import { drawbridgeCells } from '../src/systems/adventure/drawbridges.js';
+import { caveRuns } from '../src/systems/adventure/caveFill.js';
 import { FISH, fishAt } from '../src/data/adventure/fish.js';
 import { BOSS_ARENAS } from '../src/data/adventure/bossArenas.js';
 import { bossLayout, bossPath } from '../src/data/adventure/bosses.js';
@@ -79,8 +80,9 @@ if (millArt) {
   };
   // A world's own cave wall picture, repeated, or a dark wash (systems/adventure/AdventureScenery.js).
   const caveWall = existsSync(art('cave-back')) ? await sharp(art('cave-back')).resize(Math.round(160 * SCALE)).png().toBuffer() : null;
-  for (const { cols: [c0, c1], rows: [r0, r1] } of level.caves ?? []) {
-    const w = Math.round((c1 - c0 + 1) * CELL), h = Math.round((r1 - r0 + 1) * CELL);
+  for (const { row, from, to } of caveRuns(level.map, level.caves)) {
+    const [c0, r0] = [from, row];
+    const w = Math.round((to - from + 1) * CELL), h = Math.round(CELL);
     const input = caveWall
       ? await sharp({ create: { width: w, height: h, channels: 4, background: '#0000' } }).composite([{ input: await fitTile(caveWall, w, h), tile: true, left: 0, top: 0 }]).png().toBuffer()
       : Buffer.from(`<svg width="${w}" height="${h}"><rect width="${w}" height="${h}" fill="#0f1a12" fill-opacity="0.88"/></svg>`);

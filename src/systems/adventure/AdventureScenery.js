@@ -1,4 +1,5 @@
 import { TILE } from '../adventureMap.js';
+import { caveRuns } from './caveFill.js';
 import { WATERFALL } from '../../data/adventure/millArt.js';
 import { makeStandIn } from '../../entities/AdventureBird.js';
 import { PTERO_LOOKS } from '../../data/adventure/birds.js';
@@ -50,10 +51,14 @@ export class AdventureScenery {
       if (veil) this.covers.push({ parts, full: VEIL_ALPHA, box: { left: x - width / 2, right: x + width / 2, top: topY, bottom: bottomY } });
     }
     // A world with its own cave wall picture (the Autumn world's dark earth and stones) has it
-    // repeated over the cave; another, a dark wash.
-    for (const { cols, rows } of level.caves ?? []) {
-      const [x, y, w, h] = [cols[0] * TILE, rows[0] * TILE, (cols[1] - cols[0] + 1) * TILE, (rows[1] - rows[0] + 1) * TILE];
-      const cave = has('cave-back') ? scene.add.tileSprite(x, y, w, h, art('cave-back')) : scene.add.rectangle(x, y, w, h, CAVE.colour, CAVE.alpha);
+    // repeated over the cave, lined up across the whole level so the strips join; another, a dark
+    // wash. It reaches under the ground round the cave, filling the gaps at its wavy edges
+    // (systems/adventure/caveFill.js).
+    for (const { row, from, to } of caveRuns(level.map, level.caves)) {
+      const [x, y, w] = [from * TILE, row * TILE, (to - from + 1) * TILE];
+      const cave = has('cave-back')
+        ? scene.add.tileSprite(x, y, w, TILE, art('cave-back')).setTilePosition(x, y)
+        : scene.add.rectangle(x, y, w, TILE, CAVE.colour, CAVE.alpha);
       cave.setOrigin(0, 0).setDepth(DEPTH.cave);
     }
     for (const { picture, col, row, hang, front, back, inWater, width, spinMs } of level.props ?? []) {
