@@ -64,14 +64,41 @@ export const GUNNERS = {
     stompable: true,
     anims: ANIMS,
   },
+  // The Autumn world's gunner, the owner's squirrel (prompts/autumn-level/09-squirrel.md): it sits on
+  // a branch or a roof and throws acorns, spinning, at the cat. Drawn as a sheet, facing left
+  // (facesLeft), cut by tools/adventure-autumn-characters.mjs, so its measurements are in a cell's
+  // pixels and its anims name the sheet's rows. bullet: the world's picture it throws, spinning
+  // spinDeg a second. noFlash: a throw, so no muzzle flash. Its knock-out is drawn (dead).
+  squirrel: {
+    sheet: { file: 'images/levels/autumn/squirrel.png', cols: 6, rows: 4 },
+    scale: 0.55,
+    facesLeft: true,
+    crop: { x: 0, y: 0, w: 256, h: 256 },
+    body: { x: 70, y: 96, w: 104, h: 124 },
+    feet: 221,
+    muzzle: { x: 52, y: 150 },
+    sees: { across: 8, up: 7 },
+    everyMs: 1900,
+    bulletSpeed: 360,
+    bullet: 'acorn',
+    spinDeg: 720,
+    noFlash: true,
+    hp: 1,
+    stompable: true,
+    anims: {
+      idle: { row: 0, count: 6, fps: 8, repeat: -1 },
+      shoot: { row: 1, count: 6, fps: 12, repeat: 0, fireFrame: 3 },
+      dead: { row: 2, count: 6, fps: 10, repeat: 0 },
+    },
+  },
 };
 
 // The muzzle flash, from the pack's ShootFx: 15 frames, the last empty. The flash starts at
 // `origin` in its frame and points right.
 export const FLASH = { folder: 'ShootFx', frames: 14, step: 2, fps: 24, scale: 0.35, size: { w: 249, h: 157 }, origin: { x: 25, y: 78 } };
 
-export const gunnerLayout = (kind) => layoutOf(GUNNERS[kind], GUNNER_SCALE);
-export const gunnerFrameCount = (anim) => Math.ceil(anim.frames / anim.step);
+export const gunnerLayout = (kind) => layoutOf(GUNNERS[kind], GUNNERS[kind].scale ?? GUNNER_SCALE);
+export const gunnerFrameCount = (anim) => anim.count ?? Math.ceil(anim.frames / anim.step);
 export const flashFrameCount = () => Math.ceil(FLASH.frames / FLASH.step);
 export const gunnerKey = (kind) => `adventure-gunner-${kind}`;
 export const gunnerAnimKey = (kind, anim) => `adventure-gunner-${kind}-${anim}`;

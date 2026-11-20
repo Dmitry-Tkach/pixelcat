@@ -62,12 +62,15 @@ export const ENEMY_LETTERS = {
   g: 'goon',
   c: 'cone',
   v: 'spiky',
+  P: 'pumpkin', // the Autumn world's walker you stomp
+  V: 'boar', // the Autumn world's spiky one, that charges
 };
 // Gunners, by kind (see data/adventure/gunners.js). Each stands where it is and shoots at the cat.
 export const GUNNER_LETTERS = {
   1: 'blaster',
   2: 'raygun',
   3: 'rifle',
+  4: 'squirrel', // the Autumn world's: throws acorns
 };
 // Scenery, which the cat passes in front of.
 export const SCENERY = {

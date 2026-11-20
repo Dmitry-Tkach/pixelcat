@@ -8,7 +8,7 @@ import { ONE_WAY, TILE } from '../systems/adventureMap.js';
 const LINE_STEP = 16; // how finely the line to the cat is checked for ground in the way
 const FIRST_SHOT = { minShare: 0.4, maxShare: 1 }; // its first shot comes after this share of everyMs
 const SHOT_FLASH_MS = 70;
-const KNOCKOUT = { ms: 600, spin: 100, drop: 18 };
+const KNOCKOUT = { ms: 600, spin: 100, drop: 18, drawnMs: 700 }; // drawnMs: a drawn knock-out plays this long before it fades
 
 // A gunner: a cat with a gun who stands in one place. When the battle cat is in sight, it turns to
 // face him and shoots at where he is at that moment, so a cat on the move has to keep moving. It has
@@ -46,18 +46,25 @@ export class AdventureGunner extends Phaser.Physics.Arcade.Sprite {
     });
   }
 
-  // 1 is right, as the art is drawn; -1 is left. The body is mirrored with the picture.
+  // 1 is right, -1 is left. The pack's art faces right; one drawn facing left (facesLeft, the
+  // squirrel) is mirrored the other way. The body is mirrored with the picture.
+  get drawnFacing() {
+    return this.info.facesLeft ? -1 : 1;
+  }
+
   face(direction) {
     this.direction = direction;
-    this.setFlipX(direction < 0);
+    const mirrored = direction !== this.drawnFacing;
+    this.setFlipX(mirrored);
     const { frameW, body } = this.layout;
-    this.body.setOffset(direction < 0 ? frameW - body.x - body.w : body.x, body.y);
+    this.body.setOffset(mirrored ? frameW - body.x - body.w : body.x, body.y);
   }
 
   // Where the gun's end is in the world, facing the way it faces.
   get muzzle() {
     const { frameW, feet, muzzle } = this.layout;
-    return { x: this.x + this.direction * (muzzle.x - frameW / 2), y: this.y - (feet - muzzle.y) };
+    const across = muzzle.x - frameW / 2; // as drawn
+    return { x: this.x + (this.direction === this.drawnFacing ? across : -across), y: this.y - (feet - muzzle.y) };
   }
 
   // Whether the cat is close enough, with no ground between them. Islands don't block the view.
@@ -116,13 +123,19 @@ export class AdventureGunner extends Phaser.Physics.Arcade.Sprite {
     return this.hp <= 0;
   }
 
-  // The pack draws no knock-out for them, so it topples over and fades away.
+  // The pack draws no knock-out for them, so it topples over and fades away. One with its knock-out
+  // drawn (the squirrel's dead) plays it, then fades.
   knockOut() {
     if (isFrozen(this)) breakIce(this, FREEZE.shards); // shattered
     putOut(this);
     this.dead = true;
     this.shooting = false;
     this.body.enable = false;
+    if (this.info.anims.dead) {
+      this.play(gunnerAnimKey(this.kind, 'dead'));
+      this.scene.tweens.add({ targets: this, alpha: 0, delay: KNOCKOUT.drawnMs, duration: KNOCKOUT.ms, onComplete: () => this.destroy() });
+      return;
+    }
     this.anims.stop();
     this.scene.tweens.add({
       targets: this,

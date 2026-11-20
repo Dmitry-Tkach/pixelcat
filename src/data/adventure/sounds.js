@@ -75,6 +75,10 @@ export const ADVENTURE_SOUNDS = {
     { wave: 'sine', from: 95, to: 60, duration: 0.3, gain: 0.18, attack: 0.08 },
   ],
   // A mace at the end of its swing: the chain creaking under the weight.
+  // The squirrel's throw: a quick, light swish of air.
+  acornThrow: [
+    { kind: 'noise', filter: 'bandpass', cutoff: 1800, sweepTo: 3600, q: 2, duration: 0.12, gain: 0.25 },
+  ],
   maceCreak: [
     { wave: 'sawtooth', from: 430, to: 370, duration: 0.2, gain: 0.05, cutoff: 1400, attack: 0.03 },
     { kind: 'noise', filter: 'bandpass', cutoff: 2600, q: 6, duration: 0.16, gain: 0.07 },

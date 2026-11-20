@@ -197,7 +197,9 @@ function packFrames(dir, expected, step, prefix) {
 
 const enemiesOut = join(OUT, 'enemies');
 mkdirSync(enemiesOut, { recursive: true });
+// The owner's drawn ones (a sheet) are cut by tools/adventure-autumn-characters.mjs instead.
 for (const [kind, enemy] of Object.entries(ENEMIES)) {
+  if (enemy.sheet) continue;
   const { frameW, frameH } = enemyLayout(kind);
   const frames = Object.entries(enemy.anims).flatMap(([anim, { folder, step }]) =>
     packFrames(join(GANGSTA, 'Enemies', enemy.source, folder), PACK_FRAMES[folder], step, anim));
@@ -207,6 +209,7 @@ for (const [kind, enemy] of Object.entries(ENEMIES)) {
 const gunnersOut = join(OUT, 'gunners');
 mkdirSync(gunnersOut, { recursive: true });
 for (const [kind, gunner] of Object.entries(GUNNERS)) {
+  if (gunner.sheet) continue;
   const { frameW, frameH } = gunnerLayout(kind);
   const frames = Object.entries(gunner.anims).flatMap(([anim, { folder, frames: count, step }]) =>
     packFrames(join(GANGSTA, 'Characters', gunner.source, folder), count, step, anim));

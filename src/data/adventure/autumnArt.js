@@ -1,6 +1,10 @@
 // The Autumn Forest world's own art (world 2), prepared by tools/adventure-autumn-art.mjs into
-// public/assets/adventure/autumn. Every other picture a level asks for (the minigun, the traps, the
+// public/assets/adventure/autumn (its characters by tools/adventure-autumn-characters.mjs). Every other picture a level asks for (the minigun, the traps, the
 // gates, the water wheel...) is the Wood world's (data/adventure/index.js, adventureArtKey).
+import { OWL_KEYS } from './birds.js';
+
+// The squirrel's acorn: cut from its sheet's cell (row, col, from 0), shrunk to `width` px long.
+export const ACORN = { sheet: 'images/levels/autumn/squirrel.png', row: 3, col: 0, width: 28 };
 
 // The Wood world's leaves and plants, turned from green to autumn's orange and gold.
 export const AUTUMN_FROM_WOOD = [
@@ -22,4 +26,6 @@ export const AUTUMN_ART = [
   'vine', 'cracked', 'switch-off', 'switch-on', 'gate-door',
   // The leaping fish (data/adventure/fish.js), in two poses: its tail one way, then the other.
   'fish-1', 'fish-2',
+  // The owner's characters: the squirrel's acorn and the owl's frames.
+  'acorn', ...OWL_KEYS,
 ];

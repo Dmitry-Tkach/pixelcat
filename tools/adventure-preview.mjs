@@ -26,7 +26,7 @@ import { TRAPS } from '../src/data/adventure/traps.js';
 import { floorRow, guardianBall, guardianFireColumn, guardianGeometry, maceHook } from '../src/systems/adventure/trapLogic.js';
 import { seatPlace, wheelHub, wheelWith } from '../src/systems/adventure/wheels.js';
 import { MILL_SEAT, MILL_STAND, MILL_WHEEL, standScale } from '../src/data/adventure/millArt.js';
-import { birdHome } from '../src/data/adventure/birds.js';
+import { PTERO_LOOKS, birdHome } from '../src/data/adventure/birds.js';
 import { existsSync } from 'node:fs';
 
 const [out, index = '0'] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
@@ -318,14 +318,15 @@ if (level.fish?.length && level.water) {
 }
 // Pterodactyls: where each waits, and a patrolling one's beat dotted.
 if (existsSync(art('ptero-fly-0'))) {
-  const ptero = await scaled(art('ptero-fly-0'), 1);
+  // Each bird in its own look (data/adventure/birds.js, PTERO_LOOKS): the owl, or a pterodactyl.
+  const lookOf = async (look) => scaled(art(`${PTERO_LOOKS[look] ?? PTERO_LOOKS.orange}-fly-0`), 1);
   for (const bird of level.birds ?? []) {
     const home = birdHome(bird);
     if (bird.patrol) {
       const x0 = (home.x - bird.patrol * TILE) * SCALE, x1 = (home.x + bird.patrol * TILE) * SCALE, y = home.y * SCALE;
       comps.push({ input: Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${cols * CELL}" height="${rows * CELL}"><path d="M${x0} ${y} L${x1} ${y}" stroke="#ff7a3c" stroke-width="2" stroke-dasharray="5 4"/></svg>`), left: 0, top: 0 });
     }
-    comps.push(await at_(ptero, home));
+    comps.push(await at_(await lookOf(bird.look), home));
   }
 }
 

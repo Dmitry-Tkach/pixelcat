@@ -16,13 +16,14 @@
 // systems/adventureRoutes.js). To see the level as a picture, run
 // node tools/adventure-preview.mjs <out.png> 3 --routes
 //
-// Stand-ins until the owner's art comes (prompts/autumn-level): the spiky zombie for the boar, the
-// orange pterodactyl for the owl, the pack's house and the Wood world's statues and gates.
+// Its characters are the owner's (prompts/autumn-level): pumpkins to stomp, spiky boars that charge,
+// squirrels throwing acorns, owls diving, and leaping fish. Still stand-ins: the pack's house, and
+// the Wood world's statues and gates.
 //
 // Letters (see systems/adventureMap.js): # ground, = island, - bridge, H ladder, Z cracked floor,
 // % crumbling leaves, ^ spikes, o coin, * crystal, + heart, k key, j silver key, U silver chest,
 // ? bonus block, B crate, X stone, C checkpoint, E portal, @ start, w the minigun, a f ammunition
-// crates (standard, freeze), enemies g goon, v spiky, gunners 1 blaster, signs > and /.
+// crates (standard, freeze), enemies P pumpkin, V boar, gunner 4 squirrel, signs > and /.
 import { mapBuilder } from './mapBuilder.js';
 
 const COLS = 180;
@@ -33,17 +34,17 @@ const WATER = 31; // the mill pool's and the chasm's water surface
 
 const level = mapBuilder(COLS, ROWS).ground(0, 17, VILLAGE).ground(18, 33, RAISED);
 
-// ----- 1. Village Entrance: out of the cottage, a goon to stomp, the minigun on the first island
-// (up a ladder), a ? block over it with a crystal on top, and a spiky one on the island beyond. A
+// ----- 1. Village Entrance: out of the cottage, a pumpkin to stomp, the minigun on the first island
+// (up a ladder), a ? block over it with a crystal on top, and a boar on the island beyond. A
 // bounce mushroom is a second way up. Then cracked floor on the raised ground: it breaks into a cave
 // with the silver key, which opens onto the mill pool.
 level.put(2, 26, '@').put(9, 26, '>')
   .coins(5, 8, 25)
-  .put(12, 26, 'g')
+  .put(12, 26, 'P')
   .trap('mushroom', 14, 26)
   .island(10, 16, 19).ladder(16, 19, 26).put(11, 18, 'w').put(13, 18, '+')
   .put(13, 15, '?').put(13, 14, '*')
-  .island(20, 25, 20).put(23, 19, 'v').coins(21, 22, 19)
+  .island(20, 25, 20).put(23, 19, 'V').coins(21, 22, 19)
   .put(20, 24, 'X') // a stone at the top of the step
   // The secret: cracked floor, and the cave under the raised ground. Its way out is to the right,
   // onto the bank of the mill pool.
@@ -53,24 +54,24 @@ level.put(2, 26, '@').put(9, 26, '>')
   .put(32, 24, 'C');
 
 // ----- 2. The Old Mill: the walkway from the raised ground across the pool, the mill house on it and
-// its wheel turning behind. A goon on the walkway, a crate of rounds, and a diving bird over the far
+// its wheel turning behind. A pumpkin on the walkway, a crate of rounds, and a diving owl over the far
 // end. Below, the pool's bank (outside the secret cave) and stepping stones back up to the walkway.
 level.gap(34, 60)
   .bridge(34, 58, RAISED)
   .ground(34, 36, 30) // the bank outside the cave
   .ground(40, 41, 29).ground(46, 47, 29).ground(52, 53, 28).ground(57, 58, 27) // stepping stones
   .coins(40, 41, 27).coins(46, 47, 27).coins(52, 53, 26)
-  .put(38, 24, 'a').put(50, 24, 'g')
+  .put(38, 24, 'a').put(50, 24, 'P')
   .coins(44, 47, 23)
   .island(46, 53, 11) // the rocky ledge the waterfalls pour from, high over the pool
-  .bird('diver', 50, 18, { wake: 40 }); // low enough to dive at the walkway: within 7 cells above it
+  .bird('diver', 50, 18, { wake: 40, look: 'owl' }); // low enough to dive at the walkway: within 7 cells above it
 
 // ----- 3. Forest Outpost: firm ground again, a checkpoint, and islands climbed by ladders: a low
 // one with coins, and a tall one up to the ruins' vine.
 level.ground(59, 80, 26)
   .put(61, 25, 'C')
   .island(64, 68, 22).ladder(66, 22, 25).coins(64, 65, 21)
-  .island(70, 77, 18).ladder(77, 18, 25).put(71, 17, 'g').coins(73, 75, 17)
+  .island(70, 77, 18).ladder(77, 18, 25).put(71, 17, 'P').coins(73, 75, 17)
   .put(79, 25, '/');
 
 // ----- 4. The Ruined Bridge: a vine up to the ruins, a crystal there, and the switch: it lowers the
@@ -85,14 +86,14 @@ level.island(68, 76, 12).vine(72, 12, 17)
   .trap('mace', 87, 20, { hanging: true, chain: 237, swingDeg: 30 })
   .arc(82, 84, 24, 1).arc(91, 93, 24, 1);
 
-// ----- 5. The Mineshaft: a hill with a tunnel through it. In the tunnel, coins, a goon and a crate of
+// ----- 5. The Mineshaft: a hill with a tunnel through it. In the tunnel, coins, a pumpkin and a crate of
 // freeze rounds; over it, a path along the hill's top, past spikes. Cracked floor in the tunnel breaks
 // into a secret room with the silver chest and a crystal, its way out on the low meadow beyond.
 level.ground(95, 127, 26)
   .ground(100, 126, 20).hollow(100, 126, 22, 25) // the hill, two cells thick over the tunnel
-  .put(97, 25, '1') // a blaster at the far end of the bridge
+  .put(97, 25, '4') // a squirrel at the far end of the bridge, throwing acorns
   .island(97, 98, 23) // a step up onto the hill
-  .coins(103, 107, 24).put(102, 25, 'f').put(112, 25, 'g')
+  .coins(103, 107, 24).put(102, 25, 'f').put(112, 25, 'P')
   .put(109, 19, '^').put(110, 19, '^').arc(108, 111, 18, 1).coins(118, 121, 18)
   .cracked(119, 120, 26)
   .hollow(118, 127, 27, 29).hollow(119, 120, 26, 26)
@@ -104,9 +105,9 @@ level.ground(128, 141, 30)
   .put(132, 29, '^').put(133, 29, '^').arc(131, 134, 27, 2)
   .put(129, 29, 'C')
   .island(135, 141, 18).vine(138, 18, 29).put(136, 17, 'k').coins(139, 141, 17)
-  .bird('diver', 140, 11)
+  .bird('diver', 140, 11, { look: 'owl' })
   .ground(142, COLS - 1, 26)
-  .put(146, 25, 'C').put(152, 25, 'v').coins(150, 155, 24)
+  .put(146, 25, 'C').put(152, 25, 'V').coins(150, 155, 24)
   .put(170, 25, 'E');
 
 export const AUTUMN_VILLAGE_LEVEL = {

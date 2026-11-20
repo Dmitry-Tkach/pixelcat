@@ -1095,14 +1095,21 @@ export class AdventureScene extends Phaser.Scene {
     }
   }
 
-  // A gunner's shot, from its gun's end toward where the cat was, with a flash.
+  // A gunner's shot, from its gun's end toward where the cat was, with a flash. A gunner with its
+  // own bullet (the squirrel's acorn) throws that, spinning, with no flash (data/adventure/gunners.js).
   fireAtCat(gunner, x, y, angle) {
     if (!this.playing) return;
-    const bullet = this.enemyBullets.create(x, y, this.art('enemy-bullet')).setRotation(angle).setDepth(ENEMY_BULLET.depth);
+    const { bullet: picture = 'enemy-bullet', spinDeg = 0, noFlash = false } = gunner.info;
+    const bullet = this.enemyBullets.create(x, y, this.art(picture)).setRotation(angle).setDepth(ENEMY_BULLET.depth);
     bullet.body.setSize(ENEMY_BULLET.size, ENEMY_BULLET.size);
     this.physics.velocityFromRotation(angle, gunner.info.bulletSpeed, bullet.body.velocity);
+    if (spinDeg) bullet.body.setAngularVelocity(spinDeg);
     bullet.startX = x;
     bullet.startY = y;
+    if (noFlash) {
+      this.audio.playSfx('acornThrow');
+      return;
+    }
     const flash = this.add.sprite(x, y, FLASH_KEY, 'flash-0').setRotation(angle).setDepth(ENEMY_BULLET.depth + 1)
       .setOrigin(FLASH.origin.x / FLASH.size.w, FLASH.origin.y / FLASH.size.h);
     flash.play(FLASH_KEY).once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => flash.destroy());
