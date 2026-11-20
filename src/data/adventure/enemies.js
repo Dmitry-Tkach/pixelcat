@@ -107,6 +107,29 @@ export const ENEMIES = {
       dead: { row: 3, count: 6, fps: 10, repeat: 0 },
     },
   },
+  // The Autumn world's mole miner (10-mole.md, drawn as grumpy.png): it burrows, so it never walks.
+  // It waits under its mound, pops up when the cat comes near (rise), swings its pickaxe, and sinks
+  // back after a while (entities/AdventureMole.js). Only while it's up can it be hit or stomped.
+  // Its walk is its idle: it stands where it is.
+  mole: {
+    sheet: { file: 'images/levels/autumn/grumpy.png', cols: 6, rows: 4 },
+    burrows: true,
+    scale: 0.55,
+    crop: { x: 0, y: 0, w: 256, h: 256 },
+    body: { x: 70, y: 100, w: 110, h: 116 },
+    feet: 216,
+    speed: 1,
+    chaseSpeed: 1,
+    stompable: true,
+    hp: 2,
+    anims: {
+      rise: { row: 0, count: 6, fps: 14, repeat: 0 },
+      idle: { row: 1, count: 6, fps: 8, repeat: -1 },
+      walk: { row: 1, count: 6, fps: 8, repeat: -1 },
+      attack: { row: 2, count: 6, fps: 12, repeat: 0, hitFrame: 3 },
+      dead: { row: 3, count: 6, fps: 10, repeat: 0 },
+    },
+  },
 };
 
 // How many frames of each animation the pack has; the atlas keeps every step-th one.

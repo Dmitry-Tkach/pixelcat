@@ -64,6 +64,7 @@ export const ENEMY_LETTERS = {
   v: 'spiky',
   P: 'pumpkin', // the Autumn world's walker you stomp
   V: 'boar', // the Autumn world's spiky one, that charges
+  M: 'mole', // the Autumn world's mole miner: pops out of the ground
 };
 // Gunners, by kind (see data/adventure/gunners.js). Each stands where it is and shoots at the cat.
 export const GUNNER_LETTERS = {

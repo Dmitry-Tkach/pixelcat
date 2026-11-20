@@ -5,6 +5,7 @@ import { TILES, checkAdventureLevel, readAdventureMap } from '../src/systems/adv
 import { adventureRoutes } from '../src/systems/adventureRoutes.js';
 import { drawbridgeCells, drawbridgeProblems, hitsSwitch } from '../src/systems/adventure/drawbridges.js';
 import { FISH, fishAt, fishProblems, touchesFish } from '../src/data/adventure/fish.js';
+import { MOLE, moleStep } from '../src/systems/adventure/moleLogic.js';
 
 // The Autumn Forest (world 2) and what its first level brought: borrowed art, vines, cracked floor,
 // drawbridges and the locked Guardian Gate.
@@ -172,5 +173,33 @@ describe('vine runs', () => {
   it('group a level\'s vine cells into one run for each vine', () => {
     const cells = [{ col: 4, row: 5 }, { col: 4, row: 3 }, { col: 4, row: 4 }, { col: 9, row: 1 }, { col: 9, row: 2 }];
     expect(vineRuns(cells)).toEqual([{ col: 4, top: 3, bottom: 5 }, { col: 9, top: 1, bottom: 2 }]);
+  });
+});
+
+describe('the mole', () => {
+  const run = (steps) => steps.reduce(({ state, log }, [ms, cat]) => {
+    const { state: next, changed } = moleStep(state, ms, cat);
+    return { state: next, log: changed ? [...log, changed] : log };
+  }, { state: { state: 'hidden', ms: 0, swings: 0 }, log: [] });
+
+  it('waits, pops up when the cat comes near, and sinks back after a while', () => {
+    const near = { near: true, attacking: false };
+    const { log } = run([[MOLE.restMs, near], [10, near], [MOLE.riseMs, near], [MOLE.upMs, near], [MOLE.riseMs, near]]);
+    expect(log).toEqual(['rising', 'up', 'sinking', 'hidden']);
+  });
+
+  it('stays hidden while the cat is away', () => {
+    expect(run([[MOLE.restMs * 3, { near: false, attacking: false }]]).log).toEqual([]);
+  });
+
+  it('never sinks in the middle of a swing', () => {
+    const swinging = { near: true, attacking: true };
+    const { state } = run([[MOLE.restMs, swinging], [10, swinging], [MOLE.riseMs, swinging], [MOLE.upMs * 2, swinging]]);
+    expect(state.state).toBe('up');
+  });
+
+  it('goes down after its swings', () => {
+    const up = { state: 'up', ms: 0, swings: MOLE.swings };
+    expect(moleStep(up, 16, { near: true, attacking: false }).changed).toBe('sinking');
   });
 });

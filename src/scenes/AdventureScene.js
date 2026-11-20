@@ -44,6 +44,8 @@ import { Effects } from '../ui/Effects.js';
 import { showDizzyStars } from '../systems/adventure/dizzyStars.js';
 import { AdventureDrawbridges } from '../systems/adventure/AdventureDrawbridges.js';
 import { AdventureFish } from '../systems/adventure/AdventureFish.js';
+import { AdventureMole } from '../entities/AdventureMole.js';
+import { ENEMIES } from '../data/adventure/enemies.js';
 import { vineRuns } from '../data/adventure/mapBuilder.js';
 
 // reach: how far from a ladder's middle it can be grabbed. standStill: slower than this, the cat counts
@@ -394,7 +396,9 @@ export class AdventureScene extends Phaser.Scene {
   // A walking enemy, standing (or falling in) at x, y. The boss arena drops some in too.
   makeEnemy(kind, x, y) {
     const isSpike = (px, py) => this.spikeCells.has(`${Math.floor(px / TILE)},${Math.floor(py / TILE)}`);
-    const enemy = new AdventureEnemy(this, x, y, kind, { groundLayer: this.groundLayer, isSpike });
+    // One that burrows (the mole) pops out of the ground instead of walking (entities/AdventureMole.js).
+    const Kind = ENEMIES[kind]?.burrows ? AdventureMole : AdventureEnemy;
+    const enemy = new Kind(this, x, y, kind, { groundLayer: this.groundLayer, isSpike });
     enemy.on('swipe', () => {
       if (enemy.swipeLands(this.cat) && !this.moves.isRaging) this.hurt(enemy.x);
     });

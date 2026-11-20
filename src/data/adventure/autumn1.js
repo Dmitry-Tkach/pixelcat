@@ -23,7 +23,7 @@
 // Letters (see systems/adventureMap.js): # ground, = island, - bridge, H ladder, Z cracked floor,
 // % crumbling leaves, ^ spikes, o coin, * crystal, + heart, k key, j silver key, U silver chest,
 // ? bonus block, B crate, X stone, C checkpoint, E portal, @ start, w the minigun, a f ammunition
-// crates (standard, freeze), enemies P pumpkin, V boar, gunner 4 squirrel, signs > and /.
+// crates (standard, freeze), enemies P pumpkin, V boar, M mole, gunner 4 squirrel, signs > and /.
 import { mapBuilder } from './mapBuilder.js';
 
 const COLS = 180;
@@ -88,7 +88,7 @@ level.island(68, 76, 18).vine(70, 18, 21)
   .trap('mace', 86, 20, { hanging: true, chain: 237, swingDeg: 30 });
 
 // ----- 5. The Mineshaft: a hill with a tunnel through it, and two ways on. Below, in the tunnel, a
-// checkpoint at its mouth, a crate of freeze rounds, a pumpkin, and a squirrel throwing acorns down
+// checkpoint at its mouth, a crate of freeze rounds, a mole popping out of the ground, and a squirrel throwing acorns down
 // its length. Above, along the hill's top, two crushers slamming in turn, the mine's stamps, with
 // coins under them. (In the tunnel they'd have no room to swing up from.) Cracked floor
 // in the tunnel, coins on it, breaks into a secret room with the silver chest and a crystal, its way
@@ -96,7 +96,7 @@ level.island(68, 76, 18).vine(70, 18, 21)
 level.ground(95, 127, 26)
   .ground(100, 126, 18).hollow(100, 126, 20, 25) // the hill, two cells thick over a tunnel tall enough for crushers
   .island(96, 97, 23).island(98, 99, 20) // steps up onto the hill
-  .put(101, 25, 'C').put(102, 25, 'f').coins(103, 106, 24).put(108, 25, 'P')
+  .put(101, 25, 'C').put(102, 25, 'f').coins(103, 106, 24).put(110, 25, 'M')
   .put(117, 25, '4') // the squirrel, throwing down the tunnel at whoever comes in
   .trap('crusher', 108, 10, { phaseMs: 0 }).trap('crusher', 116, 10, { phaseMs: 1100 })
   .coins(107, 109, 16).coins(115, 117, 16).coins(120, 122, 16)
