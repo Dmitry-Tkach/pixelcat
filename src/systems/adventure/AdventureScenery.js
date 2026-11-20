@@ -6,9 +6,11 @@ import { makeStandIn } from '../../entities/AdventureBird.js';
 import { PTERO_LOOKS } from '../../data/adventure/birds.js';
 
 // A level's set dressing that isn't on its map (Mill Falls' art, data/adventure/millArt.js):
-//   waterfalls: { col, top, bottom, veil }: water pouring from a mossy lip at row `top` down to row
+//   waterfalls: { col, top, bottom, veil, width, foamAt }: water pouring from a mossy lip (or, in the
+//     Autumn world, spilling over a cliff's edge under foam) at row `top` down to row
 //     `bottom`, in the middle of column col, flowing, with a splash at its foot. Behind the wheels;
-//     a veil is thin water in front of the cat instead, hiding what's behind it.
+//     a veil is thin water in front of the cat instead, hiding what's behind it. width: the fall's
+//     own width (px). foamAt: rows where it hits something on its way down (the pier), with foam.
 //   props: { picture, col, row, hang, front, back, inGround, fromWater, width, stack, spinMs, glow, smoke, dy }: a picture
 //     standing on the bottom
 //     of its cell (or, hang, hanging from its top), in the middle of column col. front: in front of
@@ -57,18 +59,30 @@ export class AdventureScenery {
     this.covers = [];
     this.flows = [];
     const has = (name) => scene.textures.exists(art(name));
-    for (const { col, top, bottom, veil } of level.waterfalls ?? []) {
+    for (const { col, top, bottom, veil, width: shown, foamAt = [] } of level.waterfalls ?? []) {
       if (!has('fall-middle')) break;
       const x = col * TILE + TILE / 2, topY = top * TILE, bottomY = bottom * TILE;
       const depth = veil ? DEPTH.front : DEPTH.behind;
       const parts = [];
-      const lip = scene.add.image(x, topY, art('fall-top')).setOrigin(0.5, 0).setDepth(depth + 0.01);
-      const from = topY + lip.height * 0.8;
       const middle = veil ? 'fall-veil' : 'fall-middle';
-      const width = scene.textures.get(art(middle)).getSourceImage().width;
-      const flow = scene.add.tileSprite(x, from, width, Math.max(1, bottomY - from), art(middle)).setOrigin(0.5, 0).setDepth(depth);
+      const own = scene.textures.get(art(middle)).getSourceImage().width;
+      const width = shown ?? own; // shown: a fall's own width (px), its water stretched across
+      // A world with a soft head (the Autumn world's) has the water spill over the cliff's edge,
+      // fading in under foam, the flow starting under it; another, a mossy lip the water pours from.
+      const soft = has('fall-head');
+      const lip = scene.add.image(x, topY, art(soft ? 'fall-head' : 'fall-top')).setOrigin(0.5, 0).setDepth(depth + 0.01);
+      if (soft) lip.setDisplaySize(width, lip.height);
+      const from = topY + lip.height * (soft ? WATERFALL.headFlow : 0.8);
+      const flow = scene.add.tileSprite(x, from, width, Math.max(1, bottomY - from), art(middle)).setOrigin(0.5, 0).setDepth(depth)
+        .setTileScale(width / own, 1);
       const splash = scene.add.image(x, bottomY + 10, art('fall-splash')).setOrigin(0.5, 1).setDepth(depth + 0.02);
       parts.push(lip, flow, splash);
+      // Foam where the fall hits something on its way down (foamAt: the rows it hits, at their top).
+      for (const row of has('fall-foam') ? foamAt : []) {
+        const foam = scene.add.image(x, row * TILE + 4, art('fall-foam')).setOrigin(0.5, 1).setDepth(depth + 0.03);
+        foam.setScale((width * 1.4) / foam.width);
+        parts.push(foam);
+      }
       for (const part of parts) part.setAlpha(veil ? VEIL_ALPHA : WATERFALL.alpha);
       this.flows.push(flow);
       if (veil) this.covers.push({ parts, full: VEIL_ALPHA, box: { left: x - width / 2, right: x + width / 2, top: topY, bottom: bottomY } });

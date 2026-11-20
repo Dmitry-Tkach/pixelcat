@@ -179,3 +179,44 @@ await save('start-sign', svg(150, 130, `
   <rect x="12" y="14" width="126" height="44" rx="5" fill="none" stroke="#b07a32" stroke-width="2"/>
   <circle cx="16" cy="18" r="3" fill="#6a3e18"/><circle cx="134" cy="18" r="3" fill="#6a3e18"/>
   <text x="75" y="48" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="30" text-anchor="middle" fill="#3a2410">START</text>`));
+
+// ----- Waterfalls (systems/adventure/AdventureScenery.js, waterfalls): the Mill Falls water, made
+// softer for the owner's picture: no mossy lip on top; the strip's sides fade out instead of ending
+// in a hard edge, a little lighter and more turquoise; a head where the water spills over the cliff's
+// edge, fading in under white foam; and foam where it hits something on its way down (the pier).
+const FALL = { edgeFade: 18, headHeight: 70, headFade: 0.45, brightness: 1.08, saturation: 0.85, hue: -8 }; // headFade: the head is fully there at this share of its height
+{
+  const middle = await sharp(join(WOOD_OUT, 'fall-middle.png')).modulate({ brightness: FALL.brightness, saturation: FALL.saturation, hue: FALL.hue })
+    .ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { width: w, height: h } = middle.info;
+  const px = Buffer.from(middle.data);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const fromEdge = Math.min(x, w - 1 - x);
+      if (fromEdge < FALL.edgeFade) px[(y * w + x) * 4 + 3] = Math.round(px[(y * w + x) * 4 + 3] * (fromEdge / FALL.edgeFade));
+    }
+  }
+  await sharp(px, { raw: { width: w, height: h, channels: 4 } }).png({ compressionLevel: 9 }).toFile(join(OUT, 'fall-middle.png'));
+  // The head: the strip's top, fading in from nothing, with foam spilling over the edge, then fading
+  // out again over the flowing strip it's drawn on (from FALL.headFade of its height), so the two
+  // have no line between them.
+  const headH = FALL.headHeight;
+  const head = Buffer.from(px.subarray(0, w * headH * 4));
+  for (let y = 0; y < headH; y++) {
+    const at = y / headH;
+    const fade = at < FALL.headFade ? at / FALL.headFade : 1 - (at - FALL.headFade) / (1 - FALL.headFade);
+    for (let x = 0; x < w; x++) head[(y * w + x) * 4 + 3] = Math.round(head[(y * w + x) * 4 + 3] * fade);
+  }
+  const foamTop = svg(w, headH, Array.from({ length: 7 }, (_, i) => {
+    const cx = FALL.edgeFade + ((w - 2 * FALL.edgeFade) * i) / 6;
+    return `<ellipse cx="${cx}" cy="${headH * 0.42}" rx="${w / 9}" ry="${headH / 7}" fill="#ffffff" opacity="0.75"/>`;
+  }).join(''));
+  await sharp(await sharp(head, { raw: { width: w, height: headH, channels: 4 } }).png().toBuffer())
+    .composite([{ input: foamTop }]).png({ compressionLevel: 9 }).toFile(join(OUT, 'fall-head.png'));
+  // Foam: a band of white, where the falling water hits the pier, a little wider than the fall.
+  const foamW = Math.round(w * 1.4), foamH = 46;
+  await save('fall-foam', svg(foamW, foamH, Array.from({ length: 9 }, (_, i) => {
+    const cx = 10 + ((foamW - 20) * i) / 8, r = 9 + (i % 3) * 4;
+    return `<circle cx="${cx}" cy="${foamH - r - 4}" r="${r}" fill="#ffffff" opacity="${0.55 + (i % 2) * 0.25}"/>`;
+  }).join('') + `<ellipse cx="${foamW / 2}" cy="${foamH - 10}" rx="${foamW / 2 - 6}" ry="9" fill="#e8fbff" opacity="0.8"/>`));
+}

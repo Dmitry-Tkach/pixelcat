@@ -56,6 +56,7 @@ export const AUTUMN_ART = [
   'stump', 'sign-skull', 'sign-warn', 'fence', 'fence-2', 'torch', 'house', 'tree-1', 'tree-2', 'rock', 'rock-2',
   'standing-stone', 'barrel', 'cave-back', 'column-2', 'column-3', 'start-sign',
   'soil', // the earth over a secret cave (systems/adventure/AdventureScenery.js, secrets)
+  'fall-middle', 'fall-head', 'fall-foam', // the softer waterfalls
   ...AUTUMN_FROM_WOOD,
   // Stand-ins drawn by the tool, until the owner's pictures come: the climbing vine, the cracked
   // floor, the switch, the Guardian Gate's door and the fish.

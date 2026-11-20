@@ -69,14 +69,27 @@ const millArt = existsSync(art('mill-wheel'));
 const fronts = [];
 const at_ = (input, p) => at(input, p.x, p.y, 0.5, 0.5);
 if (millArt) {
-  for (const { col, top, bottom, veil } of level.waterfalls ?? []) {
+  // Pictures rising out of the water (a cliff the falls pour down): behind the falls, as in the game.
+  for (const { picture, col, row, width, fromWater } of level.props ?? []) {
+    if (!fromWater) continue;
+    const { width: own } = await sharp(art(picture)).metadata();
+    comps.push(await at(await scaled(art(picture), width ? width / own : 1), col * TILE + TILE / 2, (row + 1) * TILE, 0.5, 1));
+  }
+  for (const { col, top, bottom, veil, width: shown, foamAt = [] } of level.waterfalls ?? []) {
     const x = col * TILE + TILE / 2;
-    const lip = await scaled(art('fall-top'), 1);
-    const lipH = (await sharp(lip).metadata()).height / SCALE;
-    const flowW = Math.round((await sharp(art(veil ? 'fall-veil' : 'fall-middle')).metadata()).width * SCALE);
-    const flowH = Math.max(1, Math.round((bottom * TILE - (top * TILE + lipH * 0.8)) * SCALE));
-    const flow = await sharp(art(veil ? 'fall-veil' : 'fall-middle')).resize(flowW, flowH, { fit: 'fill' }).ensureAlpha(veil ? 0.85 : 1).toBuffer();
-    const pieces = [await at(flow, x, top * TILE + lipH * 0.8, 0.5, 0), await at(lip, x, top * TILE, 0.5, 0), await at(await scaled(art('fall-splash'), 1), x, bottom * TILE + 10, 0.5, 1)];
+    // A soft head (the Autumn world's) or the mossy lip, as AdventureScenery draws them.
+    const soft = existsSync(art('fall-head'));
+    const ownW = (await sharp(art(veil ? 'fall-veil' : 'fall-middle')).metadata()).width;
+    const width = shown ?? ownW;
+    const headPicture = soft ? await sharp(art('fall-head')).resize(Math.round(width * SCALE), null, { fit: 'fill' }).png().toBuffer() : await scaled(art('fall-top'), 1);
+    const lipH = (await sharp(headPicture).metadata()).height / SCALE;
+    const flowTop = top * TILE + lipH * (soft ? 0.45 : 0.8);
+    const flowH = Math.max(1, Math.round((bottom * TILE - flowTop) * SCALE));
+    const flow = await sharp(art(veil ? 'fall-veil' : 'fall-middle')).resize(Math.round(width * SCALE), flowH, { fit: 'fill' }).ensureAlpha(veil ? 0.85 : 1).toBuffer();
+    const pieces = [await at(flow, x, flowTop, 0.5, 0), await at(headPicture, x, top * TILE, 0.5, 0), await at(await scaled(art('fall-splash'), 1), x, bottom * TILE + 10, 0.5, 1)];
+    for (const row of existsSync(art('fall-foam')) ? foamAt : []) {
+      pieces.push(await at(await sharp(art('fall-foam')).resize(Math.round(width * 1.4 * SCALE)).png().toBuffer(), x, row * TILE + 4, 0.5, 1));
+    }
     (veil ? fronts : comps).push(...pieces);
   }
   // Earth columns behind the level (AdventureScenery's columns): the world's column picture, stacked.
@@ -324,7 +337,8 @@ if (millArt) {
       comps.push(await at(seat, x, y - MILL_SEAT.top, 0.5, 0));
     }
   }
-  for (const { picture, col, row, hang, front, width, spinMs, glow, stack } of level.props ?? []) {
+  for (const { picture, col, row, hang, front, width, spinMs, glow, stack, fromWater } of level.props ?? []) {
+    if (fromWater) continue; // drawn behind the falls
     // A stacked picture (a pier's post): repeated up `stack` rows, at its own width.
     if (stack) {
       const piece = await scaled(art(picture), 1);

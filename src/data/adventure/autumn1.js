@@ -172,11 +172,11 @@ export const AUTUMN_VILLAGE_LEVEL = {
   vines: level.vines(),
   drawbridges: level.drawbridges(),
   // Its set dressing (systems/adventure/AdventureScenery.js).
-  // The waterfalls pour from the top of the rocky cliff rising out of the pool (a prop), behind the
-  // mill's wheel, onto it, as in the owner's picture.
+  // The waterfalls spill over the top of the rocky cliff rising out of the pool (a prop), the wide one
+  // onto the mill's wheel, foaming where they hit the pier, as in the owner's picture.
   waterfalls: [
-    { col: 37, top: 20, bottom: WATER },
-    { col: 41, top: 21, bottom: WATER },
+    { col: 36, top: 20, bottom: WATER, width: 190, foamAt: [RAISED] }, // wide, onto the mill's wheel
+    { col: 41, top: 21, bottom: WATER, width: 130, foamAt: [RAISED] },
   ],
   // The caves' insides, deep in the earth: the village cave and its shaft, the mine and the hole down
   // into it, and the secret room under it, its shaft and its trapdoor.
