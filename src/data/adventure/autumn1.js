@@ -62,8 +62,8 @@ level.put(2, 26, '@').put(9, 26, '>')
   .put(32, 24, 'C');
 
 // ----- 2. The Old Mill: one long wooden pier from the raised ground across the pool, as in the
-// owner's picture, the wheel turning beside it and the waterfalls pouring from the rocky cliff
-// behind. Fish leap: the first low, beside the pier, where it's seen in safety, then two up through
+// owner's picture, the mill at its start: the house, and its wheel turning under the waterfalls
+// pouring from the rocky cliff behind. Fish leap: the first low, beside the pier, where it's seen in safety, then two up through
 // the pier, to time the walk past. A pumpkin on the pier, and an owl over its far end. Below, the
 // pool's bank (outside the secret cave) and stone pillars back up.
 level.gap(34, 60)
@@ -161,10 +161,11 @@ export const AUTUMN_VILLAGE_LEVEL = {
   vines: level.vines(),
   drawbridges: level.drawbridges(),
   // Its set dressing (systems/adventure/AdventureScenery.js).
-  // The waterfalls pour from the top of the rocky cliff rising out of the pool (a prop).
+  // The waterfalls pour from the top of the rocky cliff rising out of the pool (a prop), behind the
+  // mill's wheel, onto it, as in the owner's picture.
   waterfalls: [
-    { col: 48, top: 20, bottom: WATER },
-    { col: 51, top: 21, bottom: WATER },
+    { col: 37, top: 20, bottom: WATER },
+    { col: 41, top: 21, bottom: WATER },
   ],
   // The caves' insides, deep in the earth: the village cave and its shaft, the mine and the hole down
   // into it, and the secret room under it, its shaft and its trapdoor.
@@ -190,15 +191,15 @@ export const AUTUMN_VILLAGE_LEVEL = {
     { picture: 'lamp-post', col: 8, row: 26 },
     { picture: 'fence', col: 17, row: 26 },
     { picture: 'barrel', col: 26, row: 24 },
-    { picture: 'mill-house', col: 30, row: 24, back: true }, // on the ground by the pool, beside the walkway
+    { picture: 'mill-house', col: 30, row: 24, back: true }, // the mill: the house on the ground, its wheel at its side over the pool
     { picture: 'hang-lantern', col: 25, row: 28, hang: true, glow: true },
     { picture: 'hang-lantern', col: 30, row: 28, hang: true, glow: true },
     { picture: 'crystal-purple', col: 24, row: 31 },
     { picture: 'crystal-purple', col: 32, row: 29 },
-    { picture: 'cliff', col: 50, row: 30, fromWater: true }, // the falls pour from its top
+    { picture: 'cliff', col: 40, row: 30, fromWater: true }, // the falls pour from its top
     // The pier's posts, from the water up under the walkway's deck.
     ...[35, 39, 47, 50, 57].map((col) => ({ picture: 'pier-post', col, row: 30, inWater: true, stack: 6 })),
-    { picture: 'mill-wheel', col: 44, row: 27, back: true, width: 300, spinMs: 9000 },
+    { picture: 'mill-wheel', col: 35, row: 24, back: true, width: 300, spinMs: 9000 }, // fixed to the mill house's side, at the pier
     { picture: 'big-tree', col: 62, row: 25, back: true },
     { picture: 'ruin-pillar', col: 69, row: 17, back: true },
     { picture: 'ruin-arch', col: 73, row: 17, back: true },
