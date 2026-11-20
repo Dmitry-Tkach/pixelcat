@@ -8,7 +8,8 @@
 //   cracked(from, to, row)  cracked floor in the ground's surface: it breaks for good when landed on
 //   drawbridge(switchCol, switchRow, from, to, row, { shot })  a bridge that drops into place when its
 //                          switch is shot or touched (systems/adventure/drawbridges.js); shot: its
-//                          switch is out of reach, to be shot from across. drawbridges() lists them.
+//                          switch is out of reach, to be shot from across; look: its planks' picture
+//                          (the world's drawbridge plank if none). drawbridges() lists them.
 //   put(col, row, letter)  one thing: a coin, an enemy, a sign...
 //   coins(from, to, row)   a line of coins; arc(from, to, row, rise) coins over a jump
 //   mover(col, row, { across, up, width, speed })  a moving log: it starts at (col, row), its left
@@ -60,11 +61,11 @@ export function mapBuilder(cols, rows) {
       for (let r = top; r <= bottom; r++) vines.push({ col, row: r });
       return builder;
     },
-    drawbridge(switchCol, switchRow, from, to, row, { shot = false } = {}) {
+    drawbridge(switchCol, switchRow, from, to, row, { shot = false, look } = {}) {
       inside(switchCol, switchRow);
       inside(from, row);
       inside(to, row);
-      drawbridges.push({ switch: { col: switchCol, row: switchRow }, from, to, row, ...(shot ? { shot } : {}) });
+      drawbridges.push({ switch: { col: switchCol, row: switchRow }, from, to, row, ...(shot ? { shot } : {}), ...(look ? { look } : {}) });
       return builder;
     },
     cracked(from, to, row) { span(from, to, (c) => place(c, row, 'Z', '#.')); return builder; },
@@ -76,9 +77,9 @@ export function mapBuilder(cols, rows) {
       span(from, to, (c) => place(c, row - Math.round(rise * (1 - ((c - mid) / half) ** 2)), 'o'));
       return builder;
     },
-    mover(col, row, { across = 0, up = 0, width = 3, speed, arrow, parks } = {}) {
+    mover(col, row, { across = 0, up = 0, width = 3, speed, arrow, parks, picture } = {}) {
       inside(col, row);
-      movers.push({ col, row, width, across, up, ...(speed ? { speed } : {}), ...(arrow ? { arrow } : {}), ...(parks ? { parks } : {}) });
+      movers.push({ col, row, width, across, up, ...(speed ? { speed } : {}), ...(arrow ? { arrow } : {}), ...(parks ? { parks } : {}), ...(picture ? { picture } : {}) });
       return builder;
     },
     hollow(from, to, top, bottom) {

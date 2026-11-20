@@ -133,7 +133,8 @@ for (const { col, row } of ladders) comps.push({ input: vineCells.has(`${col},${
 // Drawbridges (systems/adventure/drawbridges.js): the switch, and the bridge drawn faint, as it's not
 // there until the switch is hit.
 for (const bridge of level.drawbridges ?? []) {
-  const plank = await sharp(art('bridge')).resize(CELL, CELL).ensureAlpha(0.45).png().toBuffer();
+  const pictureOf = existsSync(art(bridge.look ?? 'drawbridge')) ? art(bridge.look ?? 'drawbridge') : art('bridge');
+  const plank = await sharp(pictureOf).resize(CELL, null).ensureAlpha(0.45).png().toBuffer();
   const faint = await sharp(plank).composite([{ input: Buffer.from([255, 255, 255, 115]), raw: { width: 1, height: 1, channels: 4 }, tile: true, blend: 'dest-in' }]).png().toBuffer();
   for (const { col, row } of drawbridgeCells(bridge)) comps.push({ input: faint, left: col * CELL, top: row * CELL });
   comps.push({ input: await sharp(art('switch-off')).resize(CELL, CELL).toBuffer(), left: bridge.switch.col * CELL, top: bridge.switch.row * CELL });
@@ -284,8 +285,10 @@ if (level.boss) {
 }
 // Moving logs: where each starts, and a dotted line along its path.
 const plank = await sharp(art('bridge')).resize(CELL, CELL).toBuffer();
-for (const { col, row, width = 3, across = 0, up = 0 } of level.movers ?? []) {
-  for (let w = 0; w < width; w++) comps.push({ input: plank, left: (col + w) * CELL, top: row * CELL });
+for (const { col, row, width = 3, across = 0, up = 0, picture } of level.movers ?? []) {
+  // A log with its own picture (the moving stone block), or planks.
+  if (picture) comps.push({ input: await sharp(art(picture)).resize(Math.round(width * CELL), Math.round(CELL), { fit: 'fill' }).png().toBuffer(), left: Math.round(col * CELL), top: Math.round(row * CELL) });
+  else for (let w = 0; w < width; w++) comps.push({ input: plank, left: Math.round((col + w) * CELL), top: Math.round(row * CELL) });
   const x0 = (col + width / 2) * CELL, y0 = (row + 0.5) * CELL, x1 = x0 + across * CELL, y1 = y0 - up * CELL;
   comps.push({ input: Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${cols * CELL}" height="${rows * CELL}"><path d="M${x0} ${y0} L${x1} ${y1}" stroke="#ffe066" stroke-width="2" stroke-dasharray="4 3"/><circle cx="${x1}" cy="${y1}" r="3" fill="#ffe066"/></svg>`), left: 0, top: 0 });
 }

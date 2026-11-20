@@ -15,6 +15,7 @@ import { MILL_SEAT } from '../data/adventure/millArt.js';
 //   level. A seat is ridden like a log: it's one, moving round a circle instead of to and fro. A
 //   round into a wheel's green hub turns it the other way; three freeze rounds stop it for a while,
 //   its seats still steps (watchShots).
+//   a log with { picture } wears that picture of the world's (its top where a log's planks are).
 //   arrow stones (a log with { arrow: true }, adventure/arrowStones.js) are logs of stone with a green
 //   arrow showing which way they go next: a round turns one back; three freeze rounds stop it.
 //   crumbling leaves (map letter %) shake when he lands, fall soon after, and grow back. Leaves side
@@ -50,9 +51,12 @@ export class AdventurePlatforms {
     // Moving logs: a strip of bridge planks, as wide as it is, with a body on its planks.
     this.logs = scene.physics.add.group({ allowGravity: false, immovable: true });
     this.stones = [];
-    for (const { col, row, width = 3, across = 0, up = 0, speed = LOG.speed, arrow = false, parks = false } of movers) {
+    for (const { col, row, width = 3, across = 0, up = 0, speed = LOG.speed, arrow = false, parks = false, picture } of movers) {
       const look = arrow ? stoneTextures(scene, width) : null;
-      const log = arrow
+      // A log with its own picture (the Autumn world's moving stone block), as wide as the log.
+      const log = picture
+        ? scene.add.image(col * TILE, row * TILE, art(picture)).setOrigin(0, 0).setDepth(LOG.depth)
+        : arrow
         ? scene.add.image(col * TILE, row * TILE, look.stone).setOrigin(0, 0).setDepth(LOG.depth)
         : scene.add.tileSprite(col * TILE, row * TILE, width * TILE, TILE, art('bridge')).setOrigin(0, 0).setDepth(LOG.depth);
       this.logs.add(log);

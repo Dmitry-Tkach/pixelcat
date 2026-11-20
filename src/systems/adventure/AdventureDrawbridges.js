@@ -16,12 +16,14 @@ export class AdventureDrawbridges {
     this.planks = scene.physics.add.staticGroup();
     // The world's drawbridge plank (the Autumn world's, the owner's), its top at the top of its cell;
     // or, in a world with none, the bridge tile.
-    const own = scene.textures.exists(art('drawbridge'));
     this.bridges = bridges.map((bridge) => {
+      // Its own planks (bridge.look: a rope bridge's), or the world's drawbridge plank.
+      const plankPicture = bridge.look ?? 'drawbridge';
+      const own = scene.textures.exists(art(plankPicture));
       const { col, row } = bridge.switch;
       const look = scene.add.image(col * TILE + TILE / 2, row * TILE + TILE / 2, art('switch-off')).setDepth(DRAWBRIDGE.switchDepth);
       const planks = drawbridgeCells(bridge).map((cell) => {
-        const plank = this.planks.create(cell.col * TILE + TILE / 2, cell.row * TILE, art(own ? 'drawbridge' : 'bridge')).setDepth(DRAWBRIDGE.depth);
+        const plank = this.planks.create(cell.col * TILE + TILE / 2, cell.row * TILE, art(own ? plankPicture : 'bridge')).setDepth(DRAWBRIDGE.depth);
         if (!own) plank.setDisplaySize(TILE, TILE);
         plank.setY(cell.row * TILE + plank.displayHeight / 2).refreshBody();
         plank.home = plank.y;

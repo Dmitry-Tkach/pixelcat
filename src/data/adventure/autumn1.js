@@ -61,20 +61,19 @@ level.put(2, 26, '@').put(9, 26, '>')
   .put(23, 31, 'j').coins(25, 27, 30).put(31, 29, 'a')
   .put(32, 24, 'C');
 
-// ----- 2. The Old Mill: the walkway from the raised ground across the pool, broken in three by two
-// gaps, the mill house on its first stretch and the wheel turning in the first gap. Fish leap: the
-// first beside the walkway, where it's seen in safety, then one in the first gap, timed with the
-// jump. A pumpkin on the middle stretch, and an owl over the second gap (no fish there, so the two
-// never come together). Below, the pool's bank (outside the secret cave) and stepping stones back
-// up, a low fish between them.
+// ----- 2. The Old Mill: one long wooden pier from the raised ground across the pool, as in the
+// owner's picture, the wheel turning beside it and the waterfalls pouring from the rocky cliff
+// behind. Fish leap: the first low, beside the pier, where it's seen in safety, then two up through
+// the pier, to time the walk past. A pumpkin on the pier, and an owl over its far end. Below, the
+// pool's bank (outside the secret cave) and stone pillars back up.
 level.gap(34, 60)
-  .bridge(34, 41, RAISED).bridge(46, 51, RAISED).bridge(56, 58, RAISED)
+  .bridge(34, 58, RAISED) // the pier
   .ground(34, 36, 30) // the bank outside the cave
   .stones(40, 41, 29).stones(46, 47, 29).stones(52, 53, 28).stones(57, 58, 27) // stepping stones: stone pillars standing in the pool
   .coins(40, 41, 27).coins(46, 47, 27).coins(52, 53, 26)
   .put(38, 24, 'a').put(49, 24, 'P')
   .arc(42, 45, 23, 1).arc(52, 55, 23, 1)
-  .bird('diver', 57, 18, { wake: 50, look: 'owl' }); // within 7 cells above the walkway: it can dive at it
+  .bird('diver', 60, 18, { wake: 54, look: 'owl' }); // within 7 cells above the pier's end, past the fish: never both at once
 
 // ----- 3. Forest Outpost: firm ground again, a checkpoint, and a long island climbed by a ladder,
 // its pumpkin well away from the ladder's top. A vine from it climbs to the ruins.
@@ -83,14 +82,16 @@ level.ground(59, 80, 26)
   .island(64, 75, 22).ladder(64, 22, 25).coins(65, 67, 21).put(73, 21, 'P')
   .put(79, 25, '/');
 
-// ----- 4. The Ruined Bridge: the vine up to the ruins, and at their end, the switch: it lowers the
-// drawbridge across the chasm below (systems/adventure/drawbridges.js). The ruins are low enough
-// that the bridge is on screen as it comes down. The chasm is too wide to jump without it. A mace
-// hangs from a small high island over the bridge, too high to reach from it; a crystal waits on top,
-// a brave leap from the ruins' end, with the bridge already down to catch a miss.
+// ----- 4. The Ruined Bridge: the vine up to the ruins, and at their end, the switch: it lets down a
+// rope bridge across the chasm below (a drawbridge, systems/adventure/drawbridges.js), the switch's
+// lesson. The ruins are low enough that the bridge is on screen as it comes down. The chasm is too
+// wide to jump without it. The spiked ball hangs from a small high island over the bridge, too high
+// to reach from it; a crystal waits on top, reached on the moving stone block from the ruins' end,
+// as in the owner's picture, with the bridge already down to catch a fall.
 level.island(68, 76, 18).vine(70, 18, 21)
   .coins(72, 74, 17)
-  .drawbridge(76, 17, 81, 94, 26)
+  .drawbridge(76, 17, 81, 94, 26, { look: 'rope-plank' })
+  .mover(77, 18, { across: 3, picture: 'move-block' }) // the moving block, out to the spiked ball's island
   .gap(81, 94)
   .island(83, 86, 19).put(84, 18, '*') // the mace's roof, seven cells over the bridge
   .trap('mace', 86, 20, { hanging: true, chain: 237, swingDeg: 30 });
@@ -114,9 +115,11 @@ level.ground(95, 127, 26)
   .put(115, 35, 'U').put(121, 35, '*').coins(122, 124, 35);
 
 // ----- 6. The Guardian Gate: the low meadow, level with the mine's floor, a spike pit, then the vine up
-// to the gold key's island, with an owl diving at it. A step up to the gate's high ground: a checkpoint, a boar, and a last chasm: its
-// drawbridge's switch is on the far side, so it must be shot from across (the switch, learnt at the
-// ruins, now tested). Past it, the gate: its door opens only with the key.
+// to the gold key's island, with an owl diving at it. A step up to the gate's high ground: a
+// checkpoint, a boar, and a spike pit, as in the owner's picture: its wooden bridge is a drawbridge
+// whose switch is on the far side, so it must be shot from across (the switch, learnt at the ruins,
+// now tested). Fall in, and the near end of the pit is safe to climb out from. Past it, steps up to
+// the gold chest, and the gate: its door opens only with the key.
 level.ground(128, 141, 32)
   .put(132, 31, '^').put(133, 31, '^').arc(131, 134, 29, 2)
   .island(135, 141, 18).vine(138, 18, 31).put(136, 17, 'k').coins(139, 141, 17)
@@ -124,7 +127,11 @@ level.ground(128, 141, 32)
   .bird('diver', 140, 11, { look: 'owl' })
   .ground(142, COLS - 1, 26)
   .put(148, 25, 'C').put(151, 25, 'V').coins(149, 152, 24)
-  .gap(155, 164).drawbridge(166, 25, 155, 164, 26, { shot: true })
+  .gap(155, 164).ground(155, 164, 29) // the spike pit, three cells deep
+  .put(156, 28, '^').put(157, 28, '^').put(158, 28, '^').put(159, 28, '^').put(160, 28, '^')
+  .put(161, 28, '^').put(162, 28, '^').put(163, 28, '^').put(164, 28, '^')
+  .drawbridge(166, 25, 155, 164, 26, { shot: true })
+  .island(165, 166, 22).island(167, 169, 19).put(168, 18, 'T').coins(167, 169, 17) // steps up to the gold chest
   .put(167, 25, 'V')
   .put(174, 25, 'E');
 
@@ -141,13 +148,15 @@ export const AUTUMN_VILLAGE_LEVEL = {
   portalLocked: true,
   map: level.rows(),
   traps: level.traps(),
+  movers: level.movers(),
   birds: level.birds(),
-  // Fish leaping out of the mill pool (data/adventure/fish.js): a low one over the jump from the bank
-  // to the first stepping stone, then two high ones, up through the walkway, taking turns.
+  // Fish leaping out of the mill pool (data/adventure/fish.js): a low one beside the pier, over the
+  // jump from the bank to the first stone pillar, then two high ones up through the pier, taking
+  // turns, before the owl's reach.
   fish: [
     { col: 38, rise: 4, across: 2, phaseMs: 0 },
     { col: 43, rise: 8, across: -2, phaseMs: 1000 },
-    { col: 55, rise: 8, across: 2, phaseMs: 2000 },
+    { col: 49, rise: 8, across: 1, phaseMs: 2000 },
   ],
   vines: level.vines(),
   drawbridges: level.drawbridges(),

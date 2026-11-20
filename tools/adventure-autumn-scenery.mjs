@@ -65,6 +65,15 @@ for (const [name, p] of Object.entries(piece)) {
   await savePiece(p, join(OUT, `${name}.png`), w, h);
 }
 
+// The moving block: shown as a moving log (systems/AdventurePlatforms.js), whose top the cat stands
+// on 13 px down, so the block is drawn that far down a cell-tall picture, 3 cells wide.
+if (piece['move-block']) {
+  const TILE = 64, PLANK_TOP = 13, CELLS = 3;
+  const block = await sharp(join(OUT, 'move-block.png')).resize(CELLS * TILE, TILE - PLANK_TOP + 2, { fit: 'fill' }).png().toBuffer();
+  await sharp({ create: { width: CELLS * TILE, height: TILE, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+    .composite([{ input: block, left: 0, top: PLANK_TOP - 2 }]).png({ compressionLevel: 9 }).toFile(join(OUT, 'move-block.png'));
+}
+
 // The pier deck as the bridge tile in the tile strip (tools/adventure-autumn-art.mjs built it with
 // the pack's bridge): the deck's middle slice, at the top of the tile.
 if (piece['pier-deck']) {
