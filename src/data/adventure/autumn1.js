@@ -27,7 +27,7 @@
 import { mapBuilder } from './mapBuilder.js';
 
 const COLS = 180;
-const ROWS = 34;
+const ROWS = 38; // deep, for the caves under the ground (the camera still shows four rows of it)
 const VILLAGE = 27; // the village's ground row: the cat stands on row 26
 const RAISED = 25; // the raised ground past the village, level with the mill's walkway
 const WATER = 31; // the mill pool's and the chasm's water surface
@@ -37,7 +37,9 @@ const level = mapBuilder(COLS, ROWS).ground(0, 17, VILLAGE).ground(18, 33, RAISE
 // ----- 1. Village Entrance: out of the cottage, a pumpkin to stomp, the minigun on the first island
 // (up a ladder), a ? block over it with a crystal on top, and a boar on the island beyond. A
 // bounce mushroom is a second way up. Then cracked floor on the raised ground, with coins on it so a
-// player stops there: it breaks into a cave with the silver key, which opens onto the mill pool.
+// player stops there: it breaks, and he falls down a shaft into a cave deep in the earth, as in the
+// owner's picture, lit by lanterns, with the silver key. A step at its far end leads out onto the
+// bank of the mill pool.
 level.put(2, 26, '@').put(9, 26, '>')
   .coins(5, 8, 25)
   .put(12, 26, 'P')
@@ -46,11 +48,11 @@ level.put(2, 26, '@').put(9, 26, '>')
   .put(13, 15, '?').put(13, 14, '*')
   .island(20, 25, 20).put(23, 19, 'V').coins(21, 22, 19)
   .put(20, 24, 'X') // a stone at the top of the step
-  // The secret: cracked floor, and the cave under the raised ground. Its way out is to the right,
-  // onto the bank of the mill pool.
+  // The secret: cracked floor, the shaft under it through two rows of earth, and the cave, with a
+  // step up at its far end to its way out.
   .cracked(28, 29, RAISED).coins(28, 29, 24)
-  .hollow(28, 29, 26, 26).hollow(22, 33, 27, 29)
-  .put(23, 29, 'j').coins(25, 27, 28).put(31, 29, 'a')
+  .hollow(28, 29, 26, 27).hollow(22, 33, 28, 31).fill(31, 33, 30, 31)
+  .put(23, 31, 'j').coins(25, 27, 30).put(31, 29, 'a')
   .put(32, 24, 'C');
 
 // ----- 2. The Old Mill: the walkway from the raised ground across the pool, broken in three by two
@@ -87,30 +89,32 @@ level.island(68, 76, 18).vine(70, 18, 21)
   .island(83, 86, 19).put(84, 18, '*') // the mace's roof, seven cells over the bridge
   .trap('mace', 86, 20, { hanging: true, chain: 237, swingDeg: 30 });
 
-// ----- 5. The Mineshaft: a hill with a tunnel through it, and two ways on. Below, in the tunnel, a
-// checkpoint at its mouth, a crate of freeze rounds, a mole popping out of the ground, and a squirrel throwing acorns down
-// its length. Above, along the hill's top, two crushers slamming in turn, the mine's stamps, with
-// coins under them. (In the tunnel they'd have no room to swing up from.) Cracked floor
-// in the tunnel, coins on it, breaks into a secret room with the silver chest and a crystal, its way
-// out on the low meadow beyond.
+// ----- 5. The Mineshaft: two ways on. Along the path, two crushers slamming in turn, the mine's
+// stamps, with coins under them. Or down a hole in the path into the mine: a chamber under the
+// ground, as in the owner's picture, with beams, a minecart and lanterns, a crate of freeze rounds,
+// a mole popping out of its floor and a squirrel throwing acorns down its length. It opens at its far
+// end onto the low meadow. Cracked floor in the mine, coins on it, breaks into a secret room deeper
+// still, with the silver chest and a crystal; its way out is up through a trapdoor in the mine's floor.
 level.ground(95, 127, 26)
-  .ground(100, 126, 18).hollow(100, 126, 20, 25) // the hill, two cells thick over a tunnel tall enough for crushers
-  .island(96, 97, 23).island(98, 99, 20) // steps up onto the hill
-  .put(101, 25, 'C').put(102, 25, 'f').coins(103, 106, 24).put(110, 25, 'M')
-  .put(117, 25, '4') // the squirrel, throwing down the tunnel at whoever comes in
-  .trap('crusher', 108, 10, { phaseMs: 0 }).trap('crusher', 116, 10, { phaseMs: 1100 })
-  .coins(107, 109, 16).coins(115, 117, 16).coins(120, 122, 16)
-  .cracked(119, 120, 26).coins(119, 120, 25)
-  .hollow(118, 127, 27, 29).hollow(119, 120, 26, 26)
-  .put(121, 29, 'U').put(123, 29, '*').coins(124, 126, 29);
+  .hollow(98, 127, 28, 31).hollow(99, 100, 26, 27) // the mine, two rows under the path, and the hole down into it
+  .put(97, 25, 'C')
+  .trap('crusher', 108, 18, { phaseMs: 0 }).trap('crusher', 116, 18, { phaseMs: 1100 })
+  .coins(107, 109, 24).coins(115, 117, 24).coins(120, 122, 24)
+  .put(102, 31, 'f').coins(103, 106, 30).put(110, 31, 'M')
+  .put(124, 31, '4') // the squirrel, throwing down the mine at whoever comes in
+  .cracked(118, 119, 32).coins(118, 119, 31)
+  .hollow(118, 119, 33, 33).hollow(113, 126, 34, 35) // the secret room, under the mine's floor
+  .hollow(125, 126, 32, 33).island(125, 126, 32) // the trapdoor: jumped up through from below, stood on from above
+  .put(115, 35, 'U').put(121, 35, '*').coins(122, 124, 35);
 
-// ----- 6. The Guardian Gate: the low meadow, a spike pit, then the vine up to the gold key's island,
-// with an owl diving at it. Up on the gate's high ground, a checkpoint, a boar, and a last chasm: its
+// ----- 6. The Guardian Gate: the low meadow, level with the mine's floor, a spike pit, then the vine up
+// to the gold key's island, with an owl diving at it. A step up to the gate's high ground: a checkpoint, a boar, and a last chasm: its
 // drawbridge's switch is on the far side, so it must be shot from across (the switch, learnt at the
 // ruins, now tested). Past it, the gate: its door opens only with the key.
-level.ground(128, 141, 30)
-  .put(132, 29, '^').put(133, 29, '^').arc(131, 134, 27, 2)
-  .island(135, 141, 18).vine(138, 18, 29).put(136, 17, 'k').coins(139, 141, 17)
+level.ground(128, 141, 32)
+  .put(132, 31, '^').put(133, 31, '^').arc(131, 134, 29, 2)
+  .island(135, 141, 18).vine(138, 18, 31).put(136, 17, 'k').coins(139, 141, 17)
+  .island(140, 141, 28) // the step up to the gate's high ground
   .bird('diver', 140, 11, { look: 'owl' })
   .ground(142, COLS - 1, 26)
   .put(148, 25, 'C').put(151, 25, 'V').coins(149, 152, 24)
@@ -147,7 +151,13 @@ export const AUTUMN_VILLAGE_LEVEL = {
     { col: 48, top: 6, bottom: WATER },
     { col: 51, top: 7, bottom: WATER },
   ],
-  caves: [{ cols: [22, 33], rows: [27, 29] }, { cols: [28, 29], rows: [26, 26] }, { cols: [100, 126], rows: [20, 25] }, { cols: [118, 127], rows: [27, 29] }],
+  // The caves' insides, deep in the earth: the village cave and its shaft, the mine and the hole down
+  // into it, and the secret room under it, its shaft and its trapdoor.
+  caves: [
+    { cols: [22, 33], rows: [28, 31] }, { cols: [28, 29], rows: [26, 27] },
+    { cols: [98, 127], rows: [28, 31] }, { cols: [99, 100], rows: [26, 27] },
+    { cols: [113, 126], rows: [34, 35] }, { cols: [118, 119], rows: [33, 33] }, { cols: [125, 126], rows: [32, 33] },
+  ],
   // The owner's scenery (images/levels/autumn, cut by tools/adventure-autumn-scenery.mjs) and the
   // pack's trees, fences and barrels.
   props: [
@@ -156,22 +166,27 @@ export const AUTUMN_VILLAGE_LEVEL = {
     { picture: 'fence', col: 17, row: 26 },
     { picture: 'barrel', col: 26, row: 24 },
     { picture: 'mill-house', col: 30, row: 24, back: true }, // on the ground by the pool, beside the walkway
-    { picture: 'hang-lantern', col: 26, row: 27, hang: true },
-    { picture: 'crystal-purple', col: 24, row: 29 },
+    { picture: 'hang-lantern', col: 25, row: 28, hang: true, glow: true },
+    { picture: 'hang-lantern', col: 30, row: 28, hang: true, glow: true },
+    { picture: 'crystal-purple', col: 24, row: 31 },
     { picture: 'crystal-purple', col: 32, row: 29 },
     { picture: 'mill-wheel', col: 44, row: 27, back: true, width: 300, spinMs: 9000 },
     { picture: 'tree-1', col: 62, row: 25, back: true },
     { picture: 'ruin-pillar', col: 69, row: 17, back: true },
     { picture: 'ruin-arch', col: 73, row: 17, back: true },
-    { picture: 'mine-frame', col: 100, row: 25, width: 640, back: true },
-    { picture: 'mine-rail', col: 104, row: 25 },
-    { picture: 'minecart', col: 104, row: 25 },
-    { picture: 'hang-lantern', col: 106, row: 20, hang: true },
-    { picture: 'crystal-blue', col: 111, row: 25 },
-    { picture: 'hang-lantern', col: 112, row: 20, hang: true },
-    { picture: 'crystal-blue', col: 122, row: 29 },
-    { picture: 'mine-frame', col: 124, row: 25, width: 420, back: true }, // the tunnel's way out, on its floor
-    { picture: 'tree-1', col: 130, row: 29, back: true },
+    { picture: 'mine-frame', col: 104, row: 31, width: 420, back: true }, // beams holding up the mine
+    { picture: 'mine-frame', col: 117, row: 31, width: 420, back: true },
+    { picture: 'mine-rail', col: 106, row: 31 },
+    { picture: 'mine-rail', col: 108, row: 31 },
+    { picture: 'minecart', col: 107, row: 31 },
+    { picture: 'crystal-blue', col: 112, row: 31 },
+    { picture: 'hang-lantern', col: 101, row: 28, hang: true, glow: true },
+    { picture: 'hang-lantern', col: 110, row: 28, hang: true, glow: true },
+    { picture: 'hang-lantern', col: 121, row: 28, hang: true, glow: true },
+    { picture: 'hang-lantern', col: 119, row: 34, hang: true, glow: true },
+    { picture: 'crystal-blue', col: 123, row: 35 },
+    { picture: 'crystal-purple', col: 114, row: 35 },
+    { picture: 'tree-1', col: 130, row: 31, back: true },
     { picture: 'lamp-post', col: 146, row: 25 },
     { picture: 'tree-2', col: 153, row: 25, back: true },
     { picture: 'lamp-post', col: 166, row: 25 },
@@ -180,7 +195,7 @@ export const AUTUMN_VILLAGE_LEVEL = {
   places: {
     mill: { col: 32, row: 24 },
     outpost: { col: 61, row: 25 },
-    mine: { col: 101, row: 25 },
+    mine: { col: 97, row: 25 },
     gate: { col: 148, row: 25 },
   },
 };

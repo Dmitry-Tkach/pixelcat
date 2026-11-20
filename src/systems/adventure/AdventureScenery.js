@@ -1,3 +1,4 @@
+import Phaser from 'phaser';
 import { TILE } from '../adventureMap.js';
 import { caveRuns } from './caveFill.js';
 import { WATERFALL } from '../../data/adventure/millArt.js';
@@ -8,11 +9,12 @@ import { PTERO_LOOKS } from '../../data/adventure/birds.js';
 //   waterfalls: { col, top, bottom, veil }: water pouring from a mossy lip at row `top` down to row
 //     `bottom`, in the middle of column col, flowing, with a splash at its foot. Behind the wheels;
 //     a veil is thin water in front of the cat instead, hiding what's behind it.
-//   props: { picture, col, row, hang, front, back, width, spinMs }: a picture standing on the bottom
+//   props: { picture, col, row, hang, front, back, width, spinMs, glow }: a picture standing on the bottom
 //     of its cell (or, hang, hanging from its top), in the middle of column col. front: in front of
 //     the cat, as a cover. back: behind the ground, for big scenery (a house, a tree). width: shown
 //     this wide (px), if not its own size. spinMs: it turns round its middle, at the middle of its
-//     cell, once in this long (a mill's wheel turning as scenery).
+//     cell, once in this long (a mill's wheel turning as scenery). glow: a lantern's warm light round
+//     it, flickering, lighting the cave wall behind it (LANTERN_GLOW).
 //   caves: { cols: [from, to], rows: [from, to] }: the dark inside of a cave in a cliff: the world's
 //     'cave-back' picture repeated, or a dark wash in a world without one.
 //   flybys: { col, row, wake, dir, look }: a harmless pterodactyl that takes off from (col, row) as
@@ -24,6 +26,11 @@ const DEPTH = { behind: 1.6, front: 7, cave: 1.55, prop: 2.1, inWater: 1.97 };
 const COVER = { alpha: 1, seen: 0.35, fadePerMs: 0.004 }; // seen: its alpha while he's behind it
 const VEIL_ALPHA = 0.85;
 const CAVE = { colour: 0x0f1a12, alpha: 0.88 };
+// A lantern's glow: a soft round light (drawn once, GLOW_KEY), this wide (px) and warm (tint), where
+// its flame is (at `flame` of the lantern's height from its top), between the cave wall and the
+// ground. It flickers between its two brightnesses, each flicker taking between flickerMs.
+const LANTERN_GLOW = { size: 300, tint: 0xffa63d, alpha: [0.42, 0.62], flickerMs: [600, 1200], flame: 0.72, depth: 1.58 };
+const GLOW_KEY = 'adventure-lantern-glow';
 const FLYBY = { ms: 2600, across: 900, up: 700, scale: 0.85, flapMs: 110, depth: 1.5 }; // behind the level
 
 export class AdventureScenery {
@@ -61,7 +68,7 @@ export class AdventureScenery {
         : scene.add.rectangle(x, y, w, TILE, CAVE.colour, CAVE.alpha);
       cave.setOrigin(0, 0).setDepth(DEPTH.cave);
     }
-    for (const { picture, col, row, hang, front, back, inWater, width, spinMs } of level.props ?? []) {
+    for (const { picture, col, row, hang, front, back, inWater, width, spinMs, glow } of level.props ?? []) {
       if (!has(picture)) continue;
       const x = col * TILE + TILE / 2;
       const image = spinMs
@@ -70,11 +77,37 @@ export class AdventureScenery {
       image.setDepth(front ? DEPTH.front : inWater ? DEPTH.inWater : back ? DEPTH.behind : DEPTH.prop);
       if (width) image.setScale(width / image.width);
       if (spinMs) scene.tweens.add({ targets: image, angle: 360, duration: spinMs, repeat: -1 });
+      if (glow) this.glowAround(image, hang);
       if (front) {
         const b = image.getBounds();
         this.covers.push({ parts: [image], full: COVER.alpha, box: { left: b.left, right: b.right, top: b.top, bottom: b.bottom } });
       }
     }
+  }
+
+  // A lantern's warm light: the soft round glow, added light, flickering like a flame.
+  glowAround(lantern, hang) {
+    const { scene } = this;
+    if (!scene.textures.exists(GLOW_KEY)) {
+      const size = 128, canvas = scene.textures.createCanvas(GLOW_KEY, size, size);
+      const ctx = canvas.getContext();
+      const light = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+      light.addColorStop(0, 'rgba(255,255,255,1)');
+      light.addColorStop(0.35, 'rgba(255,255,255,0.45)');
+      light.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = light;
+      ctx.fillRect(0, 0, size, size);
+      canvas.refresh();
+    }
+    const top = hang ? lantern.y : lantern.y - lantern.displayHeight;
+    const { size, tint, alpha, flickerMs, flame, depth } = LANTERN_GLOW;
+    const glow = scene.add.image(lantern.x, top + lantern.displayHeight * flame, GLOW_KEY)
+      .setDisplaySize(size, size).setTint(tint).setAlpha(alpha[0]).setBlendMode(Phaser.BlendModes.ADD).setDepth(depth);
+    const flicker = () => scene.tweens.add({
+      targets: glow, alpha: Phaser.Math.FloatBetween(alpha[0], alpha[1]), duration: Phaser.Math.Between(flickerMs[0], flickerMs[1]),
+      ease: 'Sine.easeInOut', onComplete: flicker,
+    });
+    flicker();
   }
 
   // A harmless pterodactyl takes off and flies away, flapping, behind the level.
