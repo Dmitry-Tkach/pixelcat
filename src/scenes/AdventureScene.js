@@ -48,6 +48,7 @@ import { AdventureStairs } from '../systems/adventure/AdventureStairs.js';
 import { AdventureMole } from '../entities/AdventureMole.js';
 import { ENEMIES } from '../data/adventure/enemies.js';
 import { cameraBottom } from '../systems/adventure/cameraFloor.js';
+import { secretCoverTiles } from '../systems/adventure/secretCover.js';
 import { vineRuns } from '../data/adventure/mapBuilder.js';
 
 // reach: how far from a ladder's middle it can be grabbed. standStill: slower than this, the cat counts
@@ -95,6 +96,7 @@ const END_SCREEN_MS = 1100;
 const DROP = { fromY: TILE, ms: 700 }; // a pickup the arena drops falls from here, this long
 const STARS = 3; // a level's stars are its crystals, up to this many
 const HINT_AT_MS = 3200; // how long a hint along the way stays (level.hintsAt)
+const SECRET_COVER_DEPTH = 7; // in front of everything, the cat too, until he's inside
 const BEAM_PIPS = { x: 98, y: 128, gap: 26, r: 8 };
 // An earth pillar starts this far up inside the island it holds, and stands this far into the ground.
 const PILLAR_FIT = { underIsland: 6, intoGround: 6, depth: 1 };
@@ -140,6 +142,7 @@ export class AdventureScene extends Phaser.Scene {
     // Water in the bottomless gaps, if the level has it (data/adventure/water.js).
     this.water = new AdventureWater(this, level.water, this.layout, this.worldH + FALL_OUT_BELOW);
     this.scenery = new AdventureScenery(this, level, this.art); // waterfalls, caves, covers (Mill Falls)
+    this.buildSecretCovers();
     this.splashed = false;
     this.buildLadders();
     this.buildScenery();
@@ -339,6 +342,23 @@ export class AdventureScene extends Phaser.Scene {
     for (const { cols: [from, to], row } of this.level.hiddenTiles ?? []) {
       for (let c = from; c <= to; c++) this.groundLayer.getTileAt(c, row)?.setVisible(false);
     }
+  }
+
+  // A level's secret caves (level.secrets: { cols, rows }) hidden under the ground's own tiles, as if
+  // the caves were solid (systems/adventure/secretCover.js), with the same picture variants as the
+  // ground, in front of everything: each fades away while the cat is inside its cave.
+  buildSecretCovers() {
+    const tileset = this.groundLayer.tileset[0];
+    (this.level.secrets ?? []).forEach((secret, i) => {
+      const layer = this.groundLayer.tilemap.createBlankLayer(`secret-${i}`, tileset).setDepth(SECRET_COVER_DEPTH);
+      for (const { col, row, tile } of secretCoverTiles(this.level.map, secret)) {
+        const variants = TILE_VARIANTS[tile];
+        const shown = variants && cellRandom(col, row, 9) < TILE_VARIANT_SHARE ? variants[Math.floor(cellRandom(col, row, 10) * variants.length)] : tile;
+        layer.putTileAt(shown, col, row);
+      }
+      const { cols: [c0, c1], rows: [r0, r1] } = secret;
+      this.scenery.addCover([layer], { left: c0 * TILE, right: (c1 + 1) * TILE, top: r0 * TILE, bottom: (r1 + 1) * TILE });
+    });
   }
 
   // Whether a point (px) is by a hidden island (hiddenTiles), where no plants grow.

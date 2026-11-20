@@ -185,10 +185,10 @@ export const AUTUMN_VILLAGE_LEVEL = {
   // owner's splash at its foot. Each strip starts behind its piece's solid part, so its top doesn't
   // show through where the piece fades out.
   waterfalls: [
-    { col: 38, top: 23, bottom: WATER, width: 112, head: false, foamAt: [RAISED] }, // off the middle ledge, by the mill's wheel
-    { col: 43, top: 20, bottom: 23, width: 130, head: false, splash: false }, // off the top ledge, onto the middle one
-    { col: 43, top: 22, bottom: WATER, width: 140, head: false }, // and on, from its foam, into the pool
-    { col: 48, top: 20, bottom: WATER, width: 140, head: false, foamAt: [RAISED] }, // off the top ledge's far end
+    { col: 38, top: 15, bottom: WATER, width: 112, head: false, foamAt: [RAISED] }, // off the middle ledge, by the mill's wheel
+    { col: 43, top: 12, bottom: 15, width: 130, head: false, splash: false }, // off the top ledge, onto the middle one
+    { col: 43, top: 14, bottom: WATER, width: 140, head: false }, // and on, from its foam, into the pool
+    { col: 48, top: 12, bottom: WATER, width: 140, head: false, foamAt: [RAISED] }, // off the top ledge's far end
   ],
   // The caves' insides, deep in the earth: the village cave and its shaft, the mine and the hole down
   // into it, and the secret room under it, its shaft and its trapdoor.
@@ -197,8 +197,8 @@ export const AUTUMN_VILLAGE_LEVEL = {
     { cols: [98, 127], rows: [28, 31] }, { cols: [98, 99], rows: [26, 27] },
     { cols: [113, 126], rows: [34, 35] }, { cols: [118, 119], rows: [32, 33] }, { cols: [125, 126], rows: [32, 33] },
   ],
-  // The secret caves, hidden under the earth until the cat is inside: the village's cave and its
-  // shaft, and the secret room under the mine (systems/adventure/AdventureScenery.js).
+  // The secret caves, hidden under the ground's own tiles until the cat is inside: the village's
+  // cave and its shaft, and the secret room under the mine (AdventureScene.buildSecretCovers).
   secrets: [{ cols: [22, 33], rows: [26, 31] }, { cols: [113, 126], rows: [33, 35] }],
   // The owner's scenery (images/levels/autumn, cut by tools/adventure-autumn-scenery.mjs) and the
   // pack's trees, fences and barrels.
@@ -242,18 +242,22 @@ export const AUTUMN_VILLAGE_LEVEL = {
     { picture: 'hang-lantern', col: 30, row: 28, hang: true, glow: true },
     { picture: 'crystal-purple', col: 24, row: 31 },
     { picture: 'crystal-purple', col: 32, row: 29 },
-    // The waterfall cliff, drawn big by the owner (prompt 15), scenery only, rising to the right: its
-    // ledges at about 53%, 28% and 3% of its height (measured), 1095 x 768 px, its foot in the pool
-    // (mossy rocks along the waterline), its top at row 19.
-    { picture: 'big-cliff', col: 41, row: 30, dx: 51, fromWater: true },
+    // The waterfall cliff, drawn big by the owner (prompt 15), scenery only, rising to the right (its
+    // ledges at about 53%, 28% and 3% of its height, measured), 1095 x 768 px. It stands high, its top
+    // at 680 px (row 10.6), over the rope bridge, as in the owner's picture, on a wall of the owner's
+    // rock columns from the pool up under it; mossy rocks along the waterline.
+    ...[2230, 2370, 2510, 2650, 2790, 2930, 3070, 3210].map((x) => ({
+      picture: 'rock-column', col: Math.floor(x / 64), dx: x - (Math.floor(x / 64) * 64 + 32), row: 30, stack: 9, fromWater: true,
+    })),
+    { picture: 'big-cliff', col: 41, row: 30, dx: 51, dy: -535, fromWater: true },
     ...[37, 41, 45, 49].map((col) => ({ picture: 'pool-rocks', col, row: 30, inWater: true })),
-    { picture: 'fall-spill', col: 37, row: 24, dx: 38, dy: -7, back: true, free: true }, // off the middle ledge
-    { picture: 'fall-spill', col: 42, row: 21, dx: 38, dy: -7, back: true, free: true }, // off the top ledge
-    { picture: 'fall-spill', col: 47, row: 21, dx: 38, dy: -7, back: true, free: true }, // off the top ledge's far end
-    { picture: 'fall-landing', col: 43, row: 23, dx: -8, dy: 2, back: true, free: true }, // on the middle ledge
+    { picture: 'fall-spill', col: 37, row: 16, dx: 38, dy: -31, back: true, free: true }, // off the middle ledge
+    { picture: 'fall-spill', col: 42, row: 13, dx: 38, dy: -31, back: true, free: true }, // off the top ledge
+    { picture: 'fall-spill', col: 47, row: 13, dx: 38, dy: -31, back: true, free: true }, // off the top ledge's far end
+    { picture: 'fall-landing', col: 43, row: 15, dx: -8, dy: -22, back: true, free: true }, // on the middle ledge
     // Growing on the cliff's top between its falls, as in the owner's picture: between the two
     // spills' rocks, and after them, so its trunk stands in front of them.
-    { picture: 'big-tree', col: 45, row: 18, dy: 23, back: true, free: true },
+    { picture: 'big-tree', col: 45, row: 10, dy: -1, back: true, free: true },
     { picture: 'mill-wheel', col: 35, row: 24, back: true, width: 300, spinMs: 9000 }, // fixed to the mill house's side, at the pier
     { picture: 'big-tree', col: 62, row: 25, back: true },
     { picture: 'ruin-arch', col: 70, row: 17, back: true }, // two arches, the crystal between them
@@ -325,7 +329,7 @@ export const AUTUMN_VILLAGE_LEVEL = {
     secretCave: { col: 26, row: 31 },
     mill: { col: 32, row: 24 },
     highWay: { col: 29, row: 13 }, // the first small ledge over the mill house
-    bridgeStart: { col: 42, row: 12 }, // the rope bridge's start, past the waterfalls' top
+    bridgeStart: { col: 36, row: 12 }, // the second small ledge, before the jump to the rope bridge
     ropeBridge: { col: 55, row: 12 }, // on the rope bridge
     arches: { col: 73, row: 17 }, // the ruins (named so, as the Wood world has a place called ruins)
     keyIsland: { col: 86, row: 14 },

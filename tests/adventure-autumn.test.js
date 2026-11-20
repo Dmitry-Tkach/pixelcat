@@ -9,6 +9,7 @@ import { FISH, fishAt, fishProblems, touchesFish } from '../src/data/adventure/f
 import { MOLE, moleStep } from '../src/systems/adventure/moleLogic.js';
 import { cameraBottom } from '../src/systems/adventure/cameraFloor.js';
 import { caveRuns } from '../src/systems/adventure/caveFill.js';
+import { secretCoverTiles } from '../src/systems/adventure/secretCover.js';
 import { feetOnStairs, holdsOnStairs, stairBox, stairSurface } from '../src/systems/adventure/stairSteps.js';
 
 // The Autumn Forest (world 2) and what its first level brought: borrowed art, vines, cracked floor,
@@ -340,4 +341,22 @@ describe('stairs', () => {
       }
     },
   );
+});
+
+describe('a secret cave\'s cover', () => {
+  // Ground from row 2 down, a cave in rows 3 and 4, columns 2 to 4.
+  const map = ['.......', '.......', '#######', '##...##', '##...##', '#######'];
+  const cover = secretCoverTiles(map, { cols: [2, 4], rows: [3, 4] });
+  const at = (c, r) => cover.find((t) => t.col === c && t.row === r)?.tile;
+
+  it('is the ground\'s own tiles, as if the cave were solid', () => {
+    expect(at(3, 3)).toBe(TILES.soil); // inside the cave: plain earth
+    expect(at(1, 3)).toBe(TILES.soil); // beside it: plain earth, not a wavy edge
+    expect(at(3, 2)).toBe(TILES.groundTop); // over it: the ground's top
+  });
+
+  it('reaches one cell round the cave, and no further', () => {
+    expect(at(0, 3)).toBeUndefined();
+    expect(at(3, 1)).toBeUndefined(); // air over the ground stays air
+  });
 });
