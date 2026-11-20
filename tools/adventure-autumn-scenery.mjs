@@ -86,6 +86,20 @@ if (piece['fall-strip']) {
   await sharp(out, { raw: { width: w, height: keep, channels: 4 } }).png({ compressionLevel: 9 }).toFile(join(OUT, 'fall-middle.png'));
 }
 
+// The spill and the landing: their water fades out at the bottom, over the flowing strip under them
+// (the waterfall starts behind them), so there's no line where one ends and the other goes on.
+const PIECE_FADE = 56; // px: long, so the change from piece to strip can't be seen
+for (const name of ['fall-spill', 'fall-landing']) {
+  if (!piece[name]) continue;
+  const file = join(OUT, `${name}.png`);
+  const { data, info } = await sharp(file).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  for (let y = info.height - PIECE_FADE; y < info.height; y++) {
+    const keep = (info.height - y) / PIECE_FADE;
+    for (let x = 0; x < info.width; x++) data[(y * info.width + x) * 4 + 3] = Math.round(data[(y * info.width + x) * 4 + 3] * keep);
+  }
+  await sharp(data, { raw: info }).png({ compressionLevel: 9 }).toFile(file);
+}
+
 // The moving block: shown as a moving log (systems/AdventurePlatforms.js), whose top the cat stands
 // on 13 px down, so the block is drawn that far down a cell-tall picture, 3 cells wide.
 if (piece['move-block']) {

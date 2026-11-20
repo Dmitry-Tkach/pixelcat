@@ -474,7 +474,9 @@ export class AdventureScene extends Phaser.Scene {
       const cell = cellKey(object);
       switch (object.type) {
         case 'coin': {
-          const coin = this.physics.add.staticSprite(x, middle, this.art('coin-1')).play(this.coinSpin);
+          // In front of the scenery, as the other pickups are (with none, a cave's wall or a background
+          // picture covered them).
+          const coin = this.physics.add.staticSprite(x, middle, this.art('coin-1')).play(this.coinSpin).setDepth(4);
           coin.body.setCircle(18, (coin.width - 36) / 2, (coin.height - 36) / 2);
           coin.kind = 'coin';
           coin.cell = cell;

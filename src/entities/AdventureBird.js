@@ -187,6 +187,7 @@ export class AdventureBird extends Phaser.Physics.Arcade.Sprite {
 
   // Shows a pose: the owner's frame `name` if it has its art, else the stand-in's frame.
   pose(standIn, name) {
+    if (!this.scene) return; // gone already: a knock-out's late pose after it faded, or a restart
     if (this.drawn) this.setTexture(this.drawn[name]);
     else this.setFrame(standIn);
   }
