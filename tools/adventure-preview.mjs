@@ -73,6 +73,12 @@ if (millArt) {
     const pieces = [await at(flow, x, top * TILE + lipH * 0.8, 0.5, 0), await at(lip, x, top * TILE, 0.5, 0), await at(await scaled(art('fall-splash'), 1), x, bottom * TILE + 10, 0.5, 1)];
     (veil ? fronts : comps).push(...pieces);
   }
+  // Earth columns behind the level (AdventureScenery's columns): the world's column picture, stacked.
+  for (const { col, width, top, bottom } of level.columns ?? []) {
+    if (!existsSync(art(`column-${width}`))) continue;
+    const piece = await sharp(art(`column-${width}`)).resize(Math.round(width * CELL), Math.round(CELL)).png().toBuffer();
+    for (let r = top; r <= bottom; r++) comps.push({ input: piece, left: Math.round(col * CELL), top: Math.round(r * CELL) });
+  }
   // A tile no bigger than the cave it fills (sharp can't tile a bigger one).
   const fitTile = async (tile, w, h) => {
     const { width, height } = await sharp(tile).metadata();
@@ -311,7 +317,7 @@ if (millArt) {
     const { width: own, height: ownH } = await sharp(art(picture)).metadata();
     // A lantern's warm glow (AdventureScenery's LANTERN_GLOW), under it.
     if (glow) {
-      const r = Math.round(150 * SCALE), cy = (hang ? row * TILE + ownH * 0.72 : (row + 1) * TILE - ownH * 0.28) * SCALE;
+      const r = Math.round(150 * SCALE), cy = (hang ? row * TILE + ownH * 0.72 : (row + 1) * TILE - ownH * 0.8) * SCALE;
       const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${r * 2}" height="${r * 2}"><defs><radialGradient id="g"><stop offset="0" stop-color="#ffa63d" stop-opacity="0.6"/><stop offset="0.35" stop-color="#ffa63d" stop-opacity="0.27"/><stop offset="1" stop-color="#ffa63d" stop-opacity="0"/></radialGradient></defs><circle cx="${r}" cy="${r}" r="${r}" fill="url(#g)"/></svg>`;
       comps.push({ input: Buffer.from(svg), left: Math.max(0, Math.round((col * TILE + TILE / 2) * SCALE - r)), top: Math.max(0, Math.round(cy - r)), blend: 'screen' });
     }

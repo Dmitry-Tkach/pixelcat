@@ -15,6 +15,9 @@ import { PTERO_LOOKS } from '../../data/adventure/birds.js';
 //     this wide (px), if not its own size. spinMs: it turns round its middle, at the middle of its
 //     cell, once in this long (a mill's wheel turning as scenery). glow: a lantern's warm light round
 //     it, flickering, lighting the cave wall behind it (LANTERN_GLOW).
+//   columns: { col, width, top, bottom }: an earth column behind the level, holding an island up
+//     from the ground: `width` cells wide (2 or 3, the world's column-<width> picture) from column
+//     col, from row top to row bottom. Scenery only: the cat passes in front of it.
 //   caves: { cols: [from, to], rows: [from, to] }: the dark inside of a cave in a cliff: the world's
 //     'cave-back' picture repeated, or a dark wash in a world without one.
 //   flybys: { col, row, wake, dir, look }: a harmless pterodactyl that takes off from (col, row) as
@@ -22,14 +25,15 @@ import { PTERO_LOOKS } from '../../data/adventure/birds.js';
 //     here. look: 'orange' or 'green' (data/adventure/birds.js, PTERO_LOOKS).
 // A cover (a veil, or a prop in front) fades while the cat is behind it, so he can see himself, and
 // whoever looks closely finds what it hides.
-const DEPTH = { behind: 1.6, front: 7, cave: 1.55, prop: 2.1, inWater: 1.97 };
+const DEPTH = { behind: 1.6, front: 7, cave: 1.55, prop: 2.1, inWater: 1.97, column: 1.7 };
 const COVER = { alpha: 1, seen: 0.35, fadePerMs: 0.004 }; // seen: its alpha while he's behind it
 const VEIL_ALPHA = 0.85;
 const CAVE = { colour: 0x0f1a12, alpha: 0.88 };
-// A lantern's glow: a soft round light (drawn once, GLOW_KEY), this wide (px) and warm (tint), where
-// its flame is (at `flame` of the lantern's height from its top), between the cave wall and the
+// A lantern's or a torch's glow: a soft round light (drawn once, GLOW_KEY), this wide (px) and warm
+// (tint), where its flame is (at `flame` of a hanging lantern's height from its top, standingFlame of
+// a standing torch's), between the cave wall and the
 // ground. It flickers between its two brightnesses, each flicker taking between flickerMs.
-const LANTERN_GLOW = { size: 300, tint: 0xffa63d, alpha: [0.42, 0.62], flickerMs: [600, 1200], flame: 0.72, depth: 1.58 };
+const LANTERN_GLOW = { size: 300, tint: 0xffa63d, alpha: [0.42, 0.62], flickerMs: [600, 1200], flame: 0.72, standingFlame: 0.2, depth: 1.58 };
 const GLOW_KEY = 'adventure-lantern-glow';
 const FLYBY = { ms: 2600, across: 900, up: 700, scale: 0.85, flapMs: 110, depth: 1.5 }; // behind the level
 
@@ -56,6 +60,11 @@ export class AdventureScenery {
       for (const part of parts) part.setAlpha(veil ? VEIL_ALPHA : WATERFALL.alpha);
       this.flows.push(flow);
       if (veil) this.covers.push({ parts, full: VEIL_ALPHA, box: { left: x - width / 2, right: x + width / 2, top: topY, bottom: bottomY } });
+    }
+    for (const { col, width, top, bottom } of level.columns ?? []) {
+      if (!has(`column-${width}`)) continue;
+      scene.add.tileSprite(col * TILE, top * TILE, width * TILE, (bottom - top + 1) * TILE, art(`column-${width}`))
+        .setOrigin(0, 0).setDepth(DEPTH.column);
     }
     // A world with its own cave wall picture (the Autumn world's dark earth and stones) has it
     // repeated over the cave, lined up across the whole level so the strips join; another, a dark
@@ -100,8 +109,8 @@ export class AdventureScenery {
       canvas.refresh();
     }
     const top = hang ? lantern.y : lantern.y - lantern.displayHeight;
-    const { size, tint, alpha, flickerMs, flame, depth } = LANTERN_GLOW;
-    const glow = scene.add.image(lantern.x, top + lantern.displayHeight * flame, GLOW_KEY)
+    const { size, tint, alpha, flickerMs, flame, standingFlame, depth } = LANTERN_GLOW;
+    const glow = scene.add.image(lantern.x, top + lantern.displayHeight * (hang ? flame : standingFlame), GLOW_KEY)
       .setDisplaySize(size, size).setTint(tint).setAlpha(alpha[0]).setBlendMode(Phaser.BlendModes.ADD).setDepth(depth);
     const flicker = () => scene.tweens.add({
       targets: glow, alpha: Phaser.Math.FloatBetween(alpha[0], alpha[1]), duration: Phaser.Math.Between(flickerMs[0], flickerMs[1]),

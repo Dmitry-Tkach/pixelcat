@@ -33,6 +33,12 @@ const RAISED = 25; // the raised ground past the village, level with the mill's 
 const WATER = 31; // the mill pool's and the chasm's water surface
 
 const level = mapBuilder(COLS, ROWS).ground(0, 17, VILLAGE).ground(18, 33, RAISED);
+// A pillar of stone blocks (X) from row `top` down into the water, columns `from` to `to`: a stepping
+// stone in the mill pool, as in the owner's picture.
+level.stones = (from, to, top) => {
+  for (let c = from; c <= to; c++) for (let r = top; r < ROWS; r++) level.put(c, r, 'X');
+  return level;
+};
 
 // ----- 1. Village Entrance: out of the cottage, a pumpkin to stomp, the minigun on the first island
 // (up a ladder), a ? block over it with a crystal on top, and a boar on the island beyond. A
@@ -64,7 +70,7 @@ level.put(2, 26, '@').put(9, 26, '>')
 level.gap(34, 60)
   .bridge(34, 41, RAISED).bridge(46, 51, RAISED).bridge(56, 58, RAISED)
   .ground(34, 36, 30) // the bank outside the cave
-  .ground(40, 41, 29).ground(46, 47, 29).ground(52, 53, 28).ground(57, 58, 27) // stepping stones
+  .stones(40, 41, 29).stones(46, 47, 29).stones(52, 53, 28).stones(57, 58, 27) // stepping stones: stone pillars standing in the pool
   .coins(40, 41, 27).coins(46, 47, 27).coins(52, 53, 26)
   .put(38, 24, 'a').put(49, 24, 'P')
   .arc(42, 45, 23, 1).arc(52, 55, 23, 1)
@@ -119,7 +125,7 @@ level.ground(128, 141, 32)
   .ground(142, COLS - 1, 26)
   .put(148, 25, 'C').put(151, 25, 'V').coins(149, 152, 24)
   .gap(155, 164).drawbridge(166, 25, 155, 164, 26, { shot: true })
-  .put(169, 25, 'V')
+  .put(167, 25, 'V')
   .put(174, 25, 'E');
 
 export const AUTUMN_VILLAGE_LEVEL = {
@@ -160,6 +166,15 @@ export const AUTUMN_VILLAGE_LEVEL = {
   ],
   // The owner's scenery (images/levels/autumn, cut by tools/adventure-autumn-scenery.mjs) and the
   // pack's trees, fences and barrels.
+  // Earth columns behind the level, holding its islands up from the ground, as in the owner's
+  // picture (systems/adventure/AdventureScenery.js): scenery only, the cat passes in front.
+  columns: [
+    { col: 12, width: 3, top: 20, bottom: 27 }, // under the minigun's island
+    { col: 22, width: 2, top: 21, bottom: 25 }, // under the boar's island
+    { col: 69, width: 3, top: 23, bottom: 26 }, // under the outpost's island
+    { col: 72, width: 3, top: 19, bottom: 22 }, // under the ruins, down to the outpost's island
+    { col: 139, width: 3, top: 19, bottom: 32 }, // under the key's island, down to the meadow
+  ],
   props: [
     { picture: 'cottage', col: 5, row: 26, back: true },
     { picture: 'lamp-post', col: 8, row: 26 },
@@ -190,6 +205,26 @@ export const AUTUMN_VILLAGE_LEVEL = {
     { picture: 'lamp-post', col: 146, row: 25 },
     { picture: 'tree-2', col: 153, row: 25, back: true },
     { picture: 'lamp-post', col: 166, row: 25 },
+    // Torches and fences on the ledges, lit, as in the owner's picture; fire bowls either side of the
+    // gate, between it and its statues.
+    { picture: 'torch', col: 15, row: 18, width: 84, glow: true },
+    { picture: 'fence-2', col: 24, row: 19 },
+    { picture: 'torch', col: 25, row: 24, width: 84, glow: true },
+    { picture: 'torch', col: 33, row: 24, width: 84, glow: true },
+    { picture: 'fence', col: 59, row: 25 },
+    { picture: 'torch', col: 62, row: 25, width: 84, glow: true },
+    { picture: 'fence-2', col: 67, row: 21 },
+    { picture: 'torch', col: 75, row: 21, width: 84, glow: true },
+    { picture: 'torch', col: 68, row: 17, width: 84, glow: true },
+    { picture: 'sign-skull', col: 80, row: 25 },
+    { picture: 'torch', col: 96, row: 25, width: 84, glow: true },
+    { picture: 'sign-warn', col: 129, row: 31 },
+    { picture: 'torch', col: 136, row: 31, width: 84, glow: true },
+    { picture: 'torch', col: 143, row: 25, width: 84, glow: true },
+    { picture: 'fence', col: 150, row: 25 },
+    { picture: 'sign-skull', col: 153, row: 25 },
+    { picture: 'torch', col: 171, row: 25, width: 84, glow: true },
+    { picture: 'torch', col: 177, row: 25, width: 84, glow: true },
   ],
   // Places to start at while developing, with /adventure.html?at=<name> (systems/adventure/devPlaces.js).
   places: {

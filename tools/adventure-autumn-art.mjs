@@ -90,6 +90,17 @@ await shrinkPieces(AUTUMN, OUT, STANDS);
 // No earth pillar (map letter R): the pack's cuts badly, so this world's levels don't use one.
 await buildTileStrip(OUT, soilVariants(SOIL));
 
+// Earth columns, holding islands up from the ground behind them (data/adventure/autumn1.js,
+// columns): the ground's soil tiles side by side, two or three wide, a little darker as they stand
+// behind the level. Soil repeats up and down, so the scene stacks them as tall as a column is.
+const COLUMN_SHADE = 0.82;
+for (const [name, parts] of [['column-2', ['soil-left', 'soil-right']], ['column-3', ['soil-left', 'soil', 'soil-right']]]) {
+  const tiles = await Promise.all(parts.map((part) => sharp(join(OUT, `${part}.png`)).resize(TILE, TILE).png().toBuffer()));
+  const joined = await sharp({ create: { width: TILE * parts.length, height: TILE, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+    .composite(tiles.map((input, i) => ({ input, left: i * TILE, top: 0 }))).png().toBuffer();
+  await sharp(joined).modulate({ brightness: COLUMN_SHADE }).png({ compressionLevel: 9 }).toFile(join(OUT, `${name}.png`));
+}
+
 // The inside of a cave: the pack's square of dark earth with stones, cut to its plain middle (its top
 // rows are see-through and its bottom has a dark outline, which showed as lines where it repeats).
 const CAVE_WALL = { top: 24, bottom: 312 };

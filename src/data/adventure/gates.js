@@ -59,7 +59,7 @@ GATES.autumn = {
     height: 300, postHeight: 150, sink: 8, depth: 1.8,
     hole: { x: 0.498, y: 0.552, size: 0.376 },
     doorBox: { x0: 0.31, y0: 0.283, x1: 0.686, y1: 0.821 },
-    postGap: 235, postFoot: 40, sparks: false,
+    postGap: 290, postFoot: 40, sparks: false, // room for a fire bowl between each statue and the gate
     spinMs: 4000, pulseMs: 900, enterMs: 700,
   },
 };
