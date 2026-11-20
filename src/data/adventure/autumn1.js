@@ -334,6 +334,9 @@ export const AUTUMN_VILLAGE_LEVEL = {
   // Places to start at while developing, with /adventure.html?at=<name> (systems/adventure/devPlaces.js).
   places: {
     village: { col: 8, row: 26 },
+    villageStairs: { col: 14, row: 26 }, // just before the village's stone stairs
+    villageStairsTop: { col: 19, row: 24 }, // at the top of the village's stone stairs
+    mineStairs: { col: 101, row: 25 }, // past the mine's hole, before the hill's stairs
     secretCave: { col: 26, row: 31 },
     mill: { col: 32, row: 24 },
     highWay: { col: 29, row: 13 }, // the first small ledge over the mill house

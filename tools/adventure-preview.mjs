@@ -13,7 +13,7 @@ import { caveShades } from '../src/systems/adventure/caveFill.js';
 import { columnSpan } from '../src/systems/adventure/earthColumns.js';
 import { pillarLayout } from '../src/systems/adventure/pillarLayout.js';
 import { PILLAR_ART } from '../src/data/adventure/pillars.js';
-import { stairBox } from '../src/systems/adventure/stairSteps.js';
+import { stairPicture } from '../src/systems/adventure/stairSteps.js';
 import { FISH, fishAt } from '../src/data/adventure/fish.js';
 import { BOSS_ARENAS } from '../src/data/adventure/bossArenas.js';
 import { bossLayout, bossPath } from '../src/data/adventure/bosses.js';
@@ -154,6 +154,14 @@ if (millArt) {
   }
 }
 const strip = 'public/assets/adventure/' + level.world + '/tiles.png';
+// Stairs (systems/adventure/stairSteps.js): the staircase picture over its box, behind the tiles
+// as in the game (it tucks behind the higher ground's wavy edge).
+for (const flight of level.stairs ?? []) {
+  const { left, right, top, bottom } = stairPicture(flight, TILE);
+  const picture = art(flight.dir > 0 ? 'stairs-up-right' : 'stairs-up-left');
+  if (!existsSync(picture)) continue;
+  comps.push({ input: await sharp(picture).resize(Math.round((right - left) * SCALE), Math.round((bottom - top) * SCALE), { fit: 'fill' }).png().toBuffer(), left: Math.round(left * SCALE), top: Math.round(top * SCALE) });
+}
 // Every tile in the strip (its width says how many: the plain tiles, variants and undersides).
 const stripTiles = Math.floor((await sharp(strip).metadata()).width / TILE);
 const tileImages = await Promise.all(Array.from({ length: stripTiles }, (_, i) => sharp(strip).extract({ left: i * TILE, top: 0, width: TILE, height: TILE }).resize(CELL, CELL).toBuffer()));
@@ -334,13 +342,6 @@ if (level.boss) {
   let floor = rows - 1; // the top of the ground at the bottom of his column, under any islands
   while (floor > 0 && tiles[floor - 1][col] >= 0) floor -= 1;
   comps.push({ input: frame, left: Math.round(col * CELL + CELL / 2 - L.feetX * SCALE), top: Math.max(0, Math.round(floor * CELL - L.feetY * SCALE)) });
-}
-// Stairs (systems/adventure/stairSteps.js): the staircase picture over its box.
-for (const flight of level.stairs ?? []) {
-  const { left, right, top, bottom } = stairBox(flight, TILE);
-  const picture = art(flight.dir > 0 ? 'stairs-up-right' : 'stairs-up-left');
-  if (!existsSync(picture)) continue;
-  comps.push({ input: await sharp(picture).resize(Math.round((right - left) * SCALE), Math.round((bottom - top) * SCALE), { fit: 'fill' }).png().toBuffer(), left: Math.round(left * SCALE), top: Math.round(top * SCALE) });
 }
 // Moving logs: where each starts, and a dotted line along its path.
 const plank = await sharp(art('bridge')).resize(CELL, CELL).toBuffer();

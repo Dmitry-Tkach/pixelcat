@@ -13,7 +13,7 @@ import { secretCoverTiles } from '../src/systems/adventure/secretCover.js';
 import { COLUMN_REACH, columnSpan } from '../src/systems/adventure/earthColumns.js';
 import { pillarLayout } from '../src/systems/adventure/pillarLayout.js';
 import { PILLAR } from '../src/data/adventure/pillars.js';
-import { feetOnStairs, holdsOnStairs, stairBox, stairSurface } from '../src/systems/adventure/stairSteps.js';
+import { STAIRS, feetOnStairs, holdsOnStairs, stairBox, stairPicture, stairSurface, stairWall } from '../src/systems/adventure/stairSteps.js';
 
 // The Autumn Forest (world 2) and what its first level brought: borrowed art, vines, cracked floor,
 // drawbridges and the locked Guardian Gate.
@@ -333,6 +333,24 @@ describe('stairs', () => {
     expect(holdsOnStairs({ feet: 292, prevFeet: 290, vy: 20, wasOn: false }, 300)).toBe(false); // in the air over them
     expect(holdsOnStairs({ feet: 305, prevFeet: 300, vy: -400, wasOn: true }, 300)).toBe(false); // jumping off
     expect(holdsOnStairs({ feet: 360, prevFeet: 280, vy: 2000, wasOn: false }, 300)).toBe(true); // falling through: caught
+  });
+
+  it('lift him onto them from the floor under them, however far under he is', () => {
+    expect(holdsOnStairs({ feet: 400, prevFeet: 400, vy: 0, wasOn: false, onFloor: true }, 300)).toBe(true);
+    expect(holdsOnStairs({ feet: 400, prevFeet: 400, vy: 0, wasOn: false }, 300)).toBe(false); // in the air, not on the floor
+    expect(holdsOnStairs({ feet: 400, prevFeet: 400, vy: -300, wasOn: false, onFloor: true }, 300)).toBe(false); // jumping
+  });
+
+  it('rise to the higher ground\'s edge, the picture tucked on behind its wavy edge', () => {
+    const flight = { at: 18, row: 26, dir: 1 };
+    expect(stairBox(flight, 64).right).toBe(18 * 64); // his feet reach the top as he steps onto the ground
+    expect(stairPicture(flight, 64)).toMatchObject({ left: stairBox(flight, 64).left, right: 18 * 64 + STAIRS.tuck });
+    expect(stairPicture(flight, 64).right - stairPicture(flight, 64).left).toBe(STAIRS.width); // at its own width
+  });
+
+  it('open the higher ground\'s side behind them, so he walks off the top step onto it', () => {
+    expect(stairWall({ at: 18, row: 26, dir: 1 })).toEqual([{ col: 18, row: 26, side: 'left' }, { col: 18, row: 25, side: 'left' }]);
+    expect(stairWall({ at: 122, row: 25, dir: -1 })).toEqual([{ col: 121, row: 25, side: 'right' }, { col: 121, row: 24, side: 'right' }]);
   });
 
   it.each(ADVENTURE_LEVELS.filter((level) => level.stairs?.length).map((level) => [level.id, level]))(

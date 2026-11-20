@@ -231,7 +231,7 @@ export class AdventureScene extends Phaser.Scene {
       art: this.art, canLand: () => !this.climbing && !this.pullingUp, spend: (bullet) => this.moves.bulletStops(bullet),
     });
     // Stairs he walks up and down, his feet kept on their slope (systems/adventure/AdventureStairs.js).
-    this.stairs = new AdventureStairs(this, level.stairs ?? [], { art: this.art });
+    this.stairs = new AdventureStairs(this, level.stairs ?? [], { art: this.art, ground: this.groundLayer });
     // Fish leaping out of the water: they hurt the cat, and a round knocks one out (data/adventure/fish.js).
     this.fish = new AdventureFish(this, level.fish ?? [], {
       art: this.art, water: this.water, hurt: (fromX) => this.hurt(fromX), spend: (bullet) => this.moves.bulletStops(bullet),
