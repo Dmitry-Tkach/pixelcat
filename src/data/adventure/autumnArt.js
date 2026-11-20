@@ -21,6 +21,8 @@ export const AUTUMN_SHEETS = {
   // splash its fall-splash; the stepped cliff, ledges and rocks they pour over.
   'waterfall-steps': [['fall-strip', 'fall-strip-narrow'], ['fall-spill', 'fall-landing', 'fall-splash'], ['fall-mist', 'fall-trickle']],
   'waterfall-rocks': [['cliff-steps-right', 'cliff-steps-left'], ['ledge-wide', 'ledge-narrow', 'rock-column'], ['pool-rocks', 'pool-rocks-small']],
+  // The waterfall cliff drawn on its own, big (prompt 15), so it's sharp: shown smaller than drawn.
+  'big-waterfall-cliff': [['big-cliff']],
 };
 // The size (px) each piece is cut to, as it's shown in the game: its width, its height, or both.
 // The banners are cut at the pole's scale (withPole), so they hang from it at the size drawn.
@@ -44,7 +46,7 @@ export const AUTUMN_PIECES = {
   // The stepped cliffs are shown bigger than drawn: cut straight to the size shown, sharpened, so
   // they're resized once, not twice (cut, then scaled in the game), which blurred them.
   'cliff-steps-right': { width: 988, sharpen: true }, 'cliff-steps-left': { width: 988, sharpen: true }, 'ledge-wide': { width: 260 }, 'ledge-narrow': { width: 150 },
-  'rock-column': { width: 140 }, 'pool-rocks': { width: 300 }, 'pool-rocks-small': { width: 180 },
+  'rock-column': { width: 140 }, 'big-cliff': { width: 1095 }, 'pool-rocks': { width: 300 }, 'pool-rocks-small': { width: 180 },
 };
 
 // The falling strip, made to loop as the world's fall-middle: its bright top band (topCut of its

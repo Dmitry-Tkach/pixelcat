@@ -1,6 +1,8 @@
 // Screenshots of an adventure level in the real game, in a headless Chrome, to compare it with its
 // design. Starts the game's dev server, opens /adventure.html?at=<place> for each place asked for
 // (the level's `places`), waits for it to settle, and saves <out>/<place>.png at 1280 x 720.
+// A place can be followed by a key to hold first, and for how long (ms): cliffTop+right2000 starts
+// at cliffTop and walks right for 2 s before the screenshot (saved as cliffTop+right2000.png).
 // Run only with the owner's go-ahead (it runs Chrome): node tools/adventure-screens.mjs <out> village mill ...
 import puppeteer from 'puppeteer-core';
 import { mkdirSync } from 'node:fs';
@@ -22,10 +24,19 @@ try {
   await page.setViewport({ width: 1280, height: 720 });
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
+  const KEYS = { right: 'ArrowRight', left: 'ArrowLeft', up: 'ArrowUp', down: 'ArrowDown' };
   for (const place of places) {
-    await page.goto(`${base}adventure.html?unlockAll&at=${place}`, { waitUntil: 'load', timeout: START_MS });
+    const [at, move] = place.split('+');
+    await page.goto(`${base}adventure.html?unlockAll&at=${at}`, { waitUntil: 'load', timeout: START_MS });
     await page.waitForSelector('canvas', { timeout: START_MS });
     await new Promise((resolve) => setTimeout(resolve, SETTLE_MS));
+    const [, key, ms] = move?.match(/^([a-z]+)(\d+)$/) ?? [];
+    if (key) {
+      await page.keyboard.down(KEYS[key]);
+      await new Promise((resolve) => setTimeout(resolve, Number(ms)));
+      await page.keyboard.up(KEYS[key]);
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    }
     await page.screenshot({ path: join(out, `${place}.png`) });
     console.log(`${place}: saved${errors.length ? ` (page errors: ${errors.join(' | ')})` : ''}`);
     errors.length = 0;
