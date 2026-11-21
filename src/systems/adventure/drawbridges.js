@@ -18,8 +18,10 @@ export const DRAWBRIDGE = { plankMs: 90, dropPx: 120, dropMs: 260, hit: 34, dept
 // A falling plank: it shakes for afterMs once the cat stands on it (shakePx each way), then drops
 // dropPx out of sight over dropMs, and comes back backMs after it fell.
 export const PLANK_FALL = { afterMs: 450, shakePx: 2, dropPx: 260, dropMs: 420, backMs: 2600 };
-// A timed bridge: it shakes for the last warnMs before it rises; rising takes riseMs a plank.
-export const BRIDGE_HOLD = { warnMs: 1500, shakePx: 2, riseMs: 220 };
+// A timed bridge: it shakes for the last warnMs before it rises; then its planks rise one every
+// riseEveryMs from the end away from the switch (behind a cat running for it), each in riseMs: a
+// chase a little slower than he runs (64 px / 0.17 s, about 380 px a second, against his 420).
+export const BRIDGE_HOLD = { warnMs: 1500, shakePx: 2, riseMs: 220, riseEveryMs: 170 };
 
 // Every cell a drawbridge covers, once it's down.
 export const drawbridgeCells = ({ from, to, row }) => Array.from({ length: to - from + 1 }, (_, i) => ({ col: from + i, row }));

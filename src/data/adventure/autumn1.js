@@ -123,7 +123,7 @@ level.ground(59, 80, 26)
 // ball swinging down over its path from the island above.
 level.island(68, 76, 18).vine(70, 18, 21)
   .coins(72, 74, 17) // coins between the arches (the crystal is now on the cliff's top)
-  .drawbridge(76, 17, 77, 82, 18, { look: 'rope-plank' }) // the rope bridge, high
+  .drawbridge(76, 17, 77, 82, 18, { look: 'rope-plank', falls: true }) // the rope bridge, high: its planks give way too, on the main road
   .island(83, 87, 15).put(85, 14, 'k').put(84, 11, '?').coins(86, 87, 14) // the spiked ball's island, out of reach from the block below: the key
   .gap(81, 94)
   .mover(80, 22, { across: 10, picture: 'move-block' }) // the moving block, across the chasm
@@ -190,6 +190,11 @@ export const AUTUMN_VILLAGE_LEVEL = {
   hintsAt: [{ col: 152, text: 'The bridge is up!\nShoot the switch across the pit' }],
   // Water in the mill pool and the chasm (data/adventure/water.js).
   water: { row: WATER },
+  // The finale's film moment: reaching the gate's checkpoint, the camera glides over the spike pit
+  // to show what's ahead (the switch, the owl, the dart statue, the gate), holds, and comes back.
+  camera: {
+    shots: [{ when: { cols: [148, 150], rows: [24, 25] }, look: { col: 166, row: 23 }, panMs: 1100, holdMs: 1500 }],
+  },
   portalLocked: true,
   map: level.rows(),
   traps: level.traps(),

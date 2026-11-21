@@ -102,8 +102,8 @@ export class AdventureDrawbridges {
     scene.time.delayedCall(bridge.holdMs, () => this.raise(bridge));
   }
 
-  // A timed bridge's time is up: its planks rise away, farthest from the switch first, and its gem
-  // goes dark; then it can be set off again.
+  // A timed bridge's time is up: its planks rise away, farthest from the switch first (behind a cat
+  // running for it, a chase he can just win), and its gem goes dark; then it can be set off again.
   raise(bridge) {
     const { scene } = this;
     bridge.rising = true;
@@ -111,11 +111,11 @@ export class AdventureDrawbridges {
     bridge.look.setTexture(bridge.art('switch-off'));
     scene.audio.playSfx('creak');
     const farFirst = bridge.switch.col <= bridge.from ? [...bridge.planks].reverse() : bridge.planks;
-    farFirst.forEach((plank, i) => scene.time.delayedCall(i * DRAWBRIDGE.plankMs, () => {
+    farFirst.forEach((plank, i) => scene.time.delayedCall(i * BRIDGE_HOLD.riseEveryMs, () => {
       plank.disableBody(false, false);
       plank.setX(plank.homeX);
       scene.tweens.add({ targets: plank, y: plank.home - DRAWBRIDGE.dropPx, alpha: 0, duration: BRIDGE_HOLD.riseMs, ease: 'Quad.easeIn', onComplete: () => plank.setVisible(false) });
     }));
-    scene.time.delayedCall(farFirst.length * DRAWBRIDGE.plankMs + BRIDGE_HOLD.riseMs, () => { bridge.down = false; bridge.rising = false; });
+    scene.time.delayedCall(farFirst.length * BRIDGE_HOLD.riseEveryMs + BRIDGE_HOLD.riseMs, () => { bridge.down = false; bridge.rising = false; });
   }
 }
