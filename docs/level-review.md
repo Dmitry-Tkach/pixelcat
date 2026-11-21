@@ -157,6 +157,23 @@ Review in this order. Skip what doesn't apply.
 
 Check each new enemy, trap and mechanic. Is it met safely before it's met with danger?
 
+**2b. Its length.** Every level has a kind, with a target time for a first playthrough, start to
+portal (the owner's plan, in `src/data/adventure/levelKinds.js`; the level's kind is on the road
+map, `src/data/adventure/roadmap.js`):
+
+| Kind | Target time |
+| --- | --- |
+| Short action level | 2–4 minutes |
+| Standard platforming | 5–8 minutes |
+| Longer exploration level | 10–15 minutes |
+| Boss level | 3–7 minutes |
+| Music level | 2–4 minutes |
+| Time-attack level | 40–60 seconds |
+
+Estimate the level's time: its main path's length at his running speed, plus the time its
+climbs, puzzles, fights and waits take, plus a little for a new player's deaths. Say the estimate
+and how you made it, and whether it fits the target. If it doesn't, say what to add or cut.
+
 **3. The difficulty curve.** Give each section an intensity from 1 (calm) to 5 (hardest), with a
 one-line reason. Then look at the curve:
 - flat stretches that are too safe (the owner's main worry);
