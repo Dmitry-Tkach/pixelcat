@@ -48,6 +48,7 @@ import { AdventureStairs } from '../systems/adventure/AdventureStairs.js';
 import { AdventureRocks } from '../systems/adventure/AdventureRocks.js';
 import { AdventureScaffolds } from '../systems/adventure/AdventureScaffolds.js';
 import { AdventureBricks } from '../systems/adventure/AdventureBricks.js';
+import { spikeHit } from '../data/adventure/spikes.js';
 import { AdventurePools } from '../systems/adventure/AdventurePools.js';
 import { AdventureSwimming } from '../systems/adventure/AdventureSwimming.js';
 import { AdventureLevers } from '../systems/adventure/AdventureLevers.js';
@@ -86,7 +87,6 @@ const CAMERA = { lerp: 0.12, deadzoneW: 120, deadzoneH: 70 };
 //   ahead: this far in front of him, the way he runs or faces
 //   stillMs: how long he stands by an edge before the camera peeks over. easeMs: how quickly it turns.
 const LOOK = { below: 110, above: 120, peek: 250, ride: 180, ahead: 160, runningFrom: 120, stillMs: 350, easeMs: 300, edgeCells: 2 };
-const SPIKE_HIT = { w: 52, h: 20 };
 const BONUS_COINS = 3;
 const CHEST_COINS = 5;
 // The silver chest, for whoever finds its key off the main route: more coins, and explosive rounds.
@@ -567,9 +567,10 @@ export class AdventureScene extends Phaser.Scene {
           break;
         }
         case 'spike': {
-          // Only the points hurt: a low zone, narrower than the picture.
+          // Only where the world's spike picture is drawn hurts (data/adventure/spikes.js).
           this.add.image(x, y, this.art('spike')).setOrigin(0.5, 1).setDepth(3);
-          const zone = this.add.zone(x, y - SPIKE_HIT.h / 2, SPIKE_HIT.w, SPIKE_HIT.h);
+          const hit = spikeHit(this.level.world);
+          const zone = this.add.zone(x, y - hit.h / 2, hit.w, hit.h);
           this.physics.add.existing(zone, true);
           this.spikes.push(zone);
           break;
