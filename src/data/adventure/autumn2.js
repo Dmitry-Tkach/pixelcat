@@ -36,14 +36,14 @@ const level = mapBuilder(COLS, ROWS);
 level.ground(0, 17, 27) // the start's low ground: the cat stands on row 26
   .put(4, 26, '@')
   .put(14, 22, '+') // a heart over the cottage's porch
-  .ground(18, 30, 25) // the plateau, up the stairs (stairs, below)
+  .ground(18, 31, 25) // the plateau, up the stairs (stairs, below)
   .trap('mushroom', 25, 24) // a bounce up to the islands
   .island(19, 23, 20).put(21, 16, '?').coins(19, 20, 19) // the ? block's island
-  .island(27, 32, 17).put(30, 16, 'V') // the boar's island
-  .island(35, 39, 13).coins(35, 37, 12).put(39, 12, 'j') // the tall pillar: the silver key, for secret 2's chest
+  .island(26, 31, 17).put(29, 16, 'V') // the boar's island
+  .island(35, 40, 14).coins(35, 37, 13).put(40, 13, 'j') // the tall pillar: the silver key, for secret 2's chest
   // The waterfall's gap: a pool under it, coins over its water, a ledge and a ladder back up.
-  .ground(31, 34, 32)
-  .coins(31, 32, 28)
+  .ground(32, 34, 32)
+  .coins(32, 33, 28)
   .island(33, 34, 23).ladder(34, 23, 31)
   .ground(35, 47, 23) // the far side, two rows up: the first checkpoint
   .put(45, 22, 'C');
@@ -71,7 +71,7 @@ level.ground(48, 62, 27) // the lower floor, a drop down from the checkpoint
   .island(53, 58, 13).coins(54, 55, 12).put(57, 12, 'f')
   .island(62, 66, 17).coins(63, 65, 16)
   .island(68, 71, 14).coins(69, 70, 13)
-  .island(75, 80, 15).coins(76, 79, 14)
+  .island(76, 81, 15).coins(77, 80, 14)
   .island(83, 89, 12).put(86, 11, 'z') // under the ruined arch: laser rounds
   .island(91, 95, 16).coins(92, 94, 15); // and down to the wheel's walkways
 
@@ -188,16 +188,16 @@ export const AUTUMN_DAM_LEVEL = {
   // Earth pillars under the islands, as in the owner's picture.
   columns: [
     { col: 20, width: 3, top: 21, bottom: 25 }, // each in the middle of its island
-    { col: 29, width: 2, top: 18, bottom: 25 }, // over the plateau, clear of the waterfall's gap
-    { col: 36, width: 3, top: 14, bottom: 23 },
+    { col: 28, width: 2, top: 18, bottom: 25 }, // its foot on the plateau, clear of the waterfall's gap
+    { col: 37, width: 2, top: 15, bottom: 23 },
     { col: 63, width: 3, top: 18, bottom: 28 },
-    { col: 77, width: 2, top: 16, bottom: 28 },
+    { col: 78, width: 2, top: 16, bottom: 28 },
   ],
   // The waterfall gap's pool; the riverside pool and the flooded cave under the floor (one water,
   // the cave's part a secret); the wheel's pool; the dam's valley, rising a stage with each lever;
   // the flooded depths.
   pools: [
-    { cols: [31, 34], bottom: 31, surface: 29 },
+    { cols: [32, 34], bottom: 31, surface: 29 },
     { cols: [52, 75], bottom: 33, surface: 28 },
     { cols: [101, 136], bottom: 32, surface: 29 },
     { cols: [151, 194], bottom: VALLEY_FLOOR - 1, surface: VALLEY_FLOOR - 1, stages: STAGES },

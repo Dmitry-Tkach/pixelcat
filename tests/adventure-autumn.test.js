@@ -12,7 +12,7 @@ import { caveRuns, caveShades } from '../src/systems/adventure/caveFill.js';
 import { secretCoverTiles } from '../src/systems/adventure/secretCover.js';
 import { COLUMN_REACH, columnSpan } from '../src/systems/adventure/earthColumns.js';
 import { pillarLayout } from '../src/systems/adventure/pillarLayout.js';
-import { PILLAR } from '../src/data/adventure/pillars.js';
+import { PILLAR, PILLAR_ART } from '../src/data/adventure/pillars.js';
 import { STAIRS, feetOnStairs, holdsOnStairs, stairBox, stairPicture, stairSurface, stairWall } from '../src/systems/adventure/stairSteps.js';
 
 // The Autumn Forest (world 2) and what its first level brought: borrowed art, vines, cracked floor,
@@ -499,3 +499,26 @@ describe('the ground\'s underside', () => {
     expect(readAdventureMap(['####', '####']).tiles[1][1]).toBe(TILES.soil);
   });
 });
+
+// Each earth pillar stands in the middle of the island it holds up, as the game draws it (its foot
+// can push it aside if it hasn't room on the ground: the owner saw it off-centre).
+describe('earth pillars in every Autumn level', () => {
+  it('stand in the middle of their islands', async () => {
+    const dir = 'public/assets/adventure/autumn';
+    const size = async (name) => { const { width: w, height: h } = await sharp(`${dir}/${name}.png`).metadata(); return { w, h }; };
+    const sizes = { top: await size(PILLAR_ART.top), trunk: await size(PILLAR_ART.trunk), foot: await size(PILLAR_ART.foot) };
+    for (const level of ADVENTURE_LEVELS.filter((l) => l.world === 'autumn')) {
+      for (const column of level.columns ?? []) {
+        const line = level.map[column.top - 1];
+        const island = (ch) => ch === '=' || ch === 'H'; // a ladder's top on an island is island
+        if (!line || !island(line[column.col])) continue; // only those under an island
+        let a = column.col, b = column.col;
+        while (island(line[a - 1])) a--;
+        while (island(line[b + 1])) b++;
+        const { x } = pillarLayout(column, level.map, 64, sizes);
+        expect(Math.abs(x - ((a + b + 1) / 2) * 64), `${level.id}: the pillar at column ${column.col}`).toBeLessThan(8);
+      }
+    }
+  });
+});
+

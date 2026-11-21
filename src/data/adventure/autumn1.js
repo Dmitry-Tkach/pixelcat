@@ -255,7 +255,7 @@ export const AUTUMN_VILLAGE_LEVEL = {
   columns: [
     { col: 12, width: 3, top: 20, bottom: 27 }, // under the minigun's island
     { col: 22, width: 2, top: 21, bottom: 25 }, // under the boar's island
-    { col: 69, width: 3, top: 23, bottom: 26 }, // under the outpost's island
+    { col: 68, width: 4, top: 23, bottom: 26 }, // under the outpost's island, in its middle
     { col: 71, width: 3, top: 19, bottom: 21 }, // under the ruins' island, down to the outpost's
     { col: 22, width: 2, top: 16, bottom: 19 }, // under the high ledge, down to the boar's island
     { col: 139, width: 3, top: 19, bottom: 32 }, // under the key's island, down to the meadow
