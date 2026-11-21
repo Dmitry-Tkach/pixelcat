@@ -150,7 +150,7 @@ export class AdventureScene extends Phaser.Scene {
     this.buildDecor();
     // Water in the bottomless gaps, if the level has it (data/adventure/water.js).
     this.water = new AdventureWater(this, level.water, this.layout, this.worldH + FALL_OUT_BELOW);
-    this.pools = new AdventurePools(this, level.pools ?? []); // pools he swims in (systems/adventure/pools.js)
+    this.pools = new AdventurePools(this, level.pools ?? [], this.layout.tiles); // pools he swims in (systems/adventure/pools.js)
     this.scenery = new AdventureScenery(this, level, this.art); // waterfalls, caves, covers (Mill Falls)
     this.rocks = new AdventureRocks(this, level.rocks ?? [], { art: this.art }); // cliffs from the rock kit
     this.buildSecretCovers();

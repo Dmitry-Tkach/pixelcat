@@ -1,22 +1,28 @@
-import { TILE } from '../adventureMap.js';
+import { ONE_WAY, TILE } from '../adventureMap.js';
 import { POOL } from '../../data/adventure/swim.js';
 import { WATER, waterKey } from '../../data/adventure/water.js';
-import { poolSurface } from './pools.js';
+import { poolSegments, poolSurface } from './pools.js';
 
 // A level's pools (systems/adventure/pools.js): water with a floor that the cat swims in, drawn as
 // the bottomless gaps' water is (AdventureWater), in two layers: behind the ground, reaching a little
 // under it at the sides so it meets the banks cleanly, and a see-through surface in front of him with
 // a bright crest. The water picture is used once, for the surface and just under it; deeper, the
 // water is its bottom colour, so a pool can be any depth with no repeat of its wavy top showing.
-// raise() lifts every pool to its next stage's surface, smoothly (POOL.riseMsPerRow).
+// Where ground covers the water (a cave it runs on into), it starts under that ground, with no
+// surface (systems/adventure/pools.js, poolSegments). raise() lifts every pool to its next stage's
+// surface, smoothly (POOL.riseMsPerRow).
 const WAVE_TOP = 10; // where the body picture's wavy surface is, from its top (as AdventureWater)
 const CREST_MIDDLE = 12;
 const DROP_TINTS = [0xffffff, 0xbff4f0, 0x7fe3dc];
+const UNDER_GROUND_SKIP = 48; // px of the water picture's top skipped where ground covers the water
 
 export class AdventurePools {
-  constructor(scene, pools) {
+  // tiles: the level's tiles (systems/adventureMap.js readAdventureMap), to see where ground covers
+  // a pool's water.
+  constructor(scene, pools, tiles = []) {
     this.scene = scene;
     this.stage = 0;
+    this.solid = (c, r) => (tiles[r]?.[c] ?? -1) >= 0 && !ONE_WAY.has(tiles[r][c]);
     // The water picture's height, and the colour of its bottom row: the deep water's.
     const body = scene.textures.exists(waterKey('body')) ? scene.textures.get(waterKey('body')).getSourceImage() : { width: 1, height: 420 };
     this.bodyH = body.height;
@@ -24,14 +30,7 @@ export class AdventurePools {
     this.deepColour = bottom ? bottom.color : 0x1f6f8b;
     this.pools = pools.map((pool) => {
       const x = pool.cols[0] * TILE, w = (pool.cols[1] - pool.cols[0] + 1) * TILE;
-      const bottomY = (pool.bottom + 1) * TILE;
-      const tile = (key) => scene.add.tileSprite(0, 0, 1, 1, waterKey(key)).setOrigin(0, 0);
-      const deep = (alpha, depth) => scene.add.rectangle(0, 0, 1, 1, this.deepColour, alpha).setOrigin(0, 0).setDepth(depth);
-      const back = tile('body').setDepth(POOL.back.depth);
-      const front = tile('body').setDepth(POOL.front.depth).setAlpha(POOL.front.alpha);
-      const backDeep = deep(1, POOL.back.depth), frontDeep = deep(POOL.front.alpha, POOL.front.depth);
-      const crest = tile('crest').setDepth(POOL.front.depth + 0.1);
-      const made = { def: pool, x, w, bottomY, surfaceY: poolSurface(pool, 0) * TILE, back, front, backDeep, frontDeep, crest };
+      const made = { def: pool, x, w, bottomY: (pool.bottom + 1) * TILE, surfaceY: poolSurface(pool, 0) * TILE, row: null, parts: [] };
       this.place(made);
       return made;
     });
@@ -41,16 +40,47 @@ export class AdventurePools {
     }).setDepth(POOL.front.depth + 0.2) : null;
   }
 
-  // Lays a pool's layers out from its surface down to its bottom.
-  place({ x, w, bottomY, surfaceY, back, front, backDeep, frontDeep, crest }) {
-    const top = surfaceY - WAVE_TOP, h = Math.max(1, bottomY - top);
+  // A pool's water, part by part (poolSegments): where its surface is open, from the surface down,
+  // with its crest; where ground covers it, from under the ground, no crest. The parts are made
+  // again whenever the surface reaches another row (the water rising), and laid out every frame.
+  place(pool) {
+    const row = Math.floor(pool.surfaceY / TILE);
+    if (row !== pool.row) {
+      pool.row = row;
+      for (const part of pool.parts) for (const layer of part.layers) layer.destroy();
+      const first = pool.def.cols[0], last = pool.def.cols[1];
+      pool.parts = poolSegments(pool.def, row, this.solid).map((seg) => this.makePart(seg, seg.from === first, seg.to === last));
+    }
+    for (const part of pool.parts) this.placePart(pool, part);
+  }
+
+  makePart(seg, leftEnd, rightEnd) {
+    const { scene } = this;
+    const tile = (key) => scene.add.tileSprite(0, 0, 1, 1, waterKey(key)).setOrigin(0, 0);
+    const deep = (alpha, depth) => scene.add.rectangle(0, 0, 1, 1, this.deepColour, alpha).setOrigin(0, 0).setDepth(depth);
+    const back = tile('body').setDepth(POOL.back.depth);
+    const front = tile('body').setDepth(POOL.front.depth).setAlpha(POOL.front.alpha);
+    const backDeep = deep(1, POOL.back.depth), frontDeep = deep(POOL.front.alpha, POOL.front.depth);
+    const crest = seg.open ? tile('crest').setDepth(POOL.front.depth + 0.1) : null;
+    // Under ground, the picture's wavy top is skipped: the water there is just water.
+    if (!seg.open) { back.tilePositionY = UNDER_GROUND_SKIP; front.tilePositionY = UNDER_GROUND_SKIP; }
+    return { ...seg, leftEnd, rightEnd, back, front, backDeep, frontDeep, crest, layers: [back, front, backDeep, frontDeep, crest].filter(Boolean) };
+  }
+
+  // Lays a part out from its top (the surface, or under its ground) down to the pool's bottom. The
+  // back layer reaches a little under the ground at the pool's own sides, so it meets the banks.
+  placePart(pool, { from, to, top: topRow, open, leftEnd, rightEnd, back, front, backDeep, frontDeep, crest }) {
+    const x = from * TILE, w = (to - from + 1) * TILE;
+    const top = open ? pool.surfaceY - WAVE_TOP : topRow * TILE;
+    const h = Math.max(1, pool.bottomY - top);
     const surfaceH = Math.min(h, this.bodyH), deepH = Math.max(0, h - this.bodyH);
     const { reach } = POOL.back;
-    back.setPosition(x - reach, top).setSize(w + reach * 2, surfaceH);
+    const bx = x - (leftEnd ? reach : 0), bw = w + (leftEnd ? reach : 0) + (rightEnd ? reach : 0);
+    back.setPosition(bx, top).setSize(bw, surfaceH);
     front.setPosition(x, top).setSize(w, surfaceH);
-    backDeep.setPosition(x - reach, top + surfaceH).setSize(w + reach * 2, deepH).setVisible(deepH > 0);
+    backDeep.setPosition(bx, top + surfaceH).setSize(bw, deepH).setVisible(deepH > 0);
     frontDeep.setPosition(x, top + surfaceH).setSize(w, deepH).setVisible(deepH > 0);
-    crest.setPosition(x, surfaceY - CREST_MIDDLE).setSize(w, 28);
+    crest?.setPosition(x, pool.surfaceY - CREST_MIDDLE).setSize(w, 28);
   }
 
   // The pool a point (px) is in, its water as it is now (rising, perhaps), or null.
@@ -81,9 +111,11 @@ export class AdventurePools {
   update(ms) {
     const step = (WATER.waveSpeed * ms) / 1000;
     for (const pool of this.pools) {
-      pool.back.tilePositionX += step;
-      pool.front.tilePositionX += step;
-      pool.crest.tilePositionX -= step;
+      for (const part of pool.parts) {
+        part.back.tilePositionX += step;
+        part.front.tilePositionX += step;
+        if (part.crest) part.crest.tilePositionX -= step;
+      }
       this.place(pool);
     }
   }

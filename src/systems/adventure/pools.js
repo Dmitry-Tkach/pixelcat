@@ -54,3 +54,22 @@ export function poolProblems(level) {
   }
   return errors;
 }
+
+// How a pool's water is drawn at a surface row, column by column: where the cell at the surface is
+// open, the water's surface (its wavy top, its crest) is there; where ground covers it (a cave or a
+// tunnel the water runs on into), the water starts under that ground, with no surface. solid(c, r):
+// whether a cell is ground. Returns runs of columns with the same top: [{ from, to, top, open }]
+// (top: the row the water starts at), leaving out columns that are ground all the way down.
+export function poolSegments(pool, surfaceRow, solid) {
+  const runs = [];
+  for (let c = pool.cols[0]; c <= pool.cols[1]; c++) {
+    let top = surfaceRow;
+    while (top <= pool.bottom && solid(c, top)) top++;
+    if (top > pool.bottom) continue;
+    const open = top === surfaceRow;
+    const last = runs.at(-1);
+    if (last && last.to === c - 1 && last.top === top) last.to = c;
+    else runs.push({ from: c, to: c, top, open });
+  }
+  return runs;
+}

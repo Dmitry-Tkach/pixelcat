@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { poolAt, poolProblems, poolSurface, strokeSpeed, swimVelocity, swimsAt } from '../src/systems/adventure/pools.js';
+import { poolAt, poolProblems, poolSegments, poolSurface, strokeSpeed, swimVelocity, swimsAt } from '../src/systems/adventure/pools.js';
 import { SWIM } from '../src/data/adventure/swim.js';
 import { adventureRoutes } from '../src/systems/adventureRoutes.js';
 import { mapBuilder } from '../src/data/adventure/mapBuilder.js';
@@ -143,5 +143,18 @@ describe('the route checker in a low gap under the water', () => {
     const coin = (level) => adventureRoutes(level).unreachable.some((o) => o.col === 8 && o.row === 8);
     expect(coin(gap(2))).toBe(false);
     expect(coin(gap(1))).toBe(true);
+  });
+});
+
+describe('a pool\'s water under ground', () => {
+  // A pool over columns 0 to 9 at row 3; ground covers columns 0 to 3 in rows 3 and 4 (a cave the
+  // water runs on into, from row 5), and column 9 all the way down.
+  const solid = (c, r) => (c <= 3 && (r === 3 || r === 4)) || c === 9;
+  const segments = poolSegments({ cols: [0, 9], bottom: 7 }, 3, solid);
+  it('starts under the ground where ground covers it, with no surface there', () => {
+    expect(segments).toEqual([
+      { from: 0, to: 3, top: 5, open: false },
+      { from: 4, to: 8, top: 3, open: true },
+    ]);
   });
 });
