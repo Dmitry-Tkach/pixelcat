@@ -106,13 +106,13 @@ level.gap(34, 60)
 
 for (const { cols: [from, to], row } of rockLedges(CLIFF)) level.island(from, to, row); // the cliff's tops
 
-// ----- 3. Forest Outpost: firm ground again, a checkpoint, and a long island climbed by a ladder,
-// its pumpkin well away from the ladder's top. On it, under the ruins, the silver chest (its key is
+// ----- 3. Forest Outpost: firm ground again, and a long island climbed by a ladder, its boar well
+// away from the ladder's top. On it, under the ruins, the silver chest (its key is
 // in the village's secret cave), with candles and a lantern, as in the owner's picture. A vine from
 // it climbs to the ruins.
 level.ground(59, 80, 26)
   .put(69, 17, 'C') // where the mill's two ways meet, on the ruins (out of the owl's reach)
-  .island(64, 75, 22).ladder(64, 22, 25).coins(65, 66, 21).put(68, 21, 'U').put(73, 21, 'P').put(75, 21, '4') // a squirrel guarding the silver chest
+  .island(64, 75, 22).ladder(64, 22, 25).coins(65, 66, 21).put(68, 21, 'U').put(74, 21, 'V') // a boar guarding the silver chest: he sees only at his own height, so not the ruins above
   .put(79, 25, '/');
 
 // ----- 4. The Ruined Bridge, as in the owner's picture: the vine up to the ruins, a cliff of earth
