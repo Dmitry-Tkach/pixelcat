@@ -1230,7 +1230,8 @@ export class AdventureScene extends Phaser.Scene {
 
   // soft: no knock sideways (a bird's hit: over a wheel or the river, it would cost a second heart).
   hurt(fromX, { soft = false } = {}) {
-    if (this.hurtMs > 0 || !this.playing || this.moves.isFiringSpecial) return;
+    // Not while a camera shot holds him: a film pause pauses the danger too.
+    if (this.hurtMs > 0 || !this.playing || this.moves.isFiringSpecial || this.shots?.playing) return;
     this.moves.endDash();
     this.endPullUp();
     this.loseHeart();

@@ -110,7 +110,7 @@ for (const { cols: [from, to], row } of rockLedges(CLIFF)) level.island(from, to
 // away from the ladder's top. On it, under the ruins, the silver chest (its key is
 // in the village's secret cave), with candles and a lantern, as in the owner's picture. A vine from
 // it climbs to the ruins.
-level.ground(59, 80, 26)
+level.ground(59, 82, 26) // on under the ruins' bridge's far end, so a falling plank there drops him onto ground, not into the chasm
   .put(69, 17, 'C') // where the mill's two ways meet, on the ruins (out of the owl's reach)
   .island(64, 75, 22).ladder(64, 22, 25).coins(65, 66, 21).put(68, 21, 'U').put(74, 21, 'V') // a boar guarding the silver chest: he sees only at his own height, so not the ruins above
   .put(79, 25, '/');
@@ -125,7 +125,7 @@ level.island(68, 76, 18).vine(70, 18, 21)
   .coins(72, 74, 17) // coins between the arches (the crystal is now on the cliff's top)
   .drawbridge(76, 17, 77, 82, 18, { look: 'rope-plank', falls: true }) // the rope bridge, high: its planks give way too, on the main road
   .island(83, 87, 15).put(85, 14, 'k').put(84, 11, '?').coins(86, 87, 14) // the spiked ball's island, out of reach from the block below: the key
-  .gap(81, 94)
+  .gap(83, 94)
   .mover(80, 22, { across: 10, picture: 'move-block' }) // the moving block, across the chasm
   .trap('mace', 86, 16, { hanging: true, chain: 239, swingDeg: 35 }) // swinging down over the block's path
   .arc(88, 91, 20, 1)
@@ -195,7 +195,8 @@ export const AUTUMN_VILLAGE_LEVEL = {
   // The finale's film moment: reaching the gate's checkpoint, the camera glides over the spike pit
   // to show what's ahead (the switch, the owl, the dart statue, the gate), holds, and comes back.
   camera: {
-    shots: [{ when: { cols: [148, 150], rows: [24, 25] }, look: { col: 166, row: 23 }, panMs: 1100, holdMs: 1500 }],
+    // From the gate's first steps, before its boar (patrolling to 150, seeing 5 cells) can see him.
+    shots: [{ when: { cols: [142, 144], rows: [24, 25] }, look: { col: 166, row: 23 }, panMs: 1100, holdMs: 1500 }],
   },
   portalLocked: true,
   map: level.rows(),

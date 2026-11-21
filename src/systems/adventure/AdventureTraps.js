@@ -338,7 +338,7 @@ export class AdventureTraps {
     const stone = this.scene.add.zone((from + to) / 2, (stoneTop + feet) / 2, to - from, feet - stoneTop);
     this.idolBodies.add(stone);
     this.idols.push({
-      image, facing, mouth: { x: mouthX, y: top + r.mouth.y * image.height }, ms: offset % r.everyMs, rules: r, beatOf: trap.beatOf,
+      image, facing, mouth: { x: mouthX, y: top + r.mouth.y * image.height }, ms: offset % r.everyMs, rules: r, beatOf: trap.beatOf, beatPhase: trap.beatPhaseMs ?? 0,
       stone: { left: from, right: to, top: stoneTop, bottom: feet },
     });
   }
@@ -598,7 +598,7 @@ export class AdventureTraps {
     const { beat } = idol;
     if (beat && !beat.dead && beat.clock !== idol.beatSeen) {
       idol.beatSeen = beat.clock;
-      idol.ms = beat.clock % r.everyMs;
+      idol.ms = (((beat.clock - idol.beatPhase) % r.everyMs) + r.everyMs) % r.everyMs;
     } else idol.ms += ms;
     const due = idol.ms < prev || idol.ms >= r.everyMs; // its beat came round
     idol.ms %= r.everyMs;

@@ -14,7 +14,8 @@
 //             everyMs: its own beat (ms). beatOf: { col, row }, the hovering bird (by its cell) whose
 //             loop it keeps, reading the bird's own clock, so the two never drift apart: it shoots
 //             as the bird's loop begins, its darts reaching the bird about when it's high (the two
-//             dangers take turns, never meet by chance)
+//             dangers take turns, never meet by chance). beatPhaseMs: shifts its shots this far
+//             later in the bird's loop, to tune where they meet (0 by default)
 //   mushroom  a bouncy mushroom standing at (col, row): landing on it throws the cat up high
 //   guardian  a giant stone statue standing on a stone platform, solid (his body fills it, so there's
 //             no way over him), his feet at row + 1,
