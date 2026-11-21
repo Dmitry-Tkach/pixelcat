@@ -172,7 +172,9 @@ map, `src/data/adventure/roadmap.js`):
 
 Estimate the level's time: its main path's length at his running speed, plus the time its
 climbs, puzzles, fights and waits take, plus a little for a new player's deaths. Say the estimate
-and how you made it, and whether it fits the target. If it doesn't, say what to add or cut.
+and how you made it, and whether it fits the target. The times are approximate, a guide and not a
+hard rule: a level a little over or under is fine. Only one far off its range (a standard level
+of 3 minutes, say, or 12) is a finding: then say what to add or cut.
 
 **3. The difficulty curve.** Give each section an intensity from 1 (calm) to 5 (hardest), with a
 one-line reason. Then look at the curve:

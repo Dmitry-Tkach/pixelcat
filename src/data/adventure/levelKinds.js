@@ -1,5 +1,5 @@
 // The kinds of adventure level, and how long each should take a first-time player, from start to
-// portal: the owner's plan (2026-11-21). Every level on the road map (roadmap.js) has a kind, so
+// portal: the owner's plan (2026-11-21), approximate: a guide for design, not a hard limit. Every level on the road map (roadmap.js) has a kind, so
 // its design and the level reviewer (docs/level-review.md) aim at its time.
 //   minutes: [shortest, longest] a first playthrough should take.
 export const LEVEL_KINDS = {
