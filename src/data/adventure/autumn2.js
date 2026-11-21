@@ -39,8 +39,8 @@ level.ground(0, 17, 27) // the start's low ground: the cat stands on row 26
   .ground(18, 30, 25) // the plateau, up the stairs (stairs, below)
   .trap('mushroom', 25, 24) // a bounce up to the islands
   .island(19, 23, 20).put(21, 16, '?').coins(19, 20, 19) // the ? block's island
-  .island(28, 33, 17).put(31, 16, 'V') // the boar's island
-  .island(36, 40, 13).coins(36, 38, 12).put(40, 12, 'j') // the tall pillar: the silver key, for secret 2's chest
+  .island(27, 32, 17).put(30, 16, 'V') // the boar's island
+  .island(35, 39, 13).coins(35, 37, 12).put(39, 12, 'j') // the tall pillar: the silver key, for secret 2's chest
   // The waterfall's gap: a pool under it, coins over its water, a ledge and a ladder back up.
   .ground(31, 34, 32)
   .coins(31, 32, 28)
@@ -187,10 +187,10 @@ export const AUTUMN_DAM_LEVEL = {
   ],
   // Earth pillars under the islands, as in the owner's picture.
   columns: [
-    { col: 21, width: 3, top: 21, bottom: 25 },
+    { col: 20, width: 3, top: 21, bottom: 25 }, // each in the middle of its island
     { col: 29, width: 2, top: 18, bottom: 25 }, // over the plateau, clear of the waterfall's gap
-    { col: 38, width: 3, top: 14, bottom: 23 },
-    { col: 64, width: 2, top: 18, bottom: 28 },
+    { col: 36, width: 3, top: 14, bottom: 23 },
+    { col: 63, width: 3, top: 18, bottom: 28 },
     { col: 77, width: 2, top: 16, bottom: 28 },
   ],
   // The waterfall gap's pool; the riverside pool and the flooded cave under the floor (one water,
