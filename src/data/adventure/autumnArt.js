@@ -99,6 +99,7 @@ export const AUTUMN_ART = [
   'stump', 'sign-skull', 'sign-warn', 'fence', 'fence-2', 'torch', 'house', 'tree-1', 'tree-2', 'rock', 'rock-2',
   'standing-stone', 'barrel', 'cave-back', 'column-2', 'column-3', 'start-sign',
   'soil', // the earth over a secret cave (systems/adventure/AdventureScenery.js, secrets)
+  'mine-mouth', // the dark tunnel behind the mine's entrance (tools/adventure-autumn-scenery.mjs)
   'fall-middle', 'fall-head', 'fall-foam', 'fall-splash', // the softer waterfalls
   ...rockKitArt('autumn'), // its rock kit, for cliffs (data/adventure/rocks.js)
   ...pillarKitArt('autumn'), // its earth pillars (data/adventure/pillars.js)

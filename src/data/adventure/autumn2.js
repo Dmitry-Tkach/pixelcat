@@ -211,6 +211,7 @@ export const AUTUMN_DAM_LEVEL = {
     { picture: 'drawbridge', col: 13, row: 27, inGround: true, dy: -61 },
     { picture: 'drawbridge', col: 60, row: 27, inGround: true, dy: -61 }, // secret 2's trapdoor: its hatch, on the floor
     { picture: 'drawbridge', col: 61, row: 27, inGround: true, dy: -61 },
+    { picture: 'mine-mouth', col: 55, row: 26, width: 420, back: true }, // its dark tunnel, behind it
     { picture: 'mine-frame', col: 55, row: 26, width: 420, back: true },
     { picture: 'mine-rail', col: 51, row: 26 }, { picture: 'mine-rail', col: 53, row: 26 },
     { picture: 'mine-rail', col: 55, row: 26 }, { picture: 'mine-rail', col: 57, row: 26 },

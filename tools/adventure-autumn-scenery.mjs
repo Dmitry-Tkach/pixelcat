@@ -191,4 +191,56 @@ if (piece['banner-pole'] && piece['banner-open']) {
   const pole = piece['banner-pole'].w, open = piece['banner-open'].w;
   console.log(`Banner: flag.x ${((pole - open) / 2 / pole).toFixed(3)}`);
 }
+// The mine's mouth (mine-mouth): the dark tunnel behind the mine's entrance (mine-frame), so it
+// reads as a way into the hill, not a frame round the sky behind. Its opening, as cut: the see-through
+// pixels inside the frame's outline (between its first and last solid pixel along each row), grown
+// MOUTH_UNDER px under the frame so no sky shows at its soft edges; filled with the world's cave wall
+// (cave-back) repeated, darkened MOUTH_DARK, and darker still towards its top and middle, as a
+// tunnel going in. The same size as the frame: shown at the frame's place and width, behind it.
+const MOUTH_UNDER = 4, MOUTH_DARK = 0.55, MOUTH_DEEP = 0.45;
+if (existsSync(join(OUT, 'mine-frame.png')) && existsSync(join(OUT, 'cave-back.png'))) {
+  const { data: frame, info } = await sharp(join(OUT, 'mine-frame.png')).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { width: w, height: h } = info;
+  const solidPx = (x, y) => frame[(y * w + x) * 4 + 3] >= 128;
+  const inside = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) {
+    let first = -1, last = -1;
+    for (let x = 0; x < w; x++) if (solidPx(x, y)) { if (first < 0) first = x; last = x; }
+    if (first < 0) continue;
+    for (let x = first + 1; x < last; x++) if (!solidPx(x, y)) inside[y * w + x] = 1;
+  }
+  // Only the opening's own pixels: the see-through run must have frame over it too (not the sky
+  // between the top's rocks).
+  for (let x = 0; x < w; x++) {
+    let roof = false;
+    for (let y = 0; y < h; y++) {
+      if (solidPx(x, y)) roof = true;
+      else if (!roof) inside[y * w + x] = 0;
+    }
+  }
+  const grown = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (!inside[y * w + x]) continue;
+    for (let dy = -MOUTH_UNDER; dy <= MOUTH_UNDER; dy++) for (let dx = -MOUTH_UNDER; dx <= MOUTH_UNDER; dx++) {
+      const xx = x + dx, yy = y + dy;
+      if (xx >= 0 && yy >= 0 && xx < w && yy < h) grown[yy * w + xx] = 1;
+    }
+  }
+  const wall = await sharp({ create: { width: w, height: h, channels: 4, background: '#0000' } })
+    .composite([{ input: join(OUT, 'cave-back.png'), tile: true, left: 0, top: 0 }]).raw().toBuffer();
+  const out = Buffer.alloc(w * h * 4);
+  let ys = h, ye = 0, xs = w, xe = 0;
+  for (let i = 0; i < w * h; i++) if (grown[i]) { const x = i % w, y = (i / w) | 0; xs = Math.min(xs, x); xe = Math.max(xe, x); ys = Math.min(ys, y); ye = Math.max(ye, y); }
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = y * w + x;
+    if (!grown[i]) continue;
+    // Darker towards the opening's top and its middle: deeper into the hill.
+    const fromTop = (y - ys) / Math.max(1, ye - ys), fromMiddle = Math.abs((x - (xs + xe) / 2) / Math.max(1, (xe - xs) / 2));
+    const k = MOUTH_DARK * (1 - MOUTH_DEEP * (1 - fromTop) * (1 - fromMiddle));
+    for (let c = 0; c < 3; c++) out[i * 4 + c] = Math.round(wall[i * 4 + c] * k);
+    out[i * 4 + 3] = 255;
+  }
+  await sharp(out, { raw: { width: w, height: h, channels: 4 } }).png({ compressionLevel: 9 }).toFile(join(OUT, 'mine-mouth.png'));
+  console.log(`Mine mouth: ${w} x ${h}, its opening ${xe - xs + 1} x ${ye - ys + 1} px`);
+}
 console.log(`Autumn scenery: ${Object.keys(piece).length} pieces cut`);
