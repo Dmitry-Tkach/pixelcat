@@ -12,6 +12,7 @@ import { caveRuns, caveShades } from '../src/systems/adventure/caveFill.js';
 import { secretCoverTiles } from '../src/systems/adventure/secretCover.js';
 import { COLUMN_REACH, columnSpan } from '../src/systems/adventure/earthColumns.js';
 import { pillarLayout } from '../src/systems/adventure/pillarLayout.js';
+import { rockCells } from '../src/systems/adventure/rockLayout.js';
 import { PILLAR, PILLAR_ART } from '../src/data/adventure/pillars.js';
 import { STAIRS, feetOnStairs, holdsOnStairs, stairBox, stairPicture, stairSurface, stairWall } from '../src/systems/adventure/stairSteps.js';
 
@@ -522,3 +523,23 @@ describe('earth pillars in every Autumn level', () => {
   });
 });
 
+
+// A rock stands on something: every cell along its bottom edge is ground, or has ground or a pool's
+// water under it, so the rock's flat cut bottom is never seen in the air (the owner saw one).
+describe('rocks in every level', () => {
+  it('stand on ground or in water, never in the air', () => {
+    for (const level of ADVENTURE_LEVELS) {
+      for (const rock of level.rocks ?? []) {
+        const cells = rockCells(rock);
+        for (const cell of cells) {
+          const [c, r] = cell.split(',').map(Number);
+          if (cells.has(`${c},${r + 1}`)) continue; // not its bottom edge
+          const ground = (row) => level.map[row]?.[c] === '#';
+          const water = (level.pools ?? []).some((p) => c >= p.cols[0] && c <= p.cols[1] && r + 1 <= p.bottom)
+            || (level.water && r + 1 >= level.water.row); // a pool's, or the open water in the gaps
+          expect(ground(r) || ground(r + 1) || water, `${level.id}: a rock's bottom at (${c}, ${r}) is in the air`).toBe(true);
+        }
+      }
+    }
+  });
+});

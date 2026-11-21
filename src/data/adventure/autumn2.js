@@ -146,8 +146,8 @@ level.ground(237, 256, 26)
 // The cliff the level is built into, last, so its tops (stood on, as ground) leave what's already
 // placed as it is: rock behind the layers, as in the owner's picture, the waterfalls pouring down it.
 level.rock([{ cols: [32, 34], rows: [15, 31] }], { foot: 'water' }) // the first waterfall's
-  .rock([{ cols: [41, 50], rows: [16, 23] }]) // behind the tall pillar: its top the way on
-  .rock([{ cols: [66, 77], rows: [10, 31] }], { foot: 'water' }) // the riverside cliff, over its pool
+  .rock([{ cols: [41, 50], rows: [16, 26] }]) // behind the tall pillar: its top the way on, down behind the ground and to the minecart's floor past its end
+  .rock([{ cols: [67, 77], rows: [10, 31] }], { foot: 'water' }) // the riverside cliff, over its pool, clear of secret 2's cave
   .rock([{ cols: [78, 90], rows: [12, 28] }]) // its top the ruined arch's floor
   .rock([{ cols: [132, 142], rows: [14, 24] }]) // its top the high route's end, its ladder down
   .rock([{ cols: [223, 229], rows: [14, 33] }], { foot: 'water' }) // the depths' waterfall, the key on its top
