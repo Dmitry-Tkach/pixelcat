@@ -12,13 +12,14 @@ const LAYER = { fill: 0, sides: 0.001, water: 0.002, top: 0.003, corners: 0.004,
 
 export class AdventureRocks {
   // art: the level's pictures by name.
-  constructor(scene, rocks, { art }) {
+  // keepClear(c, r): cells kept clear of the rock's decoration (rockLayout).
+  constructor(scene, rocks, { art, keepClear }) {
     const has = (name) => scene.textures.exists(art(name));
     if (!rocks.length || !has(ROCK_ART.fill)) return;
     const size = (name) => scene.textures.get(art(name)).getSourceImage();
     const depth = (layer) => ROCK.depth + LAYER[layer];
     for (const rock of rocks) {
-      const { fills, tops, sides, waterline, decor } = rockLayout(rock);
+      const { fills, tops, sides, waterline, decor } = rockLayout(rock, { keepClear });
       for (const box of fills) {
         const { x, y, w, h } = fillBox(box, TILE);
         scene.add.tileSprite(x, y, w, h, art(ROCK_ART.fill)).setOrigin(0, 0).setTilePosition(x, y).setDepth(depth('fill'));

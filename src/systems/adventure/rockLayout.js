@@ -15,6 +15,8 @@ import { cellRandom } from './cellRandom.js';
 //     waterline: [{ row, from, to }]: its wet foot, along its bottom row (foot: 'water' only);
 //     decor: [{ col, row, place, picture }]: place is face, underTop or onTop (ROCK_DECOR).
 //   }
+//   keepClear(c, r): cells where no decoration goes, nor in the cell over them (where spikes stand in
+//   front of the rock, so nothing hides them).
 
 const key = (c, r) => `${c},${r}`;
 
@@ -44,7 +46,7 @@ function runs(cells, lines, along, keep) {
 
 const span = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
 
-export function rockLayout(rock) {
+export function rockLayout(rock, { keepClear = () => false } = {}) {
   const cells = rockCells(rock);
   const has = (c, r) => cells.has(key(c, r));
   const all = [...cells].map((k) => k.split(',').map(Number));
@@ -101,7 +103,7 @@ export function rockLayout(rock) {
       const place = !has(c, r - 1) ? 'onTop'
         : !has(c, r - 2) ? 'underTop'
           : has(c, r + 1) && inside(c, r - 1) && inside(c, r + 1) ? 'face' : null;
-      if (!place || near(c, r) || cellRandom(c, r, 31) >= ROCK_DECOR[place].share) continue;
+      if (!place || near(c, r) || keepClear(c, r) || keepClear(c, r + 1) || cellRandom(c, r, 31) >= ROCK_DECOR[place].share) continue;
       const { pictures } = ROCK_DECOR[place];
       decor.push({ col: c, row: r, place, picture: pictures[Math.floor(cellRandom(c, r, 32) * pictures.length)] });
       taken.add(key(c, r));

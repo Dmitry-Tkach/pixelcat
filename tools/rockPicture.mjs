@@ -25,11 +25,11 @@ export async function repeated(file, w, h, tx, ty, flip = false) {
   return sharp(plane).extract({ left: ox, top: mod(ty, th), width: w, height: h }).png().toBuffer();
 }
 
-export async function rockPicture(rock, art, tile) {
+export async function rockPicture(rock, art, tile, { keepClear } = {}) {
   if (!existsSync(art(ROCK_ART.fill))) return null;
   const has = (name) => existsSync(art(name));
   const size = async (name) => sharp(art(name)).metadata();
-  const { fills, tops, sides, waterline, decor } = rockLayout(rock);
+  const { fills, tops, sides, waterline, decor } = rockLayout(rock, { keepClear });
   const cols = rock.parts.flatMap((p) => p.cols), rows = rock.parts.flatMap((p) => p.rows);
   const L = Math.min(...cols) * tile - MARGIN, T = Math.min(...rows) * tile - MARGIN;
   const W = (Math.max(...cols) + 1) * tile + MARGIN - L, H = (Math.max(...rows) + 1) * tile + MARGIN - T;

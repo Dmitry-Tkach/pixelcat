@@ -48,7 +48,7 @@ import { AdventureStairs } from '../systems/adventure/AdventureStairs.js';
 import { AdventureRocks } from '../systems/adventure/AdventureRocks.js';
 import { AdventureScaffolds } from '../systems/adventure/AdventureScaffolds.js';
 import { AdventureBricks } from '../systems/adventure/AdventureBricks.js';
-import { spikeHit } from '../data/adventure/spikes.js';
+import { SPIKE_SEED, spikePicture, spikesOf } from '../data/adventure/spikes.js';
 import { AdventurePools } from '../systems/adventure/AdventurePools.js';
 import { AdventureSwimming } from '../systems/adventure/AdventureSwimming.js';
 import { AdventureLevers } from '../systems/adventure/AdventureLevers.js';
@@ -154,7 +154,8 @@ export class AdventureScene extends Phaser.Scene {
     this.water = new AdventureWater(this, level.water, this.layout, this.worldH + FALL_OUT_BELOW);
     this.pools = new AdventurePools(this, level.pools ?? [], this.layout.tiles); // pools he swims in (systems/adventure/pools.js)
     this.scenery = new AdventureScenery(this, level, this.art); // waterfalls, caves, covers (Mill Falls)
-    this.rocks = new AdventureRocks(this, level.rocks ?? [], { art: this.art }); // cliffs from the rock kit
+    const spikeCells = new Set(this.layout.objects.filter((o) => o.type === 'spike').map(({ col, row }) => `${col},${row}`));
+    this.rocks = new AdventureRocks(this, level.rocks ?? [], { art: this.art, keepClear: (c, r) => spikeCells.has(`${c},${r}`) }); // cliffs from the rock kit, nothing hiding its spikes
     new AdventureScaffolds(this, level.walkways ?? [], { art: this.art, groundLayer: this.groundLayer, tiles: this.layout.tiles }); // timber walkways
     new AdventureBricks(this, level.masonry ?? [], { art: this.art, groundLayer: this.groundLayer }); // stone brick walls and pillars
     this.buildSecretCovers();
@@ -567,9 +568,10 @@ export class AdventureScene extends Phaser.Scene {
           break;
         }
         case 'spike': {
-          // Only where the world's spike picture is drawn hurts (data/adventure/spikes.js).
-          this.add.image(x, y, this.art('spike')).setOrigin(0.5, 1).setDepth(3);
-          const hit = spikeHit(this.level.world);
+          // The world's spike picture for this cell; only where it's drawn hurts (data/adventure/spikes.js).
+          const picture = spikePicture(this.level.world, object.col, object.row, (c, r) => cellRandom(c, r, SPIKE_SEED));
+          this.add.image(x, y, this.art(this.textures.exists(this.art(picture)) ? picture : 'spike')).setOrigin(0.5, 1).setDepth(3);
+          const { hit } = spikesOf(this.level.world);
           const zone = this.add.zone(x, y - hit.h / 2, hit.w, hit.h);
           this.physics.add.existing(zone, true);
           this.spikes.push(zone);

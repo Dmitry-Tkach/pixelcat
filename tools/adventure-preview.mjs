@@ -23,7 +23,7 @@ import { adventureRoutes } from '../src/systems/adventureRoutes.js';
 import { ONE_WAY, TILE, readAdventureMap } from '../src/systems/adventureMap.js';
 import { DECOR } from '../src/data/adventure/decor.js';
 import { BACKDROPS } from '../src/data/adventure/backdrop.js';
-import { placeDecor } from '../src/systems/adventure/decorPlacement.js';
+import { cellRandom, placeDecor } from '../src/systems/adventure/decorPlacement.js';
 import { waterRuns } from '../src/systems/adventure/water.js';
 import { GATES } from '../src/data/adventure/gates.js';
 import { portalPosts } from '../src/systems/adventure/gatePlacement.js';
@@ -37,6 +37,7 @@ import { rockPicture } from './rockPicture.mjs';
 import { brickPicture, scaffoldPictures } from './kitPicture.mjs';
 import { masonryCells } from '../src/systems/adventure/brickLayout.js';
 import { poolSegments } from '../src/systems/adventure/pools.js';
+import { SPIKE_SEED, spikePicture } from '../src/data/adventure/spikes.js';
 import { DAM_ART, damLayout } from '../src/data/adventure/dam.js';
 
 const [out, index = '0'] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
@@ -79,7 +80,7 @@ const at_ = (input, p) => at(input, p.x, p.y, 0.5, 0.5);
 if (millArt) {
   // Rocks from the world's rock kit (tools/rockPicture.mjs draws them the game's way, at full size).
   for (const rock of level.rocks ?? []) {
-    const picture = await rockPicture(rock, art, TILE);
+    const picture = await rockPicture(rock, art, TILE, { keepClear: (c, r) => layout.objects.some((o) => o.type === 'spike' && o.col === c && o.row === r) });
     if (!picture) continue;
     const { width } = await sharp(picture.input).metadata();
     comps.push({ input: await sharp(picture.input).resize(Math.round(width * SCALE)).png().toBuffer(), left: Math.max(0, Math.round(picture.left * SCALE)), top: Math.max(0, Math.round(picture.top * SCALE)) });
@@ -300,7 +301,11 @@ for (const o of objects) {
   } else if (o.type === 'enemy') await place(await atlasFrame('enemies', o.kind, 'idle-0', enemyLayout(o.kind).frameW / SCALE * SCALE), o.col, o.row, true);
   else if (o.type === 'gunner') await place(await atlasFrame('gunners', o.kind, 'idle-0', gunnerLayout(o.kind).frameW), o.col, o.row, true);
   else if (o.type === 'start') await place(await sharp({ create: { width: CELL, height: CELL * 1.5, channels: 4, background: '#3a7bff' } }).png().toBuffer(), o.col, o.row, true);
-  else if (ICON[o.type]) await place(await image(art(ICON[o.type])), o.col, o.row, ['spike', 'chest', 'silver-chest', 'checkpoint', 'portal'].includes(o.type));
+  else if (o.type === 'spike') {
+    // The world's spike picture for this cell, as the game picks it (data/adventure/spikes.js), on its floor.
+    const picture = spikePicture(level.world, o.col, o.row, (c, r) => cellRandom(c, r, SPIKE_SEED));
+    await placeAt(await image(art(existsSync(art(picture)) ? picture : 'spike')), o.col * TILE + TILE / 2, o.row);
+  } else if (ICON[o.type]) await place(await image(art(ICON[o.type])), o.col, o.row, ['spike', 'chest', 'silver-chest', 'checkpoint', 'portal'].includes(o.type));
 }
 // The moving traps (data/adventure/traps.js), drawn as they are at rest: the mace hanging straight
 // down, the crusher at the top with a dotted line to where it slams, each idol with a dotted line

@@ -54,3 +54,15 @@ describe('trapdoors', () => {
     expect(adventureRoutes({ map: b.rows(), world: 'autumn' }).nearReached(6, 6, 1)).toBe(true);
   });
 });
+
+describe('rock decoration', () => {
+  it('keeps clear of the cells it is told to (spikes in front of the rock)', async () => {
+    const { rockLayout } = await import('../src/systems/adventure/rockLayout.js');
+    const rock = { parts: [{ cols: [0, 30], rows: [0, 20] }] };
+    const all = rockLayout(rock).decor;
+    expect(all.length).toBeGreaterThan(0);
+    const { col, row } = all[0];
+    const kept = rockLayout(rock, { keepClear: (c, r) => c === col && (r === row || r === row + 1) }).decor;
+    expect(kept.some((d) => d.col === col && d.row === row)).toBe(false);
+  });
+});

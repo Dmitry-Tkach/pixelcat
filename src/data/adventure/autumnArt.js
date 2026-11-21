@@ -33,6 +33,8 @@ export const AUTUMN_SHEETS = {
   'grand-dam': [['grand-dam']],
   'dam-doors': [['dam-door-closed', 'dam-door-open']],
   'lever-exit': [['lever-off', 'lever-on', 'exit-sign']],
+  // The thorns (prompt hidden-dam/10): three bushes with bright red tips, so they're seen at once.
+  thorns: [['thorn-1', 'thorn-2', 'thorn-3']],
   'underwater-decor': [
     ['uw-weed-1', 'uw-weed-2', 'uw-plants-1', 'uw-plants-2'],
     ['uw-stone-1', 'uw-stone-2', 'uw-pebbles-1', 'uw-pebbles-2'],
@@ -68,6 +70,8 @@ export const AUTUMN_PIECES = {
   'lever-off': { height: 96 }, 'lever-on': { height: 96 }, 'exit-sign': { height: 120 },
   'uw-weed-1': { height: 120 }, 'uw-weed-2': { height: 120 }, 'uw-plants-1': { width: 84 }, 'uw-plants-2': { width: 84 },
   'uw-stone-1': { width: 110 }, 'uw-stone-2': { width: 110 }, 'uw-pebbles-1': { width: 90 }, 'uw-pebbles-2': { width: 90 },
+  // Each a cell and a half wide, so a row of them overlaps into one thick row (data/adventure/spikes.js).
+  'thorn-1': { width: 96 }, 'thorn-2': { width: 96 }, 'thorn-3': { width: 96 },
   'uw-shell-1': { width: 40 }, 'uw-shell-2': { width: 40 }, 'uw-plank-1': { width: 120 }, 'uw-plank-2': { width: 120 },
 };
 

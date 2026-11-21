@@ -38,4 +38,4 @@ export const DECOR = {
 };
 
 // Cells kept clear of plants on top: where these stand, so they're always easy to see.
-export const DECOR_KEEP_CLEAR = new Set(['start', 'portal', 'checkpoint', 'chest', 'silver-chest', 'weapon']);
+export const DECOR_KEEP_CLEAR = new Set(['start', 'portal', 'checkpoint', 'chest', 'silver-chest', 'weapon', 'spike']); // spikes: nothing hides them
