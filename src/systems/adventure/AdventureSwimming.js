@@ -2,9 +2,10 @@ import { FREE_MOVE } from '../../config/gameConfig.js';
 import { SWIM } from '../../data/adventure/swim.js';
 import { strokeSpeed, swimVelocity, swimsAt } from './pools.js';
 
-// Swimming in a level's pools (data/adventure/swim.js). Each frame, once his middle is far enough
-// under a pool's surface, he floats: the water's own gravity, slower across, his doggy-paddle
-// (or treading water, still), and a bubble now and then. The scene sends him a jump press while he
+// Swimming in a level's pools (data/adventure/swim.js). Once his middle is far enough under a
+// pool's surface, he swims: the water's own gravity, slower across, his doggy-paddle (or treading
+// water, still), and a bubble now and then. He floats at the surface (his middle `submerge` under
+// it): strokes can't lift him out of the water, only a leap, and he's out only once his feet are. The scene sends him a jump press while he
 // swims (stroke): a stroke up, or, at the surface, a leap out onto the bank. Out of the water, his
 // own gravity is back; his leap out is his jump, so no double jump until he lands (the water's
 // ledges are spaced for that: tests/adventure-dam.test.js).
@@ -25,27 +26,58 @@ export class AdventureSwimming {
     return this.pool !== null;
   }
 
-  // A jump press in the water.
+  // A jump press in the water: a stroke up, or, near the surface, a leap out.
   stroke() {
-    const { body } = this.cat;
+    const { cat } = this;
+    const { body } = cat;
     const vy = strokeSpeed(body.top, this.pool.surfaceY, SWIM);
+    this.leaping = vy === SWIM.outJump; // a leap out: not held to a swimmer's speed until he's out
+    if (this.leaping) {
+      // Every leap starts from his floating height at the surface (his middle `submerge` under
+      // it), so each is the same height, however deep in the surface band he pressed.
+      const lift = body.center.y - (this.pool.surfaceY + SWIM.submerge);
+      if (lift > 0) cat.setY(cat.y - lift);
+      this.springOut();
+      this.pools.splash(this.pool, cat.x, 'fishLeap');
+    } else this.scene.audio.playSfx('swimStroke');
     body.setVelocityY(vy);
-    if (vy === SWIM.outJump) this.pools.splash(this.pool, this.cat.x, 'fishLeap'); // a leap out
-    else this.scene.audio.playSfx('swimStroke');
+  }
+
+  // Leaping out, he springs at his full running speed the way he's heading (at full momentum, so
+  // he doesn't slow back to a swimmer's in the air), onto the bank.
+  springOut() {
+    const { cat } = this;
+    const dir = Math.sign(cat.moveDirection ?? 0);
+    if (!dir) return;
+    cat.momentum = 1;
+    cat.moveVelocity = dir * cat.topSpeed;
+    cat.body.setVelocityX(cat.moveVelocity);
   }
 
   update(ms) {
     const { cat } = this;
     const { body } = cat;
-    const pool = this.pools.at(body.center.x, body.center.y);
-    const swimming = pool && swimsAt(body.center.y, pool.surfaceY, SWIM.submerge) ? pool : null;
-    if (swimming && !this.pool) this.enter(swimming);
-    else if (!swimming && this.pool) this.leave();
-    if (!this.pool) return;
-    this.pool = swimming;
+    if (!this.pool) {
+      // In: his middle far enough under a pool's surface.
+      const pool = this.pools.at(body.center.x, body.center.y);
+      if (pool && swimsAt(body.center.y, pool.surfaceY, SWIM.submerge)) this.enter(pool);
+      else return;
+    } else {
+      // Out: only once his feet are out of the water, or he's left its sides.
+      const { pool } = this;
+      if (body.bottom <= pool.surfaceY || body.center.x < pool.x || body.center.x >= pool.x + pool.w) { this.leave(); return; }
+    }
+    const { pool } = this;
     const { vx, vy } = swimVelocity(cat.moveVelocity, body.velocity.y, cat.topSpeed, SWIM);
-    cat.moveVelocity = vx;
-    body.setVelocity(vx, vy);
+    if (this.leaping && body.velocity.y < 0) {
+      this.springOut(); // leaping out: his speed stays a leap's, up and across
+    } else {
+      this.leaping = false;
+      cat.moveVelocity = vx;
+      // He floats at the surface: no rising past it but by a leap.
+      const floating = body.center.y <= pool.surfaceY + SWIM.submerge && vy < 0;
+      body.setVelocity(vx, floating ? 0 : vy);
+    }
     cat.swimRole = Math.abs(vx) > FREE_MOVE.IDLE_BELOW ? 'swim' : 'swimFloat';
     this.bubbleMs += ms;
     if (this.bubbleMs >= SWIM.bubbleEveryMs) {
@@ -67,6 +99,8 @@ export class AdventureSwimming {
     cat.body.setGravityY(this.gravity);
     cat.swimRole = null;
     cat.airJumpsLeft = 0; // his leap out was his jump: he gets it back by landing
+    if (this.leaping) this.springOut();
+    this.leaping = false;
     this.pool = null;
   }
 }

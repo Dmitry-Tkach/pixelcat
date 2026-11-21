@@ -29,9 +29,12 @@ describe('The Hidden Dam\'s levers', () => {
 });
 
 // The real reach, from the physics (not the route checker's safe share): a jump with the double
-// jump, on land; a leap out of the water (no double jump after it: AdventureSwimming.leave).
+// jump, on land; a leap out of the water (no double jump after it: AdventureSwimming.leave), as how
+// far over the water's surface it lifts his feet (they start SWIM.feetUnder under it).
 const realJump = (MOVEMENT.JUMP_VELOCITY ** 2 + MOVEMENT.AIR_JUMP_VELOCITY ** 2) / (2 * MOVEMENT.GRAVITY) / TILE;
-const realLeap = SWIM.outJump ** 2 / (2 * MOVEMENT.GRAVITY) / TILE;
+const realLeap = (SWIM.outJump ** 2 / (2 * MOVEMENT.GRAVITY) - SWIM.feetUnder) / TILE;
+// To stand on row r his feet must reach row r + 1's top: that far over a surface at row s.
+const over = (s, r) => s - (r + 1);
 const surfaces = [30, ...dam.pools.find((p) => p.stages).stages]; // the valley's water, stage by stage
 
 describe('The Hidden Dam, by the real jump and leap', () => {
@@ -40,11 +43,14 @@ describe('The Hidden Dam, by the real jump and leap', () => {
     expect(30 - l2.row).toBeGreaterThan(realJump);
   });
   it('keeps each next ledge out of a leap from the water before its stage', () => {
-    expect(surfaces[1] - l3.row).toBeGreaterThan(realLeap); // lever 3, from stage 1's water
-    expect(surfaces[2] - CLIFF.row).toBeGreaterThan(realLeap); // the far cliff, from stage 2's water
+    expect(over(surfaces[1], l3.row)).toBeGreaterThan(realLeap); // lever 3, from stage 1's water
+    expect(over(surfaces[2], CLIFF.row)).toBeGreaterThan(realLeap); // the far cliff, from stage 2's water
+  });
+  it('lets a leap out of the water reach a bank one row over it, with room to spare', () => {
+    expect(realLeap - over(23, 21)).toBeGreaterThan(0.5); // a bank whose top is a row over the water
   });
   it('makes the depths\' wall a dive: its top far over the water', () => {
-    expect(23 - 12).toBeGreaterThan(realLeap); // the wall's top row 13 (stand 12), the water at 23
+    expect(over(23, 12)).toBeGreaterThan(realLeap); // the wall's top row 13 (stand 12), the water at 23
     expect(18 - 13).toBeGreaterThan(4); // and over 4 rows up from the ? block's ledge (stand 17), out of a running jump
   });
 });
