@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { poolAt, poolProblems, poolSegments, poolSurface, strokeSpeed, swimVelocity, swimsAt } from '../src/systems/adventure/pools.js';
+import { floodSurface, poolAt, poolProblems, poolSegments, poolSurface, strokeSpeed, swimVelocity, swimsAt } from '../src/systems/adventure/pools.js';
 import { SWIM } from '../src/data/adventure/swim.js';
 import { adventureRoutes } from '../src/systems/adventureRoutes.js';
 import { mapBuilder } from '../src/data/adventure/mapBuilder.js';
@@ -153,8 +153,31 @@ describe('a pool\'s water under ground', () => {
   const segments = poolSegments({ cols: [0, 9], bottom: 7 }, 3, solid);
   it('starts under the ground where ground covers it, with no surface there', () => {
     expect(segments).toEqual([
-      { from: 0, to: 3, top: 5, open: false },
-      { from: 4, to: 8, top: 3, open: true },
+      { from: 0, to: 3, top: 5, bottom: 7, open: false },
+      { from: 4, to: 8, top: 3, bottom: 7, open: true },
     ]);
+  });
+});
+
+describe('a flood (the dam bursting)', () => {
+  const pool = { cols: [0, 9], bottom: 9, surface: 8, flood: { from: 3, above: 5, top: 2, rowsPerSecond: 0.5 } };
+  it('rises steadily from its surface to its top, and no higher', () => {
+    expect(floodSurface(pool, 0)).toBe(8);
+    expect(floodSurface(pool, 4000)).toBe(6);
+    expect(floodSurface(pool, 60000)).toBe(2);
+  });
+  it('stops at the ground under each column it rises over', () => {
+    // Ground from row 6 at columns 5 to 9: the flood, risen to row 3, stands on it there.
+    const solid = (c, r) => c >= 5 && r >= 6;
+    expect(poolSegments(pool, 3, solid)).toEqual([
+      { from: 0, to: 4, top: 3, bottom: 9, open: true },
+      { from: 5, to: 9, top: 3, bottom: 5, open: true },
+    ]);
+  });
+  it('is checked', () => {
+    const map = Array.from({ length: 10 }, () => '.'.repeat(10));
+    expect(poolProblems({ map, pools: [pool] })).toEqual([]);
+    expect(poolProblems({ map, pools: [{ ...pool, flood: { ...pool.flood, top: 9 } }] })).toHaveLength(1);
+    expect(poolProblems({ map, pools: [{ ...pool, stages: [5], flood: pool.flood }] })).toHaveLength(1);
   });
 });

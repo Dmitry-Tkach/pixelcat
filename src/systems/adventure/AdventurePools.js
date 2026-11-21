@@ -67,12 +67,12 @@ export class AdventurePools {
     return { ...seg, leftEnd, rightEnd, back, front, backDeep, frontDeep, crest, layers: [back, front, backDeep, frontDeep, crest].filter(Boolean) };
   }
 
-  // Lays a part out from its top (the surface, or under its ground) down to the pool's bottom. The
+  // Lays a part out from its top (the surface, or under its ground) down to its bottom. The
   // back layer reaches a little under the ground at the pool's own sides, so it meets the banks.
-  placePart(pool, { from, to, top: topRow, open, leftEnd, rightEnd, back, front, backDeep, frontDeep, crest }) {
+  placePart(pool, { from, to, top: topRow, bottom, open, leftEnd, rightEnd, back, front, backDeep, frontDeep, crest }) {
     const x = from * TILE, w = (to - from + 1) * TILE;
     const top = open ? pool.surfaceY - WAVE_TOP : topRow * TILE;
-    const h = Math.max(1, pool.bottomY - top);
+    const h = Math.max(1, (bottom + 1) * TILE - top);
     const surfaceH = Math.min(h, this.bodyH), deepH = Math.max(0, h - this.bodyH);
     const { reach } = POOL.back;
     const bx = x - (leftEnd ? reach : 0), bw = w + (leftEnd ? reach : 0) + (rightEnd ? reach : 0);

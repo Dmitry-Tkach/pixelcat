@@ -48,6 +48,7 @@ import { AdventureStairs } from '../systems/adventure/AdventureStairs.js';
 import { AdventureRocks } from '../systems/adventure/AdventureRocks.js';
 import { AdventureScaffolds } from '../systems/adventure/AdventureScaffolds.js';
 import { AdventureBricks } from '../systems/adventure/AdventureBricks.js';
+import { AdventureFlood } from '../systems/adventure/AdventureFlood.js';
 import { SPIKE_SEED, spikePicture, spikesOf } from '../data/adventure/spikes.js';
 import { AdventurePools } from '../systems/adventure/AdventurePools.js';
 import { AdventureSwimming } from '../systems/adventure/AdventureSwimming.js';
@@ -153,6 +154,7 @@ export class AdventureScene extends Phaser.Scene {
     // Water in the bottomless gaps, if the level has it (data/adventure/water.js).
     this.water = new AdventureWater(this, level.water, this.layout, this.worldH + FALL_OUT_BELOW);
     this.pools = new AdventurePools(this, level.pools ?? [], this.layout.tiles); // pools he swims in (systems/adventure/pools.js)
+    this.flood = new AdventureFlood(this, this.pools); // a pool that floods: the dam bursting
     this.scenery = new AdventureScenery(this, level, this.art); // waterfalls, caves, covers (Mill Falls)
     const spikeCells = new Set(this.layout.objects.filter((o) => o.type === 'spike').map(({ col, row }) => `${col},${row}`));
     this.rocks = new AdventureRocks(this, level.rocks ?? [], { art: this.art, keepClear: (c, r) => spikeCells.has(`${c},${r}`) }); // cliffs from the rock kit, nothing hiding its spikes
@@ -1278,6 +1280,7 @@ export class AdventureScene extends Phaser.Scene {
   // fallen out of the level.
   updateWater(ms) {
     this.water.update(ms);
+    this.flood.update(ms, this.cat); // before the pools are drawn, so a flood's water is where it's drawn
     this.pools.update(ms);
     this.dam.update(ms);
     this.swimming.update(ms);

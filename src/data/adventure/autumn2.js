@@ -23,8 +23,9 @@
 //   5. Flooded Depths: a pool with three brick pillars and fish; over it, islands on earth pillars,
 //      and over those more, with ? blocks, a ladder, a squirrel throwing acorns, the gold chest's
 //      key, and a waterfall down the rock behind them.
-//   6. Dam Exit: spikes and the boar on the cliff's foot, up past a room in the cliff to the exit's
-//      ledge, or by the long ladder. Secret 3: a dry cave under the spikes, its way in hidden at the
+//   6. Dam Exit: the dam bursts as he reaches the cliff's foot, and the water floods up behind him
+//      (pools' flood): a climb against it, past the thorns, the boar on the rock, the squirrel and
+//      the owl, up past a room in the cliff to the exit's ledge, or by the long ladder. Secret 3: a dry cave under the spikes, its way in hidden at the
 //      pool's end, just over the water: the gold chest and a crystal.
 import { mapBuilder } from './mapBuilder.js';
 
@@ -46,12 +47,13 @@ level.ground(0, 17, 27) // the start's low ground: the cat stands on row 26
   .ground(32, 34, 32)
   .coins(32, 33, 28)
   .island(33, 34, 23).ladder(34, 23, 31)
-  .ground(35, 47, 23) // the far side, two rows up: the first checkpoint
-  .put(45, 22, 'C');
+  .ground(35, 47, 23) // the far side, two rows up
+  .put(44, 22, 'w'); // the minigun: the level's ammo is his from here
 // Secret 1: walk left off the start and fall into a cave under the cottage; out by a ladder up to a
-// trapdoor in the ground (an island in its top row, jumped up through), hidden with the cave.
+// trapdoor in the ground, its hatch seen on the start's ground: every player walks over it, and
+// learns what a hatch is before secret 2's.
 level.hollow(0, 1, 27, 29).hollow(0, 15, 30, 32)
-  .hollow(12, 13, 27, 29).island(12, 13, 27).ladder(13, 27, 32)
+  .hollow(12, 13, 28, 29).trapdoor(12, 13, 27).ladder(13, 27, 32)
   .coins(4, 7, 32).put(10, 32, '*');
 
 // ----- 2. Riverside Caves (columns 48-92): down to the minecart's floor.
@@ -61,6 +63,7 @@ level.ground(48, 69, 27) // the minecart's floor, one flat floor to the pool (a 
   .coins(71, 74, 30)
   .ground(76, 92, 27)
   .trap('mushroom', 86, 26) // a bounce up the step, or to the high route
+  .put(80, 26, 'Q') // the crab, met first on dry ground
   // Secret 2: a trapdoor in the floor (drawn as the floor, its wooden hatch on it), a ladder down
   // through it into a dry cave: standing on the hatch, Down climbs him down.
   .hollow(50, 66, 31, 33)
@@ -75,10 +78,12 @@ level.ground(48, 69, 27) // the minecart's floor, one flat floor to the pool (a 
   .island(68, 71, 14).coins(69, 70, 13)
   .island(76, 81, 15).coins(77, 80, 14)
   .put(86, 11, 'z') // on the rock's top, under the ruined arch: laser rounds
+  .put(82, 11, '4') // a squirrel guarding the high route's best coins
   .island(91, 95, 16).coins(92, 94, 15); // and down to the wheel's walkway
 
 // ----- 3. Water Control (columns 93-142): up the step onto the long walkway over the wheel's pool.
 level.ground(93, 100, 24)
+  .put(98, 23, 'C') // the first checkpoint, by the mill, before the walkway
   .ground(101, 136, 33) // the pool's bed (pools)
   .walkway(101, 136, 24, { posts: [101, 105, 110, 114, 120, 125, 130, 136] })
   .ladder(107, 24, 32).ladder(123, 24, 32) // up from the water to the walkway
@@ -104,14 +109,14 @@ const FAR_TOWER = { col: 194, row: 19 }; // the far tower's checkpoint
 level.wall(143, 149, 20, ROWS - 1) // the left tower: up onto it from the walkway's end
   .ground(150, 190, VALLEY_FLOOR)
   .island(150, 151, 24).ladder(150, 24, 30) // a landing under the tower's top, the ladder down from it
-  .put(152, 30, 'C')
+  .put(147, 19, 'C') // on the left tower: over the risen water, if he comes back
   .put(157, 30, '^').put(158, 30, '^').put(159, 30, '^')
   .coins(160, 161, 29)
-  .island(162, 165, 24).coins(162, 163, 23) // lever 2's ledge
-  .island(176, 179, 22) // lever 3's ledge
-  .trap('idol', 179, 21, { facing: -1 })
-  .coins(160, 175, 21) // along the dam's top, at the water's last stage
-  .bird('hover', 188, 17, { look: 'owl' }) // over the leap out to the far tower: time it
+  .island(162, 165, 24).coins(162, 163, 23).put(165, 23, 'P') // lever 2's ledge, a pumpkin on it
+  .island(174, 180, 22) // lever 3's ledge, its dart statue at its far end: the dart seen coming
+  .trap('idol', 180, 21, { facing: -1 })
+  .coins(160, 173, 21) // along the dam's top, at the water's last stage
+  .bird('hover', 190, 18, { look: 'owl' }) // right over the leap out to the far tower: time it
   .put(170, 30, 'Q')
   .wall(191, 206, FAR_TOWER.row + 1, ROWS - 1) // the far tower
   .put(FAR_TOWER.col, FAR_TOWER.row, 'C');
@@ -124,6 +129,7 @@ level.ground(207, 236, 34) // the pool's bed
   .island(216, 221, 24).coins(217, 220, 23)
   .island(224, 229, 23).put(226, 22, 'P')
   .island(232, 236, 24).coins(233, 235, 23)
+  .coins(216, 221, 33).coins(224, 229, 33).put(226, 32, '+') // the underwater route, under the fish
   .island(208, 213, 18).put(210, 14, '?').ladder(213, 18, 23)
   .island(216, 221, 16).put(218, 15, '4') // a squirrel up here, throwing acorns at the ledges
   .put(226, 10, '?').put(228, 13, 'k') // on the rock's top: the gold chest's key
@@ -133,7 +139,9 @@ level.ground(207, 236, 34) // the pool's bed
 // the cliff to the exit's ledge, or by the long ladder.
 level.ground(237, 256, 26)
   .put(241, 25, '^').put(242, 25, '^').put(243, 25, '^')
-  .put(248, 25, 'V')
+  .put(244, 16, 'V') // the boar on the rock's top: the high way up has its fight
+  .put(253, 9, '4') // a squirrel on the tall rock, over the last climb
+  .bird('hover', 252, 15, { look: 'owl' }) // over the last jump
   // Secret 3: a dry cave under the spikes, its way in at the pool's end just over the water,
   // hidden as if the bank went on.
   .hollow(237, 252, 27, 29).put(246, 29, 'T').put(250, 29, '*').coins(239, 242, 29)
@@ -198,6 +206,8 @@ export const AUTUMN_DAM_LEVEL = {
     { picture: 'boulder-big', col: 28, row: 31, inGround: true },
     { picture: 'boulder-small', col: 40, row: 27, inGround: true },
     // 2. Riverside Caves.
+    { picture: 'drawbridge', col: 12, row: 27, inGround: true, dy: -61 }, // secret 1's trapdoor: its hatch
+    { picture: 'drawbridge', col: 13, row: 27, inGround: true, dy: -61 },
     { picture: 'drawbridge', col: 60, row: 27, inGround: true, dy: -61 }, // secret 2's trapdoor: its hatch, on the floor
     { picture: 'drawbridge', col: 61, row: 27, inGround: true, dy: -61 },
     { picture: 'mine-frame', col: 55, row: 26, width: 420, back: true },
@@ -243,7 +253,7 @@ export const AUTUMN_DAM_LEVEL = {
     { picture: 'post-candle', col: 244, row: 29, glow: true },
     { picture: 'hang-lantern', col: 262, row: 22, hang: true, glow: true }, // in the room in the cliff
     { picture: 'barrel', col: 259, row: 25 },
-    { picture: 'big-tree', col: 252, row: 25, back: true },
+    { picture: 'big-tree', col: 246, row: 25, back: true },
     { picture: 'boulder-big', col: 245, row: 33, inGround: true },
     { picture: 'boulder-small', col: 268, row: 28, inGround: true },
     { picture: 'boulder-big', col: 280, row: 31, inGround: true },
@@ -270,9 +280,12 @@ export const AUTUMN_DAM_LEVEL = {
     { cols: [70, 75], bottom: 31, surface: 28 },
     { cols: [101, 136], bottom: 32, surface: 29 },
     { cols: [150, 190], bottom: VALLEY_FLOOR - 1, surface: VALLEY_FLOOR - 1, stages: STAGES },
-    { cols: [207, 236], bottom: 33, surface: 30 },
+    // The depths: when he reaches the exit's cliff (from, on its foot or over it: not from secret 3's
+    // cave under it), the dam bursts, and this water floods up
+    // behind him, over the cliff's foot and into its room, to just under the exit's ledge: climb!
+    { cols: [207, 265], bottom: 33, surface: 30, flood: { from: 238, above: 25, top: 20, rowsPerSecond: 0.5 } },
   ],
-  levers: [{ col: 155, row: 30 }, { col: 164, row: 23 }, { col: 177, row: 21 }],
+  levers: [{ col: 155, row: 30 }, { col: 164, row: 23 }, { col: 175, row: 21 }],
   // Fish swimming between the depths' pillars (systems/adventure/AdventurePoolFish.js).
   poolFish: [{ from: 216, to: 221, row: 32 }, { from: 224, to: 229, row: 32 }],
   // The cliff the level is built into (data/adventure/rocks.js): rock behind the layers, as in the
@@ -288,17 +301,18 @@ export const AUTUMN_DAM_LEVEL = {
     { col: 227, top: 14, bottom: 30, width: 80 },
   ],
   dam: { col: 170, row: 30 },
-  secrets: [{ cols: [0, 15], rows: [27, 32] }, { cols: [50, 66], rows: [28, 33] }, { cols: [237, 252], rows: [27, 29] }],
+  secrets: [{ cols: [0, 1], rows: [27, 29] }, { cols: [0, 15], rows: [28, 32] }, { cols: [50, 66], rows: [28, 33] }, { cols: [237, 252], rows: [27, 29] }],
   caves: [{ cols: [0, 15], rows: [27, 32] }, { cols: [50, 66], rows: [28, 33] }, { cols: [237, 252], rows: [27, 29] }, { cols: [257, 265], rows: [22, 25] }],
   hintsAt: [
     { col: 70, text: 'Swim! Up to stroke, out at the top' },
     { col: 152, text: 'The Grand Dam!\nPull the levers: each gate raises the water' },
+    { col: 238, text: 'The dam is bursting!\nClimb to the exit!' },
   ],
   places: {
     damStart: { col: 4, row: 26 },
-    damRiver: { col: 45, row: 22 }, // the first checkpoint, over the minecart's floor
+    damRiver: { col: 45, row: 22 }, // over the minecart's floor
     damWheel: { col: 99, row: 23 }, // by the walkway
-    valley: { col: 152, row: 30 }, // the dam's valley floor, by lever 1
+    valley: { col: 152, row: 30 }, // the dam's valley floor, by lever 1 (its checkpoint up on the left tower)
     damFront: { col: 170, row: 30 }, // in front of the Grand Dam
     depths: { col: 194, row: 19 }, // the far tower's top
     damExit: { col: 245, row: 25 }, // the exit's cliff foot
