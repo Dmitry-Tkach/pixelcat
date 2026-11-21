@@ -49,6 +49,8 @@ import { AdventureRocks } from '../systems/adventure/AdventureRocks.js';
 import { AdventurePools } from '../systems/adventure/AdventurePools.js';
 import { AdventureSwimming } from '../systems/adventure/AdventureSwimming.js';
 import { AdventureLevers } from '../systems/adventure/AdventureLevers.js';
+import { AdventureDam } from '../systems/adventure/AdventureDam.js';
+import { everUnderwater, poolDecor } from '../systems/adventure/poolDecor.js';
 import { AdventureMole } from '../entities/AdventureMole.js';
 import { ENEMIES } from '../data/adventure/enemies.js';
 import { cameraBottom } from '../systems/adventure/cameraFloor.js';
@@ -100,6 +102,7 @@ const END_SCREEN_MS = 1100;
 const DROP = { fromY: TILE, ms: 700 }; // a pickup the arena drops falls from here, this long
 const STARS = 3; // a level's stars are its crystals, up to this many
 const HINT_AT_MS = 3200; // how long a hint along the way stays (level.hintsAt)
+const POOL_DECOR_DEPTH = 2.06; // a pool floor's plants and stones: in front of the ground, behind him
 const SECRET_COVER_DEPTH = 7; // in front of everything, the cat too, until he's inside
 const SECRET_BEHIND_DEPTH = 1.99; // its earth behind an island over the shaft: over the cave wall, under the tiles
 const BEAM_PIPS = { x: 98, y: 128, gap: 26, r: 8 };
@@ -238,7 +241,8 @@ export class AdventureScene extends Phaser.Scene {
     // Stairs he walks up and down, his feet kept on their slope (systems/adventure/AdventureStairs.js).
     this.stairs = new AdventureStairs(this, level.stairs ?? [], { art: this.art, ground: this.groundLayer });
     this.swimming = new AdventureSwimming(this, this.cat, this.pools);
-    this.levers = new AdventureLevers(this, level.levers ?? [], { art: this.art, onPull: () => this.pools.raise() });
+    this.dam = new AdventureDam(this, level.dam, { art: this.art }); // the Grand Dam: lever i opens its gate i
+    this.levers = new AdventureLevers(this, level.levers ?? [], { art: this.art, onPull: (i) => { this.pools.raise(); this.dam.open(i); } });
     // Fish leaping out of the water: they hurt the cat, and a round knocks one out (data/adventure/fish.js).
     this.fish = new AdventureFish(this, level.fish ?? [], {
       art: this.art, water: this.water, hurt: (fromX) => this.hurt(fromX), spend: (bullet) => this.moves.bulletStops(bullet),
@@ -382,11 +386,19 @@ export class AdventureScene extends Phaser.Scene {
   // The plants the level grows by itself: grass and flowers on the tops, vines under the islands
   // (data/adventure/decor.js, placed by systems/adventure/decorPlacement.js).
   buildDecor() {
-    this.decor = placeDecor(this.layout, DECOR[this.level.world]).filter(({ x, y }) => !this.byHiddenTiles(x, y)).map(({ picture, x, y, hang, depth, flip }) => {
-      const image = this.add.image(x, y, this.art(picture)).setOrigin(0.5, hang ? 0 : 1).setDepth(depth).setFlipX(flip);
-      image.hang = hang;
-      return image;
-    });
+    // Not under a pool's water: its floor has its own (systems/adventure/poolDecor.js), in front of
+    // the ground, behind him and the water's front.
+    const pools = this.level.pools ?? [];
+    this.decor = placeDecor(this.layout, DECOR[this.level.world])
+      .filter(({ x, y }) => !this.byHiddenTiles(x, y) && !everUnderwater(pools, Math.floor(x / TILE), Math.floor((y - 1) / TILE)))
+      .map(({ picture, x, y, hang, depth, flip }) => {
+        const image = this.add.image(x, y, this.art(picture)).setOrigin(0.5, hang ? 0 : 1).setDepth(depth).setFlipX(flip);
+        image.hang = hang;
+        return image;
+      });
+    for (const { picture, col, row } of poolDecor(this.level, this.layout.tiles)) {
+      if (this.textures.exists(this.art(picture))) this.add.image(col * TILE + TILE / 2, (row + 1) * TILE, this.art(picture)).setOrigin(0.5, 1).setDepth(POOL_DECOR_DEPTH);
+    }
     // Its moving life: fireflies, falling leaves, and the decoration swaying (data/adventure/ambience.js).
     this.ambience = new AdventureAmbience(this, AMBIENCE[this.level.world], this.decor);
   }
@@ -1256,6 +1268,7 @@ export class AdventureScene extends Phaser.Scene {
   updateWater(ms) {
     this.water.update(ms);
     this.pools.update(ms);
+    this.dam.update(ms);
     this.swimming.update(ms);
     this.levers.update(this.cat);
     if (!this.water.any || !this.water.over(this.cat.x)) return;

@@ -3,6 +3,9 @@ import { poolAt, poolProblems, poolSurface, strokeSpeed, swimVelocity, swimsAt }
 import { SWIM } from '../src/data/adventure/swim.js';
 import { adventureRoutes } from '../src/systems/adventureRoutes.js';
 import { mapBuilder } from '../src/data/adventure/mapBuilder.js';
+import { readAdventureMap } from '../src/systems/adventureMap.js';
+import { damLayout } from '../src/data/adventure/dam.js';
+import { everUnderwater, poolDecor } from '../src/systems/adventure/poolDecor.js';
 
 // A pool from row 5 to row 8, columns 6 to 11, rising to row 3 at stage 1.
 const pool = { cols: [6, 11], bottom: 8, surface: 5, stages: [3] };
@@ -77,5 +80,38 @@ describe('the route checker in the water', () => {
     expect(poolProblems({ map, pools: [{ cols: [6, 30], bottom: 8, surface: 6 }] })).toHaveLength(1);
     expect(poolProblems({ map, pools: [{ cols: [6, 11], bottom: 8, surface: 6, stages: [7] }] })).toHaveLength(1);
     expect(poolProblems({ map, pools: [pool] })).toEqual([]);
+  });
+});
+
+describe('the Grand Dam', () => {
+  const wall = { w: 960, h: 519 };
+  const layout = damLayout({ col: 20, row: 15 }, wall, 64);
+  it('stands on its row, centred on its column', () => {
+    expect(layout.foot).toBe(16 * 64);
+    expect(layout.left + wall.w / 2).toBe(20 * 64 + 32);
+    expect(layout.top).toBe(16 * 64 - wall.h);
+  });
+  it('has three gates, left to right, each in its arch', () => {
+    expect(layout.gates).toHaveLength(3);
+    expect(layout.gates[0].x).toBeLessThan(layout.gates[1].x);
+    for (const gate of layout.gates) expect(gate.width).toBeGreaterThan(100);
+  });
+});
+
+describe('a pool floor\'s decoration', () => {
+  const level = well(false);
+  const { tiles } = readAdventureMap(level.map);
+  const placed = poolDecor(level, tiles);
+  it('stands only on the floor under the water, never side by side', () => {
+    expect(placed.length).toBeGreaterThan(0);
+    for (const d of placed) {
+      expect(d.row).toBe(17); // the well's floor is row 18: they stand on it
+      expect(poolAt(level.pools, d.col, d.row, 9)).not.toBeNull();
+    }
+    for (let i = 1; i < placed.length; i++) expect(placed[i].col - placed[i - 1].col).toBeGreaterThanOrEqual(2);
+  });
+  it('keeps the ground\'s own plants off anywhere the water ever reaches', () => {
+    expect(everUnderwater(level.pools, 8, 5)).toBe(true); // under the risen water
+    expect(everUnderwater(level.pools, 2, 9)).toBe(false); // the bank
   });
 });

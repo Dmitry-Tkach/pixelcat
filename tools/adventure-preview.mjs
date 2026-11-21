@@ -34,6 +34,7 @@ import { MILL_SEAT, MILL_STAND, MILL_WHEEL, standScale } from '../src/data/adven
 import { PTERO_LOOKS, birdHome } from '../src/data/adventure/birds.js';
 import { existsSync } from 'node:fs';
 import { rockPicture } from './rockPicture.mjs';
+import { DAM_ART, damLayout } from '../src/data/adventure/dam.js';
 
 const [out, index = '0'] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const routes = process.argv.includes('--routes');
@@ -186,6 +187,26 @@ if (level.water) {
     const w = (to - from + 1) * CELL, h = (rows - level.water.row) * CELL;
     comps.push({ input: await sharp('public/assets/adventure/fx/water/water.png').resize(Math.round(w), Math.round(h), { fit: 'fill' }).png().toBuffer(), left: Math.round(from * CELL), top: Math.round(level.water.row * CELL - 2) });
   }
+}
+// Pools (systems/adventure/pools.js) at their first water, see-through so what's under shows, with a
+// line where each later stage's surface will be; the Grand Dam (data/adventure/dam.js), its doors
+// shut; and the levers.
+if (level.dam && existsSync(art(DAM_ART.wall))) {
+  const { width: w, height: h } = await sharp(art(DAM_ART.wall)).metadata();
+  const dam = damLayout(level.dam, { w, h }, TILE);
+  for (const gate of dam.gates) comps.push(await at(await scaled(art(DAM_ART.closed), 1), gate.x, dam.foot, 0.5, 1));
+  comps.push({ input: await scaled(art(DAM_ART.wall), 1), left: Math.round(dam.left * SCALE), top: Math.round(dam.top * SCALE) });
+}
+for (const pool of level.pools ?? []) {
+  const w = Math.round((pool.cols[1] - pool.cols[0] + 1) * CELL), h = Math.round((pool.bottom - pool.surface + 1) * CELL);
+  const body = await sharp('public/assets/adventure/fx/water/water.png').resize(w, h, { fit: 'fill' }).ensureAlpha(0.7).png().toBuffer();
+  comps.push({ input: body, left: Math.round(pool.cols[0] * CELL), top: Math.round(pool.surface * CELL) });
+  for (const row of pool.stages ?? []) {
+    comps.push({ input: Buffer.from(`<svg width="${w}" height="3"><rect width="${w}" height="3" fill="#7fe3dc" fill-opacity="0.9" stroke-dasharray="6 4"/></svg>`), left: Math.round(pool.cols[0] * CELL), top: Math.round(row * CELL) });
+  }
+}
+for (const lever of level.levers ?? []) {
+  if (existsSync(art('lever-off'))) comps.push(await at(await scaled(art('lever-off'), 1), lever.col * TILE + TILE / 2, (lever.row + 1) * TILE, 0.5, 1));
 }
 const ladder = await sharp(art('ladder')).resize(CELL, CELL).toBuffer();
 // A climbing vine, in a level that has them (a world without its picture has none).

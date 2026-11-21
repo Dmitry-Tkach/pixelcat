@@ -127,6 +127,39 @@ if (piece['pier-deck']) {
   await sharp(rebuilt).toFile(strip);
 }
 
+// The dam's doors: only their wooden part, between their own stone pillars (found as the open door's
+// see-through run at 75% of its height), so the dam's arches frame them (data/adventure/dam.js).
+// And the dam's arches, measured the same way, for DAM_ART.
+async function openRuns(file, share) {
+  const { data, info } = await sharp(file).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { width: w, height: h } = info;
+  const a = (x, y) => data[(y * w + x) * 4 + 3];
+  const y = Math.round(h * share);
+  const runs = [];
+  let from = null;
+  for (let x = 0; x <= w; x++) {
+    const open = x < w && a(x, y) < 128;
+    if (open && from === null) from = x;
+    if (!open && from !== null) { runs.push({ left: from, right: x - 1 }); from = null; }
+  }
+  return { w, h, runs: runs.filter((r) => r.left > 0 && r.right < w - 1).map((r) => { let top = y; while (top > 0 && a(Math.round((r.left + r.right) / 2), top - 1) < 128) top--; return { ...r, top }; }) };
+}
+if (piece['dam-door-open'] && piece['dam-door-closed']) {
+  const [inner] = (await openRuns(join(OUT, 'dam-door-open.png'), 0.75)).runs;
+  for (const name of ['dam-door-open', 'dam-door-closed']) {
+    const file = join(OUT, `${name}.png`);
+    const { height } = await sharp(file).metadata();
+    const cropped = await sharp(file).extract({ left: inner.left, top: 0, width: inner.right - inner.left + 1, height }).png().toBuffer();
+    await sharp(cropped).png({ compressionLevel: 9 }).toFile(file);
+  }
+  console.log(`Dam doors: cropped to their wood, ${inner.right - inner.left + 1} px wide; the open door's gap from ${inner.top} px down`);
+}
+if (piece['grand-dam']) {
+  const { w, h, runs } = await openRuns(join(OUT, 'grand-dam.png'), 0.75);
+  const f = (v, of) => +(v / of).toFixed(3);
+  console.log(`Grand dam: arches ${JSON.stringify(runs.map((r) => ({ left: f(r.left, w), right: f(r.right + 1, w), top: f(r.top, h) })))}`);
+}
+
 // The Guardian Gate's opening: the see-through space inside its arch, found from the middle of the
 // picture at OPENING_FROM of its height. Its middle and width as shares of the picture, for the
 // portal's swirl, and its box, for the door.

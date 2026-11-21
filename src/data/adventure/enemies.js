@@ -107,6 +107,26 @@ export const ENEMIES = {
       dead: { row: 3, count: 6, fps: 10, repeat: 0 },
     },
   },
+  // The Autumn world's river crab, the owner's (prompts/hidden-dam/06-crab.md): it scuttles along the
+  // banks and the riverbed (under the water too: it walks the floor, it doesn't swim), and snaps its
+  // big claw at the cat. Stomped, it flips onto its back.
+  crab: {
+    sheet: { file: 'images/levels/autumn/crab.png', cols: 6, rows: 4 },
+    scale: 0.55,
+    crop: { x: 0, y: 0, w: 256, h: 256 },
+    body: { x: 46, y: 112, w: 164, h: 107 }, // its shell, measured on the sheet (the claws reach past it)
+    feet: 219,
+    speed: 75,
+    chaseSpeed: 135,
+    stompable: true,
+    hp: 1,
+    anims: {
+      idle: { row: 0, count: 6, fps: 8, repeat: -1 },
+      walk: { row: 1, count: 6, fps: 12, repeat: -1 },
+      attack: { row: 2, count: 6, fps: 12, repeat: 0, hitFrame: 4 },
+      dead: { row: 3, count: 6, fps: 10, repeat: 0 },
+    },
+  },
   // The Autumn world's mole miner (10-mole.md, drawn as grumpy.png): it burrows, so it never walks.
   // It waits under its mound, pops up when the cat comes near (rise), swings its pickaxe, and sinks
   // back after a while (entities/AdventureMole.js). Only while it's up can it be hit or stomped.

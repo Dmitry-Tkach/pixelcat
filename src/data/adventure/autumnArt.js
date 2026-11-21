@@ -25,6 +25,16 @@ export const AUTUMN_SHEETS = {
   'waterfall-rocks': [['cliff-steps-right', 'cliff-steps-left'], ['ledge-wide', 'ledge-narrow', 'rock-column'], ['pool-rocks', 'pool-rocks-small']],
   // The waterfall cliff drawn on its own, big (prompt 15), so it's sharp: shown smaller than drawn.
   'big-waterfall-cliff': [['big-cliff']],
+  // Level 2, The Hidden Dam (prompts/hidden-dam): the dam's wall, its gate doors, the lever and the
+  // EXIT sign, and the flooded part's floor.
+  'grand-dam': [['grand-dam']],
+  'dam-doors': [['dam-door-closed', 'dam-door-open']],
+  'lever-exit': [['lever-off', 'lever-on', 'exit-sign']],
+  'underwater-decor': [
+    ['uw-weed-1', 'uw-weed-2', 'uw-plants-1', 'uw-plants-2'],
+    ['uw-stone-1', 'uw-stone-2', 'uw-pebbles-1', 'uw-pebbles-2'],
+    ['uw-shell-1', 'uw-shell-2', 'uw-plank-1', 'uw-plank-2'],
+  ],
 };
 // The size (px) each piece is cut to, as it's shown in the game: its width, its height, or both.
 // The banners are cut at the pole's scale (withPole), so they hang from it at the size drawn.
@@ -49,6 +59,13 @@ export const AUTUMN_PIECES = {
   // they're resized once, not twice (cut, then scaled in the game), which blurred them.
   'cliff-steps-right': { width: 988, sharpen: true }, 'cliff-steps-left': { width: 988, sharpen: true }, 'ledge-wide': { width: 260 }, 'ledge-narrow': { width: 150 },
   'rock-column': { width: 140 }, 'big-cliff': { width: 1095 }, 'pool-rocks': { width: 300 }, 'pool-rocks-small': { width: 180 },
+  // The dam's doors are drawn behind its wall, a little bigger than its arches (DAM_ART), so the
+  // arches frame them with no gap; the tool crops off their own stone pillars.
+  'grand-dam': { width: 960 }, 'dam-door-closed': { height: 381 }, 'dam-door-open': { height: 381 },
+  'lever-off': { height: 96 }, 'lever-on': { height: 96 }, 'exit-sign': { height: 120 },
+  'uw-weed-1': { height: 120 }, 'uw-weed-2': { height: 120 }, 'uw-plants-1': { width: 84 }, 'uw-plants-2': { width: 84 },
+  'uw-stone-1': { width: 110 }, 'uw-stone-2': { width: 110 }, 'uw-pebbles-1': { width: 90 }, 'uw-pebbles-2': { width: 90 },
+  'uw-shell-1': { width: 40 }, 'uw-shell-2': { width: 40 }, 'uw-plank-1': { width: 120 }, 'uw-plank-2': { width: 120 },
 };
 
 // The falling strip, made to loop as the world's fall-middle: its bright top band (topCut of its
