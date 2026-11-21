@@ -24,7 +24,7 @@ import { AdventureScenery } from '../systems/adventure/AdventureScenery.js';
 import { AdventureBird } from '../entities/AdventureBird.js';
 import { AdventureRootbreaker } from '../entities/AdventureRootbreaker.js';
 import { devPlace } from '../systems/adventure/devPlaces.js';
-import { atBoss, cellKey, restore, snapshot } from '../systems/adventure/bossRetry.js';
+import { cellKey, fromCheckpoint, restore, snapshot } from '../systems/adventure/bossRetry.js';
 import { AdventureCameraShots } from '../systems/adventure/AdventureCameraShots.js';
 import { FLASH, FLASH_KEY } from '../data/adventure/gunners.js';
 import { BOSS_FIGHTS } from '../data/adventure/bossFights.js';
@@ -1366,8 +1366,8 @@ export class AdventureScene extends Phaser.Scene {
       message: `Coins ${this.coins}, crystals ${this.gems}/${this.totals.gems}${chest}, enemies ${this.knockedOut}/${this.totals.enemies}`,
       actions: [
         ...(won && next ? [{ label: 'Next level', primary: true, onClick: () => this.scene.restart({ levelIndex: this.levelIndex + 1 }) }] : []),
-        // Lost at the boss: again from the checkpoint before him, as he left it (bossRetry.js).
-        ...(!won && atBoss(this)
+        // Lost, with a checkpoint lit (or at the boss): again from it, as he left it (bossRetry.js).
+        ...(!won && fromCheckpoint(this)
           ? [{ label: 'Try again', primary: true, onClick: () => this.restartLevel(snapshot(this)) }, { label: 'From the start', onClick: () => this.restartLevel() }]
           : [{ label: won ? 'Play again' : 'Try again', primary: !(won && next), onClick: () => this.restartLevel() }]),
         { label: 'Map', onClick: () => this.goHome('map') },

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { atBoss, cellKey, restore, snapshot } from '../src/systems/adventure/bossRetry.js';
+import { atBoss, cellKey, fromCheckpoint, restore, snapshot } from '../src/systems/adventure/bossRetry.js';
 
 // A stand-in level scene: just the parts bossRetry reads and changes.
 function level({ done = [], lit = [] } = {}) {
@@ -70,5 +70,20 @@ describe('trying again at the boss', () => {
     scene.bossFights = [{ started: true, beaten: false }];
     scene.level.test = true;
     expect(atBoss(scene)).toBe(false);
+  });
+
+  it('is offered in any level once he has lit a checkpoint, or at a boss; never in a test arena', () => {
+    const scene = level();
+    scene.lit = new Set();
+    scene.bossFights = [];
+    expect(fromCheckpoint(scene)).toBe(false); // no checkpoint yet: from the start
+    scene.lit.add('98,23');
+    expect(fromCheckpoint(scene)).toBe(true);
+    scene.lit = new Set();
+    scene.bossFights = [{ started: true, beaten: false }];
+    expect(fromCheckpoint(scene)).toBe(true);
+    scene.lit.add('98,23');
+    scene.level.test = true;
+    expect(fromCheckpoint(scene)).toBe(false);
   });
 });
