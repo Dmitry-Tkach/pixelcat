@@ -88,7 +88,11 @@ function routesAt(level, { closed = [], bridgesUp = false }, stage) {
   const inside = (c, r) => c >= 0 && c < cols && r >= 0 && r < rows;
   const isGround = (c, r) => inside(c, r) && level.map[r][c] === '#';
   // What he can't pass through: the ground and blocks. Islands and bridges he jumps up through.
-  const solid = (c, r) => isGround(c, r) || blocks.has(key(c, r)) || isClosed(c, r);
+  // Worked out once for every cell (a table), as the search asks it millions of times.
+  const solidAt = (c, r) => isGround(c, r) || blocks.has(key(c, r)) || isClosed(c, r);
+  const solidTable = new Uint8Array(cols * rows);
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) solidTable[r * cols + c] = solidAt(c, r) ? 1 : 0;
+  const solid = (c, r) => inside(c, r) && solidTable[r * cols + c] === 1;
   const logs = new Set([
     ...(level.movers ?? []).flatMap((mover) => [...moverCells(mover)]),
     ...(level.wheels ?? []).flatMap((wheel) => [...wheelCells(wheel)]),
@@ -100,7 +104,10 @@ function routesAt(level, { closed = [], bridgesUp = false }, stage) {
   const mushrooms = new Set((level.traps ?? []).filter((t) => t.kind === 'mushroom').map((t) => key(t.col, t.row)));
   const bounce = mushroomReach(level.world);
   const floor = (c, r) => inside(c, r) && (tiles[r][c] >= 0 || blocks.has(key(c, r)) || logs.has(key(c, r)) || leaves.has(key(c, r)));
-  const standable = (c, r) => inside(c, r) && r > 0 && !solid(c, r) && !solid(c, r - 1) && !spikes.has(key(c, r)) && floor(c, r + 1);
+  const standableAt = (c, r) => inside(c, r) && r > 0 && !solid(c, r) && !solid(c, r - 1) && !spikes.has(key(c, r)) && floor(c, r + 1);
+  const standTable = new Uint8Array(cols * rows);
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) standTable[r * cols + c] = standableAt(c, r) ? 1 : 0;
+  const standable = (c, r) => inside(c, r) && standTable[r * cols + c] === 1;
   // Water he swims in, at this stage: a pool's cell that isn't solid.
   const pools = level.pools ?? [];
   // He's taller than a cell (about 1.4), so in the water, as on land, he needs the cell above clear.
@@ -133,8 +140,8 @@ function routesAt(level, { closed = [], bridgesUp = false }, stage) {
   const visit = (k) => {
     if (k && !reached.has(k)) { reached.add(k); queue.push(k); }
   };
-  while (queue.length) {
-    const [c, r] = queue.shift().split(',').map(Number);
+  for (let next = 0; next < queue.length; next++) { // a queue read in order, never shortened
+    const [c, r] = queue[next].split(',').map(Number);
     const onLadder = ladderCells.has(key(c, r)) || ladderCells.has(key(c, r + 1));
     // In the water: to any water cell next to him, out onto a bank beside him, and from the
     // surface a leap out.

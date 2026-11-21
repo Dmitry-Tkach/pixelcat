@@ -864,10 +864,15 @@ export class AdventureScene extends Phaser.Scene {
   // The camera stops a few rows under the ground below the cat, in every level (systems/adventure/
   // cameraFloor.js). The edge moves with the same easing as the camera, so it never jumps. A camera
   // shot may look anywhere: the edge goes back to the map's bottom while one plays.
+  // The level's secrets count as ground for it, so it gives none away, unless he's inside one.
   lowerCameraEdge(ease) {
     const { body } = this.cat;
+    const col = Math.floor(body.center.x / TILE), feetRow = Math.floor(body.bottom / TILE);
+    const secrets = this.level.secrets ?? [];
+    const inSecret = (c, r) => secrets.some(({ cols: [c0, c1], rows: [r0, r1] }) => c >= c0 && c <= c1 && r >= r0 && r <= r1);
+    const covered = inSecret(col, Math.floor(body.center.y / TILE)) ? () => false : inSecret;
     const target = this.shots.playing ? this.worldH
-      : cameraBottom(this.level.map, Math.floor(body.center.x / TILE), Math.floor(body.bottom / TILE), this.level.camera?.groundRows, TILE);
+      : cameraBottom(this.level.map, col, feetRow, this.level.camera?.groundRows, TILE, undefined, covered);
     this.look.bottom = this.look.bottom === undefined ? target : this.look.bottom + (target - this.look.bottom) * ease;
     this.cameras.main.setBounds(0, 0, this.worldW, Math.min(this.worldH, Math.round(this.look.bottom)));
   }

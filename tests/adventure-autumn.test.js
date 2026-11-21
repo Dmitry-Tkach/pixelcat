@@ -555,3 +555,13 @@ describe('rocks in every level', () => {
     }
   });
 });
+
+describe('the camera and secrets', () => {
+  // Ground from row 4; a hidden hole at column 1 down to a cave (rows 4 to 8), its floor row 9.
+  const map = ['..........', '..........', '..........', '..........', '#.########', '#.#.....##', '#.#.....##', '#.......##', '#.......##', '##########', '##########', '##########', '##########', '##########', '##########'];
+  it('doesn\'t look down a hidden secret beside him', () => {
+    const covered = (c, r) => c >= 1 && c <= 7 && r >= 4 && r <= 8;
+    expect(cameraBottom(map, 3, 4, 4, 64, 3, covered)).toBe(8 * 64); // four rows under his ground
+    expect(cameraBottom(map, 3, 4, 4, 64, 3)).toBe(13 * 64); // unhidden, it showed down to the cave
+  });
+});
