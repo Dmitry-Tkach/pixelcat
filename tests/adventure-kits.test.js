@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { TILES, readAdventureMap } from '../src/systems/adventureMap.js';
+import { adventureRoutes } from '../src/systems/adventureRoutes.js';
 import { scaffoldLayout, walkwayProblems } from '../src/systems/adventure/scaffoldLayout.js';
 import { brickLayout, masonryCells, masonryProblems } from '../src/systems/adventure/brickLayout.js';
 import { mapBuilder } from '../src/data/adventure/mapBuilder.js';
@@ -36,5 +38,19 @@ describe('the stone brick kit', () => {
     expect(masonryProblems(level)).toEqual([]);
     expect(masonryCells(level.masonry).has('10,4')).toBe(true);
     expect(masonryProblems({ ...level, masonry: [{ cols: [3, 6], rows: [1, 7] }] })).toHaveLength(1);
+  });
+});
+
+describe('trapdoors', () => {
+  // Ground on row 3; a trapdoor at columns 3-4, a ladder from it down into a cave (rows 4-6).
+  const b = mapBuilder(10, 8).ground(0, 9, 3).put(1, 2, '@').hollow(2, 6, 4, 6).trapdoor(3, 4, 3).ladder(4, 3, 6).put(6, 6, '*');
+  const layout = readAdventureMap(b.rows());
+  it('is drawn as the ground, the floor beside it joined to it', () => {
+    expect(layout.tiles[3][2]).toBe(TILES.groundTop);
+    expect(layout.tiles[3][3]).toBe(TILES.groundTop);
+    expect(layout.trapdoors).toEqual([{ col: 3, row: 3 }, { col: 4, row: 3 }]);
+  });
+  it('lets the cat climb down its ladder to what is under it', () => {
+    expect(adventureRoutes({ map: b.rows(), world: 'autumn' }).nearReached(6, 6, 1)).toBe(true);
   });
 });

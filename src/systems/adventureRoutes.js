@@ -12,7 +12,6 @@
 //   the same for a water wheel's seats, all the way round (systems/adventure/wheels.js);
 //   stand on crumbling leaves, which hold him long enough to jump on, or fall through them once
 //   they crumble; cracked floor the same, but it breaks for good;
-//   drop down through an island or a bridge he stands on (Down, as entities/Cat.js lets him);
 //   walk a drawbridge, once it's down (systems/adventure/drawbridges.js);
 //   bounce off a mushroom (data/adventure/traps.js), much higher than a jump (see mushroomReach);
 //   swim (systems/adventure/pools.js): falling into a pool he lands in its water; in it he moves to
@@ -22,7 +21,7 @@
 // Enemies and gunners don't block him: he can always knock them out or get past them.
 import { MOVEMENT } from '../config/gameConfig.js';
 import { TRAPS } from '../data/adventure/traps.js';
-import { ONE_WAY, TILE, moverCells, readAdventureMap } from './adventureMap.js';
+import { TILE, moverCells, readAdventureMap } from './adventureMap.js';
 import { guardianSolid } from './adventure/trapLogic.js';
 import { wheelCells } from './adventure/wheels.js';
 import { drawbridgeCells } from './adventure/drawbridges.js';
@@ -157,9 +156,9 @@ function routesAt(level, { closed = [], bridgesUp = false }, stage) {
         if (standable(c + dc, r)) visit(key(c + dc, r));
         else if (!solid(c + dc, r) && !solid(c + dc, r - 1)) visit(landing(c + dc, r));
       }
-      // Crumbling leaves or cracked floor under him give way, and he falls through; Down drops him
-      // through an island or a bridge (one-way tiles), to whatever's under it.
-      if (leaves.has(key(c, r + 1)) || (inside(c, r + 1) && ONE_WAY.has(tiles[r + 1][c]) && !blocks.has(key(c, r + 1)))) visit(landing(c, r + 1));
+      // Crumbling leaves or cracked floor under him give way, and he falls through. (In the adventure,
+      // Down never drops him through an island: it slides, or climbs down a ladder he stands on.)
+      if (leaves.has(key(c, r + 1))) visit(landing(c, r + 1));
       // Underwater he swims, not jumps: a floor in a pool gives no jump.
       if (!swimmable(c, r)) {
         for (let up = JUMP_UP; up >= -12; up--) {

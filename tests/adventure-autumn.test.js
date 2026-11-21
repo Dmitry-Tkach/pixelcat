@@ -270,9 +270,12 @@ describe('scenery in every level', () => {
   it.each(ADVENTURE_LEVELS.map((level) => [level.id, level]))('%s stands its pictures on the ground', async (_id, level) => {
     for (const prop of level.props ?? []) {
       if (prop.hang || prop.spinMs || prop.inWater || prop.front || prop.fromWater || prop.free) continue;
-      // A boulder half-buried in the earth sits in the ground.
+      // A boulder half-buried in the earth sits in the ground (or a trapdoor's hatch in its trapdoor,
+      // drawn as the ground: a ladder's top in it is part of it).
       if (prop.inGround) {
-        expect(level.map[prop.row][prop.col], `${prop.picture} at (${prop.col}, ${prop.row}) isn't in the ground`).toBe('#');
+        const { trapdoors } = readAdventureMap(level.map);
+        const inTrapdoor = trapdoors.some(({ col, row }) => col === prop.col && row === prop.row);
+        expect(inTrapdoor ? '#' : level.map[prop.row][prop.col], `${prop.picture} at (${prop.col}, ${prop.row}) isn't in the ground`).toBe('#');
         continue;
       }
       const file = `public/${adventurePath(adventureArtWorld(level.world, prop.picture), prop.picture)}`;
@@ -538,6 +541,15 @@ describe('rocks in every level', () => {
           const water = (level.pools ?? []).some((p) => c >= p.cols[0] && c <= p.cols[1] && r + 1 <= p.bottom)
             || (level.water && r + 1 >= level.water.row); // a pool's, or the open water in the gaps
           expect(ground(r) || ground(r + 1) || water, `${level.id}: a rock's bottom at (${c}, ${r}) is in the air`).toBe(true);
+        }
+        // Nor in a cave: rocks are drawn over a cave's wall. A rock in a cave's open cell shows there; one
+        // hidden behind ground whose side bulges a cell into a cave beside it shows there too. (Beside
+        // a cave's mouth, out in the open air, it's simply seen outside, as it should be.)
+        for (const cell of cells) {
+          const [c, r] = cell.split(',').map(Number);
+          const inCave = (x) => level.map[r]?.[x] !== '#' && (level.caves ?? []).some(({ cols: [a, b], rows: [p, q] }) => x >= a && x <= b && r >= p && r <= q);
+          const shows = inCave(c) || (level.map[r]?.[c] === '#' && (inCave(c - 1) || inCave(c + 1)));
+          expect(shows, `${level.id}: a rock at (${c}, ${r}) shows in a cave`).toBe(false);
         }
       }
     }

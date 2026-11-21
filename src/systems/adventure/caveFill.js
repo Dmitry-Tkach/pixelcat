@@ -5,7 +5,10 @@
 // never shows outside, unless `atMouths` (caveShades, which fades the wall out towards the air
 // there). Given as runs along each row, so each is drawn as one strip. Plain code.
 const NEIGHBOURS = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
-const SOLID = new Set(['#', 'Z']);
+const SOLID = new Set(['#', 'Z', 'Y']);
+// A cell the cave is closed by: ground, cracked floor, a trapdoor (Y), and a ladder's top in a
+// trapdoor (part of it: systems/adventureMap.js), so a cave under a trapdoor has no mouth there.
+const closed = (map, c, r) => SOLID.has(map[r][c]) || (map[r][c] === 'H' && (map[r][c - 1] === 'Y' || map[r][c + 1] === 'Y'));
 
 export function caveRuns(map, caves = [], { atMouths = false } = {}) {
   const rows = map.length, cols = map[0].length;
@@ -15,7 +18,7 @@ export function caveRuns(map, caves = [], { atMouths = false } = {}) {
     for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) cave.add(key(c, r));
   }
   const inside = (c, r) => c >= 0 && c < cols && r >= 0 && r < rows;
-  const outside = (c, r) => inside(c, r) && !SOLID.has(map[r][c]) && !cave.has(key(c, r));
+  const outside = (c, r) => inside(c, r) && !closed(map, c, r) && !cave.has(key(c, r));
   const cells = new Set(cave);
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -53,7 +56,7 @@ export function caveShades(map, caves = []) {
   for (const { row, from, to } of caveRuns(map, caves, { atMouths: true })) for (let c = from; c <= to; c++) wall.add(key(c, row));
   const cave = new Set();
   for (const { cols: [c0, c1], rows: [r0, r1] } of caves) for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) cave.add(key(c, r));
-  const outside = (c, r) => c >= 0 && c < cols && r >= 0 && r < rows && !SOLID.has(map[r][c]) && !cave.has(key(c, r));
+  const outside = (c, r) => c >= 0 && c < cols && r >= 0 && r < rows && !closed(map, c, r) && !cave.has(key(c, r));
   // The air at a mouth: open air beside the cave itself (not the sky over the hill it's in).
   const mouth = (c, r) => outside(c, r) && NEIGHBOURS.some(([dc, dr]) => cave.has(key(c + dc, r + dr)));
   // How many cells each wall cell is from a mouth's air (4 ways), or Infinity.

@@ -121,7 +121,10 @@ export function pillarFoot(tiles, col, row) {
 
 const isGround = (ch) => ch === '#';
 // Cracked floor (Z) sits in the ground's surface, so the ground beside it joins it as if it were ground.
-const shapesGround = (ch) => isGround(ch) || ch === 'Z';
+// A trapdoor (Y) too: a cell of the ground's surface drawn as ground, but one-way, with a ladder down
+// through it (a ladder's top cell beside a trapdoor is part of it): standing on it, Down climbs him
+// down the ladder into what's under it (a secret), and he climbs back up through it.
+const shapesGround = (ch) => isGround(ch) || ch === 'Z' || ch === 'Y';
 const isIsland = (ch) => ch === '=';
 
 export function readAdventureMap(map) {
@@ -132,6 +135,9 @@ export function readAdventureMap(map) {
   // a bridge's row (a walkway's deck) is part of the bridge.
   const islandAt = (c, r) => isIsland(at(c, r)) || (at(c, r) === 'H' && (isIsland(at(c - 1, r)) || isIsland(at(c + 1, r))));
   const bridgeAt = (c, r) => at(c, r) === '-' || (at(c, r) === 'H' && (at(c - 1, r) === '-' || at(c + 1, r) === '-'));
+  const trapdoorAt = (c, r) => at(c, r) === 'Y' || (at(c, r) === 'H' && (at(c - 1, r) === 'Y' || at(c + 1, r) === 'Y'));
+  const groundLike = (c, r) => shapesGround(at(c, r)) || trapdoorAt(c, r);
+  const trapdoors = [];
   const tiles = [];
   const ladders = [];
   const objects = [];
@@ -141,11 +147,12 @@ export function readAdventureMap(map) {
     for (let c = 0; c < cols; c++) {
       const ch = at(c, r);
       let tile = -1;
-      if (isGround(ch)) {
-        const open = (dc) => !shapesGround(at(c + dc, r));
-        if (!shapesGround(at(c, r - 1))) {
+      if (isGround(ch) || trapdoorAt(c, r)) {
+        if (trapdoorAt(c, r)) trapdoors.push({ col: c, row: r });
+        const open = (dc) => !groundLike(c + dc, r);
+        if (!groundLike(c, r - 1)) {
           tile = open(-1) && !open(1) ? TILES.groundTopLeft : open(1) && !open(-1) ? TILES.groundTopRight : TILES.groundTop;
-        } else if (r + 1 < rows && !shapesGround(at(c, r + 1))) {
+        } else if (r + 1 < rows && !groundLike(c, r + 1)) {
           tile = open(-1) && !open(1) ? TILES.underLeft : open(1) && !open(-1) ? TILES.underRight : TILES.under;
         } else {
           tile = open(-1) && !open(1) ? TILES.soilLeft : open(1) && !open(-1) ? TILES.soilRight : TILES.soil;
@@ -166,7 +173,7 @@ export function readAdventureMap(map) {
     }
     tiles.push(row);
   }
-  return { rows, cols, tiles, ladders, objects, scenery };
+  return { rows, cols, tiles, ladders, objects, scenery, trapdoors };
 }
 
 // What's wrong with a level, as messages: an empty list means it's fine.

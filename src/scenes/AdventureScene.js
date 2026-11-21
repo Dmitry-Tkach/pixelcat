@@ -347,8 +347,10 @@ export class AdventureScene extends Phaser.Scene {
     this.groundLayer = map.createLayer(0, tileset, 0, 0).setDepth(2);
     this.groundLayer.setCollisionByExclusion([-1]);
     // Islands and bridges are only solid on top: the cat jumps up through them and lands on them.
+    // Trapdoors too, though they're drawn as the ground (systems/adventureMap.js, Y).
+    this.trapdoors = new Set(this.layout.trapdoors.map(({ col, row }) => `${col},${row}`));
     this.groundLayer.forEachTile((tile) => {
-      if (ONE_WAY.has(tile.index)) tile.setCollision(false, false, true, false, false);
+      if (ONE_WAY.has(tile.index) || this.trapdoors.has(`${tile.x},${tile.y}`)) tile.setCollision(false, false, true, false, false);
     });
     // Now and then a variant's picture for the plain soil and ground (data/adventure/tileVariants.js),
     // after the collisions are set: the game still treats it as the plain tile.
@@ -869,7 +871,7 @@ export class AdventureScene extends Phaser.Scene {
 
   // Islands hold the cat only when it's coming down onto them, not while it climbs or drops through.
   landsOn(tile) {
-    if (!ONE_WAY.has(tile.index)) return true;
+    if (!ONE_WAY.has(tile.index) && !this.trapdoors.has(`${tile.x},${tile.y}`)) return true;
     if (this.climbing || this.pullingUp || this.cat.isDropping) return false;
     if (this.cat.body.bottom <= tile.pixelY + 12) this.cat.onPlatform = true;
     return true;

@@ -10,7 +10,7 @@
 //      by a ladder up to a trapdoor.
 //   2. Riverside Caves: down to the minecart's floor, on its rails; a pool at the foot of
 //      the rock cliff, its two waterfalls; the high route over it, to the ruined arch. Secret 2: a
-//      trapdoor in the floor (Down drops through it) into a dry cave: the silver chest (its key up
+//      trapdoor in the floor, a ladder down through it (Down, standing on it) into a dry cave: the silver chest (its key up
 //      on the tall pillar), a crystal, purple crystals glowing.
 //   3. Water Control: the water wheel over one long timber walkway (data/adventure/scaffolds.js)
 //      across a pool, a dart statue's darts down its length, pumpkins on it; ladders from the water;
@@ -55,16 +55,16 @@ level.hollow(0, 1, 27, 29).hollow(0, 15, 30, 32)
   .coins(4, 7, 32).put(10, 32, '*');
 
 // ----- 2. Riverside Caves (columns 48-92): down to the minecart's floor.
-level.ground(48, 62, 27) // the minecart's floor, a drop down from the checkpoint (the high route's ladder beside it)
+level.ground(48, 69, 27) // the minecart's floor, one flat floor to the pool (a drop down from the checkpoint)
   .put(56, 26, 'P')
-  .ground(63, 69, 28)
-  .ground(70, 75, 32) // the pool at the cliff's foot (pools), its bed
+  .ground(70, 75, 32) // the pool at the cliff's foot (pools), a row under the floor; its bed
   .coins(71, 74, 30)
-  .ground(76, 92, 28)
-  .trap('mushroom', 86, 27) // a bounce up the step, or to the high route
-  // Secret 2: a trapdoor in the floor, Down drops him through it into a dry cave; a ladder back up.
+  .ground(76, 92, 27)
+  .trap('mushroom', 86, 26) // a bounce up the step, or to the high route
+  // Secret 2: a trapdoor in the floor (drawn as the floor, its wooden hatch on it), a ladder down
+  // through it into a dry cave: standing on the hatch, Down climbs him down.
   .hollow(50, 66, 31, 33)
-  .hollow(60, 61, 27, 30).island(60, 61, 27).ladder(61, 27, 33)
+  .hollow(60, 61, 28, 30).trapdoor(60, 61, 27).ladder(61, 27, 33)
   .put(55, 33, 'U').coins(57, 59, 33).put(52, 33, '*')
   // The high route, from the tall pillar: an arc of coins, an island with a ladder down, an ammo
   // crate, islands on the cliff, and the ruined arch.
@@ -147,7 +147,7 @@ level.ground(237, 256, 26)
 // placed as it is: rock behind the layers, as in the owner's picture, the waterfalls pouring down it.
 level.rock([{ cols: [32, 34], rows: [15, 31] }], { foot: 'water' }) // the first waterfall's
   .rock([{ cols: [41, 50], rows: [16, 26] }]) // behind the tall pillar: its top the way on, down behind the ground and to the minecart's floor past its end
-  .rock([{ cols: [67, 77], rows: [10, 31] }], { foot: 'water' }) // the riverside cliff, over its pool, clear of secret 2's cave
+  .rock([{ cols: [69, 77], rows: [10, 31] }], { foot: 'water' }) // the riverside cliff, over its pool, clear of secret 2's cave (its side and its plants reach past it)
   .rock([{ cols: [78, 90], rows: [12, 28] }]) // its top the ruined arch's floor
   .rock([{ cols: [132, 142], rows: [14, 24] }]) // its top the high route's end, its ladder down
   .rock([{ cols: [223, 229], rows: [14, 33] }], { foot: 'water' }) // the depths' waterfall, the key on its top
@@ -198,6 +198,8 @@ export const AUTUMN_DAM_LEVEL = {
     { picture: 'boulder-big', col: 28, row: 31, inGround: true },
     { picture: 'boulder-small', col: 40, row: 27, inGround: true },
     // 2. Riverside Caves.
+    { picture: 'drawbridge', col: 60, row: 27, inGround: true, dy: -61 }, // secret 2's trapdoor: its hatch, on the floor
+    { picture: 'drawbridge', col: 61, row: 27, inGround: true, dy: -61 },
     { picture: 'mine-frame', col: 55, row: 26, width: 420, back: true },
     { picture: 'mine-rail', col: 51, row: 26 }, { picture: 'mine-rail', col: 53, row: 26 },
     { picture: 'mine-rail', col: 55, row: 26 }, { picture: 'mine-rail', col: 57, row: 26 },
@@ -209,8 +211,8 @@ export const AUTUMN_DAM_LEVEL = {
     { picture: 'ruin-arch', col: 86, row: 11, back: true },
     { picture: 'crystal-blue', col: 88, row: 11 },
     { picture: 'barrel', col: 79, row: 14 },
-    { picture: 'fence', col: 64, row: 27 },
-    { picture: 'torch', col: 90, row: 27, width: 84, glow: true },
+    { picture: 'fence', col: 65, row: 26 },
+    { picture: 'torch', col: 90, row: 26, width: 84, glow: true },
     { picture: 'boulder-big', col: 58, row: 36, inGround: true },
     { picture: 'boulder-small', col: 80, row: 31, inGround: true },
     { picture: 'boulder-big', col: 89, row: 33, inGround: true },
@@ -253,8 +255,8 @@ export const AUTUMN_DAM_LEVEL = {
     { col: 20, width: 3, top: 21, bottom: 25 },
     { col: 28, width: 2, top: 18, bottom: 25 }, // its foot on the plateau, clear of the waterfall's gap
     { col: 37, width: 2, top: 15, bottom: 23 },
-    { col: 63, width: 3, top: 18, bottom: 28 },
-    { col: 78, width: 2, top: 16, bottom: 28 },
+    { col: 63, width: 3, top: 18, bottom: 27 },
+    { col: 78, width: 2, top: 16, bottom: 27 },
     { col: 210, width: 2, top: 25, bottom: 33 }, // the depths' islands, down to the pool's bed
     { col: 218, width: 2, top: 25, bottom: 33 },
     { col: 233, width: 3, top: 25, bottom: 33 },
@@ -280,7 +282,7 @@ export const AUTUMN_DAM_LEVEL = {
   waterfalls: [
     { col: 33, top: 15, bottom: 29, width: 96 },
     { col: 72, top: 10, bottom: 28, width: 112 },
-    { col: 86, top: 12, bottom: 28, width: 96 },
+    { col: 86, top: 12, bottom: 27, width: 96 },
     { col: 111, top: 26, bottom: 29, width: 64 }, // from the troughs under the walkway
     { col: 127, top: 26, bottom: 29, width: 64 },
     { col: 227, top: 14, bottom: 30, width: 80 },

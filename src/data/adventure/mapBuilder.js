@@ -93,9 +93,9 @@ export function mapBuilder(cols, rows) {
     },
     brickPillar(col, top, bottom) { return builder.wall(col, col + 1, top, bottom, { look: 'pillar' }); },
     // Its top cell is on the island's row, and is part of the island (or of a walkway's deck: a
-    // bridge cell).
+    // bridge cell; or of a trapdoor).
     ladder(col, top, bottom) {
-      for (let r = top; r <= bottom; r++) place(col, r, 'H', r === top ? '=-.' : '.');
+      for (let r = top; r <= bottom; r++) place(col, r, 'H', r === top ? '=-Y.' : '.');
       return builder;
     },
     vine(col, top, bottom) {
@@ -114,6 +114,8 @@ export function mapBuilder(cols, rows) {
       return builder;
     },
     cracked(from, to, row) { span(from, to, (c) => place(c, row, 'Z', '#.')); return builder; },
+    // A trapdoor in the ground's surface (systems/adventureMap.js, Y): drawn as the ground, one-way.
+    trapdoor(from, to, row) { span(from, to, (c) => place(c, row, 'Y', '#.')); return builder; },
     // A rope bridge that's simply there: a drawbridge with no switch, down from the start.
     ropeBridge(from, to, row, look = 'rope-plank') {
       inside(from, row);
