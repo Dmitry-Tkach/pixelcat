@@ -86,6 +86,17 @@ const waterSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${WATER.w}" hei
   <path d="${wavy(26, 3)}" stroke="#7fe3dc" stroke-width="3" fill="none" opacity="0.5"/>
   <path d="${wavy(48, 2)}" stroke="#4fc0c8" stroke-width="2" fill="none" opacity="0.35"/>
 </svg>`;
+// The flood's water: the same waves, muddy, tan at its top down to dark brown, with pale foam streaks.
+const MUD_DEEP = '#3e2716'; // its bottom colour: the flood's deep water (data/adventure/swim.js, FLOOD.deep)
+const mudSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${WATER.w}" height="${WATER.h}">
+  <defs><linearGradient id="mud" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#c08a52"/><stop offset="0.05" stop-color="#8c5a30"/><stop offset="0.18" stop-color="#6e4422"/><stop offset="1" stop-color="${MUD_DEEP}"/>
+  </linearGradient></defs>
+  <path d="${wavy(10, 5)} L${WATER.w} ${WATER.h} L0 ${WATER.h} Z" fill="url(#mud)"/>
+  <path d="${wavy(24, 4)}" stroke="#f2e2c8" stroke-width="4" fill="none" opacity="0.7"/>
+  <path d="${wavy(44, 3)}" stroke="#e0c49c" stroke-width="3" fill="none" opacity="0.45"/>
+  <path d="${wavy(70, 2)}" stroke="#c99f70" stroke-width="2" fill="none" opacity="0.35"/>
+</svg>`;
 const crestSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${WATER.w}" height="${WATER.crestH}">
   <path d="${wavy(12, 4)}" stroke="#ffffff" stroke-width="3" fill="none" stroke-linecap="round"/>
   ${[30, 96, 150, 210].map((x, i) => `<circle cx="${x}" cy="${i % 2 ? 20 : 6}" r="2" fill="#ffffff" opacity="0.8"/>`).join('')}
@@ -94,6 +105,7 @@ const WATER_OUT = join(ROOT, 'public', 'assets', 'adventure', 'fx', 'water');
 mkdirSync(WATER_OUT, { recursive: true });
 await sharp(Buffer.from(waterSvg)).png({ compressionLevel: 9 }).toFile(join(WATER_OUT, `${WATER_ART.body}.png`));
 await sharp(Buffer.from(crestSvg)).png({ compressionLevel: 9 }).toFile(join(WATER_OUT, `${WATER_ART.crest}.png`));
+await sharp(Buffer.from(mudSvg)).png({ compressionLevel: 9 }).toFile(join(WATER_OUT, `${WATER_ART.mud}.png`));
 
 mkdirSync(FX_OUT, { recursive: true });
 await sharp(Buffer.from(raysSvg)).png({ compressionLevel: 9 }).toFile(join(FX_OUT, `${BACKDROP_FX.rays}.png`));

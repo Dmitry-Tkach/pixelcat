@@ -13,6 +13,8 @@ export const WATER = {
   sinkPx: 40,
   splash: { drops: 18, ringMs: 420 },
 };
-export const WATER_ART = { body: 'water', crest: 'water-crest' };
+// mud: a flood's water (systems/adventure/AdventureFlood.js), muddy brown, so it never looks like the
+// water he swims in.
+export const WATER_ART = { body: 'water', crest: 'water-crest', mud: 'water-mud' };
 export const WATER_PATH = 'assets/adventure/fx/water';
 export const waterKey = (name) => `adventure-${WATER_ART[name]}`;

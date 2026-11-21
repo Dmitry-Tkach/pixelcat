@@ -1,5 +1,5 @@
 import { ONE_WAY, TILE } from '../adventureMap.js';
-import { POOL } from '../../data/adventure/swim.js';
+import { FLOOD, POOL } from '../../data/adventure/swim.js';
 import { WATER, waterKey } from '../../data/adventure/water.js';
 import { poolSegments, poolSurface } from './pools.js';
 
@@ -50,6 +50,7 @@ export class AdventurePools {
       for (const part of pool.parts) for (const layer of part.layers) layer.destroy();
       const first = pool.def.cols[0], last = pool.def.cols[1];
       pool.parts = poolSegments(pool.def, row, this.solid).map((seg) => this.makePart(seg, seg.from === first, seg.to === last));
+      if (pool.muddy) for (const part of pool.parts) this.paintPart(part, pool.muddy);
     }
     for (const part of pool.parts) this.placePart(pool, part);
   }
@@ -65,6 +66,22 @@ export class AdventurePools {
     // Under ground, the picture's wavy top is skipped: the water there is just water.
     if (!seg.open) { back.tilePositionY = UNDER_GROUND_SKIP; front.tilePositionY = UNDER_GROUND_SKIP; }
     return { ...seg, leftEnd, rightEnd, back, front, backDeep, frontDeep, crest, layers: [back, front, backDeep, frontDeep, crest].filter(Boolean) };
+  }
+
+  // A pool's water muddy (a flood's: data/adventure/swim.js, FLOOD) or its own clear blue. Its parts
+  // made later (as it rises over another row) take it on too.
+  setMuddy(pool, muddy) {
+    pool.muddy = muddy;
+    for (const part of pool.parts) this.paintPart(part, muddy);
+  }
+
+  paintPart({ back, front, backDeep, frontDeep }, muddy) {
+    const picture = waterKey(muddy && this.scene.textures.exists(waterKey('mud')) ? 'mud' : 'body');
+    back.setTexture(picture);
+    front.setTexture(picture);
+    const deep = muddy ? FLOOD.deep : this.deepColour;
+    backDeep.setFillStyle(deep, 1);
+    frontDeep.setFillStyle(deep, POOL.front.alpha);
   }
 
   // Lays a part out from its top (the surface, or under its ground) down to its bottom. The
@@ -109,8 +126,8 @@ export class AdventurePools {
 
   // Each frame: the waves move, and rising water is laid out at its new height.
   update(ms) {
-    const step = (WATER.waveSpeed * ms) / 1000;
     for (const pool of this.pools) {
+      const step = (WATER.waveSpeed * ms * (pool.muddy ? FLOOD.waves : 1)) / 1000; // a flood's waves rush
       for (const part of pool.parts) {
         part.back.tilePositionX += step;
         part.front.tilePositionX += step;
@@ -120,3 +137,4 @@ export class AdventurePools {
     }
   }
 }
+
