@@ -143,6 +143,16 @@ level.ground(237, 256, 26)
   .hollow(257, 265, 22, 25).coins(260, 263, 25).put(264, 25, '+') // a room in the cliff, open to the left
   .put(272, 18, 'E');
 
+// The cliff the level is built into, last, so its tops (stood on, as ground) leave what's already
+// placed as it is: rock behind the layers, as in the owner's picture, the waterfalls pouring down it.
+level.rock([{ cols: [32, 34], rows: [15, 31] }], { foot: 'water' }) // the first waterfall's
+  .rock([{ cols: [41, 49], rows: [16, 23] }]) // behind the tall pillar
+  .rock([{ cols: [66, 77], rows: [10, 31] }], { foot: 'water' }) // the riverside cliff, over its pool
+  .rock([{ cols: [78, 90], rows: [13, 28] }])
+  .rock([{ cols: [132, 142], rows: [15, 24] }]) // behind the high route's ladder
+  .rock([{ cols: [224, 229], rows: [15, 33] }], { foot: 'water' }) // the depths' waterfall
+  .rock([{ cols: [237, 249], rows: [17, 26] }, { cols: [250, 256], rows: [10, 26] }]); // the exit's cliff, stepped
+
 // The Grand Dam's puzzle, for tests/adventure-dam.test.js: the valley's floor row, its water's
 // stages, and the far tower's checkpoint, reached only with all three.
 export const DAM_PUZZLE = { floor: VALLEY_FLOOR - 1, stages: STAGES, farTower: FAR_TOWER };
@@ -262,16 +272,9 @@ export const AUTUMN_DAM_LEVEL = {
   // Fish swimming between the depths' pillars (systems/adventure/AdventurePoolFish.js).
   poolFish: [{ from: 216, to: 221, row: 32 }, { from: 224, to: 229, row: 32 }],
   // The cliff the level is built into (data/adventure/rocks.js): rock behind the layers, as in the
-  // owner's picture, the waterfalls pouring down it.
-  rocks: [
-    { parts: [{ cols: [32, 34], rows: [15, 31] }], foot: 'water' },
-    { parts: [{ cols: [41, 49], rows: [16, 23] }] }, // behind the tall pillar
-    { parts: [{ cols: [66, 77], rows: [10, 31] }], foot: 'water' }, // the riverside cliff, its pool
-    { parts: [{ cols: [78, 90], rows: [13, 28] }] },
-    { parts: [{ cols: [132, 142], rows: [15, 24] }] }, // behind the high route's ladder
-    { parts: [{ cols: [224, 229], rows: [15, 33] }], foot: 'water' }, // the depths' waterfall
-    { parts: [{ cols: [237, 249], rows: [17, 26] }, { cols: [250, 256], rows: [10, 26] }] }, // the exit's cliff, stepped
-  ],
+  // owner's picture, the waterfalls pouring down it; its tops stood on (mapBuilder's rock()).
+  rocks: level.rocks(),
+  hiddenTiles: level.hiddenTiles(),
   waterfalls: [
     { col: 33, top: 15, bottom: 29, width: 96 },
     { col: 72, top: 10, bottom: 28, width: 112 },

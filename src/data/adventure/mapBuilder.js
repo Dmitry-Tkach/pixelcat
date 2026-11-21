@@ -27,6 +27,7 @@
 //   trap(kind, col, row, options)  a moving trap: a mace, crusher, idol or mushroom (see
 //                          data/adventure/traps.js for each kind's options). traps() lists them.
 // Everything but ground and gaps must go in an empty cell, so pieces can't silently overwrite each other.
+import { rockLayout } from '../../systems/adventure/rockLayout.js';
 export function mapBuilder(cols, rows) {
   const grid = Array.from({ length: rows }, () => Array(cols).fill('.'));
   const movers = [];
@@ -37,6 +38,8 @@ export function mapBuilder(cols, rows) {
   const drawbridges = [];
   const walkways = [];
   const masonry = [];
+  const rocks = [];
+  const hiddenTiles = [];
   const inside = (c, r) => {
     if (!Number.isInteger(c) || !Number.isInteger(r) || c < 0 || c >= cols || r < 0 || r >= rows) throw new Error(`(${c}, ${r}) is outside the map`);
   };
@@ -61,6 +64,24 @@ export function mapBuilder(cols, rows) {
     walkway(from, to, row, { posts } = {}) {
       builder.bridge(from, to, row);
       walkways.push({ from, to, row, ...(posts ? { posts: [...posts] } : {}) });
+      return builder;
+    },
+    // A rock from the rock kit (data/adventure/rocks.js), behind the level, its tops stood on: island
+    // cells (one-way: he lands on them, and jumps up through the rock in front of it) along every
+    // top of its shape, not shown (hiddenTiles), so its own picture is what he stands on. A top cell
+    // that's taken, or has something over it (an island resting on the rock), is left as it is.
+    rock(parts, { foot } = {}) {
+      for (const { cols: [c0, c1], rows: [r0, r1] } of parts) { inside(c0, r0); inside(c1, r1); }
+      rocks.push({ parts: parts.map((p) => ({ cols: [...p.cols], rows: [...p.rows] })), ...(foot ? { foot } : {}) });
+      for (const { row, from, to } of rockLayout({ parts }).tops) {
+        let run = null;
+        for (let c = from; c <= to; c++) {
+          if (grid[row][c] === '.' && row > 0 && grid[row - 1][c] === '.') {
+            grid[row][c] = '=';
+            if (run && run.cols[1] === c - 1) run.cols[1] = c; else { run = { cols: [c, c], row }; hiddenTiles.push(run); }
+          } else run = null;
+        }
+      }
       return builder;
     },
     // Ground drawn as stone brick (data/adventure/bricks.js): a wall, or a two-cell pillar.
@@ -141,6 +162,8 @@ export function mapBuilder(cols, rows) {
     wheels: () => wheels.map((w) => ({ ...w })),
     birds: () => birds.map((b) => ({ ...b })),
     vines: () => vines.map((v) => ({ ...v })),
+    rocks: () => rocks.map((r) => ({ ...r, parts: r.parts.map((p) => ({ cols: [...p.cols], rows: [...p.rows] })) })),
+    hiddenTiles: () => hiddenTiles.map((h) => ({ cols: [...h.cols], row: h.row })),
     walkways: () => walkways.map((w) => ({ ...w, ...(w.posts ? { posts: [...w.posts] } : {}) })),
     masonry: () => masonry.map((m) => ({ ...m, cols: [...m.cols], rows: [...m.rows] })),
     drawbridges: () => drawbridges.map((d) => ({ ...d, ...(d.switch ? { switch: { ...d.switch } } : {}) })),
