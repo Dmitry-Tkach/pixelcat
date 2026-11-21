@@ -70,9 +70,10 @@ export function mapBuilder(cols, rows) {
       return builder;
     },
     brickPillar(col, top, bottom) { return builder.wall(col, col + 1, top, bottom, { look: 'pillar' }); },
-    // Its top cell is on the island's row, and is part of the island.
+    // Its top cell is on the island's row, and is part of the island (or of a walkway's deck: a
+    // bridge cell).
     ladder(col, top, bottom) {
-      for (let r = top; r <= bottom; r++) place(col, r, 'H', r === top ? '=.' : '.');
+      for (let r = top; r <= bottom; r++) place(col, r, 'H', r === top ? '=-.' : '.');
       return builder;
     },
     vine(col, top, bottom) {

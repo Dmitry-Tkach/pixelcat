@@ -279,10 +279,11 @@ describe('scenery in every level', () => {
       const half = (width * UNDER_SHARE) / 2 / 64;
       const name = `${prop.picture} at (${prop.col}, ${prop.row})`;
       expect(level.map[prop.row][prop.col], `${name} is inside the ground`).not.toBe('#');
-      // Ground or an island as the game reads them (a ladder's top on an island is island), or
-      // cracked floor; not a bridge.
+      // Ground or an island as the game reads them (a ladder's top on an island is island), cracked
+      // floor, or a timber walkway's deck; not a thin bridge.
       const { tiles } = readAdventureMap(level.map);
-      const holds = (c) => level.map[prop.row + 1]?.[c] === 'Z' || ((tiles[prop.row + 1]?.[c] ?? -1) >= 0 && tiles[prop.row + 1][c] !== TILES.bridge);
+      const onWalkway = (c) => (level.walkways ?? []).some((w) => w.row === prop.row + 1 && c >= w.from && c <= w.to);
+      const holds = (c) => level.map[prop.row + 1]?.[c] === 'Z' || onWalkway(c) || ((tiles[prop.row + 1]?.[c] ?? -1) >= 0 && tiles[prop.row + 1][c] !== TILES.bridge);
       for (let c = Math.floor(prop.col + 0.5 - half); c <= Math.floor(prop.col + 0.5 + half); c++) {
         expect(holds(c), `${name} has no ground under column ${c}`).toBe(true);
       }

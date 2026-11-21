@@ -22,14 +22,14 @@ export function scaffoldLayout({ from, to, row, posts }, tiles) {
   return { posts: placed, braces };
 }
 
-// What's wrong with a level's walkways, as messages: each on the map's bridge cells, its posts
-// under it.
+// What's wrong with a level's walkways, as messages: each on the map's bridge cells (or a ladder's
+// top), its posts under it.
 export function walkwayProblems(level) {
   const errors = [];
   for (const [i, w] of (level.walkways ?? []).entries()) {
     const name = `walkway ${i + 1}`;
     if (!(w.from <= w.to)) { errors.push(`${name} must run from a column to one at or after it`); continue; }
-    for (let c = w.from; c <= w.to; c++) if (level.map[w.row]?.[c] !== '-') errors.push(`${name}'s cell (${c}, ${w.row}) isn't a bridge cell`);
+    for (let c = w.from; c <= w.to; c++) if (!'-H'.includes(level.map[w.row]?.[c] ?? '.')) errors.push(`${name}'s cell (${c}, ${w.row}) isn't a bridge cell`);
     for (const col of w.posts ?? []) if (col < w.from || col > w.to) errors.push(`${name}'s post at column ${col} isn't under it`);
   }
   return errors;

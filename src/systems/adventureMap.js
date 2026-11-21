@@ -128,8 +128,10 @@ export function readAdventureMap(map) {
   const rows = map.length;
   const cols = map[0].length;
   const at = (c, r) => (r < 0 || r >= rows || c < 0 || c >= cols ? '.' : map[r][c]);
-  // A ladder on an island's row is also part of the island, so the cat can stand at the top.
+  // A ladder on an island's row is also part of the island, so the cat can stand at the top; one on
+  // a bridge's row (a walkway's deck) is part of the bridge.
   const islandAt = (c, r) => isIsland(at(c, r)) || (at(c, r) === 'H' && (isIsland(at(c - 1, r)) || isIsland(at(c + 1, r))));
+  const bridgeAt = (c, r) => at(c, r) === '-' || (at(c, r) === 'H' && (at(c - 1, r) === '-' || at(c + 1, r) === '-'));
   const tiles = [];
   const ladders = [];
   const objects = [];
@@ -152,7 +154,7 @@ export function readAdventureMap(map) {
         const left = islandAt(c - 1, r);
         const right = islandAt(c + 1, r);
         tile = !left && right ? TILES.ledgeLeft : left && !right ? TILES.ledgeRight : TILES.ledge;
-      } else if (ch === '-') {
+      } else if (bridgeAt(c, r)) {
         tile = TILES.bridge;
       }
       if (ch === 'H') ladders.push({ col: c, row: r });

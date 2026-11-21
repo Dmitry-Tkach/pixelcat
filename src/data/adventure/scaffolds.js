@@ -8,7 +8,8 @@
 // them on the map): the cat stands on row `row` from column `from` to `to`, one-way as an island
 // (he jumps up through it); posts: the columns its posts stand at (its two ends if not given), each
 // down to the first ground, island or pool floor under it. Its cells are the map's bridge cells,
-// drawn by the kit instead of the bridge tile.
+// drawn by the kit instead of the bridge tile; a ladder may climb to its deck (its top cell is then
+// part of the deck).
 
 // The pictures, by name in the world's art.
 export const SCAFFOLD_ART = {

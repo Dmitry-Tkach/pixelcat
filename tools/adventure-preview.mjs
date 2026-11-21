@@ -36,6 +36,7 @@ import { existsSync } from 'node:fs';
 import { rockPicture } from './rockPicture.mjs';
 import { brickPicture, scaffoldPictures } from './kitPicture.mjs';
 import { masonryCells } from '../src/systems/adventure/brickLayout.js';
+import { poolSegments } from '../src/systems/adventure/pools.js';
 import { DAM_ART, damLayout } from '../src/data/adventure/dam.js';
 
 const [out, index = '0'] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
@@ -213,10 +214,18 @@ if (level.dam && existsSync(art(DAM_ART.wall))) {
   for (const gate of dam.gates) comps.push(await at(await scaled(art(DAM_ART.closed), 1), gate.x, dam.foot, 0.5, 1));
   comps.push({ input: await scaled(art(DAM_ART.wall), 1), left: Math.round(dam.left * SCALE), top: Math.round(dam.top * SCALE) });
 }
+// Each pool part by part, as the game draws it (poolSegments): from its surface where that's open,
+// from under the ground where ground covers it (a flooded cave), see-through.
+const POOL_SEE = 0.6; // how solid the preview's water is
+const solidForPool = (c, r) => (tiles[r]?.[c] ?? -1) >= 0 && !ONE_WAY.has(tiles[r][c]);
 for (const pool of level.pools ?? []) {
-  const w = Math.round((pool.cols[1] - pool.cols[0] + 1) * CELL), h = Math.round((pool.bottom - pool.surface + 1) * CELL);
-  const body = await sharp('public/assets/adventure/fx/water/water.png').resize(w, h, { fit: 'fill' }).ensureAlpha(0.7).png().toBuffer();
-  comps.push({ input: body, left: Math.round(pool.cols[0] * CELL), top: Math.round(pool.surface * CELL) });
+  const w = Math.round((pool.cols[1] - pool.cols[0] + 1) * CELL);
+  for (const { from, to, top } of poolSegments(pool, pool.surface, solidForPool)) {
+    const pw = Math.round((to - from + 1) * CELL), ph = Math.round((pool.bottom - top + 1) * CELL);
+    const body = await sharp('public/assets/adventure/fx/water/water.png').resize(pw, ph, { fit: 'fill' }).ensureAlpha().png().toBuffer();
+    const see = await sharp(body).composite([{ input: Buffer.from([255, 255, 255, Math.round(255 * POOL_SEE)]), raw: { width: 1, height: 1, channels: 4 }, tile: true, blend: 'dest-in' }]).png().toBuffer();
+    comps.push({ input: see, left: Math.round(from * CELL), top: Math.round(top * CELL) });
+  }
   for (const row of pool.stages ?? []) {
     comps.push({ input: Buffer.from(`<svg width="${w}" height="3"><rect width="${w}" height="3" fill="#7fe3dc" fill-opacity="0.9" stroke-dasharray="6 4"/></svg>`), left: Math.round(pool.cols[0] * CELL), top: Math.round(row * CELL) });
   }
