@@ -6,7 +6,8 @@ import { strokeSpeed, swimVelocity, swimsAt } from './pools.js';
 // under a pool's surface, he floats: the water's own gravity, slower across, his doggy-paddle
 // (or treading water, still), and a bubble now and then. The scene sends him a jump press while he
 // swims (stroke): a stroke up, or, at the surface, a leap out onto the bank. Out of the water, his
-// own gravity is back, and his double jump too.
+// own gravity is back; his leap out is his jump, so no double jump until he lands (the water's
+// ledges are spaced for that: tests/adventure-dam.test.js).
 export class AdventureSwimming {
   constructor(scene, cat, pools) {
     this.scene = scene;
@@ -65,7 +66,7 @@ export class AdventureSwimming {
     const { cat } = this;
     cat.body.setGravityY(this.gravity);
     cat.swimRole = null;
-    cat.airJumpsLeft = 1;
+    cat.airJumpsLeft = 0; // his leap out was his jump: he gets it back by landing
     this.pool = null;
   }
 }

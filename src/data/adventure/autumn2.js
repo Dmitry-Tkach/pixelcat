@@ -39,33 +39,44 @@ level.ground(0, 30, GROUND)
 level.ground(31, 44, RIVER_BED) // the river's bed
   .ground(45, 52, GROUND)
   .hollow(22, 30, 24, RIVER_BED - 1) // the cave under the near bank, and its tunnel to the river
-  .coins(33, 35, 24).coins(36, 39, 26).put(41, RIVER_BED - 1, '*')
-  .put(23, RIVER_BED - 1, 'U').coins(25, 27, 25)
+  .coins(33, 35, 24).coins(36, 39, 26).coins(40, 42, RIVER_BED - 1)
+  .put(23, RIVER_BED - 1, 'U').coins(25, 27, 25).put(28, RIVER_BED - 1, '*') // the crystal, in the secret cave
   ;
 
-// ----- 3. Water Control: a checkpoint on the bank, then the mill basin: stone pillars to hop over its
-// water (or swim it), a crab on its bed, and the water wheel, its seats dipping into the water,
-// carrying him up to the high walkway (a ? block over it) and on to the far bank.
+// ----- 3. Water Control: swimming tested. A checkpoint on the bank, then the mill basin: stone
+// pillars to hop over its water (or swim it), spikes on its bed between them (a swimmer who sinks is
+// hurt: stroke), a dart statue on the last pillar shooting along the surface (dive, or time it), a
+// crab on the bed past the spikes, and the water wheel, carrying him up to the high walkway (a ?
+// block over it) and on to the far bank, three rows over the water: a leap out can't reach it.
 level.put(48, 21, 'C')
   .ground(53, 90, 31) // the basin's bed
   .fill(57, 58, 25, 30).fill(63, 64, 25, 30).fill(69, 70, 25, 30) // the stone pillars
   .arc(59, 62, 23, 1).arc(65, 68, 23, 1)
-  .put(66, 30, 'Q') // a crab on the bed
+  .put(59, 30, '^').put(60, 30, '^').put(61, 30, '^').put(62, 30, '^')
+  .put(65, 30, '^').put(66, 30, '^').put(67, 30, '^').put(68, 30, '^')
+  .trap('idol', 70, 24, { facing: -1 })
+  .put(85, 30, 'Q') // a crab on the bed
   .wheel(77, 22, { dir: 1 })
   .island(81, 94, 18).coins(83, 90, 17).put(87, 14, '?')
   .ground(91, 95, GROUND);
 
-// ----- 4. The Grand Dam: down the ladder into the valley, the dam in its middle. The water is
-// ankle-deep. Lever 1 is on the valley floor; each lever opens a gate, and the water rises a stage:
-// up to lever 2's ledge on the right, then lever 3's on the left, then to the dam's top, where its
-// coins float, and a leap from the water to the far cliff. A crab on the valley floor.
+// ----- 4. The Grand Dam: down the ladder into the valley (a checkpoint at its foot), the dam in its
+// middle. The water is ankle-deep. Lever 1 is on the valley floor, spikes past it; each lever opens
+// the next gate, and the water rises a stage: to lever 2's ledge, in front of the dam; to lever 3's,
+// right of it, a dart statue on it shooting along the water; then to the dam's top, where its coins
+// float, and a leap from the water to the far cliff, past a hovering owl. A crab on the floor.
+// Each ledge is spaced by the real jump and leap (tests/adventure-dam.test.js): out of reach until
+// its stage, whatever a player does.
 level.ground(96, 140, 31)
   .island(96, 97, 22).ladder(96, 22, 30) // a landing by the bank, the ladder down from it
-  .coins(104, 108, 29)
-  .island(128, 132, 25).coins(128, 129, 24) // lever 2's ledge: out of a jump from the far cliff
-  .island(106, 110, 24).coins(109, 110, 23) // lever 3's ledge: out of a jump from the bank
+  .put(98, 30, 'C')
+  .put(103, 30, '^').put(104, 30, '^').put(105, 30, '^')
+  .coins(106, 108, 29)
+  .island(110, 114, 24).coins(110, 111, 23) // lever 2's ledge
+  .island(126, 130, 23).coins(126, 127, 22).trap('idol', 130, 22, { facing: -1 }) // lever 3's ledge
   .coins(113, 123, 23) // along the dam's top, at the water's last stage
-  .put(127, 30, 'Q');
+  .bird('hover', 136, 20, { look: 'owl' })
+  .put(120, 30, 'Q');
 
 // ----- 5. Flooded Depths: the far cliff's top, a checkpoint, then a deep basin: a rock wall across
 // it to its bed but for a gap at the bottom (the way on is under it), pillars, a crab on the bed, a
@@ -73,23 +84,27 @@ level.ground(96, 140, 31)
 level.ground(141, 150, 22)
   .put(143, 21, 'C')
   .ground(151, 180, 31)
-  .fill(164, 166, 20, 27) // the rock wall: dive under it
+  .fill(164, 166, 17, 27) // the rock wall, six rows over the water: dive under it
+  .put(161, 30, '^').put(162, 30, '^').put(163, 30, '^') // spikes before the gap: hold the dive's line
   .fill(156, 157, 26, 30).fill(172, 173, 25, 30)
-  .put(160, 30, '*').coins(167, 170, 29)
+  .hollow(172, 173, 30, 30).put(172, 30, '*') // the crystal, in the gap under the pillar
+  .coins(167, 170, 29)
   .put(176, 30, 'Q')
-  .island(152, 156, 18).put(154, 14, '?').coins(153, 155, 17);
+  .island(151, 154, 18).put(153, 14, '?').coins(151, 152, 17);
 
-// ----- 6. Dam Exit: the far bank, a checkpoint, a climb up two islands to the raised plaza and the
-// exit. A secret room under the plaza, in through a cracked floor past the exit, out by a trapdoor.
+// ----- 6. Dam Exit: the far bank (a dart statue on it, shooting back along the depths' water), a
+// checkpoint, a climb up two islands to the raised plaza and the exit. A secret room under the
+// plaza: in by a cracked floor before the exit (coins on it, so he stops), out by a trapdoor past it.
 level.ground(181, COLS - 1, 24)
-  .put(184, 23, 'C')
+  .trap('idol', 183, 23, { facing: -1 })
+  .put(185, 23, 'C')
   .island(189, 193, 21).coins(190, 192, 20)
   .island(195, 199, 18).coins(196, 198, 17)
   .ground(202, COLS - 1, 16)
   .put(210, 15, 'E')
   .hollow(205, 218, 17, 19).put(212, 19, '*').coins(208, 211, 19) // the secret room
-  .cracked(217, 218, 16) // in: the cracked floor past the exit
-  .hollow(205, 206, 16, 16).island(205, 206, 16); // out: the trapdoor, jumped up through
+  .cracked(207, 208, 16).coins(207, 208, 15) // in: the cracked floor before the exit
+  .hollow(216, 217, 16, 16).island(216, 217, 16); // out: the trapdoor past it, jumped up through
 
 export const AUTUMN_DAM_LEVEL = {
   id: 'autumn-2',
@@ -115,18 +130,23 @@ export const AUTUMN_DAM_LEVEL = {
     { picture: 'big-tree', col: 146, row: 21, back: true },
     { picture: 'small-tree', col: 186, row: 23, back: true },
     { picture: 'cat-statue', col: 207, row: 15, back: true },
-    { picture: 'cat-statue', col: 214, row: 15, back: true },
-    { picture: 'exit-sign', col: 216, row: 15 },
+    { picture: 'cat-statue', col: 212, row: 15, back: true },
+    { picture: 'exit-sign', col: 214, row: 15 },
   ],
   // The river and the cave under the near bank (one water, the cave's part a secret); the mill
   // basin; the dam's valley, rising a stage with each lever; the flooded depths.
   pools: [
     { cols: [22, 44], bottom: RIVER_BED - 1, surface: RIVER_TOP },
     { cols: [53, 90], bottom: 30, surface: 25 },
-    { cols: [97, 140], bottom: 30, surface: 30, stages: [26, 25, 23] }, // to the dam's top (row 23), never over it
+    { cols: [97, 140], bottom: 30, surface: 30, stages: [25, 24, 23] }, // to the dam's top (row 23), never over it
     { cols: [151, 180], bottom: 30, surface: 23 },
   ],
-  levers: [{ col: 101, row: 30 }, { col: 130, row: 24 }, { col: 108, row: 23 }],
+  levers: [{ col: 101, row: 30 }, { col: 112, row: 23 }, { col: 128, row: 22 }],
+  // Fish swimming in the flooded depths, one each side of the wall (systems/adventure/AdventurePoolFish.js).
+  poolFish: [{ from: 152, to: 160, row: 26 }, { from: 168, to: 179, row: 26 }],
+  // A rock cliff over the river's end, a waterfall pouring from it into the river.
+  rocks: [{ parts: [{ cols: [40, 44], rows: [14, 30] }], foot: 'water' }],
+  waterfalls: [{ col: 42, top: 14, bottom: RIVER_TOP, width: 112 }],
   dam: { col: 118, row: 30 },
   secrets: [{ cols: [22, 30], rows: [24, RIVER_BED - 1] }, { cols: [205, 218], rows: [17, 19] }],
   caves: [{ cols: [22, 30], rows: [24, RIVER_BED - 1] }, { cols: [205, 218], rows: [17, 19] }],

@@ -6,6 +6,7 @@ import { mapBuilder } from '../src/data/adventure/mapBuilder.js';
 import { readAdventureMap } from '../src/systems/adventureMap.js';
 import { damLayout } from '../src/data/adventure/dam.js';
 import { everUnderwater, poolDecor } from '../src/systems/adventure/poolDecor.js';
+import { POOL_FISH, poolFishAt } from '../src/data/adventure/fish.js';
 
 // A pool from row 5 to row 8, columns 6 to 11, rising to row 3 at stage 1.
 const pool = { cols: [6, 11], bottom: 8, surface: 5, stages: [3] };
@@ -113,5 +114,19 @@ describe('a pool floor\'s decoration', () => {
   it('keeps the ground\'s own plants off anywhere the water ever reaches', () => {
     expect(everUnderwater(level.pools, 8, 5)).toBe(true); // under the risen water
     expect(everUnderwater(level.pools, 2, 9)).toBe(false); // the bank
+  });
+});
+
+describe('a pool fish', () => {
+  const fish = { from: 2, to: 6, row: 5 };
+  const trip = ((6 - 2) * 64 / POOL_FISH.speed) * 1000;
+  it('swims right from its first end, then back', () => {
+    expect(poolFishAt(fish, 0, 64)).toMatchObject({ x: 2 * 64 + 32, right: true });
+    expect(poolFishAt(fish, trip / 2, 64).x).toBeCloseTo(4 * 64 + 32);
+    expect(poolFishAt(fish, trip * 1.5, 64)).toMatchObject({ right: false });
+    expect(poolFishAt(fish, trip * 1.5, 64).x).toBeCloseTo(4 * 64 + 32);
+  });
+  it('stays near its row, bobbing', () => {
+    for (const ms of [0, 400, 800, 1200]) expect(Math.abs(poolFishAt(fish, ms, 64).y - (5 * 64 + 32))).toBeLessThanOrEqual(POOL_FISH.bob + 0.001);
   });
 });

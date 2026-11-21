@@ -50,6 +50,7 @@ import { AdventurePools } from '../systems/adventure/AdventurePools.js';
 import { AdventureSwimming } from '../systems/adventure/AdventureSwimming.js';
 import { AdventureLevers } from '../systems/adventure/AdventureLevers.js';
 import { AdventureDam } from '../systems/adventure/AdventureDam.js';
+import { AdventurePoolFish } from '../systems/adventure/AdventurePoolFish.js';
 import { everUnderwater, poolDecor } from '../systems/adventure/poolDecor.js';
 import { AdventureMole } from '../entities/AdventureMole.js';
 import { ENEMIES } from '../data/adventure/enemies.js';
@@ -242,11 +243,12 @@ export class AdventureScene extends Phaser.Scene {
     this.stairs = new AdventureStairs(this, level.stairs ?? [], { art: this.art, ground: this.groundLayer });
     this.swimming = new AdventureSwimming(this, this.cat, this.pools);
     this.dam = new AdventureDam(this, level.dam, { art: this.art }); // the Grand Dam: lever i opens its gate i
-    this.levers = new AdventureLevers(this, level.levers ?? [], { art: this.art, onPull: (i) => { this.pools.raise(); this.dam.open(i); } });
+    this.levers = new AdventureLevers(this, level.levers ?? [], { art: this.art, onPull: () => { this.pools.raise(); this.dam.open(this.pools.stage - 1); } }); // the gates open in the order the water rises
     // Fish leaping out of the water: they hurt the cat, and a round knocks one out (data/adventure/fish.js).
     this.fish = new AdventureFish(this, level.fish ?? [], {
       art: this.art, water: this.water, hurt: (fromX) => this.hurt(fromX), spend: (bullet) => this.moves.bulletStops(bullet),
     });
+    this.poolFish = new AdventurePoolFish(this, level.poolFish ?? [], { art: this.art, hurt: (fromX) => this.hurt(fromX), spend: (bullet) => this.moves.bulletStops(bullet) });
 
     // Bosses: a test arena's one boss fights at once, and beating him finishes it. A level's own
     // bosses (level.bosses, data/adventure/bossArenas.js) wait in their arenas until the cat walks
@@ -1445,6 +1447,7 @@ export class AdventureScene extends Phaser.Scene {
     this.drawbridges.update(this.cat, this.moves.bullets.getChildren(), this.moves.beam?.sprite);
     this.showHintsAt();
     this.fish.update(ms, this.cat, this.moves.bullets.getChildren());
+    this.poolFish.update(ms, this.cat, this.moves.bullets.getChildren());
     this.scenery.update(ms, this.cat);
     this.traps.update(ms, this.cat);
     this.updateLook(ms);

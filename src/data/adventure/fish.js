@@ -51,3 +51,22 @@ export function fishProblems(level) {
   }
   return errors;
 }
+
+// Fish that swim in a level's pools (systems/adventure/AdventurePoolFish.js), unlike the leaping
+// ones: a level lists them as poolFish: [{ from, to, row }]: each swims to and fro between the
+// middles of columns from and to, along row's middle, bobbing gently, turning at each end. Touching
+// one hurts the cat; a round knocks it out for good (it spins and sinks away).
+//   speed: px a second; bob: px up and down; bobMs: one bob.
+export const POOL_FISH = { speed: 110, bob: 10, bobMs: 1600 };
+
+// Where a pool fish is, `ms` after the level began: { x, y, right } (its middle, px; whether it's
+// swimming right). Each starts at its `from` end, swimming right.
+export function poolFishAt({ from, to, row }, ms, tile) {
+  const x0 = from * tile + tile / 2, x1 = to * tile + tile / 2;
+  const span = Math.max(1, x1 - x0), trip = (span / POOL_FISH.speed) * 1000;
+  const t = ms % (trip * 2);
+  const right = t < trip;
+  const x = right ? x0 + (t / trip) * span : x1 - ((t - trip) / trip) * span;
+  const y = row * tile + tile / 2 + Math.sin((2 * Math.PI * ms) / POOL_FISH.bobMs) * POOL_FISH.bob;
+  return { x, y, right };
+}
