@@ -209,6 +209,7 @@ export class AdventureScene extends Phaser.Scene {
       this.birds.push(pterodactyl.ready());
       this.totals.enemies += 1;
     }
+    this.traps.keepBeats(this.birds); // idols that keep a hovering bird's beat (traps.js, beatOf)
     this.moves = new AdventureMoves(this, this.cat, {
       art: this.art,
       groundLayer: this.groundLayer,

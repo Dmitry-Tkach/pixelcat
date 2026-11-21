@@ -95,9 +95,9 @@ level.gap(34, 60)
   .island(28, 30, 14).island(34, 36, 13)
   .drawbridge(49, 9, 51, 67, 13, { look: 'rope-plank', falls: true })
   // The cliff's tops are ledges, hidden under its picture: the high way's reward, a crystal by the
-  // big tree on its top. Over the bridge's middle, an owl hovers: run under its coins as it rises,
-  // or shoot it.
-  .bird('hover', 55, 10, { look: 'owl' })
+  // big tree on its top. Over the bridge's far half an owl hovers: its rhythm is seen while the cat
+  // runs (he can't stop: the planks fall), so he times it or shoots it.
+  .bird('hover', 62, 10, { look: 'owl' }) // over the bridge's far half: its rhythm is seen while running
   .put(45, 8, '*')
   .coins(28, 30, 13).arc(37, 40, 9, 1).coins(52, 62, 12)
   // The secret behind the waterfall: a ledge hidden behind the fall from the low step (its water in
@@ -146,7 +146,7 @@ level.ground(95, 127, 26).ground(104, 121, 24) // the path, and the hill over th
   // Cracked floor a third time, with a twist: on the hill's top between the crushers, it breaks under
   // a cat who stops there and drops him into the mine, by the mole.
   .cracked(112, 113, 24).hollow(112, 113, 25, 27).arc(111, 114, 21, 1)
-  .put(102, 31, 'f').coins(103, 106, 30).put(110, 31, 'M')
+  .put(102, 31, 'f').coins(107, 110, 30).put(106, 31, 'M') // the mole clear of where the hill's crack drops the cat (112)
   .put(124, 31, '4') // the squirrel, throwing down the mine at whoever comes in
   .cracked(118, 119, 32).coins(118, 119, 31)
   .hollow(118, 119, 33, 33).hollow(113, 126, 34, 35) // the secret room, under the mine's floor
@@ -174,7 +174,9 @@ level.ground(128, 141, 32)
   // it and a dart statue on the far bank shoots along it. Shoot, then run, timing both.
   .drawbridge(165, 25, 155, 164, 26, { shot: true, holdMs: 7000 })
   .bird('hover', 160, 23, { look: 'owl' })
-  .trap('idol', 167, 25, { facing: -1 })
+  // The dart statue keeps the owl's beat (reading the owl's own clock): its darts cross the owl's
+  // column while the owl is high, so the two dangers take turns, never meet by chance.
+  .trap('idol', 167, 25, { facing: -1, beatOf: { col: 160, row: 23 } })
   .ground(169, COLS - 1, 24) // the gate's raised stone step, stairs up to it
   .put(174, 23, 'E');
 

@@ -10,7 +10,11 @@
 //             it hurts only by falling on him. phaseMs: where in its wait it starts (under waitMs),
 //             so crushers side by side don't slam together
 //   idol      a stone head standing at (col, row) that shoots darts across the path; { facing: -1 }
-//             to shoot left. Its stone is solid: he can stand on its head, above its darts
+//             to shoot left. Its stone is solid: he can stand on its head, above its darts.
+//             everyMs: its own beat (ms). beatOf: { col, row }, the hovering bird (by its cell) whose
+//             loop it keeps, reading the bird's own clock, so the two never drift apart: it shoots
+//             as the bird's loop begins, its darts reaching the bird about when it's high (the two
+//             dangers take turns, never meet by chance)
 //   mushroom  a bouncy mushroom standing at (col, row): landing on it throws the cat up high
 //   guardian  a giant stone statue standing on a stone platform, solid (his body fills it, so there's
 //             no way over him), his feet at row + 1,
