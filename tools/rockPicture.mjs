@@ -13,7 +13,7 @@ const MARGIN = 220; // px round the rock's cells for what reaches past them (bul
 const mod = (a, b) => ((a % b) + b) % b;
 
 // A picture repeated over w x h px, as a tileSprite at world (x, y) with tilePosition (tx, ty) shows it.
-async function repeated(file, w, h, tx, ty, flip = false) {
+export async function repeated(file, w, h, tx, ty, flip = false) {
   let tile = sharp(file);
   if (flip) tile = tile.flop();
   const buffer = await tile.png().toBuffer();

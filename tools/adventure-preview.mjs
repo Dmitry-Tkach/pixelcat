@@ -20,7 +20,7 @@ import { bossLayout, bossPath } from '../src/data/adventure/bosses.js';
 import { enemyLayout } from '../src/data/adventure/enemies.js';
 import { gunnerLayout } from '../src/data/adventure/gunners.js';
 import { adventureRoutes } from '../src/systems/adventureRoutes.js';
-import { TILE, readAdventureMap } from '../src/systems/adventureMap.js';
+import { ONE_WAY, TILE, readAdventureMap } from '../src/systems/adventureMap.js';
 import { DECOR } from '../src/data/adventure/decor.js';
 import { BACKDROPS } from '../src/data/adventure/backdrop.js';
 import { placeDecor } from '../src/systems/adventure/decorPlacement.js';
@@ -34,6 +34,8 @@ import { MILL_SEAT, MILL_STAND, MILL_WHEEL, standScale } from '../src/data/adven
 import { PTERO_LOOKS, birdHome } from '../src/data/adventure/birds.js';
 import { existsSync } from 'node:fs';
 import { rockPicture } from './rockPicture.mjs';
+import { brickPicture, scaffoldPictures } from './kitPicture.mjs';
+import { masonryCells } from '../src/systems/adventure/brickLayout.js';
 import { DAM_ART, damLayout } from '../src/data/adventure/dam.js';
 
 const [out, index = '0'] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
@@ -177,9 +179,23 @@ const decorPiece = async ({ picture, x, y, hang, flip }) => {
   return { input, left: Math.max(0, Math.round(x * SCALE - width / 2)), top: Math.max(0, Math.round(y * SCALE - (hang ? 0 : height))) };
 };
 for (const item of decor.filter((d) => d.hang)) comps.push(await decorPiece(item));
-// Islands drawn by a picture instead (level.hiddenTiles) aren't shown.
-const hiddenTile = (c, r) => (level.hiddenTiles ?? []).some(({ cols: [from, to], row }) => r === row && c >= from && c <= to);
+// Islands drawn by a picture instead (level.hiddenTiles), and the cells the scaffold and brick kits
+// draw (walkways, masonry: tools/kitPicture.mjs), aren't shown as tiles.
+const kitCells = masonryCells(level.masonry);
+for (const { from, to, row } of level.walkways ?? []) for (let c = from; c <= to; c++) kitCells.add(`${c},${row}`);
+const hiddenTile = (c, r) => kitCells.has(`${c},${r}`) || (level.hiddenTiles ?? []).some(({ cols: [from, to], row }) => r === row && c >= from && c <= to);
+// A kit's picture (full size, world px) shrunk to the preview's scale.
+const kitPiece = async ({ input, left, top }) => {
+  const { width } = await sharp(input).metadata();
+  return { input: await sharp(input).resize(Math.max(1, Math.round(width * SCALE))).png().toBuffer(), left: Math.max(0, Math.round(left * SCALE)), top: Math.max(0, Math.round(top * SCALE)) };
+};
+const scaffolds = [];
+for (const walkway of level.walkways ?? []) { const p = await scaffoldPictures(walkway, tiles, art, TILE); if (p) scaffolds.push(p); }
+for (const { back } of scaffolds) comps.push(await kitPiece(back)); // behind the ground, as in the game
 for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) if (tiles[r][c] >= 0 && !hiddenTile(c, r)) comps.push({ input: tileImages[tiles[r][c]], left: c * CELL, top: r * CELL });
+const solidCell = (c, r) => (tiles[r]?.[c] ?? -1) >= 0 && !ONE_WAY.has(tiles[r][c]);
+for (const box of level.masonry ?? []) { const p = await brickPicture(box, solidCell, art, TILE); if (p) comps.push(await kitPiece(p)); }
+for (const { front } of scaffolds) comps.push(await kitPiece(front));
 for (const item of decor.filter((d) => !d.hang)) comps.push(await decorPiece(item));
 // The water in the bottomless gaps (data/adventure/water.js), from its surface down.
 if (level.water) {

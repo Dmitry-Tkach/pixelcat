@@ -35,6 +35,8 @@ export function mapBuilder(cols, rows) {
   const birds = [];
   const vines = [];
   const drawbridges = [];
+  const walkways = [];
+  const masonry = [];
   const inside = (c, r) => {
     if (!Number.isInteger(c) || !Number.isInteger(r) || c < 0 || c >= cols || r < 0 || r >= rows) throw new Error(`(${c}, ${r}) is outside the map`);
   };
@@ -55,6 +57,19 @@ export function mapBuilder(cols, rows) {
     },
     island(from, to, row) { span(from, to, (c) => place(c, row, '=')); return builder; },
     bridge(from, to, row) { span(from, to, (c) => place(c, row, '-')); return builder; },
+    // A timber walkway on posts (data/adventure/scaffolds.js): bridge cells, drawn by the scaffold kit.
+    walkway(from, to, row, { posts } = {}) {
+      builder.bridge(from, to, row);
+      walkways.push({ from, to, row, ...(posts ? { posts: [...posts] } : {}) });
+      return builder;
+    },
+    // Ground drawn as stone brick (data/adventure/bricks.js): a wall, or a two-cell pillar.
+    wall(from, to, top, bottom, { look } = {}) {
+      builder.fill(from, to, top, bottom);
+      masonry.push({ cols: [from, to], rows: [top, bottom], ...(look ? { look } : {}) });
+      return builder;
+    },
+    brickPillar(col, top, bottom) { return builder.wall(col, col + 1, top, bottom, { look: 'pillar' }); },
     // Its top cell is on the island's row, and is part of the island.
     ladder(col, top, bottom) {
       for (let r = top; r <= bottom; r++) place(col, r, 'H', r === top ? '=.' : '.');
@@ -125,6 +140,8 @@ export function mapBuilder(cols, rows) {
     wheels: () => wheels.map((w) => ({ ...w })),
     birds: () => birds.map((b) => ({ ...b })),
     vines: () => vines.map((v) => ({ ...v })),
+    walkways: () => walkways.map((w) => ({ ...w, ...(w.posts ? { posts: [...w.posts] } : {}) })),
+    masonry: () => masonry.map((m) => ({ ...m, cols: [...m.cols], rows: [...m.rows] })),
     drawbridges: () => drawbridges.map((d) => ({ ...d, ...(d.switch ? { switch: { ...d.switch } } : {}) })),
   };
   return builder;

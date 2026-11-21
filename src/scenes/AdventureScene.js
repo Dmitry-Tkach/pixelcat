@@ -46,6 +46,8 @@ import { AdventureDrawbridges } from '../systems/adventure/AdventureDrawbridges.
 import { AdventureFish } from '../systems/adventure/AdventureFish.js';
 import { AdventureStairs } from '../systems/adventure/AdventureStairs.js';
 import { AdventureRocks } from '../systems/adventure/AdventureRocks.js';
+import { AdventureScaffolds } from '../systems/adventure/AdventureScaffolds.js';
+import { AdventureBricks } from '../systems/adventure/AdventureBricks.js';
 import { AdventurePools } from '../systems/adventure/AdventurePools.js';
 import { AdventureSwimming } from '../systems/adventure/AdventureSwimming.js';
 import { AdventureLevers } from '../systems/adventure/AdventureLevers.js';
@@ -153,6 +155,8 @@ export class AdventureScene extends Phaser.Scene {
     this.pools = new AdventurePools(this, level.pools ?? [], this.layout.tiles); // pools he swims in (systems/adventure/pools.js)
     this.scenery = new AdventureScenery(this, level, this.art); // waterfalls, caves, covers (Mill Falls)
     this.rocks = new AdventureRocks(this, level.rocks ?? [], { art: this.art }); // cliffs from the rock kit
+    new AdventureScaffolds(this, level.walkways ?? [], { art: this.art, groundLayer: this.groundLayer, tiles: this.layout.tiles }); // timber walkways
+    new AdventureBricks(this, level.masonry ?? [], { art: this.art, groundLayer: this.groundLayer }); // stone brick walls and pillars
     this.buildSecretCovers();
     this.splashed = false;
     this.buildLadders();

@@ -6,6 +6,8 @@ import { wheelProblems } from './adventure/wheels.js';
 import { drawbridgeProblems } from './adventure/drawbridges.js';
 import { rockProblems } from './adventure/rockLayout.js';
 import { poolProblems } from './adventure/pools.js';
+import { walkwayProblems } from './adventure/scaffoldLayout.js';
+import { masonryProblems } from './adventure/brickLayout.js';
 import { fishProblems } from '../data/adventure/fish.js';
 
 export const TILE = 64;
@@ -207,6 +209,7 @@ export function checkAdventureLevel(level) {
   errors.push(...drawbridgeProblems(level));
   errors.push(...rockProblems(level));
   errors.push(...poolProblems(level));
+  errors.push(...walkwayProblems(level), ...masonryProblems(level));
   errors.push(...fishProblems(level));
   // A locked portal (the Guardian Gate) opens only with the gold key, so the level needs one.
   if (level.portalLocked && count('key') < 1) errors.push('a locked portal needs a key, k');
