@@ -15,6 +15,8 @@ import { PTERO_LOOKS } from '../../data/adventure/birds.js';
 //     a veil is thin water in front of the cat instead, hiding what's behind it. width: the fall's
 //     own width (px). foamAt: rows where it hits something on its way down (the pier), with foam.
 //     head: false for no head or lip (a spill piece over its top); splash: false for none at its foot.
+//     cover: [fromRow, toRow]: those rows of the fall are in front of the cat, hiding what's behind
+//     (a secret ledge behind the water), and fade while he's behind them.
 //   props: { picture, col, row, hang, front, back, inGround, fromWater, width, stack, spinMs, glow, smoke, dy }: a picture
 //     standing on the bottom
 //     of its cell (or, hang, hanging from its top), in the middle of column col. front: in front of
@@ -62,7 +64,7 @@ export class AdventureScenery {
     this.covers = [];
     this.flows = [];
     const has = (name) => scene.textures.exists(art(name));
-    for (const { col, top, bottom, veil, width: shown, foamAt = [], head = true, splash: splashes = true } of level.waterfalls ?? []) {
+    for (const { col, top, bottom, veil, width: shown, foamAt = [], head = true, splash: splashes = true, cover } of level.waterfalls ?? []) {
       if (!has('fall-middle')) break;
       const x = col * TILE + TILE / 2, topY = top * TILE, bottomY = bottom * TILE;
       const depth = veil ? DEPTH.front : DEPTH.behind;
@@ -76,9 +78,18 @@ export class AdventureScenery {
       const soft = has('fall-head');
       const lip = head ? scene.add.image(x, topY, art(soft ? 'fall-head' : 'fall-top')).setOrigin(0.5, 0).setDepth(depth + 0.01) : null;
       if (lip && soft) lip.setDisplaySize(width, lip.height);
-      const from = lip ? topY + lip.height * (soft ? WATERFALL.headFlow : 0.8) : topY;
-      const flow = scene.add.tileSprite(x, from, width, Math.max(1, bottomY - from), art(middle)).setOrigin(0.5, 0).setDepth(depth)
-        .setTileScale(width / own, 1);
+      // Where the water starts, on a whole pixel, so the pieces under it meet with no gap.
+      const from = Math.round(lip ? topY + lip.height * (soft ? WATERFALL.headFlow : 0.8) : topY);
+      // The flowing water, from `from` down; a cover's rows (cover) in front instead, the water
+      // lined up across them (each piece's texture starting where the one above left off).
+      const piece = (y0, y1, d) => scene.add.tileSprite(x, y0, width, Math.max(1, y1 - y0), art(middle)).setOrigin(0.5, 0).setDepth(d)
+        .setTileScale(width / own, 1).setTilePosition(0, y0 - from);
+      const [coverTop, coverBottom] = cover ? [cover[0] * TILE, (cover[1] + 1) * TILE] : [bottomY, bottomY];
+      const flow = piece(from, coverTop, depth);
+      // The cover in two halves, so it can clear softly round the cat, clearest in its middle.
+      const coverMiddle = Math.round((coverTop + coverBottom) / 2);
+      const front = cover ? [piece(coverTop, coverMiddle, DEPTH.front), piece(coverMiddle, coverBottom, DEPTH.front)] : [];
+      const below = cover ? piece(coverBottom, bottomY, depth) : null;
       const splash = splashes ? scene.add.image(x, bottomY + 10, art('fall-splash')).setOrigin(0.5, 1).setDepth(depth + 0.02) : null;
       parts.push(...[lip, flow, splash].filter(Boolean));
       // Foam where the fall hits something on its way down (foamAt: the rows it hits, at their top).
@@ -89,6 +100,10 @@ export class AdventureScenery {
       }
       for (const part of parts) part.setAlpha(veil ? VEIL_ALPHA : WATERFALL.alpha);
       this.flows.push(flow);
+      if (cover) {
+        for (const p of [...front, below]) { p.setAlpha(WATERFALL.alpha); this.flows.push(p); }
+        this.covers.push({ halves: front, full: WATERFALL.alpha, clear: 0, box: { left: x - width / 2, right: x + width / 2, top: coverTop, bottom: coverBottom } });
+      }
       if (veil) this.covers.push({ parts, full: VEIL_ALPHA, box: { left: x - width / 2, right: x + width / 2, top: topY, bottom: bottomY } });
     }
     // Earth pillars from the world's pillar kit (data/adventure/pillars.js): the trunk the whole
@@ -230,6 +245,17 @@ export class AdventureScenery {
       const { box } = cover;
       const behind = body.right > box.left && body.left < box.right && body.bottom > box.top && body.top < box.bottom;
       const target = behind ? cover.seen ?? COVER.seen : cover.full;
+      if (cover.halves) {
+        // Water in front (a waterfall's cover): it clears softly, its outer ends staying full and
+        // its middle, where the cat is, clearing most (each half's corners: no edge to the water).
+        const step = COVER.fadePerMs * ms;
+        cover.clear = Math.max(0, Math.min(1, cover.clear + (behind ? step : -step) / (cover.full - COVER.seen)));
+        const middle = cover.full - (cover.full - COVER.seen) * cover.clear;
+        const [upper, lower] = cover.halves;
+        upper.setAlpha(cover.full, cover.full, middle, middle);
+        lower.setAlpha(middle, middle, cover.full, cover.full);
+        continue;
+      }
       for (const part of cover.parts) {
         const step = COVER.fadePerMs * ms;
         part.setAlpha(part.alpha + Math.max(-step, Math.min(step, target - part.alpha)));

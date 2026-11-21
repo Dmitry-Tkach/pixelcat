@@ -6,10 +6,12 @@
 //   ladder(col, top, bottom)  from the island at `top` down to `bottom`
 //   vine(col, top, bottom)  a climbing vine: a ladder that looks like a vine. vines() lists its cells.
 //   cracked(from, to, row)  cracked floor in the ground's surface: it breaks for good when landed on
-//   drawbridge(switchCol, switchRow, from, to, row, { shot })  a bridge that drops into place when its
-//                          switch is shot or touched (systems/adventure/drawbridges.js); shot: its
-//                          switch is out of reach, to be shot from across; look: its planks' picture
-//                          (the world's drawbridge plank if none). drawbridges() lists them.
+//   drawbridge(switchCol, switchRow, from, to, row, { shot, look, falls, holdMs })  a bridge that
+//                          drops into place when its switch is shot or touched
+//                          (systems/adventure/drawbridges.js); shot: its switch is out of reach, to be
+//                          shot from across; look: its planks' picture (the world's drawbridge plank
+//                          if none); falls: planks that give way under the cat; holdMs: down only this
+//                          long. drawbridges() lists them.
 //   ropeBridge(from, to, row, look)  a bridge that's simply there, of rope planks: a drawbridge with
 //                          no switch, down from the start.
 //   put(col, row, letter)  one thing: a coin, an enemy, a sign...
@@ -63,11 +65,14 @@ export function mapBuilder(cols, rows) {
       for (let r = top; r <= bottom; r++) vines.push({ col, row: r });
       return builder;
     },
-    drawbridge(switchCol, switchRow, from, to, row, { shot = false, look } = {}) {
+    drawbridge(switchCol, switchRow, from, to, row, { shot = false, look, falls = false, holdMs } = {}) {
       inside(switchCol, switchRow);
       inside(from, row);
       inside(to, row);
-      drawbridges.push({ switch: { col: switchCol, row: switchRow }, from, to, row, ...(shot ? { shot } : {}), ...(look ? { look } : {}) });
+      drawbridges.push({
+        switch: { col: switchCol, row: switchRow }, from, to, row,
+        ...(shot ? { shot } : {}), ...(look ? { look } : {}), ...(falls ? { falls } : {}), ...(holdMs ? { holdMs } : {}),
+      });
       return builder;
     },
     cracked(from, to, row) { span(from, to, (c) => place(c, row, 'Z', '#.')); return builder; },

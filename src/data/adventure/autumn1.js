@@ -60,7 +60,7 @@ level.put(2, 26, '@').put(9, 26, '>')
   .island(3, 6, 21).vine(4, 21, 26).coins(3, 5, 20).put(6, 20, '+') // the ledge by the cottage
   .island(10, 16, 19).ladder(10, 19, 26).coins(11, 12, 18)
   .put(16, 25, 'w') // the minigun on the path, so every cat has it: the gate's switch must be shot
-  .put(13, 15, '?').put(13, 14, '*')
+  .put(13, 15, '?').put(13, 14, 'o') // a coin on the ? block; its crystal is earned by the spiked ball
   .island(20, 25, 20).put(23, 19, 'V').coins(21, 22, 19)
   .island(21, 24, 15).ladder(24, 15, 19).coins(21, 23, 14) // the high ledge over the boar
   .trap('mushroom', 26, 24) // a second bounce mushroom, by the mill
@@ -87,17 +87,22 @@ level.gap(34, 60)
   .bird('diver', 58, 21, { wake: 52, look: 'owl' }) // over the pier's end, past the fish (never both at once), below the rope bridge's reach
   // The high way, as in the owner's picture: from the left, the village's high coin ledge (over the
   // boar), across two small ledges over the mill house, a jump over the top of the waterfalls (an
-  // arc of coins), and the rope bridge to the ruins. The waterfall cliff is scenery only. The rope
-  // bridge isn't there until the cat touches its switch on the second ledge: then its planks drop
-  // in one by one across the falls, in view (the ruins' switch and bridge, met high up first).
+  // arc of coins) onto the cliff's top, and the rope bridge on to the ruins. The bridge isn't there
+  // until the cat touches its switch on the cliff top's far step, where everyone passes: then its
+  // planks drop in one by one below him (the ruins' switch and bridge, met high up first). Its
+  // planks give way under him a moment after he lands on each: keep running (the level's idea, rope
+  // bridges, built up to the gate's).
   .island(28, 30, 14).island(34, 36, 13)
-  .drawbridge(36, 12, 41, 67, 13, { look: 'rope-plank' })
+  .drawbridge(49, 9, 51, 67, 13, { look: 'rope-plank', falls: true })
   // The cliff's tops are ledges, hidden under its picture: the high way's reward, a crystal by the
   // big tree on its top. Over the bridge's middle, an owl hovers: run under its coins as it rises,
   // or shoot it.
   .bird('hover', 55, 10, { look: 'owl' })
   .put(45, 8, '*')
-  .coins(28, 30, 13).arc(37, 40, 11, 1).coins(45, 62, 12);
+  .coins(28, 30, 13).arc(37, 40, 9, 1).coins(52, 62, 12)
+  // The secret behind the waterfall: a ledge hidden behind the fall from the low step (its water in
+  // front there, fading as the cat goes behind it), a heart on it; a coin peeks out beside the water.
+  .island(40, 42, 22).put(41, 21, '+').put(40, 21, 'o').put(42, 21, 'o').put(43, 21, 'o');
 
 for (const { cols: [from, to], row } of rockLedges(CLIFF)) level.island(from, to, row); // the cliff's tops
 
@@ -107,7 +112,7 @@ for (const { cols: [from, to], row } of rockLedges(CLIFF)) level.island(from, to
 // it climbs to the ruins.
 level.ground(59, 80, 26)
   .put(69, 17, 'C') // where the mill's two ways meet, on the ruins (out of the owl's reach)
-  .island(64, 75, 22).ladder(64, 22, 25).coins(65, 66, 21).put(68, 21, 'U').put(73, 21, 'P')
+  .island(64, 75, 22).ladder(64, 22, 25).coins(65, 66, 21).put(68, 21, 'U').put(73, 21, 'P').put(75, 21, '4') // a squirrel guarding the silver chest
   .put(79, 25, '/');
 
 // ----- 4. The Ruined Bridge, as in the owner's picture: the vine up to the ruins, a cliff of earth
@@ -123,7 +128,8 @@ level.island(68, 76, 18).vine(70, 18, 21)
   .gap(81, 94)
   .mover(80, 22, { across: 10, picture: 'move-block' }) // the moving block, across the chasm
   .trap('mace', 86, 16, { hanging: true, chain: 239, swingDeg: 35 }) // swinging down over the block's path
-  .arc(88, 91, 20, 1);
+  .arc(88, 91, 20, 1)
+  .put(90, 18, '*'); // the crystal, just past the ball's swing, a jump up from the moving block over the chasm
 
 // ----- 5. The Mineshaft: two ways on. Over a hill, as in the owner's picture, stone stairs up and
 // down its sides, spikes on its top and two crushers slamming in turn, the mine's stamps, with coins
@@ -137,7 +143,9 @@ level.ground(95, 127, 26).ground(104, 121, 24) // the path, and the hill over th
   .put(97, 25, 'C')
   .trap('crusher', 107, 16, { phaseMs: 0 }).trap('crusher', 118, 16, { phaseMs: 1100 })
   .coins(106, 108, 22).coins(117, 119, 22)
-  .put(112, 23, '^').put(113, 23, '^').arc(111, 114, 21, 1) // spikes on the hill's top
+  // Cracked floor a third time, with a twist: on the hill's top between the crushers, it breaks under
+  // a cat who stops there and drops him into the mine, by the mole.
+  .cracked(112, 113, 24).hollow(112, 113, 25, 27).arc(111, 114, 21, 1)
   .put(102, 31, 'f').coins(103, 106, 30).put(110, 31, 'M')
   .put(124, 31, '4') // the squirrel, throwing down the mine at whoever comes in
   .cracked(118, 119, 32).coins(118, 119, 31)
@@ -162,7 +170,11 @@ level.ground(128, 141, 32)
   .gap(155, 164).ground(155, 164, 29) // the spike pit, three cells deep
   .put(156, 28, '^').put(157, 28, '^').put(158, 28, '^').put(159, 28, '^').put(160, 28, '^')
   .put(161, 28, '^').put(162, 28, '^').put(163, 28, '^').put(164, 28, '^')
-  .drawbridge(165, 25, 155, 164, 26, { shot: true })
+  // The finale: the bridge, once its switch is shot, is down only seven seconds; an owl hovers over
+  // it and a dart statue on the far bank shoots along it. Shoot, then run, timing both.
+  .drawbridge(165, 25, 155, 164, 26, { shot: true, holdMs: 7000 })
+  .bird('hover', 160, 23, { look: 'owl' })
+  .trap('idol', 167, 25, { facing: -1 })
   .ground(169, COLS - 1, 24) // the gate's raised stone step, stairs up to it
   .put(174, 23, 'E');
 
@@ -207,11 +219,12 @@ export const AUTUMN_VILLAGE_LEVEL = {
     CLIFF,
   ],
   // The cliff's tops: islands the cat stands on, not shown, the rock's own picture being the ledge.
-  hiddenTiles: rockLedges(CLIFF),
+  // The ledge behind the waterfall too, the water its picture.
+  hiddenTiles: [...rockLedges(CLIFF), { cols: [40, 42], row: 22 }],
   waterfalls: [
     // Spilling over the rock's step edges (rocks), down its face, past the pier into the pool.
     { col: 38, top: 16, bottom: WATER, width: 112, foamAt: [RAISED] }, // off the low step, by the mill's wheel
-    { col: 41, top: 10, bottom: WATER, width: 140, foamAt: [RAISED] }, // off the high step, beside the tree's rock
+    { col: 41, top: 10, bottom: WATER, width: 140, foamAt: [RAISED], cover: [20, 22] }, // off the high step, in front of the secret ledge behind it
     { col: 49, top: 10, bottom: WATER, width: 140, foamAt: [RAISED] }, // off the high step's far end
   ],
   // The caves' insides, deep in the earth: the village cave and its shaft, the mine and the hole down
@@ -219,11 +232,13 @@ export const AUTUMN_VILLAGE_LEVEL = {
   caves: [
     { cols: [22, 33], rows: [28, 31] }, { cols: [28, 29], rows: [25, 27] }, // the cracked floor's cells too: once broken, the cave shows through
     { cols: [98, 127], rows: [28, 31] }, { cols: [98, 99], rows: [26, 27] },
+    { cols: [112, 113], rows: [24, 27] }, // the shaft under the hill's cracked floor (its cells too: once broken, it shows)
     { cols: [113, 126], rows: [34, 35] }, { cols: [118, 119], rows: [32, 33] }, { cols: [125, 126], rows: [32, 33] },
   ],
   // The secret caves, hidden under the ground's own tiles until the cat is inside: the village's
   // cave and its shaft, and the secret room under the mine (AdventureScene.buildSecretCovers).
-  secrets: [{ cols: [22, 33], rows: [26, 31] }, { cols: [113, 126], rows: [33, 35] }],
+  // And the shaft under the hill's cracked floor: solid-looking ground until it breaks under him.
+  secrets: [{ cols: [22, 33], rows: [26, 31] }, { cols: [113, 126], rows: [33, 35] }, { cols: [112, 113], rows: [25, 27] }],
   // The owner's scenery (images/levels/autumn, cut by tools/adventure-autumn-scenery.mjs) and the
   // pack's trees, fences and barrels.
   // Earth columns behind the level, holding its islands up from the ground, as in the owner's
@@ -342,6 +357,10 @@ export const AUTUMN_VILLAGE_LEVEL = {
     highWay: { col: 29, row: 13 }, // the first small ledge over the mill house
     bridgeStart: { col: 35, row: 12 }, // the second small ledge, by the rope bridge's switch
     cliffTop: { col: 44, row: 8 }, // on the waterfall cliff's top, by the tree and its crystal
+    fallSecret: { col: 41, row: 21 }, // on the secret ledge behind the waterfall
+    pierFalls: { col: 38, row: 24 }, // on the pier, before the waterfall with the secret behind it
+    hillTop: { col: 110, row: 23 }, // on the mine hill's top, by its cracked floor
+    gateFinale: { col: 151, row: 25 }, // where the gate's switch can be shot from
     ropeBridge: { col: 55, row: 12 }, // on the rope bridge
     arches: { col: 73, row: 17 }, // the ruins (named so, as the Wood world has a place called ruins)
     keyIsland: { col: 86, row: 14 },

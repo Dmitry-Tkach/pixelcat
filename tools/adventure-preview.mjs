@@ -166,7 +166,9 @@ for (const flight of level.stairs ?? []) {
 const stripTiles = Math.floor((await sharp(strip).metadata()).width / TILE);
 const tileImages = await Promise.all(Array.from({ length: stripTiles }, (_, i) => sharp(strip).extract({ left: i * TILE, top: 0, width: TILE, height: TILE }).resize(CELL, CELL).toBuffer()));
 // The automatic decoration (data/adventure/decor.js): vines behind the tiles, plants in front.
-const decor = placeDecor(layout, DECOR[level.world]);
+// Not by a hidden island (hiddenTiles), as in the game (AdventureScene.byHiddenTiles): no plants grow there.
+const byHiddenTiles = (x, y) => (level.hiddenTiles ?? []).some(({ cols: [from, to], row }) => Math.floor(x / TILE) >= from && Math.floor(x / TILE) <= to && Math.abs(Math.floor(y / TILE) - row) <= 1);
+const decor = placeDecor(layout, DECOR[level.world]).filter(({ x, y }) => !byHiddenTiles(x, y));
 const decorPiece = async ({ picture, x, y, hang, flip }) => {
   let input = await image(art(picture));
   if (flip) input = await sharp(input).flop().toBuffer();

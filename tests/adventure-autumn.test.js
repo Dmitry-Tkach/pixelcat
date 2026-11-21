@@ -4,7 +4,7 @@ import { ADVENTURE_ART, ADVENTURE_LEVELS, adventureArtKey, adventureArtWorld, ad
 import { mapBuilder, vineRuns } from '../src/data/adventure/mapBuilder.js';
 import { TILES, checkAdventureLevel, readAdventureMap } from '../src/systems/adventureMap.js';
 import { adventureRoutes } from '../src/systems/adventureRoutes.js';
-import { drawbridgeCells, drawbridgeProblems, hitsSwitch } from '../src/systems/adventure/drawbridges.js';
+import { BRIDGE_HOLD, drawbridgeCells, drawbridgeProblems, hitsSwitch } from '../src/systems/adventure/drawbridges.js';
 import { FISH, fishAt, fishProblems, touchesFish } from '../src/data/adventure/fish.js';
 import { MOLE, moleStep } from '../src/systems/adventure/moleLogic.js';
 import { cameraBottom } from '../src/systems/adventure/cameraFloor.js';
@@ -73,6 +73,22 @@ describe('cracked floor', () => {
 
 // How far (cells) the cat can shoot a switch from: well within the minigun's range.
 const SHOT_RANGE = 12;
+
+describe('falling and timed bridges', () => {
+  it('pass their options from the map builder', () => {
+    const level = tiny((b) => b.drawbridge(2, 7, 5, 8, 8, { falls: true }).drawbridge(10, 7, 12, 14, 8, { shot: true, holdMs: 5000 }));
+    expect(level.drawbridges[0]).toMatchObject({ falls: true });
+    expect(level.drawbridges[1]).toMatchObject({ shot: true, holdMs: 5000 });
+    expect(level.drawbridges[0].holdMs).toBeUndefined();
+  });
+
+  it('need a timed bridge to last longer than its warning, and to have a switch', () => {
+    const map = tiny().map.map((row, r) => (r === 3 ? '.'.repeat(24) : row));
+    expect(drawbridgeProblems({ map, drawbridges: [{ switch: { col: 2, row: 2 }, from: 4, to: 6, row: 3, holdMs: BRIDGE_HOLD.warnMs }] })).toHaveLength(1);
+    expect(drawbridgeProblems({ map, drawbridges: [{ from: 4, to: 6, row: 3, holdMs: 6000 }] })).toHaveLength(1);
+    expect(drawbridgeProblems({ map, drawbridges: [{ switch: { col: 2, row: 2 }, from: 4, to: 6, row: 3, holdMs: 6000 }] })).toEqual([]);
+  });
+});
 
 describe('drawbridges', () => {
   it('cover the cells from their start to their end', () => {
