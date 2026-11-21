@@ -6,6 +6,7 @@ import { rockKitArt } from './rocks.js';
 import { pillarKitArt } from './pillars.js';
 import { scaffoldKitArt } from './scaffolds.js';
 import { brickKitArt } from './bricks.js';
+import { DAM_ART } from './dam.js';
 
 // The squirrel's acorn: cut from its sheet's cell (row, col, from 0), shrunk to `width` px long.
 export const ACORN = { sheet: 'images/levels/autumn/squirrel.png', row: 3, col: 0, width: 28 };
@@ -63,7 +64,7 @@ export const AUTUMN_PIECES = {
   'rock-column': { width: 140 }, 'big-cliff': { width: 1095 }, 'pool-rocks': { width: 300 }, 'pool-rocks-small': { width: 180 },
   // The dam's doors are drawn behind its wall, a little bigger than its arches (DAM_ART), so the
   // arches frame them with no gap; the tool crops off their own stone pillars.
-  'grand-dam': { width: 960 }, 'dam-door-closed': { height: 381 }, 'dam-door-open': { height: 381 },
+  'grand-dam': { width: DAM_ART.width }, 'dam-door-closed': { height: DAM_ART.doorHeight }, 'dam-door-open': { height: DAM_ART.doorHeight },
   'lever-off': { height: 96 }, 'lever-on': { height: 96 }, 'exit-sign': { height: 120 },
   'uw-weed-1': { height: 120 }, 'uw-weed-2': { height: 120 }, 'uw-plants-1': { width: 84 }, 'uw-plants-2': { width: 84 },
   'uw-stone-1': { width: 110 }, 'uw-stone-2': { width: 110 }, 'uw-pebbles-1': { width: 90 }, 'uw-pebbles-2': { width: 90 },
