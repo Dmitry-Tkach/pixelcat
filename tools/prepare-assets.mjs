@@ -26,10 +26,10 @@ const SETS = [
   { dir: 'battle-cat-paws', out: 'battle-cat-paws', scale: 1, anims: { Idle: 4, Run: 8, Jump: 4, Slide: 4, Hit: 3, Rage: 4, Defeated: 3, Dash: 4, Climb: 6, ClimbUp: 4, ClimbDown: 6, Hang: 1, Special: 3, SpecialEnd: 3 } },
   // The new Adventure Paws cat, from the owner's ChatGPT strips, cut by tools/cut-paws-cat.mjs to his
   // taller frame (PAWS_FRAME): every move of his own with bare paws.
-  { dir: 'paws-cat/frames', out: 'paws-cat', scale: 1, anims: { Idle: 6, Run: 8, Jump: 4, Slide: 4, Swipe: 4, Dash: 4, Hit: 3, Defeated: 5, Rage: 4, Special: 4, SpecialEnd: 3, Victory: 6, Climb: 6, ClimbUp: 4, ClimbDown: 6 } },
+  { dir: 'paws-cat/frames', out: 'paws-cat', scale: 1, anims: { Idle: 6, Run: 8, Jump: 4, Slide: 4, Swipe: 4, Dash: 4, Hit: 3, Defeated: 5, Rage: 4, Special: 4, SpecialEnd: 3, Victory: 6, Climb: 6, ClimbUp: 4, ClimbDown: 6, Swim: 6, SwimFloat: 4 } },
   // With the minigun: the moves drawn only with bare paws (his swipe, pull-up, slide, dash, hit,
   // knock-out, rage and magic bolt), the minigun gone for that moment, until they're drawn with it.
-  { dir: 'paws-cat/frames', out: 'paws-cat-armed', scale: 1, anims: { Swipe: 4, ClimbUp: 4, Slide: 4, Dash: 4, Hit: 3, Defeated: 5, Rage: 4, Special: 4, SpecialEnd: 3 } },
+  { dir: 'paws-cat/frames', out: 'paws-cat-armed', scale: 1, anims: { Swipe: 4, ClimbUp: 4, Slide: 4, Dash: 4, Hit: 3, Defeated: 5, Rage: 4, Special: 4, SpecialEnd: 3, Swim: 6, SwimFloat: 4 } },
   // His own standing, running, jumping, shooting and climbing (the minigun on his back) with the minigun.
   { dir: 'paws-cat/frames-minigun', out: 'paws-cat-armed', scale: 1, anims: { Idle: 6, Run: 8, Jump: 4, Shoot: 6, RunShoot: 8, Climb: 6 } },
 ];

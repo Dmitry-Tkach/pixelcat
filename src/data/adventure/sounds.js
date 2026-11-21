@@ -103,6 +103,12 @@ export const ADVENTURE_SOUNDS = {
     { wave: 'sine', from: 520, to: 1150, duration: 0.05, gain: 0.12, attack: 0.004 },
     { kind: 'noise', filter: 'highpass', at: 0.04, cutoff: 5000, duration: 0.12, gain: 0.05 },
   ],
+  // A swimming stroke: a soft whoosh of water and two small bubbles.
+  swimStroke: [
+    { kind: 'noise', filter: 'bandpass', cutoff: 900, sweepTo: 500, q: 1.2, duration: 0.18, gain: 0.12, attack: 0.02 },
+    { wave: 'sine', at: 0.04, from: 420, to: 900, duration: 0.05, gain: 0.07, attack: 0.004 },
+    { wave: 'sine', at: 0.12, from: 600, to: 1200, duration: 0.04, gain: 0.05, attack: 0.003 },
+  ],
   // A fish diving back in: a "plop", a lower bubble note with a soft splash, then a tiny bubble.
   fishDive: [
     { wave: 'sine', from: 330, to: 880, duration: 0.07, gain: 0.16, attack: 0.004 },

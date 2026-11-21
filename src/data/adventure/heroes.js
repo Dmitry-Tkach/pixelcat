@@ -134,6 +134,10 @@ const PAWS_CAT = {
     special: { file: 'special', frames: 4, frameList: [1, 2, 3, 4, 4, 4, 4, 4], fps: 8, repeat: 0, beamFrame: 4 },
     // His claw swipe, X with bare paws (systems/adventure/clawSwipe.js): played once, quickly.
     swipe: CLAW_SWIPE,
+    // In deep water (systems/adventure/swimming.js): a doggy-paddle stroke while he moves, and
+    // treading water, cheeks puffed, while he holds still. With the minigun too (on his back).
+    swim: { file: 'swim', frames: 6, fps: 11, repeat: -1 },
+    swimFloat: { file: 'swimfloat', frames: 4, fps: 7, repeat: -1 },
   },
 };
 

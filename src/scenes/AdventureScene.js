@@ -46,6 +46,9 @@ import { AdventureDrawbridges } from '../systems/adventure/AdventureDrawbridges.
 import { AdventureFish } from '../systems/adventure/AdventureFish.js';
 import { AdventureStairs } from '../systems/adventure/AdventureStairs.js';
 import { AdventureRocks } from '../systems/adventure/AdventureRocks.js';
+import { AdventurePools } from '../systems/adventure/AdventurePools.js';
+import { AdventureSwimming } from '../systems/adventure/AdventureSwimming.js';
+import { AdventureLevers } from '../systems/adventure/AdventureLevers.js';
 import { AdventureMole } from '../entities/AdventureMole.js';
 import { ENEMIES } from '../data/adventure/enemies.js';
 import { cameraBottom } from '../systems/adventure/cameraFloor.js';
@@ -143,6 +146,7 @@ export class AdventureScene extends Phaser.Scene {
     this.buildDecor();
     // Water in the bottomless gaps, if the level has it (data/adventure/water.js).
     this.water = new AdventureWater(this, level.water, this.layout, this.worldH + FALL_OUT_BELOW);
+    this.pools = new AdventurePools(this, level.pools ?? []); // pools he swims in (systems/adventure/pools.js)
     this.scenery = new AdventureScenery(this, level, this.art); // waterfalls, caves, covers (Mill Falls)
     this.rocks = new AdventureRocks(this, level.rocks ?? [], { art: this.art }); // cliffs from the rock kit
     this.buildSecretCovers();
@@ -233,6 +237,8 @@ export class AdventureScene extends Phaser.Scene {
     });
     // Stairs he walks up and down, his feet kept on their slope (systems/adventure/AdventureStairs.js).
     this.stairs = new AdventureStairs(this, level.stairs ?? [], { art: this.art, ground: this.groundLayer });
+    this.swimming = new AdventureSwimming(this, this.cat, this.pools);
+    this.levers = new AdventureLevers(this, level.levers ?? [], { art: this.art, onPull: () => this.pools.raise() });
     // Fish leaping out of the water: they hurt the cat, and a round knocks one out (data/adventure/fish.js).
     this.fish = new AdventureFish(this, level.fish ?? [], {
       art: this.art, water: this.water, hurt: (fromX) => this.hurt(fromX), spend: (bullet) => this.moves.bulletStops(bullet),
@@ -894,6 +900,7 @@ export class AdventureScene extends Phaser.Scene {
       return;
     }
     this.moves.endDash();
+    if (this.swimming.active) { this.swimming.stroke(); return; } // in the water: a stroke
     this.cat.requestJump();
   }
 
@@ -1248,6 +1255,9 @@ export class AdventureScene extends Phaser.Scene {
   // fallen out of the level.
   updateWater(ms) {
     this.water.update(ms);
+    this.pools.update(ms);
+    this.swimming.update(ms);
+    this.levers.update(this.cat);
     if (!this.water.any || !this.water.over(this.cat.x)) return;
     const { body } = this.cat;
     if (!this.splashed && body.bottom > this.water.surfaceY && body.velocity.y > 0) {

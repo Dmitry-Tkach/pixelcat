@@ -4,6 +4,7 @@ import { WOOD_LEVEL } from './wood.js';
 import { WOOD_MILL_LEVEL } from './wood2.js';
 import { WOOD_HEART_LEVEL } from './wood3.js';
 import { AUTUMN_VILLAGE_LEVEL } from './autumn1.js';
+import { AUTUMN_DAM_LEVEL } from './autumn2.js';
 import { MILL_ART } from './millArt.js';
 import { PTERO_KEYS } from './birds.js';
 import { HERO_JUMP } from './heroJump.js';
@@ -14,6 +15,7 @@ export const ADVENTURE_LEVELS = [
   { ...WOOD_MILL_LEVEL, music: { track: 'village', bpm: 122 }, sky: '#9fdc9a' },
   { ...WOOD_HEART_LEVEL, music: { track: 'chase', bpm: 126 }, sky: '#7fc98a' },
   { ...AUTUMN_VILLAGE_LEVEL, music: { track: 'village', bpm: 116 }, sky: '#f2c890' },
+  { ...AUTUMN_DAM_LEVEL, music: { track: 'village', bpm: 120 }, sky: '#f2c890' },
 ];
 
 // Every image a world uses, by its name in public/assets/adventure/<world>.
