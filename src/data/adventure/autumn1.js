@@ -82,7 +82,7 @@ level.gap(34, 60)
   .ground(34, 36, 30) // the bank outside the cave
   .stones(40, 41, 29).stones(46, 47, 29).stones(52, 53, 28).stones(57, 58, 27) // stepping stones: stone pillars standing in the pool
   .coins(40, 41, 27).coins(46, 47, 27).coins(52, 53, 26)
-  .put(38, 24, 'a').put(49, 24, 'P')
+  .put(38, 24, 'a').put(54, 24, 'P') // at the pier's end, between the last fish and the owl's dive: each danger on its own
   .arc(42, 45, 23, 1).arc(52, 55, 23, 1)
   .bird('diver', 58, 21, { wake: 52, look: 'owl' }) // over the pier's end, past the fish (never both at once), below the rope bridge's reach
   // The high way, as in the owner's picture: from the left, the village's high coin ledge (over the
@@ -162,6 +162,7 @@ level.ground(95, 127, 26).ground(104, 121, 24) // the path, and the hill over th
 // a rock wall hung with paw banners, as in the owner's picture.
 level.ground(128, 141, 32)
   .put(132, 31, '^').put(133, 31, '^').arc(131, 134, 29, 2)
+  .put(136, 31, 'P') // where the jump over the spikes lands: stomp it as you come down
   .island(135, 141, 18).vine(138, 18, 31).put(136, 17, 'T').coins(139, 141, 17)
   .island(140, 141, 28) // the step up to the gate's high ground
   .bird('diver', 140, 11, { look: 'owl' })
