@@ -37,7 +37,7 @@ const level = mapBuilder(COLS, ROWS);
 // ----- 1. Forest Approach (columns 0-47).
 level.ground(0, 17, 27) // the start's low ground: the cat stands on row 26
   .put(4, 26, '@')
-  .put(14, 22, '+') // a heart over the cottage's porch
+  .coins(13, 15, 22) // coins over the cottage's porch (no heart: he starts with all three)
   .ground(18, 31, 25) // the plateau, up the stairs (stairs, below)
   .trap('mushroom', 25, 24) // a bounce up to the islands
   .island(19, 23, 20).put(21, 16, '?').coins(19, 20, 19) // the ? block's island
@@ -98,7 +98,8 @@ level.ground(93, 100, 24)
   .coins(132, 135, 13).ladder(133, 14, 23) // on the rock's top, a ladder down to the walkway
   .island(138, 141, 19).coins(139, 140, 18)
   .ground(137, 142, 24)
-  .trap('idol', 139, 23, { facing: -1 }); // darts down the walkway: jump them
+  .trap('idol', 139, 23, { facing: -1 }) // darts down the walkway: jump them
+  .put(142, 23, '+'); // a heart past them, after the hardest part before the dam
 
 // ----- 4. The Grand Dam (columns 143-206): the left tower, the valley with the big dam in its
 // middle, the far tower, both towers as high as the dam's top, so the risen water stays between
