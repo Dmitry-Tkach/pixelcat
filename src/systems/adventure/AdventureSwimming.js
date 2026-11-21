@@ -57,6 +57,12 @@ export class AdventureSwimming {
   update(ms) {
     const { cat } = this;
     const { body } = cat;
+    // On a ladder, the ladder moves him, in the water or out of it (a ladder up out of a pool): he
+    // isn't swimming until he lets go of it.
+    if (this.scene.climbing) {
+      if (this.pool) this.leave();
+      return;
+    }
     if (!this.pool) {
       // In: his middle far enough under a pool's surface.
       const pool = this.pools.at(body.center.x, body.center.y);

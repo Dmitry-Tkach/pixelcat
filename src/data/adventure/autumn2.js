@@ -183,12 +183,12 @@ export const AUTUMN_DAM_LEVEL = {
     { picture: 'hang-lantern', col: 214, row: 25, hang: true, glow: true },
     { picture: 'big-tree', col: 260, row: 26, back: true },
     { picture: 'exit-sign', col: 285, row: 17 }, // the portal's own cat statues flank it
-    { picture: 'big-tree', col: 288, row: 17, back: true },
+    { picture: 'big-tree', col: 287, row: 17, back: true },
   ],
   // Earth pillars under the islands, as in the owner's picture.
   columns: [
     { col: 21, width: 3, top: 21, bottom: 25 },
-    { col: 30, width: 2, top: 18, bottom: 25 },
+    { col: 29, width: 2, top: 18, bottom: 25 }, // over the plateau, clear of the waterfall's gap
     { col: 38, width: 3, top: 14, bottom: 23 },
     { col: 64, width: 2, top: 18, bottom: 28 },
     { col: 77, width: 2, top: 16, bottom: 28 },
