@@ -103,7 +103,8 @@ function routesAt(level, { closed = [], bridgesUp = false }, stage) {
   const standable = (c, r) => inside(c, r) && r > 0 && !solid(c, r) && !solid(c, r - 1) && !spikes.has(key(c, r)) && floor(c, r + 1);
   // Water he swims in, at this stage: a pool's cell that isn't solid.
   const pools = level.pools ?? [];
-  const swimmable = (c, r) => inside(c, r) && !solid(c, r) && poolAt(pools, c, r, stage) !== null;
+  // He's taller than a cell (about 1.4), so in the water, as on land, he needs the cell above clear.
+  const swimmable = (c, r) => inside(c, r) && !solid(c, r) && !solid(c, r - 1) && poolAt(pools, c, r, stage) !== null;
   const atSurface = (c, r) => swimmable(c, r) && r === poolSurface(poolAt(pools, c, r, stage), stage);
 
   // Where he lands, falling from this cell: the first cell down with a floor, or null if he falls out.

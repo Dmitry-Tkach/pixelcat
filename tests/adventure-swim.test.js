@@ -130,3 +130,18 @@ describe('a pool fish', () => {
     for (const ms of [0, 400, 800, 1200]) expect(Math.abs(poolFishAt(fish, ms, 64).y - (5 * 64 + 32))).toBeLessThanOrEqual(POOL_FISH.bob + 0.001);
   });
 });
+
+describe('the route checker in a low gap under the water', () => {
+  // A pool over a floor at row 9, a pillar from row 5 down to the floor but for a gap: one row
+  // high (row 8) in one level, two rows (7 and 8) in the other, with a coin in it.
+  const gap = (rows) => {
+    const b = mapBuilder(16, 12).ground(0, 15, 9).ground(0, 3, 4).put(1, 3, '@').put(14, 8, 'E')
+      .fill(8, 9, 5, 8).hollow(8, 9, 9 - rows, 8).put(8, 8, 'o');
+    return { id: 'gap', world: 'autumn', map: b.rows(), pools: [{ cols: [4, 15], bottom: 8, surface: 5 }] };
+  };
+  it('lets him swim through a gap two rows high, not one', () => {
+    const coin = (level) => adventureRoutes(level).unreachable.some((o) => o.col === 8 && o.row === 8);
+    expect(coin(gap(2))).toBe(false);
+    expect(coin(gap(1))).toBe(true);
+  });
+});

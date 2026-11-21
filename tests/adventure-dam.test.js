@@ -44,6 +44,7 @@ describe('The Hidden Dam, by the real jump and leap', () => {
     expect(surfaces[2] - CLIFF.row).toBeGreaterThan(realLeap); // the far cliff, from stage 2's water
   });
   it('makes the depths\' wall a dive: its top far over the water', () => {
-    expect(23 - 16).toBeGreaterThan(realLeap); // the wall's top row 17 (stand 16), the water at 23
+    expect(23 - 12).toBeGreaterThan(realLeap); // the wall's top row 13 (stand 12), the water at 23
+    expect(18 - 13).toBeGreaterThan(4); // and over 4 rows up from the ? block's ledge (stand 17), out of a running jump
   });
 });
