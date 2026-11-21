@@ -10,7 +10,7 @@ export const ADVENTURE_ROADMAP = [
   { id: 'wood-3', world: 'Forest Ruins', title: 'Heart of the Tree', level: 'wood-3' },
   // 2. Rustic Village: an autumn wood, the seasons turning.
   { id: 'autumn-1', world: 'Rustic Village', title: 'The Forgotten Village', level: 'autumn-1' },
-  { id: 'autumn-2', world: 'Rustic Village', title: 'The Woodcutter\'s Path' },
+  { id: 'autumn-2', world: 'Rustic Village', title: 'The Hidden Dam' }, // the owner's design: images/levels/autumn/level2.png
   { id: 'autumn-3', world: 'Rustic Village', title: 'The Hollow Oak' },
   // 3. Graveyard: night falls.
   { id: 'graveyard-1', world: 'Graveyard', title: 'Moonlit Graves' },
