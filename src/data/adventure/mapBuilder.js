@@ -69,14 +69,15 @@ export function mapBuilder(cols, rows) {
     // A rock from the rock kit (data/adventure/rocks.js), behind the level, its tops stood on: island
     // cells (one-way: he lands on them, and jumps up through the rock in front of it) along every
     // top of its shape, not shown (hiddenTiles), so its own picture is what he stands on. A top cell
-    // that's taken, or has something over it (an island resting on the rock), is left as it is.
+    // that's taken, or has ground, an island or a ladder over it (resting on the rock), is left as it
+    // is; a pickup over it stands on it.
     rock(parts, { foot } = {}) {
       for (const { cols: [c0, c1], rows: [r0, r1] } of parts) { inside(c0, r0); inside(c1, r1); }
       rocks.push({ parts: parts.map((p) => ({ cols: [...p.cols], rows: [...p.rows] })), ...(foot ? { foot } : {}) });
       for (const { row, from, to } of rockLayout({ parts }).tops) {
         let run = null;
         for (let c = from; c <= to; c++) {
-          if (grid[row][c] === '.' && row > 0 && grid[row - 1][c] === '.') {
+          if (grid[row][c] === '.' && row > 0 && !'#=-H'.includes(grid[row - 1][c])) {
             grid[row][c] = '=';
             if (run && run.cols[1] === c - 1) run.cols[1] = c; else { run = { cols: [c, c], row }; hiddenTiles.push(run); }
           } else run = null;

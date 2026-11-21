@@ -69,12 +69,12 @@ level.ground(48, 62, 27) // the minecart's floor, a drop down from the checkpoin
   // The high route, from the tall pillar: an arc of coins, an island with a ladder down, an ammo
   // crate, islands on the cliff, and the ruined arch.
   .arc(41, 44, 12, 1)
-  .island(45, 50, 16).ladder(50, 16, 26)
+  .ladder(50, 16, 26) // down from the rock's top (the rock, below) to the minecart's floor
   .island(53, 58, 13).coins(54, 55, 12).put(57, 12, 'f')
   .island(62, 66, 17).coins(63, 65, 16)
   .island(68, 71, 14).coins(69, 70, 13)
   .island(76, 81, 15).coins(77, 80, 14)
-  .island(83, 89, 12).put(86, 11, 'z') // under the ruined arch: laser rounds
+  .put(86, 11, 'z') // on the rock's top, under the ruined arch: laser rounds
   .island(91, 95, 16).coins(92, 94, 15); // and down to the wheel's walkway
 
 // ----- 3. Water Control (columns 93-142): up the step onto the long walkway over the wheel's pool.
@@ -90,7 +90,7 @@ level.ground(93, 100, 24)
   .wheel(118, 18, { dir: 1 }) // its lowest seat just over the walkway, up to the high route
   .island(106, 111, 16).coins(107, 110, 15)
   .island(123, 127, 12).coins(124, 126, 11)
-  .island(130, 135, 14).coins(131, 134, 13).ladder(133, 14, 23) // a ladder down to the walkway
+  .coins(132, 135, 13).ladder(133, 14, 23) // on the rock's top, a ladder down to the walkway
   .island(138, 141, 19).coins(139, 140, 18)
   .ground(137, 142, 24)
   .trap('idol', 139, 23, { facing: -1 }); // darts down the walkway: jump them
@@ -126,7 +126,7 @@ level.ground(207, 236, 34) // the pool's bed
   .island(232, 236, 24).coins(233, 235, 23)
   .island(208, 213, 18).put(210, 14, '?').ladder(213, 18, 23)
   .island(216, 221, 16).put(218, 15, '4') // a squirrel up here, throwing acorns at the ledges
-  .island(223, 229, 14).put(226, 10, '?').put(228, 13, 'k') // the gold chest's key
+  .put(226, 10, '?').put(228, 13, 'k') // on the rock's top: the gold chest's key
   .island(232, 238, 19).coins(233, 237, 18);
 
 // ----- 6. Dam Exit (columns 237-289): the cliff's foot, spikes and the boar; up past a room in
@@ -146,11 +146,11 @@ level.ground(237, 256, 26)
 // The cliff the level is built into, last, so its tops (stood on, as ground) leave what's already
 // placed as it is: rock behind the layers, as in the owner's picture, the waterfalls pouring down it.
 level.rock([{ cols: [32, 34], rows: [15, 31] }], { foot: 'water' }) // the first waterfall's
-  .rock([{ cols: [41, 49], rows: [16, 23] }]) // behind the tall pillar
+  .rock([{ cols: [41, 50], rows: [16, 23] }]) // behind the tall pillar: its top the way on
   .rock([{ cols: [66, 77], rows: [10, 31] }], { foot: 'water' }) // the riverside cliff, over its pool
-  .rock([{ cols: [78, 90], rows: [13, 28] }])
-  .rock([{ cols: [132, 142], rows: [15, 24] }]) // behind the high route's ladder
-  .rock([{ cols: [224, 229], rows: [15, 33] }], { foot: 'water' }) // the depths' waterfall
+  .rock([{ cols: [78, 90], rows: [12, 28] }]) // its top the ruined arch's floor
+  .rock([{ cols: [132, 142], rows: [14, 24] }]) // its top the high route's end, its ladder down
+  .rock([{ cols: [223, 229], rows: [14, 33] }], { foot: 'water' }) // the depths' waterfall, the key on its top
   .rock([{ cols: [237, 249], rows: [17, 26] }, { cols: [250, 256], rows: [10, 26] }]); // the exit's cliff, stepped
 
 // The Grand Dam's puzzle, for tests/adventure-dam.test.js: the valley's floor row, its water's
@@ -216,7 +216,9 @@ export const AUTUMN_DAM_LEVEL = {
     { picture: 'boulder-big', col: 89, row: 33, inGround: true },
     // 3. Water Control.
     { picture: 'mill-house', col: 97, row: 23, back: true },
-    { picture: 'scaffold-trough', col: 103, row: 23 },
+    // Troughs under the deck, carrying the wheel's water: each pours into a fall down to the pool.
+    { picture: 'scaffold-trough', col: 110, row: 25, hang: true, dx: -29, dy: 12 },
+    { picture: 'scaffold-trough', col: 126, row: 25, hang: true, dx: -29, dy: 12 }, // clear of the ladder
     { picture: 'barrel', col: 113, row: 23 },
     { picture: 'torch', col: 125, row: 23, width: 84, glow: true },
     { picture: 'minecart', col: 125, row: 11 },
@@ -278,10 +280,10 @@ export const AUTUMN_DAM_LEVEL = {
   waterfalls: [
     { col: 33, top: 15, bottom: 29, width: 96 },
     { col: 72, top: 10, bottom: 28, width: 112 },
-    { col: 86, top: 13, bottom: 28, width: 96 },
-    { col: 111, top: 25, bottom: 29, width: 64 }, // from under the walkway, the wheel's channel
-    { col: 126, top: 25, bottom: 29, width: 64 },
-    { col: 227, top: 15, bottom: 30, width: 80 },
+    { col: 86, top: 12, bottom: 28, width: 96 },
+    { col: 111, top: 26, bottom: 29, width: 64 }, // from the troughs under the walkway
+    { col: 127, top: 26, bottom: 29, width: 64 },
+    { col: 227, top: 14, bottom: 30, width: 80 },
   ],
   dam: { col: 170, row: 30 },
   secrets: [{ cols: [0, 15], rows: [27, 32] }, { cols: [50, 66], rows: [28, 33] }, { cols: [237, 252], rows: [27, 29] }],
