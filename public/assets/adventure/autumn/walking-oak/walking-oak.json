@@ -1,0 +1,28 @@
+{
+  "frameW": 562,
+  "frameH": 462,
+  "footY": 456,
+  "anims": {
+    "asleep": {
+      "frames": 8
+    },
+    "waking": {
+      "frames": 8
+    },
+    "run": {
+      "frames": 8
+    },
+    "leap": {
+      "frames": 8
+    },
+    "lunge": {
+      "frames": 8
+    },
+    "stop-run": {
+      "frames": 8
+    },
+    "throw": {
+      "frames": 8
+    }
+  }
+}
