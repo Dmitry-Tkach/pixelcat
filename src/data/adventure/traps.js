@@ -67,7 +67,9 @@ export const TRAPS = {
     },
     idol: {
       calm: 'trap-idol', angry: 'trap-idol-angry', dart: 'trap-dart',
-      height: 150, dartWidth: 56, sink: 4, depth: 1.9,
+      // depth: behind the ground's tiles (2), its foot in them; in front of the Grand Dam (1.98: the
+      // owner saw the one on its ledge hidden behind it) and a pool's back water (1.95).
+      height: 150, dartWidth: 56, sink: 4, depth: 1.99,
       mouth: { x: 0.9, y: 0.44 }, // where its darts come out (facing right)
       body: { left: 0.22, right: 0.82, top: 0.08 }, // its solid stone (facing right), as fractions of its picture
       everyMs: 2600, // one dart this often
