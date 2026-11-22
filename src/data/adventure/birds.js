@@ -86,6 +86,12 @@ export const PTERO_FRAMES = {
   ...run('hit', 2, 0, 2), ...run('fall', 2, 2, 2), ...run('glide', 2, 4, 2),
 };
 // Its looks: the orange one (ptero-<frame>), and a green one (ptero2-<frame>, from a second sheet
-// the owner drew). A bird picks its look with { look: 'green' }.
-export const PTERO_LOOKS = { orange: 'ptero', green: 'ptero2' };
-export const PTERO_KEYS = Object.values(PTERO_LOOKS).flatMap((prefix) => Object.keys(PTERO_FRAMES).map((name) => `${prefix}-${name}`));
+// the owner drew), both the Wood world's; and the Autumn world's owl (owl-<frame>), drawn in the
+// same frames (prompts/autumn-level/07-owl.md), cut by tools/adventure-autumn-characters.mjs. A bird
+// picks its look with { look: 'green' } or { look: 'owl' }.
+const WOOD_LOOKS = { orange: 'ptero', green: 'ptero2' };
+export const OWL_SHEET = { file: 'images/levels/autumn/owl.png', prefix: 'owl' };
+export const PTERO_LOOKS = { ...WOOD_LOOKS, owl: OWL_SHEET.prefix };
+const keysOf = (prefixes) => prefixes.flatMap((prefix) => Object.keys(PTERO_FRAMES).map((name) => `${prefix}-${name}`));
+export const PTERO_KEYS = keysOf(Object.values(WOOD_LOOKS)); // the Wood world's art
+export const OWL_KEYS = keysOf([OWL_SHEET.prefix]); // the Autumn world's art

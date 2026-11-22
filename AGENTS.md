@@ -87,6 +87,11 @@ They keep separate progress and share nothing but the home screen and the menus'
    - Say what you checked and how, and what you didn't, such as "not seen in the browser".
    - If a test fails, say so and show it.
    - Never say something works if you haven't checked it.
+8. **Quality first, no shortcuts.** When a professional, well-built solution is possible, always
+   choose it over a quick one. Build features the way good 2D games do, as systems that can be
+   reused. Never show art bigger than it was drawn. Keep one style per feature, with no visible
+   joins between pictures. If the proper way costs more, say what it costs, and do it, unless the
+   owner decides otherwise.
 
 ## How the code is written
 

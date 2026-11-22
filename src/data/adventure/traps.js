@@ -10,7 +10,12 @@
 //             it hurts only by falling on him. phaseMs: where in its wait it starts (under waitMs),
 //             so crushers side by side don't slam together
 //   idol      a stone head standing at (col, row) that shoots darts across the path; { facing: -1 }
-//             to shoot left. Its stone is solid: he can stand on its head, above its darts
+//             to shoot left. Its stone is solid: he can stand on its head, above its darts.
+//             everyMs: its own beat (ms). beatOf: { col, row }, the hovering bird (by its cell) whose
+//             loop it keeps, reading the bird's own clock, so the two never drift apart: it shoots
+//             as the bird's loop begins, its darts reaching the bird about when it's high (the two
+//             dangers take turns, never meet by chance). beatPhaseMs: shifts its shots this far
+//             later in the bird's loop, to tune where they meet (0 by default)
 //   mushroom  a bouncy mushroom standing at (col, row): landing on it throws the cat up high
 //   guardian  a giant stone statue standing on a stone platform, solid (his body fills it, so there's
 //             no way over him), his feet at row + 1,
@@ -62,7 +67,9 @@ export const TRAPS = {
     },
     idol: {
       calm: 'trap-idol', angry: 'trap-idol-angry', dart: 'trap-dart',
-      height: 150, dartWidth: 56, sink: 4, depth: 1.9,
+      // depth: behind the ground's tiles (2), its foot in them; in front of the Grand Dam (1.98: the
+      // owner saw the one on its ledge hidden behind it) and a pool's back water (1.95).
+      height: 150, dartWidth: 56, sink: 4, depth: 1.99,
       mouth: { x: 0.9, y: 0.44 }, // where its darts come out (facing right)
       body: { left: 0.22, right: 0.82, top: 0.08 }, // its solid stone (facing right), as fractions of its picture
       everyMs: 2600, // one dart this often
@@ -117,3 +124,6 @@ export const TRAPS = {
     },
   },
 };
+// The Autumn Forest's traps are the Wood world's: the same crushers and mushrooms. Its mace is the
+// owner's spiked ball (data/adventure/autumnArt.js), with no ring on top: its middle is its middle.
+TRAPS.autumn = { ...TRAPS.wood, mace: { ...TRAPS.wood.mace, ballMiddle: 0.5 } };

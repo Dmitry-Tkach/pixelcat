@@ -2,40 +2,42 @@
 // third of each a boss level, chosen with the owner. The worlds' names are the owner's map's; the
 // titles of the levels not yet built are suggestions. `level` is the id of the built one in
 // ADVENTURE_LEVELS (data/adventure/index.js); the rest are still to come, and show on the map
-// locked until they're built. Each `id` stays as it is, as saved progress is kept by it.
+// locked until they're built. Each `id` stays as it is, as saved progress is kept by it. `kind` is
+// the kind of level it is, and so how long it should take (data/adventure/levelKinds.js): every
+// boss level is 'boss'; the rest are 'standard' until the owner chooses otherwise.
 export const ADVENTURE_ROADMAP = [
   // 1. Forest Ruins: the World Tree's roots.
-  { id: 'wood-1', world: 'Forest Ruins', title: 'Into the Roots', level: 'wood-1' },
-  { id: 'wood-2', world: 'Forest Ruins', title: 'Mill Falls', level: 'wood-2' },
-  { id: 'wood-3', world: 'Forest Ruins', title: 'Heart of the Tree', level: 'wood-3' },
+  { id: 'wood-1', world: 'Forest Ruins', title: 'Into the Roots', level: 'wood-1', kind: 'standard' },
+  { id: 'wood-2', world: 'Forest Ruins', title: 'Mill Falls', level: 'wood-2', kind: 'standard' },
+  { id: 'wood-3', world: 'Forest Ruins', title: 'Heart of the Tree', level: 'wood-3', kind: 'boss' },
   // 2. Rustic Village: an autumn wood, the seasons turning.
-  { id: 'autumn-1', world: 'Rustic Village', title: 'Golden Leaves' },
-  { id: 'autumn-2', world: 'Rustic Village', title: 'The Woodcutter\'s Path' },
-  { id: 'autumn-3', world: 'Rustic Village', title: 'The Hollow Oak' },
+  { id: 'autumn-1', world: 'Rustic Village', title: 'The Forgotten Village', level: 'autumn-1', kind: 'standard' },
+  { id: 'autumn-2', world: 'Rustic Village', title: 'The Hidden Dam', level: 'autumn-2', kind: 'standard' }, // the owner's design: images/levels/autumn/level2.png
+  { id: 'autumn-3', world: 'Rustic Village', title: 'The Hollow Oak', kind: 'boss' },
   // 3. Graveyard: night falls.
-  { id: 'graveyard-1', world: 'Graveyard', title: 'Moonlit Graves' },
-  { id: 'graveyard-2', world: 'Graveyard', title: 'The Crypt Steps' },
-  { id: 'graveyard-3', world: 'Graveyard', title: 'The Bone Crypt' },
+  { id: 'graveyard-1', world: 'Graveyard', title: 'Moonlit Graves', kind: 'standard' },
+  { id: 'graveyard-2', world: 'Graveyard', title: 'The Crypt Steps', kind: 'standard' },
+  { id: 'graveyard-3', world: 'Graveyard', title: 'The Bone Crypt', kind: 'boss' },
   // 4. Crystal Cavern: underground.
-  { id: 'caves-1', world: 'Crystal Cavern', title: 'Glittering Deep' },
-  { id: 'caves-2', world: 'Crystal Cavern', title: 'Echo Tunnels' },
-  { id: 'caves-3', world: 'Crystal Cavern', title: 'The Crystal Throne' },
+  { id: 'caves-1', world: 'Crystal Cavern', title: 'Glittering Deep', kind: 'standard' },
+  { id: 'caves-2', world: 'Crystal Cavern', title: 'Echo Tunnels', kind: 'standard' },
+  { id: 'caves-3', world: 'Crystal Cavern', title: 'The Crystal Throne', kind: 'boss' },
   // 5. Bone Wastes: the titan's remains.
-  { id: 'ancient-1', world: 'Bone Wastes', title: 'Titan Bones' },
-  { id: 'ancient-2', world: 'Bone Wastes', title: 'Sand Stairs' },
-  { id: 'ancient-3', world: 'Bone Wastes', title: 'The Giant Skull' },
+  { id: 'ancient-1', world: 'Bone Wastes', title: 'Titan Bones', kind: 'standard' },
+  { id: 'ancient-2', world: 'Bone Wastes', title: 'Sand Stairs', kind: 'standard' },
+  { id: 'ancient-3', world: 'Bone Wastes', title: 'The Giant Skull', kind: 'boss' },
   // 6. Sky Temple: up among the floating islands.
-  { id: 'sky-1', world: 'Sky Temple', title: 'Cloud Steps' },
-  { id: 'sky-2', world: 'Sky Temple', title: 'The Broken Bridge' },
-  { id: 'sky-3', world: 'Sky Temple', title: 'The Temple Gate' },
+  { id: 'sky-1', world: 'Sky Temple', title: 'Cloud Steps', kind: 'standard' },
+  { id: 'sky-2', world: 'Sky Temple', title: 'The Broken Bridge', kind: 'standard' },
+  { id: 'sky-3', world: 'Sky Temple', title: 'The Temple Gate', kind: 'boss' },
   // 7. Dark Fortress: the grim road on.
-  { id: 'execution-1', world: 'Dark Fortress', title: 'The Gallows Road' },
-  { id: 'execution-2', world: 'Dark Fortress', title: 'Iron Cages' },
-  { id: 'execution-3', world: 'Dark Fortress', title: 'The Executioner' },
+  { id: 'execution-1', world: 'Dark Fortress', title: 'The Gallows Road', kind: 'standard' },
+  { id: 'execution-2', world: 'Dark Fortress', title: 'Iron Cages', kind: 'standard' },
+  { id: 'execution-3', world: 'Dark Fortress', title: 'The Executioner', kind: 'boss' },
   // 8. Ancient Wilds: the old castle's ruins, and the last boss.
-  { id: 'medieval-1', world: 'Ancient Wilds', title: 'Castle Gates' },
-  { id: 'medieval-2', world: 'Ancient Wilds', title: 'The Ramparts' },
-  { id: 'medieval-3', world: 'Ancient Wilds', title: 'The Black Knight' },
+  { id: 'medieval-1', world: 'Ancient Wilds', title: 'Castle Gates', kind: 'standard' },
+  { id: 'medieval-2', world: 'Ancient Wilds', title: 'The Ramparts', kind: 'standard' },
+  { id: 'medieval-3', world: 'Ancient Wilds', title: 'The Black Knight', kind: 'boss' },
 ];
 
 // The worlds, in the order the road climbs through them, from the bottom of the map.

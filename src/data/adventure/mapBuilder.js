@@ -4,6 +4,16 @@
 //   gap(from, to)          no ground there at all: falling in loses a heart and goes back to the checkpoint
 //   island(from, to, row)  a floating island; bridge(from, to, row) a thin one
 //   ladder(col, top, bottom)  from the island at `top` down to `bottom`
+//   vine(col, top, bottom)  a climbing vine: a ladder that looks like a vine. vines() lists its cells.
+//   cracked(from, to, row)  cracked floor in the ground's surface: it breaks for good when landed on
+//   drawbridge(switchCol, switchRow, from, to, row, { shot, look, falls, holdMs })  a bridge that
+//                          drops into place when its switch is shot or touched
+//                          (systems/adventure/drawbridges.js); shot: its switch is out of reach, to be
+//                          shot from across; look: its planks' picture (the world's drawbridge plank
+//                          if none); falls: planks that give way under the cat; holdMs: down only this
+//                          long. drawbridges() lists them.
+//   ropeBridge(from, to, row, look)  a bridge that's simply there, of rope planks: a drawbridge with
+//                          no switch, down from the start.
 //   put(col, row, letter)  one thing: a coin, an enemy, a sign...
 //   coins(from, to, row)   a line of coins; arc(from, to, row, rise) coins over a jump
 //   mover(col, row, { across, up, width, speed })  a moving log: it starts at (col, row), its left
@@ -17,12 +27,19 @@
 //   trap(kind, col, row, options)  a moving trap: a mace, crusher, idol or mushroom (see
 //                          data/adventure/traps.js for each kind's options). traps() lists them.
 // Everything but ground and gaps must go in an empty cell, so pieces can't silently overwrite each other.
+import { rockLayout } from '../../systems/adventure/rockLayout.js';
 export function mapBuilder(cols, rows) {
   const grid = Array.from({ length: rows }, () => Array(cols).fill('.'));
   const movers = [];
   const traps = [];
   const wheels = [];
   const birds = [];
+  const vines = [];
+  const drawbridges = [];
+  const walkways = [];
+  const masonry = [];
+  const rocks = [];
+  const hiddenTiles = [];
   const inside = (c, r) => {
     if (!Number.isInteger(c) || !Number.isInteger(r) || c < 0 || c >= cols || r < 0 || r >= rows) throw new Error(`(${c}, ${r}) is outside the map`);
   };
@@ -43,9 +60,67 @@ export function mapBuilder(cols, rows) {
     },
     island(from, to, row) { span(from, to, (c) => place(c, row, '=')); return builder; },
     bridge(from, to, row) { span(from, to, (c) => place(c, row, '-')); return builder; },
-    // Its top cell is on the island's row, and is part of the island.
+    // A timber walkway on posts (data/adventure/scaffolds.js): bridge cells, drawn by the scaffold kit.
+    walkway(from, to, row, { posts } = {}) {
+      builder.bridge(from, to, row);
+      walkways.push({ from, to, row, ...(posts ? { posts: [...posts] } : {}) });
+      return builder;
+    },
+    // A rock from the rock kit (data/adventure/rocks.js), behind the level, its tops stood on: island
+    // cells (one-way: he lands on them, and jumps up through the rock in front of it) along every
+    // top of its shape, not shown (hiddenTiles), so its own picture is what he stands on. A top cell
+    // that's taken, or has ground, an island or a ladder over it (resting on the rock), is left as it
+    // is; a pickup over it stands on it.
+    rock(parts, { foot } = {}) {
+      for (const { cols: [c0, c1], rows: [r0, r1] } of parts) { inside(c0, r0); inside(c1, r1); }
+      rocks.push({ parts: parts.map((p) => ({ cols: [...p.cols], rows: [...p.rows] })), ...(foot ? { foot } : {}) });
+      for (const { row, from, to } of rockLayout({ parts }).tops) {
+        let run = null;
+        for (let c = from; c <= to; c++) {
+          if (grid[row][c] === '.' && row > 0 && !'#=-H'.includes(grid[row - 1][c])) {
+            grid[row][c] = '=';
+            if (run && run.cols[1] === c - 1) run.cols[1] = c; else { run = { cols: [c, c], row }; hiddenTiles.push(run); }
+          } else run = null;
+        }
+      }
+      return builder;
+    },
+    // Ground drawn as stone brick (data/adventure/bricks.js): a wall, or a two-cell pillar.
+    wall(from, to, top, bottom, { look } = {}) {
+      builder.fill(from, to, top, bottom);
+      masonry.push({ cols: [from, to], rows: [top, bottom], ...(look ? { look } : {}) });
+      return builder;
+    },
+    brickPillar(col, top, bottom) { return builder.wall(col, col + 1, top, bottom, { look: 'pillar' }); },
+    // Its top cell is on the island's row, and is part of the island (or of a walkway's deck: a
+    // bridge cell; or of a trapdoor).
     ladder(col, top, bottom) {
-      for (let r = top; r <= bottom; r++) place(col, r, 'H', r === top ? '=.' : '.');
+      for (let r = top; r <= bottom; r++) place(col, r, 'H', r === top ? '=-Y.' : '.');
+      return builder;
+    },
+    vine(col, top, bottom) {
+      builder.ladder(col, top, bottom);
+      for (let r = top; r <= bottom; r++) vines.push({ col, row: r });
+      return builder;
+    },
+    drawbridge(switchCol, switchRow, from, to, row, { shot = false, look, falls = false, holdMs } = {}) {
+      inside(switchCol, switchRow);
+      inside(from, row);
+      inside(to, row);
+      drawbridges.push({
+        switch: { col: switchCol, row: switchRow }, from, to, row,
+        ...(shot ? { shot } : {}), ...(look ? { look } : {}), ...(falls ? { falls } : {}), ...(holdMs ? { holdMs } : {}),
+      });
+      return builder;
+    },
+    cracked(from, to, row) { span(from, to, (c) => place(c, row, 'Z', '#.')); return builder; },
+    // A trapdoor in the ground's surface (systems/adventureMap.js, Y): drawn as the ground, one-way.
+    trapdoor(from, to, row) { span(from, to, (c) => place(c, row, 'Y', '#.')); return builder; },
+    // A rope bridge that's simply there: a drawbridge with no switch, down from the start.
+    ropeBridge(from, to, row, look = 'rope-plank') {
+      inside(from, row);
+      inside(to, row);
+      drawbridges.push({ from, to, row, look });
       return builder;
     },
     put(col, row, letter) { place(col, row, letter); return builder; },
@@ -56,9 +131,9 @@ export function mapBuilder(cols, rows) {
       span(from, to, (c) => place(c, row - Math.round(rise * (1 - ((c - mid) / half) ** 2)), 'o'));
       return builder;
     },
-    mover(col, row, { across = 0, up = 0, width = 3, speed, arrow, parks } = {}) {
+    mover(col, row, { across = 0, up = 0, width = 3, speed, arrow, parks, picture } = {}) {
       inside(col, row);
-      movers.push({ col, row, width, across, up, ...(speed ? { speed } : {}), ...(arrow ? { arrow } : {}), ...(parks ? { parks } : {}) });
+      movers.push({ col, row, width, across, up, ...(speed ? { speed } : {}), ...(arrow ? { arrow } : {}), ...(parks ? { parks } : {}), ...(picture ? { picture } : {}) });
       return builder;
     },
     hollow(from, to, top, bottom) {
@@ -89,6 +164,23 @@ export function mapBuilder(cols, rows) {
     traps: () => traps.map((t) => ({ ...t })),
     wheels: () => wheels.map((w) => ({ ...w })),
     birds: () => birds.map((b) => ({ ...b })),
+    vines: () => vines.map((v) => ({ ...v })),
+    rocks: () => rocks.map((r) => ({ ...r, parts: r.parts.map((p) => ({ cols: [...p.cols], rows: [...p.rows] })) })),
+    hiddenTiles: () => hiddenTiles.map((h) => ({ cols: [...h.cols], row: h.row })),
+    walkways: () => walkways.map((w) => ({ ...w, ...(w.posts ? { posts: [...w.posts] } : {}) })),
+    masonry: () => masonry.map((m) => ({ ...m, cols: [...m.cols], rows: [...m.rows] })),
+    drawbridges: () => drawbridges.map((d) => ({ ...d, ...(d.switch ? { switch: { ...d.switch } } : {}) })),
   };
   return builder;
+}
+
+// A level's vine cells (vines()) as runs, one for each vine: { col, top, bottom }.
+export function vineRuns(cells) {
+  const runs = [];
+  for (const { col, row } of [...cells].sort((a, b) => a.col - b.col || a.row - b.row)) {
+    const last = runs.at(-1);
+    if (last && last.col === col && last.bottom === row - 1) last.bottom = row;
+    else runs.push({ col, top: row, bottom: row });
+  }
+  return runs;
 }

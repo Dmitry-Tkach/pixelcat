@@ -83,10 +83,12 @@ export async function readSheet(file, names, { glowing = () => false } = {}) {
 
 export const alphaOf = ({ pixels, w, h }) => Uint8Array.from({ length: w * h }, (_, i) => pixels[i * 4 + 3]);
 
-// Saves a piece resized to outW x outH px; hue (degrees) turns its colours round the colour wheel.
-export const savePiece = ({ pixels, w, h }, file, outW, outH, { hue = 0 } = {}) => {
+// Saves a piece resized to outW x outH px; hue (degrees) turns its colours round the colour wheel;
+// sharpen: for a piece shown bigger than drawn, its edges crisped after resizing.
+export const savePiece = ({ pixels, w, h }, file, outW, outH, { hue = 0, sharpen = false } = {}) => {
   let picture = sharp(pixels, { raw: { width: w, height: h, channels: 4 } })
-    .resize(Math.max(1, Math.round(outW)), Math.max(1, Math.round(outH)));
+    .resize(Math.max(1, Math.round(outW)), Math.max(1, Math.round(outH)), { kernel: 'lanczos3' });
   if (hue) picture = picture.modulate({ hue });
+  if (sharpen) picture = picture.sharpen({ sigma: 1.1, m1: 0.6, m2: 2.2 });
   return picture.png({ compressionLevel: 9 }).toFile(file);
 };

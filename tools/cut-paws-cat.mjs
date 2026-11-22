@@ -62,6 +62,11 @@ const STRIPS = [
   { name: 'Climb', file: 'climb.png', frames: 6, scale: 0.46, ground: 576, air: [1, 2, 3, 4, 5, 6], steadyHead: true, byGaps: true, ms: 100 },
   { name: 'ClimbDown', file: 'climb-down.png', frames: 6, scale: 0.46, ground: 577, air: [1, 2, 3, 4, 5, 6], steadyHead: true, byGaps: true, ms: 100 },
   { name: 'ClimbUp', file: 'pull-up.png', frames: 4, scale: 0.41, ground: 615, eachOnFeet: true, byGaps: true, ms: 125 },
+  // Swimming (the Hidden Dam's flooded part), from prompts/hidden-dam. The float strip stands 478 px
+  // tall against the idle cat's 189; the swim strip was drawn smaller (his head about two thirds
+  // the size), so it's shrunk less. Off the ground, lined up by his head.
+  { name: 'Swim', file: 'swim.png', frames: 6, scale: 0.58, ground: 480, air: [1, 2, 3, 4, 5, 6], steadyHead: true, byGaps: true, ms: 90 },
+  { name: 'SwimFloat', file: 'swim-float.png', frames: 4, scale: 0.395, ground: 620, air: [1, 2, 3, 4], steadyHead: true, byGaps: true, ms: 130 },
   // With the minigun.
   { name: 'Idle', folder: 'frames-minigun', file: 'minigun.png', frames: 6, scale: 0.66, ground: 500, planted: true, byGaps: true, ms: 160 },
   { name: 'Shoot', folder: 'frames-minigun', file: 'firing_minigun.png', frames: 6, scale: 0.66, ground: 495, planted: true, byGaps: true, ms: 60 },

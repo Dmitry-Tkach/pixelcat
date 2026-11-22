@@ -37,7 +37,9 @@ export function standScale(radius, drop) {
 // A waterfall: the middle repeats down as far as it falls, and flows (speed, px a second). The top
 // and the splash are cut to match its width. waterShare: the share of the top picture's width
 // that's water, so the top's water lines up with the middle.
-export const WATERFALL = { width: 150, speed: 260, waterShare: 0.62, splashShare: 1.5, depth: 1.6, alpha: 0.95 };
+// headFlow: in a world with a soft head (the Autumn world's fall-head), the flow starts this share of
+// the way down it, where it's fully there, so it fades out over the flow.
+export const WATERFALL = { width: 150, speed: 260, waterShare: 0.62, splashShare: 1.5, depth: 1.6, alpha: 0.95, headFlow: 0.45 };
 
 // The props, cut to these widths (px).
 export const MILL_PROPS = { 'mill-leaves': 420, 'mill-rope': 64, 'mill-cave': 300, 'mill-lantern': 34, 'mill-stakes': 200 };

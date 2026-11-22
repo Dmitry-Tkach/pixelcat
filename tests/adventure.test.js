@@ -227,7 +227,10 @@ describe('adventure gunners', () => {
     const { frameW, frameH, body, feet, muzzle } = gunnerLayout(kind);
     expect(Math.abs(body.y + body.h - feet)).toBeLessThanOrEqual(1);
     expect(feet).toBeLessThan(frameH);
-    expect(muzzle.x).toBeGreaterThan(body.x + body.w / 2); // in front of it: the art faces right
+    // In front of it: the pack's art faces right, a sheet drawn facing left (the squirrel) left.
+    if (GUNNERS[kind].facesLeft) expect(muzzle.x).toBeLessThan(body.x + body.w / 2);
+    else expect(muzzle.x).toBeGreaterThan(body.x + body.w / 2);
+    expect(muzzle.x).toBeGreaterThanOrEqual(0);
     expect(muzzle.x).toBeLessThanOrEqual(frameW);
     expect(muzzle.y).toBeLessThan(feet);
   });

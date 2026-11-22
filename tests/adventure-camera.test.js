@@ -19,7 +19,7 @@ describe('the camera\'s moments (a level\'s camera)', () => {
     });
 
     it(`${level.id}: each zone is inside the map, and the cat can be in it`, () => {
-      for (const [i, { cols: zc, rows: zr, middleRow }] of level.camera.zones.entries()) {
+      for (const [i, { cols: zc, rows: zr, middleRow }] of (level.camera.zones ?? []).entries()) {
         expect(within(zc[1], zr[1]) && within(zc[0], zr[0]) && middleRow < rows, `zone ${i + 1}`).toBe(true);
         expect([...reached].some((cell) => {
           const [c, r] = cell.split(',').map(Number);

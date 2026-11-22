@@ -11,4 +11,4 @@ export const TILE_VARIANTS = {
   [TILES.soil]: [10, 11, 12],
   [TILES.groundTop]: [13, 14],
 };
-export const TILE_STRIP_LENGTH = 15; // the ten plain tiles and the five variants
+export const TILE_STRIP_LENGTH = 18; // the ten plain tiles, the five variants, and the three undersides

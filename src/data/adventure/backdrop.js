@@ -30,6 +30,18 @@ export const BACKDROPS = {
     fog: { tint: 0xd9f6ea, alpha: 0.4, height: 0.3, speed: 14, drift: 0.5, depth: -8 },
     front: null,
   },
+  // The Autumn Forest: the owner's painted layers (images/levels/autumn, prompts/autumn-level 01
+  // and 02): the golden misty sky with its far trees, and the big orange trees in front of it. Warm
+  // rays, softer than alone, as the sky has rays painted in, and peach mist.
+  autumn: {
+    layers: [
+      { picture: 'layer-sky', drift: 0.08, rise: 0.03, depth: -10 },
+      { picture: 'layer-middle', drift: 0.3, rise: 0.07, depth: -9 },
+    ],
+    rays: { tint: 0xffd59a, alpha: 0.14, breatheMs: 5200, swayPx: 18, depth: -7 },
+    fog: { tint: 0xffe0c0, alpha: 0.35, height: 0.3, speed: 14, drift: 0.5, depth: -8 },
+    front: null,
+  },
 };
 
 // The share of the screen's height each layer is drawn taller than the screen, so it has room to

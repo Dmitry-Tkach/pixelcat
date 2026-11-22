@@ -286,6 +286,7 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     }
     let role = 'run';
     if (this.isSliding) role = 'slide';
+    else if (this.swimRole) role = this.swimRole; // in the adventure's pools (AdventureSwimming)
     else if (!this.onGround) role = this.body.velocity.y < 0 ? 'jump' : 'fall';
     else if (Math.abs(this.moveVelocity) < FREE_MOVE.IDLE_BELOW) role = 'idle';
     this.play(animKey(this.character, role), true);

@@ -3,6 +3,12 @@
 // Phaser, so tests can check levels.
 import { trapProblems } from './adventure/trapLogic.js';
 import { wheelProblems } from './adventure/wheels.js';
+import { drawbridgeProblems } from './adventure/drawbridges.js';
+import { rockProblems } from './adventure/rockLayout.js';
+import { poolProblems } from './adventure/pools.js';
+import { walkwayProblems } from './adventure/scaffoldLayout.js';
+import { masonryProblems } from './adventure/brickLayout.js';
+import { fishProblems } from '../data/adventure/fish.js';
 
 export const TILE = 64;
 // How deep into a tile the cat can sink in one physics step and still be pushed back out. Phaser's
@@ -25,6 +31,11 @@ export const TILES = {
   ledge: 7,
   ledgeRight: 8,
   bridge: 9,
+  // Earth with open air under it (an overhang, a cave's roof): soil with an island's wavy bottom,
+  // after the soil's and the top's variants in the strip (data/adventure/tileVariants.js).
+  underLeft: 15,
+  under: 16,
+  underRight: 17,
 };
 // Tiles the cat lands on from above but passes through from below and from the sides.
 export const ONE_WAY = new Set([TILES.ledgeLeft, TILES.ledge, TILES.ledgeRight, TILES.bridge]);
@@ -49,6 +60,7 @@ export const OBJECTS = {
   j: 'silver-key',
   U: 'silver-chest',
   '%': 'leaves', // a crumbling leafy ledge: it falls soon after the cat lands, and grows back
+  Z: 'cracked', // cracked floor in the ground: it breaks when the cat lands on it, into a secret below, for good
   '?': 'bonus',
   B: 'box',
   X: 'stone',
@@ -59,12 +71,17 @@ export const ENEMY_LETTERS = {
   g: 'goon',
   c: 'cone',
   v: 'spiky',
+  P: 'pumpkin', // the Autumn world's walker you stomp
+  V: 'boar', // the Autumn world's spiky one, that charges
+  M: 'mole', // the Autumn world's mole miner: pops out of the ground
+  Q: 'crab', // the Autumn world's river crab: scuttles on the banks and the riverbed, snaps its claw
 };
 // Gunners, by kind (see data/adventure/gunners.js). Each stands where it is and shoots at the cat.
 export const GUNNER_LETTERS = {
   1: 'blaster',
   2: 'raygun',
   3: 'rifle',
+  4: 'squirrel', // the Autumn world's: throws acorns
 };
 // Scenery, which the cat passes in front of.
 export const SCENERY = {
@@ -103,14 +120,24 @@ export function pillarFoot(tiles, col, row) {
 }
 
 const isGround = (ch) => ch === '#';
+// Cracked floor (Z) sits in the ground's surface, so the ground beside it joins it as if it were ground.
+// A trapdoor (Y) too: a cell of the ground's surface drawn as ground, but one-way, with a ladder down
+// through it (a ladder's top cell beside a trapdoor is part of it): standing on it, Down climbs him
+// down the ladder into what's under it (a secret), and he climbs back up through it.
+const shapesGround = (ch) => isGround(ch) || ch === 'Z' || ch === 'Y';
 const isIsland = (ch) => ch === '=';
 
 export function readAdventureMap(map) {
   const rows = map.length;
   const cols = map[0].length;
   const at = (c, r) => (r < 0 || r >= rows || c < 0 || c >= cols ? '.' : map[r][c]);
-  // A ladder on an island's row is also part of the island, so the cat can stand at the top.
+  // A ladder on an island's row is also part of the island, so the cat can stand at the top; one on
+  // a bridge's row (a walkway's deck) is part of the bridge.
   const islandAt = (c, r) => isIsland(at(c, r)) || (at(c, r) === 'H' && (isIsland(at(c - 1, r)) || isIsland(at(c + 1, r))));
+  const bridgeAt = (c, r) => at(c, r) === '-' || (at(c, r) === 'H' && (at(c - 1, r) === '-' || at(c + 1, r) === '-'));
+  const trapdoorAt = (c, r) => at(c, r) === 'Y' || (at(c, r) === 'H' && (at(c - 1, r) === 'Y' || at(c + 1, r) === 'Y'));
+  const groundLike = (c, r) => shapesGround(at(c, r)) || trapdoorAt(c, r);
+  const trapdoors = [];
   const tiles = [];
   const ladders = [];
   const objects = [];
@@ -120,10 +147,13 @@ export function readAdventureMap(map) {
     for (let c = 0; c < cols; c++) {
       const ch = at(c, r);
       let tile = -1;
-      if (isGround(ch)) {
-        const open = (dc) => !isGround(at(c + dc, r));
-        if (!isGround(at(c, r - 1))) {
+      if (isGround(ch) || trapdoorAt(c, r)) {
+        if (trapdoorAt(c, r)) trapdoors.push({ col: c, row: r });
+        const open = (dc) => !groundLike(c + dc, r);
+        if (!groundLike(c, r - 1)) {
           tile = open(-1) && !open(1) ? TILES.groundTopLeft : open(1) && !open(-1) ? TILES.groundTopRight : TILES.groundTop;
+        } else if (r + 1 < rows && !groundLike(c, r + 1)) {
+          tile = open(-1) && !open(1) ? TILES.underLeft : open(1) && !open(-1) ? TILES.underRight : TILES.under;
         } else {
           tile = open(-1) && !open(1) ? TILES.soilLeft : open(1) && !open(-1) ? TILES.soilRight : TILES.soil;
         }
@@ -131,7 +161,7 @@ export function readAdventureMap(map) {
         const left = islandAt(c - 1, r);
         const right = islandAt(c + 1, r);
         tile = !left && right ? TILES.ledgeLeft : left && !right ? TILES.ledgeRight : TILES.ledge;
-      } else if (ch === '-') {
+      } else if (bridgeAt(c, r)) {
         tile = TILES.bridge;
       }
       if (ch === 'H') ladders.push({ col: c, row: r });
@@ -143,7 +173,7 @@ export function readAdventureMap(map) {
     }
     tiles.push(row);
   }
-  return { rows, cols, tiles, ladders, objects, scenery };
+  return { rows, cols, tiles, ladders, objects, scenery, trapdoors };
 }
 
 // What's wrong with a level, as messages: an empty list means it's fine.
@@ -185,6 +215,13 @@ export function checkAdventureLevel(level) {
   // The moving traps must stand on something, hang from something, and clear the ground.
   errors.push(...trapProblems(level, readAdventureMap(map)));
   errors.push(...wheelProblems(level));
+  errors.push(...drawbridgeProblems(level));
+  errors.push(...rockProblems(level));
+  errors.push(...poolProblems(level));
+  errors.push(...walkwayProblems(level), ...masonryProblems(level));
+  errors.push(...fishProblems(level));
+  // A locked portal (the Guardian Gate) opens only with the gold key, so the level needs one.
+  if (level.portalLocked && count('key') < 1) errors.push('a locked portal needs a key, k');
   // A ladder's top must be on an island or the ground, so the cat has somewhere to step off.
   const byCol = new Map();
   for (const { col, row } of ladders) byCol.set(col, [...(byCol.get(col) ?? []), row]);

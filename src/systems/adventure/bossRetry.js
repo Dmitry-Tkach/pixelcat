@@ -1,5 +1,6 @@
-// "Try again" after losing at a level's boss: the level starts over at the last checkpoint he lit
-// (the one before the boss's arena), with full hearts, and without losing what he's done. The
+// "Try again" after losing all his hearts, once he's lit a checkpoint (any level, as today's
+// platformers do; at first only at a level's boss): the level starts over at the last checkpoint he
+// lit, with full hearts, and without losing what he's done ("From the start" is still offered). The
 // scene restarts fresh, so what he'd done is written down as he loses (snapshot) and put back as it
 // starts (restore): his coins and crystals, his keys and opened chests, the enemies he knocked out,
 // the checkpoints he lit, and his minigun with its rounds.
@@ -70,3 +71,7 @@ export function restore(scene, state, { armed, openChest }) {
 // Whether losing now should offer a try from the checkpoint: a boss of the level's is fighting and
 // not beaten (not in a boss's own test arena, which is short).
 export const atBoss = (scene) => !scene.level.test && scene.bossFights.some((fight) => fight.started && !fight.beaten);
+
+// Whether losing now offers a try from the last checkpoint: he's lit one (the owner found the
+// checkpoints did nothing once his hearts ran out), or he's at a boss. Not in a test arena.
+export const fromCheckpoint = (scene) => !scene.level.test && (scene.lit.size > 0 || atBoss(scene));

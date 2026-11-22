@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { GAME, MOVEMENT } from '../config/gameConfig.js';
-import { ADVENTURE_HERO, ADVENTURE_LEVELS, PILLAR, adventureKey } from '../data/adventure/index.js';
+import { ADVENTURE_HERO, ADVENTURE_LEVELS, PILLAR, adventureArtKey, adventureArtWorld, adventureKey } from '../data/adventure/index.js';
 import { CHARACTERS, animKey } from '../data/characters.js';
 import { AMMO } from '../data/adventure/ammo.js';
 import { isFrozen } from '../systems/adventure/iceBlocks.js';
@@ -24,7 +24,7 @@ import { AdventureScenery } from '../systems/adventure/AdventureScenery.js';
 import { AdventureBird } from '../entities/AdventureBird.js';
 import { AdventureRootbreaker } from '../entities/AdventureRootbreaker.js';
 import { devPlace } from '../systems/adventure/devPlaces.js';
-import { atBoss, cellKey, restore, snapshot } from '../systems/adventure/bossRetry.js';
+import { cellKey, fromCheckpoint, restore, snapshot } from '../systems/adventure/bossRetry.js';
 import { AdventureCameraShots } from '../systems/adventure/AdventureCameraShots.js';
 import { FLASH, FLASH_KEY } from '../data/adventure/gunners.js';
 import { BOSS_FIGHTS } from '../data/adventure/bossFights.js';
@@ -42,6 +42,25 @@ import { AdventureBossBar } from '../ui/AdventureBossBar.js';
 import { addMenuButton, showGameMenu } from '../ui/adventureGameMenu.js';
 import { Effects } from '../ui/Effects.js';
 import { showDizzyStars } from '../systems/adventure/dizzyStars.js';
+import { AdventureDrawbridges } from '../systems/adventure/AdventureDrawbridges.js';
+import { AdventureFish } from '../systems/adventure/AdventureFish.js';
+import { AdventureStairs } from '../systems/adventure/AdventureStairs.js';
+import { AdventureRocks } from '../systems/adventure/AdventureRocks.js';
+import { AdventureScaffolds } from '../systems/adventure/AdventureScaffolds.js';
+import { AdventureBricks } from '../systems/adventure/AdventureBricks.js';
+import { AdventureFlood } from '../systems/adventure/AdventureFlood.js';
+import { SPIKE_SEED, spikePicture, spikesOf } from '../data/adventure/spikes.js';
+import { AdventurePools } from '../systems/adventure/AdventurePools.js';
+import { AdventureSwimming } from '../systems/adventure/AdventureSwimming.js';
+import { AdventureLevers } from '../systems/adventure/AdventureLevers.js';
+import { AdventureDam } from '../systems/adventure/AdventureDam.js';
+import { AdventurePoolFish } from '../systems/adventure/AdventurePoolFish.js';
+import { everUnderwater, poolDecor } from '../systems/adventure/poolDecor.js';
+import { AdventureMole } from '../entities/AdventureMole.js';
+import { ENEMIES } from '../data/adventure/enemies.js';
+import { cameraBottom } from '../systems/adventure/cameraFloor.js';
+import { secretCoverTiles } from '../systems/adventure/secretCover.js';
+import { vineRuns } from '../data/adventure/mapBuilder.js';
 
 // reach: how far from a ladder's middle it can be grabbed. standStill: slower than this, the cat counts
 // as standing at a ladder, so Down climbs down it rather than sliding past.
@@ -69,7 +88,6 @@ const CAMERA = { lerp: 0.12, deadzoneW: 120, deadzoneH: 70 };
 //   ahead: this far in front of him, the way he runs or faces
 //   stillMs: how long he stands by an edge before the camera peeks over. easeMs: how quickly it turns.
 const LOOK = { below: 110, above: 120, peek: 250, ride: 180, ahead: 160, runningFrom: 120, stillMs: 350, easeMs: 300, edgeCells: 2 };
-const SPIKE_HIT = { w: 52, h: 20 };
 const BONUS_COINS = 3;
 const CHEST_COINS = 5;
 // The silver chest, for whoever finds its key off the main route: more coins, and explosive rounds.
@@ -87,6 +105,10 @@ const ENEMY_BULLET = { range: 14 * TILE, size: 14, depth: 5 };
 const END_SCREEN_MS = 1100;
 const DROP = { fromY: TILE, ms: 700 }; // a pickup the arena drops falls from here, this long
 const STARS = 3; // a level's stars are its crystals, up to this many
+const HINT_AT_MS = 3200; // how long a hint along the way stays (level.hintsAt)
+const POOL_DECOR_DEPTH = 2.06; // a pool floor's plants and stones: in front of the ground, behind him
+const SECRET_COVER_DEPTH = 7; // in front of everything, the cat too, until he's inside
+const SECRET_BEHIND_DEPTH = 1.99; // its earth behind an island over the shaft: over the cave wall, under the tiles
 const BEAM_PIPS = { x: 98, y: 128, gap: 26, r: 8 };
 // An earth pillar starts this far up inside the island it holds, and stands this far into the ground.
 const PILLAR_FIT = { underIsland: 6, intoGround: 6, depth: 1 };
@@ -116,7 +138,9 @@ export class AdventureScene extends Phaser.Scene {
     this.screenFx = this.registry.get('screenFx');
     this.screenFx?.reveal(); // the home screen covered over to come here
     this.effects = new Effects(this);
-    this.art = (name) => adventureKey(level.world, name);
+    // A world's own pictures, or the Wood world's where it has none (data/adventure/index.js).
+    this.art = (name) => adventureArtKey(level.world, name);
+    this.coinSpin = adventureKey(adventureArtWorld(level.world, 'coin-1'), 'coin-spin');
     this.layout = readAdventureMap(level.map);
     this.worldW = this.layout.cols * TILE;
     this.worldH = this.layout.rows * TILE;
@@ -129,7 +153,14 @@ export class AdventureScene extends Phaser.Scene {
     this.buildDecor();
     // Water in the bottomless gaps, if the level has it (data/adventure/water.js).
     this.water = new AdventureWater(this, level.water, this.layout, this.worldH + FALL_OUT_BELOW);
+    this.pools = new AdventurePools(this, level.pools ?? [], this.layout.tiles); // pools he swims in (systems/adventure/pools.js)
+    this.flood = new AdventureFlood(this, this.pools); // a pool that floods: the dam bursting
     this.scenery = new AdventureScenery(this, level, this.art); // waterfalls, caves, covers (Mill Falls)
+    const spikeCells = new Set(this.layout.objects.filter((o) => o.type === 'spike').map(({ col, row }) => `${col},${row}`));
+    this.rocks = new AdventureRocks(this, level.rocks ?? [], { art: this.art, keepClear: (c, r) => spikeCells.has(`${c},${r}`) }); // cliffs from the rock kit, nothing hiding its spikes
+    new AdventureScaffolds(this, level.walkways ?? [], { art: this.art, groundLayer: this.groundLayer, tiles: this.layout.tiles }); // timber walkways
+    new AdventureBricks(this, level.masonry ?? [], { art: this.art, groundLayer: this.groundLayer }); // stone brick walls and pillars
+    this.buildSecretCovers();
     this.splashed = false;
     this.buildLadders();
     this.buildScenery();
@@ -155,6 +186,7 @@ export class AdventureScene extends Phaser.Scene {
     this.physics.add.overlap(this.cat, this.spikes, (cat, spike) => this.hurt(spike.x));
     this.physics.add.overlap(this.cat, this.lanterns, (cat, lantern) => this.reachCheckpoint(lantern));
     this.physics.add.overlap(this.cat, this.portalZone, () => {
+      if (this.portalLocked && !this.tryPortalLock()) return;
       if (this.playing) this.gates.enter(this.cat);
       this.complete();
     });
@@ -179,7 +211,7 @@ export class AdventureScene extends Phaser.Scene {
       art: this.art,
       movers: level.movers,
       wheels: level.wheels,
-      leaves: this.layout.objects.filter((o) => o.type === 'leaves'),
+      leaves: this.layout.objects.filter((o) => o.type === 'leaves' || o.type === 'cracked'),
       canLand: () => !this.climbing && !this.pullingUp,
     });
     this.traps.addColliders(this.cat, this.enemies, () => !this.climbing && !this.pullingUp);
@@ -192,6 +224,7 @@ export class AdventureScene extends Phaser.Scene {
       this.birds.push(pterodactyl.ready());
       this.totals.enemies += 1;
     }
+    this.traps.keepBeats(this.birds); // idols that keep a hovering bird's beat (traps.js, beatOf)
     this.moves = new AdventureMoves(this, this.cat, {
       art: this.art,
       groundLayer: this.groundLayer,
@@ -208,6 +241,21 @@ export class AdventureScene extends Phaser.Scene {
     this.traps.watchShots(() => this.moves.bullets.getChildren(), (bullet) => (bullet.ammo.freeze ? this.moves.freezeLands(bullet) : this.moves.bulletStops(bullet)));
     // A round into a water wheel's hub reverses it, or freezes it (systems/AdventurePlatforms.js).
     this.platforms.watchShots(() => this.moves.bullets.getChildren(), (bullet) => (bullet.ammo.freeze ? this.moves.freezeLands(bullet) : this.moves.bulletStops(bullet)));
+    // Drawbridges: a round into the switch, or the cat touching it, lowers the bridge
+    // (systems/adventure/AdventureDrawbridges.js).
+    this.drawbridges = new AdventureDrawbridges(this, this.cat, level.drawbridges ?? [], {
+      art: this.art, canLand: () => !this.climbing && !this.pullingUp, spend: (bullet) => this.moves.bulletStops(bullet),
+    });
+    // Stairs he walks up and down, his feet kept on their slope (systems/adventure/AdventureStairs.js).
+    this.stairs = new AdventureStairs(this, level.stairs ?? [], { art: this.art, ground: this.groundLayer });
+    this.swimming = new AdventureSwimming(this, this.cat, this.pools);
+    this.dam = new AdventureDam(this, level.dam, { art: this.art }); // the Grand Dam: lever i opens its gate i
+    this.levers = new AdventureLevers(this, level.levers ?? [], { art: this.art, onPull: () => { this.pools.raise(); this.dam.open(this.pools.stage - 1); } }); // the gates open in the order the water rises
+    // Fish leaping out of the water: they hurt the cat, and a round knocks one out (data/adventure/fish.js).
+    this.fish = new AdventureFish(this, level.fish ?? [], {
+      art: this.art, water: this.water, hurt: (fromX) => this.hurt(fromX), spend: (bullet) => this.moves.bulletStops(bullet),
+    });
+    this.poolFish = new AdventurePoolFish(this, level.poolFish ?? [], { art: this.art, hurt: (fromX) => this.hurt(fromX), spend: (bullet) => this.moves.bulletStops(bullet) });
 
     // Bosses: a test arena's one boss fights at once, and beating him finishes it. A level's own
     // bosses (level.bosses, data/adventure/bossArenas.js) wait in their arenas until the cat walks
@@ -222,6 +270,10 @@ export class AdventureScene extends Phaser.Scene {
     this.gems = 0;
     this.hasKey = false;
     this.hasSilverKey = false;
+    this.portalLocked = Boolean(level.portalLocked);
+    this.hintsShown = new Set();
+    this.portalHinted = false;
+    this.portalOpening = false;
     this.chestsOpened = 0;
     this.knockedOut = 0;
     this.climbing = false;
@@ -298,8 +350,10 @@ export class AdventureScene extends Phaser.Scene {
     this.groundLayer = map.createLayer(0, tileset, 0, 0).setDepth(2);
     this.groundLayer.setCollisionByExclusion([-1]);
     // Islands and bridges are only solid on top: the cat jumps up through them and lands on them.
+    // Trapdoors too, though they're drawn as the ground (systems/adventureMap.js, Y).
+    this.trapdoors = new Set(this.layout.trapdoors.map(({ col, row }) => `${col},${row}`));
     this.groundLayer.forEachTile((tile) => {
-      if (ONE_WAY.has(tile.index)) tile.setCollision(false, false, true, false, false);
+      if (ONE_WAY.has(tile.index) || this.trapdoors.has(`${tile.x},${tile.y}`)) tile.setCollision(false, false, true, false, false);
     });
     // Now and then a variant's picture for the plain soil and ground (data/adventure/tileVariants.js),
     // after the collisions are set: the game still treats it as the plain tile.
@@ -308,24 +362,70 @@ export class AdventureScene extends Phaser.Scene {
       if (!variants || cellRandom(tile.x, tile.y, 9) >= TILE_VARIANT_SHARE) return;
       tile.index = variants[Math.floor(cellRandom(tile.x, tile.y, 10) * variants.length)];
     });
+    // Islands drawn by a picture instead (level.hiddenTiles: { cols, row }, a waterfall cliff's
+    // ledges): still stood on, but not shown, so the picture's rock is the ledge.
+    for (const { cols: [from, to], row } of this.level.hiddenTiles ?? []) {
+      for (let c = from; c <= to; c++) this.groundLayer.getTileAt(c, row)?.setVisible(false);
+    }
+  }
+
+  // A level's secret caves (level.secrets: { cols, rows }) hidden under the ground's own tiles, as if
+  // the caves were solid (systems/adventure/secretCover.js), with the same picture variants as the
+  // ground, in front of everything: each fades away while the cat is inside its cave.
+  buildSecretCovers() {
+    const tileset = this.groundLayer.tileset[0];
+    (this.level.secrets ?? []).forEach((secret, i) => {
+      // In front of everything; and behind the level's own tiles over the secret's shaft (an island).
+      const layer = this.groundLayer.tilemap.createBlankLayer(`secret-${i}`, tileset).setDepth(SECRET_COVER_DEPTH);
+      const under = this.groundLayer.tilemap.createBlankLayer(`secret-${i}-behind`, tileset).setDepth(SECRET_BEHIND_DEPTH);
+      for (const { col, row, tile, behind } of secretCoverTiles(this.level.map, secret, this.level.caves ?? [])) {
+        const variants = TILE_VARIANTS[tile];
+        const shown = variants && cellRandom(col, row, 9) < TILE_VARIANT_SHARE ? variants[Math.floor(cellRandom(col, row, 10) * variants.length)] : tile;
+        (behind ? under : layer).putTileAt(shown, col, row);
+      }
+      const { cols: [c0, c1], rows: [r0, r1] } = secret;
+      this.scenery.addCover([layer, under], { left: c0 * TILE, right: (c1 + 1) * TILE, top: r0 * TILE, bottom: (r1 + 1) * TILE });
+    });
+  }
+
+  // Whether a point (px) is by a hidden island (hiddenTiles), where no plants grow.
+  byHiddenTiles(x, y) {
+    const col = Math.floor(x / TILE), row = Math.floor(y / TILE);
+    return (this.level.hiddenTiles ?? []).some(({ cols: [from, to], row: r }) => col >= from && col <= to && Math.abs(row - r) <= 1);
   }
 
   // The plants the level grows by itself: grass and flowers on the tops, vines under the islands
   // (data/adventure/decor.js, placed by systems/adventure/decorPlacement.js).
   buildDecor() {
-    this.decor = placeDecor(this.layout, DECOR[this.level.world]).map(({ picture, x, y, hang, depth, flip }) => {
-      const image = this.add.image(x, y, this.art(picture)).setOrigin(0.5, hang ? 0 : 1).setDepth(depth).setFlipX(flip);
-      image.hang = hang;
-      return image;
-    });
+    // Not under a pool's water: its floor has its own (systems/adventure/poolDecor.js), in front of
+    // the ground, behind him and the water's front.
+    const pools = this.level.pools ?? [];
+    this.decor = placeDecor(this.layout, DECOR[this.level.world])
+      .filter(({ x, y }) => !this.byHiddenTiles(x, y) && !everUnderwater(pools, Math.floor(x / TILE), Math.floor((y - 1) / TILE)))
+      .map(({ picture, x, y, hang, depth, flip }) => {
+        const image = this.add.image(x, y, this.art(picture)).setOrigin(0.5, hang ? 0 : 1).setDepth(depth).setFlipX(flip);
+        image.hang = hang;
+        return image;
+      });
+    for (const { picture, col, row } of poolDecor(this.level, this.layout.tiles)) {
+      if (this.textures.exists(this.art(picture))) this.add.image(col * TILE + TILE / 2, (row + 1) * TILE, this.art(picture)).setOrigin(0.5, 1).setDepth(POOL_DECOR_DEPTH);
+    }
     // Its moving life: fireflies, falling leaves, and the decoration swaying (data/adventure/ambience.js).
     this.ambience = new AdventureAmbience(this, AMBIENCE[this.level.world], this.decor);
   }
 
   buildLadders() {
     this.ladderCells = new Set(this.layout.ladders.map(({ col, row }) => `${col},${row}`));
+    // A climbing vine (level.vines) is a ladder that looks like a vine: one picture repeated down its
+    // whole length, at the vine picture's own width.
+    const vines = new Set((this.level.vines ?? []).map(({ col, row }) => `${col},${row}`));
     for (const { col, row } of this.layout.ladders) {
+      if (vines.has(`${col},${row}`)) continue;
       this.add.image(col * TILE + TILE / 2, row * TILE, this.art('ladder')).setOrigin(0.5, 0).setDepth(3);
+    }
+    for (const { col, top, bottom } of vineRuns(this.level.vines ?? [])) {
+      const width = this.textures.get(this.art('vine')).getSourceImage().width;
+      this.add.tileSprite(col * TILE + TILE / 2, top * TILE, width, (bottom - top + 1) * TILE, this.art('vine')).setOrigin(0.5, 0).setDepth(3);
     }
   }
 
@@ -368,7 +468,9 @@ export class AdventureScene extends Phaser.Scene {
   // A walking enemy, standing (or falling in) at x, y. The boss arena drops some in too.
   makeEnemy(kind, x, y) {
     const isSpike = (px, py) => this.spikeCells.has(`${Math.floor(px / TILE)},${Math.floor(py / TILE)}`);
-    const enemy = new AdventureEnemy(this, x, y, kind, { groundLayer: this.groundLayer, isSpike });
+    // One that burrows (the mole) pops out of the ground instead of walking (entities/AdventureMole.js).
+    const Kind = ENEMIES[kind]?.burrows ? AdventureMole : AdventureEnemy;
+    const enemy = new Kind(this, x, y, kind, { groundLayer: this.groundLayer, isSpike });
     enemy.on('swipe', () => {
       if (enemy.swipeLands(this.cat) && !this.moves.isRaging) this.hurt(enemy.x);
     });
@@ -429,7 +531,9 @@ export class AdventureScene extends Phaser.Scene {
       const cell = cellKey(object);
       switch (object.type) {
         case 'coin': {
-          const coin = this.physics.add.staticSprite(x, middle, this.art('coin-1')).play(adventureKey(this.level.world, 'coin-spin'));
+          // In front of the scenery, as the other pickups are (with none, a cave's wall or a background
+          // picture covered them).
+          const coin = this.physics.add.staticSprite(x, middle, this.art('coin-1')).play(this.coinSpin).setDepth(4);
           coin.body.setCircle(18, (coin.width - 36) / 2, (coin.height - 36) / 2);
           coin.kind = 'coin';
           coin.cell = cell;
@@ -466,9 +570,11 @@ export class AdventureScene extends Phaser.Scene {
           break;
         }
         case 'spike': {
-          // Only the points hurt: a low zone, narrower than the picture.
-          this.add.image(x, y, this.art('spike')).setOrigin(0.5, 1).setDepth(3);
-          const zone = this.add.zone(x, y - SPIKE_HIT.h / 2, SPIKE_HIT.w, SPIKE_HIT.h);
+          // The world's spike picture for this cell; only where it's drawn hurts (data/adventure/spikes.js).
+          const picture = spikePicture(this.level.world, object.col, object.row, (c, r) => cellRandom(c, r, SPIKE_SEED));
+          this.add.image(x, y, this.art(this.textures.exists(this.art(picture)) ? picture : 'spike')).setOrigin(0.5, 1).setDepth(3);
+          const { hit } = spikesOf(this.level.world);
+          const zone = this.add.zone(x, y - hit.h / 2, hit.w, hit.h);
           this.physics.add.existing(zone, true);
           this.spikes.push(zone);
           break;
@@ -510,6 +616,8 @@ export class AdventureScene extends Phaser.Scene {
         }
         case 'portal': {
           this.gates.buildPortal(x, y, object);
+          // The Guardian Gate: locked until the cat brings the gold key.
+          if (this.level.portalLocked) this.gates.lockPortal();
           this.portalZone = this.add.zone(x, y - 60, 70, 110);
           this.physics.add.existing(this.portalZone, true);
           break;
@@ -750,13 +858,30 @@ export class AdventureScene extends Phaser.Scene {
     look.x += (x - look.x) * ease;
     look.y += (y - look.y) * ease;
     this.cameras.main.setFollowOffset(look.x, look.y);
+    this.lowerCameraEdge(ease);
+  }
+
+  // The camera stops a few rows under the ground below the cat, in every level (systems/adventure/
+  // cameraFloor.js). The edge moves with the same easing as the camera, so it never jumps. A camera
+  // shot may look anywhere: the edge goes back to the map's bottom while one plays.
+  // The level's secrets count as ground for it, so it gives none away, unless he's inside one.
+  lowerCameraEdge(ease) {
+    const { body } = this.cat;
+    const col = Math.floor(body.center.x / TILE), feetRow = Math.floor(body.bottom / TILE);
+    const secrets = this.level.secrets ?? [];
+    const inSecret = (c, r) => secrets.some(({ cols: [c0, c1], rows: [r0, r1] }) => c >= c0 && c <= c1 && r >= r0 && r <= r1);
+    const covered = inSecret(col, Math.floor(body.center.y / TILE)) ? () => false : inSecret;
+    const target = this.shots.playing ? this.worldH
+      : cameraBottom(this.level.map, col, feetRow, this.level.camera?.groundRows, TILE, undefined, covered);
+    this.look.bottom = this.look.bottom === undefined ? target : this.look.bottom + (target - this.look.bottom) * ease;
+    this.cameras.main.setBounds(0, 0, this.worldW, Math.min(this.worldH, Math.round(this.look.bottom)));
   }
 
   // ----- Moving -----
 
   // Islands hold the cat only when it's coming down onto them, not while it climbs or drops through.
   landsOn(tile) {
-    if (!ONE_WAY.has(tile.index)) return true;
+    if (!ONE_WAY.has(tile.index) && !this.trapdoors.has(`${tile.x},${tile.y}`)) return true;
     if (this.climbing || this.pullingUp || this.cat.isDropping) return false;
     if (this.cat.body.bottom <= tile.pixelY + 12) this.cat.onPlatform = true;
     return true;
@@ -805,6 +930,7 @@ export class AdventureScene extends Phaser.Scene {
       return;
     }
     this.moves.endDash();
+    if (this.swimming.active) { this.swimming.stroke(); return; } // in the water: a stroke
     this.cat.requestJump();
   }
 
@@ -922,7 +1048,7 @@ export class AdventureScene extends Phaser.Scene {
     } else if (item.kind === 'key') {
       this.hasKey = true;
       this.audio.playSfx('pawPickup');
-      this.showHint('You found the key! Now find the chest');
+      this.showHint(this.level.keyHint ?? 'You found the key! Now find the chest');
     } else if (item.kind === 'silver-key') {
       this.hasSilverKey = true;
       this.audio.playSfx('pawPickup');
@@ -942,11 +1068,41 @@ export class AdventureScene extends Phaser.Scene {
     this.audio.playSfx('bump');
     this.tweens.add({ targets: block, y: block.y - 10, duration: 80, yoyo: true });
     for (let i = 0; i < BONUS_COINS; i++) {
-      const coin = this.add.sprite(block.x, block.y - TILE / 2, this.art('coin-1')).play(adventureKey(this.level.world, 'coin-spin')).setDepth(4);
+      const coin = this.add.sprite(block.x, block.y - TILE / 2, this.art('coin-1')).play(this.coinSpin).setDepth(4);
       this.tweens.add({ targets: coin, y: coin.y - 70 - i * 18, alpha: 0, delay: i * 90, duration: 420, onComplete: () => coin.destroy() });
     }
     this.coins += BONUS_COINS;
     this.updateHud();
+  }
+
+  // A level's hints along the way (level.hintsAt: { col, text }): each shown once, the first time the
+  // cat reaches its column, to explain what to do there (the bridge to shoot down).
+  showHintsAt() {
+    for (const hint of this.level.hintsAt ?? []) {
+      if (this.hintsShown.has(hint) || this.cat.x < hint.col * TILE) continue;
+      this.hintsShown.add(hint);
+      this.showHint(hint.text, HINT_AT_MS);
+    }
+  }
+
+  // A locked portal opens with the gold key: true once it's open. Without the key, its door rattles,
+  // and a hint says what to find.
+  tryPortalLock() {
+    if (!this.hasKey) {
+      if (!this.portalHinted) {
+        this.gates.rattleDoor();
+        this.audio.playSfx('bump');
+        this.showHint('The gate is locked. Find the key!');
+      }
+      this.portalHinted = true;
+      return false;
+    }
+    if (!this.portalOpening) {
+      this.portalOpening = true;
+      this.gates.openDoor(() => { this.portalLocked = false; }); // he goes in once it's gone
+      this.audio.playSfx('cheer');
+    }
+    return false;
   }
 
   // The gold chest takes the gold key, and the silver chest the silver one.
@@ -1053,14 +1209,21 @@ export class AdventureScene extends Phaser.Scene {
     }
   }
 
-  // A gunner's shot, from its gun's end toward where the cat was, with a flash.
+  // A gunner's shot, from its gun's end toward where the cat was, with a flash. A gunner with its
+  // own bullet (the squirrel's acorn) throws that, spinning, with no flash (data/adventure/gunners.js).
   fireAtCat(gunner, x, y, angle) {
     if (!this.playing) return;
-    const bullet = this.enemyBullets.create(x, y, this.art('enemy-bullet')).setRotation(angle).setDepth(ENEMY_BULLET.depth);
+    const { bullet: picture = 'enemy-bullet', spinDeg = 0, noFlash = false } = gunner.info;
+    const bullet = this.enemyBullets.create(x, y, this.art(picture)).setRotation(angle).setDepth(ENEMY_BULLET.depth);
     bullet.body.setSize(ENEMY_BULLET.size, ENEMY_BULLET.size);
     this.physics.velocityFromRotation(angle, gunner.info.bulletSpeed, bullet.body.velocity);
+    if (spinDeg) bullet.body.setAngularVelocity(spinDeg);
     bullet.startX = x;
     bullet.startY = y;
+    if (noFlash) {
+      this.audio.playSfx('acornThrow');
+      return;
+    }
     const flash = this.add.sprite(x, y, FLASH_KEY, 'flash-0').setRotation(angle).setDepth(ENEMY_BULLET.depth + 1)
       .setOrigin(FLASH.origin.x / FLASH.size.w, FLASH.origin.y / FLASH.size.h);
     flash.play(FLASH_KEY).once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => flash.destroy());
@@ -1104,7 +1267,8 @@ export class AdventureScene extends Phaser.Scene {
 
   // soft: no knock sideways (a bird's hit: over a wheel or the river, it would cost a second heart).
   hurt(fromX, { soft = false } = {}) {
-    if (this.hurtMs > 0 || !this.playing || this.moves.isFiringSpecial) return;
+    // Not while a camera shot holds him: a film pause pauses the danger too.
+    if (this.hurtMs > 0 || !this.playing || this.moves.isFiringSpecial || this.shots?.playing) return;
     this.moves.endDash();
     this.endPullUp();
     this.loseHeart();
@@ -1121,6 +1285,11 @@ export class AdventureScene extends Phaser.Scene {
   // fallen out of the level.
   updateWater(ms) {
     this.water.update(ms);
+    this.flood.update(ms, this.cat); // before the pools are drawn, so a flood's water is where it's drawn
+    this.pools.update(ms);
+    this.dam.update(ms);
+    this.swimming.update(ms);
+    this.levers.update(this.cat);
     if (!this.water.any || !this.water.over(this.cat.x)) return;
     const { body } = this.cat;
     if (!this.splashed && body.bottom > this.water.surfaceY && body.velocity.y > 0) {
@@ -1197,8 +1366,8 @@ export class AdventureScene extends Phaser.Scene {
       message: `Coins ${this.coins}, crystals ${this.gems}/${this.totals.gems}${chest}, enemies ${this.knockedOut}/${this.totals.enemies}`,
       actions: [
         ...(won && next ? [{ label: 'Next level', primary: true, onClick: () => this.scene.restart({ levelIndex: this.levelIndex + 1 }) }] : []),
-        // Lost at the boss: again from the checkpoint before him, as he left it (bossRetry.js).
-        ...(!won && atBoss(this)
+        // Lost, with a checkpoint lit (or at the boss): again from it, as he left it (bossRetry.js).
+        ...(!won && fromCheckpoint(this)
           ? [{ label: 'Try again', primary: true, onClick: () => this.restartLevel(snapshot(this)) }, { label: 'From the start', onClick: () => this.restartLevel() }]
           : [{ label: won ? 'Play again' : 'Try again', primary: !(won && next), onClick: () => this.restartLevel() }]),
         { label: 'Map', onClick: () => this.goHome('map') },
@@ -1275,6 +1444,7 @@ export class AdventureScene extends Phaser.Scene {
     if (this.climbing) {
       this.updateClimbing();
     } else if (!this.pullingUp) {
+      this.stairs.update(this.cat); // before he moves, so on the stairs he counts as standing
       this.cat.move(this.moves.isFiringSpecial || this.shots.update(this.cat) ? 0 : this.controls.steer);
       this.cat.tick(ms);
       // Holding Up as the cat reaches a ladder grabs it.
@@ -1291,6 +1461,10 @@ export class AdventureScene extends Phaser.Scene {
       this.bossBar.update(ms, this.boss.brain.healthShare);
     }
     this.platforms.update(ms);
+    this.drawbridges.update(this.cat, this.moves.bullets.getChildren(), this.moves.beam?.sprite);
+    this.showHintsAt();
+    this.fish.update(ms, this.cat, this.moves.bullets.getChildren());
+    this.poolFish.update(ms, this.cat, this.moves.bullets.getChildren());
     this.scenery.update(ms, this.cat);
     this.traps.update(ms, this.cat);
     this.updateLook(ms);

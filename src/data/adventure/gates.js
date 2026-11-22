@@ -42,3 +42,24 @@ export const GATES = {
     },
   },
 };
+// The Autumn Forest (the owner's ruins-gate and village-props sheets, cut by
+// tools/adventure-autumn-scenery.mjs, which prints the places measured inside them): the Wood
+// world's start gate; a red paw banner on a T-post for the checkpoint, rolled up until he reaches it;
+// and the Guardian Gate for the portal, its swirl in the opening, cat statues either side (posts
+// with no sparks), and doorBox: the opening's box, which a locked portal's door fills.
+GATES.autumn = {
+  start: GATES.wood.start,
+  checkpoint: {
+    pole: 'banner-pole', down: 'banner-rolled', up: 'banner-open', height: 170, sink: 4, depth: 1.8,
+    flag: { x: 0.103, downY: 0.08, upY: 0.08 }, // centred under the crossbar
+    raiseMs: 600, waveMs: 1100, hit: { w: 60, h: 120 },
+  },
+  portal: {
+    arch: 'guardian-gate', swirl: 'portal-swirl', post: 'cat-statue',
+    height: 300, postHeight: 150, sink: 8, depth: 1.8,
+    hole: { x: 0.498, y: 0.552, size: 0.376 },
+    doorBox: { x0: 0.31, y0: 0.283, x1: 0.686, y1: 0.821 },
+    postGap: 290, postFoot: 40, sparks: false, // room for a fire bowl between each statue and the gate
+    spinMs: 4000, pulseMs: 900, enterMs: 700,
+  },
+};

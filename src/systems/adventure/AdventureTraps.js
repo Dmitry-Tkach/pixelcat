@@ -8,6 +8,7 @@ import {
 import { TRAP_FREEZE, canFreezeTrap, frostAfterHit, frozenBallBlock } from '../../data/adventure/freeze.js';
 import { freezeTrap, updateTrapIce } from './trapIce.js';
 import { SPORE_BUD, budAfter, budTexture } from './sporeBuds.js';
+import { BIRD, birdHome } from '../../data/adventure/birds.js';
 
 // Builds a level's moving traps (data/adventure/traps.js) and moves them each frame, while play is
 // on: the swinging mace, the stone crusher, the dart idol and the bounce mushroom. The rules are in
@@ -324,7 +325,8 @@ export class AdventureTraps {
   }
 
   buildIdol(trap, x, feet, offset) {
-    const r = this.rules.idol;
+    const everyMs = trap.beatOf ? BIRD.hover.periodMs : trap.everyMs; // a bird's beat, or its own, if given
+    const r = everyMs ? { ...this.rules.idol, everyMs } : this.rules.idol;
     const facing = trap.facing ?? 1;
     const image = this.scene.add.image(x, feet + r.sink, this.art(r.calm)).setOrigin(0.5, 1).setDepth(r.depth).setFlipX(facing < 0);
     const left = image.x - image.width / 2, top = image.y - image.height;
@@ -336,7 +338,7 @@ export class AdventureTraps {
     const stone = this.scene.add.zone((from + to) / 2, (stoneTop + feet) / 2, to - from, feet - stoneTop);
     this.idolBodies.add(stone);
     this.idols.push({
-      image, facing, mouth: { x: mouthX, y: top + r.mouth.y * image.height }, ms: offset % r.everyMs, rules: r,
+      image, facing, mouth: { x: mouthX, y: top + r.mouth.y * image.height }, ms: offset % r.everyMs, rules: r, beatOf: trap.beatOf, beatPhase: trap.beatPhaseMs ?? 0,
       stone: { left: from, right: to, top: stoneTop, bottom: feet },
     });
   }
@@ -579,17 +581,33 @@ export class AdventureTraps {
     if (this.riding !== crusher && crusherCrushes(catRect, block, crusher.state)) this.hurt(image.x);
   }
 
+  // The hovering birds whose beat an idol keeps (its beatOf), once the scene has made its birds.
+  keepBeats(birds) {
+    for (const idol of this.idols) {
+      if (!idol.beatOf) continue;
+      const home = birdHome(idol.beatOf);
+      idol.beat = birds.find((bird) => bird.home.x === home.x && bird.home.y === home.y) ?? null;
+    }
+  }
+
   updateIdol(idol, ms) {
     const { image, rules: r } = idol;
     if (updateTrapIce(this.scene, idol, ms, idol.stone)) return; // frozen: it doesn't shoot
-    idol.ms += ms;
+    // Its clock: its bird's, while the bird's goes on (not knocked out, not frozen); else its own.
+    const prev = idol.ms;
+    const { beat } = idol;
+    if (beat && !beat.dead && beat.clock !== idol.beatSeen) {
+      idol.beatSeen = beat.clock;
+      idol.ms = (((beat.clock - idol.beatPhase) % r.everyMs) + r.everyMs) % r.everyMs;
+    } else idol.ms += ms;
+    const due = idol.ms < prev || idol.ms >= r.everyMs; // its beat came round
+    idol.ms %= r.everyMs;
     const warning = idol.ms >= r.everyMs - r.warnMs;
     if (warning !== idol.warning) {
       idol.warning = warning;
       image.setTexture(this.art(warning ? r.angry : r.calm));
     }
-    if (idol.ms < r.everyMs) return;
-    idol.ms = 0;
+    if (!due) return;
     if (!this.near(image.x, image.y, r.wakeWithin)) return;
     const dart = this.scene.add.image(idol.mouth.x, idol.mouth.y, this.art(r.dart)).setDepth(r.depth + 0.1).setFlipX(idol.facing < 0);
     this.darts.push({ image: dart, vx: idol.facing * r.dartSpeed, from: dart.x, rules: r });

@@ -3,14 +3,19 @@
 import { WOOD_LEVEL } from './wood.js';
 import { WOOD_MILL_LEVEL } from './wood2.js';
 import { WOOD_HEART_LEVEL } from './wood3.js';
+import { AUTUMN_VILLAGE_LEVEL } from './autumn1.js';
+import { AUTUMN_DAM_LEVEL } from './autumn2.js';
 import { MILL_ART } from './millArt.js';
 import { PTERO_KEYS } from './birds.js';
 import { HERO_JUMP } from './heroJump.js';
+import { AUTUMN_ART } from './autumnArt.js';
 
 export const ADVENTURE_LEVELS = [
   { ...WOOD_LEVEL, music: { track: 'village', bpm: 112 }, sky: '#8fd18f' },
   { ...WOOD_MILL_LEVEL, music: { track: 'village', bpm: 122 }, sky: '#9fdc9a' },
   { ...WOOD_HEART_LEVEL, music: { track: 'chase', bpm: 126 }, sky: '#7fc98a' },
+  { ...AUTUMN_VILLAGE_LEVEL, music: { track: 'village', bpm: 116 }, sky: '#f2c890' },
+  { ...AUTUMN_DAM_LEVEL, music: { track: 'village', bpm: 120 }, sky: '#f2c890' },
 ];
 
 // Every image a world uses, by its name in public/assets/adventure/<world>.
@@ -37,7 +42,20 @@ export const ADVENTURE_ART = {
     // The pterodactyl's frames (data/adventure/birds.js).
     ...PTERO_KEYS,
   ],
+  // The Autumn Forest (data/adventure/autumnArt.js): only its own pictures. It borrows the rest
+  // from the Wood world (see adventureArtWorld).
+  autumn: AUTUMN_ART,
 };
+
+// The world every other world borrows from: what a world has no picture of its own for is this
+// world's.
+export const ADVENTURE_ART_BASE = 'wood';
+const OWN_ART = Object.fromEntries(Object.entries(ADVENTURE_ART).map(([world, names]) => [world, new Set(names)]));
+
+// Whose picture `name` is, for a level in `world`: its own, or the base world's.
+export const adventureArtWorld = (world, name) => (OWN_ART[world]?.has(name) ? world : ADVENTURE_ART_BASE);
+// The texture key of picture `name` for a level in `world`.
+export const adventureArtKey = (world, name) => adventureKey(adventureArtWorld(world, name), name);
 
 // Who the hero is, and how big he's shown in the adventure, against the size he's drawn: smaller
 // than in the main game, so the tiles and enemies feel bigger around him. He starts each level with

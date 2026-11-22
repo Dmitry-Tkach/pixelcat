@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync } from 'node:fs';
 import { GATES } from '../src/data/adventure/gates.js';
-import { ADVENTURE_ART, ADVENTURE_LEVELS, adventurePath } from '../src/data/adventure/index.js';
+import { ADVENTURE_ART, adventureArtWorld, ADVENTURE_LEVELS, adventurePath } from '../src/data/adventure/index.js';
 import { BOSS_ARENAS } from '../src/data/adventure/bossArenas.js';
 import { portalPosts } from '../src/systems/adventure/gatePlacement.js';
 import { TILE, readAdventureMap } from '../src/systems/adventureMap.js';
@@ -15,8 +15,10 @@ describe('the gates', () => {
   it('use only pictures in their world\'s art, and those are prepared', () => {
     for (const [world, gates] of Object.entries(GATES)) {
       for (const picture of pictures(gates)) {
-        expect(ADVENTURE_ART[world], picture).toContain(picture);
-        expect(existsSync(`public/${adventurePath(world, picture)}`), picture).toBe(true);
+        // A world's own picture, or the one it borrows from the base world.
+        const owner = adventureArtWorld(world, picture);
+        expect(ADVENTURE_ART[owner], picture).toContain(picture);
+        expect(existsSync(`public/${adventurePath(owner, picture)}`), picture).toBe(true);
       }
     }
   });
@@ -31,7 +33,8 @@ describe('the gates', () => {
         expect(hole.x - hole.size / 2).toBeGreaterThanOrEqual(0);
         expect(hole.x + hole.size / 2).toBeLessThanOrEqual(1);
       }
-      expect(checkpoint.flag.upY).toBeLessThan(checkpoint.flag.downY);
+      // A flag runs up its pole; a banner (the Autumn world's) unrolls where it hangs.
+      expect(checkpoint.flag.upY).toBeLessThanOrEqual(checkpoint.flag.downY);
     }
   });
 });

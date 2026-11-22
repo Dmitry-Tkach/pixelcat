@@ -13,6 +13,11 @@
 // has to be slid into, dashed into, shot or jumped over.
 // hp: how many of the cat's bullets knock it out.
 // speed: its patrol walk. chaseSpeed: how fast it runs at the cat once it's seen him.
+//
+// The Autumn world's are the owner's drawings, not the pack's: `sheet` is a grid of square cells
+// (prompts/autumn-level), cut by tools/adventure-autumn-characters.mjs, each frame centred. Their
+// measurements are in a cell's pixels, their anims name the sheet's row and how many frames it has,
+// and `scale` is how big they're shown.
 export const ENEMY_SCALE = 0.62;
 
 export const ENEMIES = {
@@ -64,11 +69,92 @@ export const ENEMIES = {
       dead: { folder: 'Dead', step: 3, fps: 20, repeat: 0 },
     },
   },
+  // The Autumn world's basic walker, the owner's pumpkin (prompts/autumn-level/08-pumpkin.md): it
+  // hops along, leaps at the cat, and breaks apart when stomped.
+  pumpkin: {
+    sheet: { file: 'images/levels/autumn/pumpkin.png', cols: 6, rows: 4 },
+    scale: 0.55,
+    crop: { x: 0, y: 0, w: 256, h: 256 },
+    body: { x: 66, y: 112, w: 124, h: 124 },
+    feet: 236,
+    speed: 70,
+    chaseSpeed: 160,
+    stompable: true,
+    hp: 1,
+    anims: {
+      idle: { row: 0, count: 6, fps: 8, repeat: -1 },
+      walk: { row: 1, count: 6, fps: 10, repeat: -1 },
+      attack: { row: 2, count: 6, fps: 12, repeat: 0, hitFrame: 3 },
+      dead: { row: 3, count: 6, fps: 12, repeat: 0 },
+    },
+  },
+  // The Autumn world's spiky one, the owner's boar (06-boar.md): its spiny back can't be stomped,
+  // and it charges.
+  boar: {
+    sheet: { file: 'images/levels/autumn/boar.png', cols: 6, rows: 4 },
+    scale: 0.6,
+    crop: { x: 0, y: 0, w: 256, h: 256 },
+    body: { x: 50, y: 100, w: 156, h: 106 },
+    feet: 209,
+    speed: 60,
+    chaseSpeed: 230,
+    stompable: false,
+    hp: 2,
+    anims: {
+      idle: { row: 0, count: 6, fps: 8, repeat: -1 },
+      walk: { row: 1, count: 6, fps: 10, repeat: -1 },
+      attack: { row: 2, count: 6, fps: 12, repeat: 0, hitFrame: 3 },
+      dead: { row: 3, count: 6, fps: 10, repeat: 0 },
+    },
+  },
+  // The Autumn world's river crab, the owner's (prompts/hidden-dam/06-crab.md): it scuttles along the
+  // banks and the riverbed (under the water too: it walks the floor, it doesn't swim), and snaps its
+  // big claw at the cat. Stomped, it flips onto its back.
+  crab: {
+    sheet: { file: 'images/levels/autumn/crab.png', cols: 6, rows: 4 },
+    scale: 0.55,
+    crop: { x: 0, y: 0, w: 256, h: 256 },
+    body: { x: 46, y: 112, w: 164, h: 107 }, // its shell, measured on the sheet (the claws reach past it)
+    feet: 219,
+    speed: 75,
+    chaseSpeed: 135,
+    stompable: true,
+    hp: 1,
+    anims: {
+      idle: { row: 0, count: 6, fps: 8, repeat: -1 },
+      walk: { row: 1, count: 6, fps: 12, repeat: -1 },
+      attack: { row: 2, count: 6, fps: 12, repeat: 0, hitFrame: 4 },
+      dead: { row: 3, count: 6, fps: 10, repeat: 0 },
+    },
+  },
+  // The Autumn world's mole miner (10-mole.md, drawn as grumpy.png): it burrows, so it never walks.
+  // It waits under its mound, pops up when the cat comes near (rise), swings its pickaxe, and sinks
+  // back after a while (entities/AdventureMole.js). Only while it's up can it be hit or stomped.
+  // Its walk is its idle: it stands where it is.
+  mole: {
+    sheet: { file: 'images/levels/autumn/grumpy.png', cols: 6, rows: 4 },
+    burrows: true,
+    scale: 0.55,
+    crop: { x: 0, y: 0, w: 256, h: 256 },
+    body: { x: 70, y: 100, w: 110, h: 116 },
+    feet: 216,
+    speed: 1,
+    chaseSpeed: 1,
+    stompable: true,
+    hp: 2,
+    anims: {
+      rise: { row: 0, count: 6, fps: 14, repeat: 0 },
+      idle: { row: 1, count: 6, fps: 8, repeat: -1 },
+      walk: { row: 1, count: 6, fps: 8, repeat: -1 },
+      attack: { row: 2, count: 6, fps: 12, repeat: 0, hitFrame: 3 },
+      dead: { row: 3, count: 6, fps: 10, repeat: 0 },
+    },
+  },
 };
 
 // How many frames of each animation the pack has; the atlas keeps every step-th one.
 export const PACK_FRAMES = { Idle: 20, Walk: 35, Attack: 25, Dead: 60 };
-export const enemyFrameCount = (anim) => Math.ceil(PACK_FRAMES[anim.folder] / anim.step);
+export const enemyFrameCount = (anim) => anim.count ?? Math.ceil(PACK_FRAMES[anim.folder] / anim.step);
 
 // A character's size in the game, and its body, feet and (for gunners) muzzle in the atlas frame,
 // from its measurements in the pack's frame pixels.
@@ -83,7 +169,7 @@ export function layoutOf({ crop, body, feet, muzzle }, s) {
 }
 
 // An enemy's layout, facing left.
-export const enemyLayout = (kind) => layoutOf(ENEMIES[kind], ENEMY_SCALE);
+export const enemyLayout = (kind) => layoutOf(ENEMIES[kind], ENEMIES[kind].scale ?? ENEMY_SCALE);
 
 export const enemyKey = (kind) => `adventure-enemy-${kind}`;
 export const enemyAnimKey = (kind, anim) => `adventure-enemy-${kind}-${anim}`;

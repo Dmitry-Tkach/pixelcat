@@ -1,5 +1,6 @@
 import { ONE_WAY, TILE, TILES } from '../adventureMap.js';
 import { DECOR_KEEP_CLEAR } from '../../data/adventure/decor.js';
+import { cellRandom } from './cellRandom.js';
 
 // Places a level's automatic decoration (data/adventure/decor.js) from its map (systems/adventureMap.js
 // readAdventureMap): which picture goes where. Plain code, no Phaser, so tests can check it. It's
@@ -11,13 +12,7 @@ import { DECOR_KEEP_CLEAR } from '../../data/adventure/decor.js';
 const TOPS = new Set([TILES.groundTopLeft, TILES.groundTop, TILES.groundTopRight, TILES.ledgeLeft, TILES.ledge, TILES.ledgeRight]);
 const ISLANDS = new Set([...ONE_WAY].filter((tile) => tile !== TILES.bridge));
 
-// A number from 0 to 1 for a cell, the same each time (a small integer hash).
-export function cellRandom(col, row, salt = 0) {
-  let h = (col * 374761393 + row * 668265263 + salt * 2147483647) | 0;
-  h = Math.imul(h ^ (h >>> 13), 1274126177);
-  h ^= h >>> 16;
-  return (h >>> 0) / 4294967296;
-}
+export { cellRandom }; // (systems/adventure/cellRandom.js)
 
 export function placeDecor(layout, rules) {
   if (!rules) return [];

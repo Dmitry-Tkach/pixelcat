@@ -15,10 +15,12 @@ import { MILL_SEAT } from '../data/adventure/millArt.js';
 //   level. A seat is ridden like a log: it's one, moving round a circle instead of to and fro. A
 //   round into a wheel's green hub turns it the other way; three freeze rounds stop it for a while,
 //   its seats still steps (watchShots).
+//   a log with { picture } wears that picture of the world's (its top where a log's planks are).
 //   arrow stones (a log with { arrow: true }, adventure/arrowStones.js) are logs of stone with a green
 //   arrow showing which way they go next: a round turns one back; three freeze rounds stop it.
 //   crumbling leaves (map letter %) shake when he lands, fall soon after, and grow back. Leaves side
-//   by side are one ledge, and go together.
+//   by side are one ledge, and go together. Cracked floor (map letter Z) is the same, but in the
+//   ground, and once broken it's gone for good: the secret under it stays open.
 // The scene calls update every frame. `canLand()` says whether the cat may land on one now (not
 // while he's climbing a ladder or pulling himself up).
 
@@ -28,11 +30,15 @@ const LOG = { speed: 110, pauseMs: 700, plankTop: 13, plankHeight: 22, depth: 2.
 // shakeMs: how long leaves shake before they fall. fallMs: how long they take to fall away.
 // backMs: how long until they grow back. shake: how far they shake.
 const LEAVES = { shakeMs: 520, fallMs: 320, backMs: 3200, shake: 3, depth: 2.6 };
+// Cracked floor's chunks as it breaks: pictures, how far apart they fly (px), how high they're thrown
+// and how far they then fall, and how long it all takes.
+const CHUNKS = { pictures: ['chunk-1', 'chunk-2', 'chunk-3'], spread: 22, rise: 40, fall: 180, ms: 700 };
 
 export class AdventurePlatforms {
   constructor(scene, cat, { art, movers = [], wheels = [], leaves = [], canLand }) {
     this.scene = scene;
     this.cat = cat;
+    this.art = art;
     this.canLand = canLand;
     this.riding = null;
     // Leaves don't move, and keep no earlier place: theirs is where they are.
@@ -45,9 +51,12 @@ export class AdventurePlatforms {
     // Moving logs: a strip of bridge planks, as wide as it is, with a body on its planks.
     this.logs = scene.physics.add.group({ allowGravity: false, immovable: true });
     this.stones = [];
-    for (const { col, row, width = 3, across = 0, up = 0, speed = LOG.speed, arrow = false, parks = false } of movers) {
+    for (const { col, row, width = 3, across = 0, up = 0, speed = LOG.speed, arrow = false, parks = false, picture } of movers) {
       const look = arrow ? stoneTextures(scene, width) : null;
-      const log = arrow
+      // A log with its own picture (the Autumn world's moving stone block), as wide as the log.
+      const log = picture
+        ? scene.add.image(col * TILE, row * TILE, art(picture)).setOrigin(0, 0).setDepth(LOG.depth)
+        : arrow
         ? scene.add.image(col * TILE, row * TILE, look.stone).setOrigin(0, 0).setDepth(LOG.depth)
         : scene.add.tileSprite(col * TILE, row * TILE, width * TILE, TILE, art('bridge')).setOrigin(0, 0).setDepth(LOG.depth);
       this.logs.add(log);
@@ -97,9 +106,10 @@ export class AdventurePlatforms {
     // Crumbling leaves: one picture a cell, with a body, grouped into ledges by the cells they share.
     this.leaves = scene.physics.add.staticGroup();
     const byCell = new Map();
-    for (const { col, row } of leaves) {
+    for (const { col, row, type } of leaves) {
       // Its top where an island's would be, at the top of its cell.
-      const leaf = this.leaves.create(col * TILE + TILE / 2, row * TILE, art('leaves')).setDepth(LEAVES.depth);
+      const leaf = this.leaves.create(col * TILE + TILE / 2, row * TILE, art(type === 'cracked' ? 'cracked' : 'leaves')).setDepth(LEAVES.depth);
+      leaf.cracked = type === 'cracked';
       leaf.setY(row * TILE + leaf.height / 2).refreshBody();
       leaf.home = { x: leaf.x, y: leaf.y };
       byCell.set(`${col},${row}`, leaf);
@@ -107,8 +117,8 @@ export class AdventurePlatforms {
     for (const [cell, leaf] of byCell) {
       if (leaf.ledge) continue;
       const [col, row] = cell.split(',').map(Number);
-      const ledge = { leaves: [], state: 'still' };
-      for (let c = col; byCell.has(`${c},${row}`); c++) {
+      const ledge = { leaves: [], state: 'still', forGood: leaf.cracked };
+      for (let c = col; byCell.get(`${c},${row}`)?.cracked === leaf.cracked; c++) {
         byCell.get(`${c},${row}`).ledge = ledge;
         ledge.leaves.push(byCell.get(`${c},${row}`));
       }
@@ -314,6 +324,24 @@ export class AdventurePlatforms {
     return { left: hub.x - r, right: hub.x + r, top: hub.y - r, bottom: hub.y + r };
   }
 
+  // Cracked floor breaking: rock chunks (the Autumn world's, the owner's) fly up and fall, from each
+  // cell. A world without them shows none.
+  burst(ledge) {
+    const chunks = CHUNKS.pictures.map((name) => this.art(name)).filter((key) => this.scene.textures.exists(key));
+    if (!chunks.length) return;
+    for (const cell of ledge.leaves) {
+      chunks.forEach((key, i) => {
+        const chunk = this.scene.add.image(cell.x, cell.y, key).setDepth(LEAVES.depth + 0.1);
+        const across = (i - (chunks.length - 1) / 2) * CHUNKS.spread;
+        this.scene.tweens.add({ targets: chunk, x: chunk.x + across, angle: across * 4, duration: CHUNKS.ms, ease: 'Linear' });
+        this.scene.tweens.add({
+          targets: chunk, y: chunk.y - CHUNKS.rise, duration: CHUNKS.ms * 0.3, ease: 'Quad.easeOut',
+          onComplete: () => this.scene.tweens.add({ targets: chunk, y: chunk.y + CHUNKS.fall, alpha: 0, duration: CHUNKS.ms * 0.7, ease: 'Quad.easeIn', onComplete: () => chunk.destroy() }),
+        });
+      });
+    }
+  }
+
   // Leaves he's landed on shake, fall away, and grow back.
   crumble(ledge) {
     if (ledge.state !== 'still') return;
@@ -328,10 +356,12 @@ export class AdventurePlatforms {
   fall(ledge) {
     ledge.state = 'fallen';
     this.scene.audio.playSfx('collapse');
+    if (ledge.forGood) this.burst(ledge);
     for (const leaf of ledge.leaves) {
       leaf.disableBody(false, false);
       this.scene.tweens.add({ targets: leaf, y: leaf.home.y + TILE, alpha: 0, duration: LEAVES.fallMs, ease: 'Quad.easeIn' });
     }
+    if (ledge.forGood) return;
     this.scene.time.delayedCall(LEAVES.backMs, () => {
       for (const leaf of ledge.leaves) {
         leaf.setPosition(leaf.home.x, leaf.home.y).setAlpha(0);
