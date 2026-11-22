@@ -7,6 +7,8 @@ import { THEMES } from '../data/themes.js';
 import { BossFight } from '../entities/BossFight.js';
 import { BOSSES } from '../data/bosses.js';
 import { journeyMap } from '../ui/JourneyMap.js';
+import { playHomeMusic, soundToggles } from '../ui/menuSound.js';
+import { PAGES, goToPage } from '../ui/pages.js';
 import { showHomeScreen } from '../ui/HomeScreen.js';
 import { Cat } from '../entities/Cat.js';
 import { Chaser } from '../entities/Chaser.js';
@@ -54,7 +56,6 @@ const RUN_DUST_SHARE = 0.6; // running faster than this share of top speed kicks
 const IMPACT_AHEAD = 40;
 const DITCH_SPLASH = 0x8cc6e6;
 const CAT_FLAP_LEAD = 250;
-const HOME_MUSIC = { track: 'home', bpm: 120 };
 const CATNIP_HUE_MS = 700; // how fast the cat's catnip shimmer runs through the colours
 const CATNIP_TINT_SATURATION = 0.45; // how much further ahead of the chaser a cat flap puts the cat
 const IMPACT_HEIGHT = 70;
@@ -131,7 +132,7 @@ export class GameScene extends Phaser.Scene {
     this.bossFight = level.boss ? new BossFight(this, level.boss) : null;
     this.finalDashDone = false;
     this.chaser = new Chaser(this, startX - this.tracker.gap, this.chase.chaser.character);
-    this.catShadow = this.add.ellipse(0, GAME.GROUND_Y + 4, 120, 18, 0x1d1a44, 0.35).setDepth(3);
+    this.catShadow = this.add.ellipse(0, GAME.GROUND_Y + 4, 96, 15, 0x1d1a44, 0.35).setDepth(3);
     this.chaserShadow = this.add.ellipse(0, GAME.GROUND_Y + 4, 140, 20, 0x1d1a44, 0.35).setDepth(3);
     this.followers = this.chase.followers.map((id) => new Chaser(this, startX - this.tracker.gap, CHASERS[id].character));
     for (const sound of ['jump', 'slide', 'land', 'doubleJump', 'dive', 'bounce']) {
@@ -752,11 +753,7 @@ export class GameScene extends Phaser.Scene {
 
   // The two sound toggles, shared by menus. Pressing one redraws its menu with the new label.
   soundToggles(redraw) {
-    const { music, sound } = this.audio.settings;
-    return [
-      { label: `Music: ${music ? 'On' : 'Off'}`, onClick: () => { this.audio.toggleMusic(); redraw(); } },
-      { label: `Sound: ${sound ? 'On' : 'Off'}`, onClick: () => { this.audio.toggleSound(); redraw(); } },
-    ];
+    return soundToggles(this.audio, redraw);
   }
 
   enterPause() {
@@ -855,12 +852,23 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  // The bathroom picture, with the family chasing the cat across it now and then, behind the menus.
+  showHomePicture() {
+    if (this.homeShown) return;
+    this.homeShown = true;
+    showHomeScreen(this);
+  }
+
+  // Back to the first page, the choice of the two games (index.html).
+  showChoiceScreen() {
+    this.audio.stopMusic();
+    goToPage(PAGES.choice, this.screenFx);
+  }
+
+  // The runner's home screen: the bathroom, the family after the cat, and the runner's menu.
   showStartScreen() {
     const { hasStarted, nextIndex } = this.progress;
-    if (!this.homeShown) {
-      this.homeShown = true;
-      showHomeScreen(this);
-    }
+    this.showHomePicture();
     this.playHomeMusic();
     this.overlay.show({
       layout: 'home',
@@ -870,28 +878,15 @@ export class GameScene extends Phaser.Scene {
       actions: [
         { label: hasStarted ? 'Continue' : 'Play', primary: true, onClick: () => this.openScreen(nextIndex, 'intro') },
         { label: 'Levels', onClick: () => this.showLevelsScreen() },
+        { label: 'Back', onClick: () => this.showChoiceScreen() },
         ...this.soundToggles(() => this.showStartScreen()),
       ],
     });
   }
 
-  // The home screen's tune. Browsers only allow sound after a click or a key press, so before the
-  // first one it waits, and starts then if the home screen is still showing.
+  // The home screen's tune (ui/menuSound.js).
   playHomeMusic() {
-    if (this.audio.track === HOME_MUSIC.track) return;
-    if (this.audio.ctx) {
-      this.audio.startMusic(HOME_MUSIC);
-      return;
-    }
-    const start = () => {
-      window.removeEventListener('pointerdown', start);
-      window.removeEventListener('keydown', start);
-      this.audio.unlock();
-      const onHome = this.overlay.root.classList.contains('home') || this.overlay.content.childElementCount > 0;
-      if (onHome && this.audio.track === null) this.audio.startMusic(HOME_MUSIC);
-    };
-    window.addEventListener('pointerdown', start);
-    window.addEventListener('keydown', start);
+    playHomeMusic(this.audio, this.overlay);
   }
 
   // The level menu: a road from home to the parks, with a stop for each level.
@@ -902,8 +897,9 @@ export class GameScene extends Phaser.Scene {
       return {
         number: index + 1,
         title: level.title,
-        detail: locked ? 'Locked' : `${starText(result?.stars ?? 0)}${result?.mouse ? ' 🐭' : ''}`,
         world: worldName(level),
+        stars: result?.stars ?? 0,
+        mouse: Boolean(result?.mouse),
         locked,
         current: index === this.progress.nextIndex,
         boss: level.boss ? BOSSES[level.boss.type].character : null,

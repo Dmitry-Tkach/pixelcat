@@ -11,7 +11,7 @@ const STARTUP_MS = 120000;
 export async function startHarness() {
   const server = await createServer({ server: { port: 0 }, logLevel: 'error' });
   await server.listen();
-  const url = `${server.resolvedUrls.local[0]}?simulate`;
+  const url = `${server.resolvedUrls.local[0]}runner.html?simulate`; // the runner's own page
   const browser = await puppeteer.launch({
     executablePath: CHROME,
     headless: 'new',

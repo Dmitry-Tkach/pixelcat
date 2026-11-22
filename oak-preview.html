@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Walking Oak preview</title>
+  <style>
+    body { margin: 0; background: #1d140f; color: #f6ead8; font: 15px/1.4 system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 14px; }
+    .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; }
+    button { background: #6b3f1d; color: #fff; border: 0; border-radius: 8px; padding: 8px 14px; font: inherit; cursor: pointer; }
+    button.on { background: #e0782a; }
+    canvas { width: min(1280px, 96vw); aspect-ratio: 16 / 9; border-radius: 10px; background: #2a1c14; }
+    label { display: flex; gap: 6px; align-items: center; }
+    small { opacity: 0.75; }
+  </style>
+</head>
+<body>
+  <div class="bar"><b>The puppet (one drawing of each part, moved by the game):</b></div>
+  <div class="bar" id="moves"></div>
+  <div class="bar" id="sliders"></div>
+  <div class="bar"><b>The drawn strips (for comparison):</b></div>
+  <div class="bar" id="anims"></div>
+  <div class="bar">
+    <label>Speed <input id="fps" type="range" min="3" max="18" value="8"> <span id="fpsText"></span></label>
+    <button id="pause">Pause</button>
+    <button id="step">Next frame</button>
+    <label><input id="box" type="checkbox"> Show its frame</label>
+    <span id="frameText"></span>
+  </div>
+  <canvas id="view" width="1280" height="720"></canvas>
+  <small>The Walking Oak as the game shows it: about 7 tiles tall, the cat beside it at his own size, on the Autumn forest's ground.</small>
+  <script type="module" src="/src/pages/oakPreview.js"></script>
+</body>
+</html>

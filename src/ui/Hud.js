@@ -1,5 +1,6 @@
 import { GAME, SPRINT } from '../config/gameConfig.js';
 import { CHARACTERS, idleFrameKey } from '../data/characters.js';
+import { PLAYER } from '../data/player.js';
 
 const FONT = 'Fredoka, "Arial Rounded MT Bold", "Trebuchet MS", sans-serif';
 const INK = 0x1e2a4a;
@@ -75,7 +76,7 @@ export class Hud {
         marker.passed = false;
       }
     }
-    this.catMarker = fixed(this.face('cat', 34, 0xffffff));
+    this.catMarker = fixed(this.face(PLAYER, 34, 0xffffff));
     this.catMarker.y = j.y + j.trackY + j.trackH / 2;
     this.catMarker.hudRecord.y = this.catMarker.y;
     this.catMarkerStartX = j.x + j.trackX;
@@ -98,7 +99,7 @@ export class Hud {
     this.chaseFill = this.pill(centered, 16 + c.h / 2, c.trackH, SAFE);
     this.chaseShare = -1;
     this.chaseColor = SAFE;
-    this.catFace = centered(this.face('cat', c.face, 0xffffff));
+    this.catFace = centered(this.face(PLAYER, c.face, 0xffffff));
     this.catFace.setPosition(this.chaseLeft + c.trackW + c.face / 2 + 10, 16 + c.h / 2);
     this.catFace.hudRecord.offsetX = this.catFace.x - widthAtStart / 2;
     this.catFace.hudRecord.y = this.catFace.y;

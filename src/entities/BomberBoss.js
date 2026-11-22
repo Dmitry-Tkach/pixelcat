@@ -5,19 +5,19 @@ import { arcHeight } from '../systems/obstacleMotion.js';
 import { outline } from '../ui/Outline.js';
 
 // Where his hand lets go of a bomb, from the middle of his feet, in screen pixels.
-const HAND_AHEAD = 40;
-const HAND_HEIGHT = 110;
+const HAND_AHEAD = 27;
+const HAND_HEIGHT = 73;
 const BOMB_ARC = 230; // how much higher than a straight line a bomb flies, at the top of its arc
 const BOMB_SPIN = 540; // degrees a second, in flight
 const BLAST_MS = 260; // how long an explosion can hurt, and shows
-const BLAST_SCALE = 2.4;
 const FUSE_FLASH_MS = 110;
 const WAVE = { w: 120, h: 96, hitW: 56 };
 const WAVE_DUST_EVERY_MS = 60;
 // His body, smaller than his art, so one jump can land on his head.
-const STANDING = { w: 96, h: 120 };
-const POUNCING = { w: 150, h: 70 };
-const HOPPING = { w: 110, h: 100 };
+const STANDING = { w: 64, h: 80 };
+const POUNCING = { w: 100, h: 47 };
+const HOPPING = { w: 73, h: 67 };
+const SHADOW_WIDTH = 80;
 
 // The Bomber Rat: he lobs bombs and lunges, and stops to cheer after his big punch. It plays what the
 // BossDirector decides, and moves itself, its bombs and its shockwave. A separate zone is its body.
@@ -41,7 +41,7 @@ export class BomberBoss extends Phaser.GameObjects.Sprite {
     this.thrown = 0;
     this.limits = { left: x - BOSS.ARENA_WIDTH, right: x }; // replaced by the arena's on the first update
     makeWaveTexture(scene);
-    this.shadow = scene.add.ellipse(x, GAME.GROUND_Y + 4, 120, 18, 0x1d1a44, 0.35).setDepth(3);
+    this.shadow = scene.add.ellipse(x, GAME.GROUND_Y + 4, SHADOW_WIDTH, 14, 0x1d1a44, 0.35).setDepth(3);
     this.hitZone = scene.add.zone(x, GAME.GROUND_Y, STANDING.w, STANDING.h);
     scene.physics.add.existing(this.hitZone);
     this.hitZone.body.setAllowGravity(false);
@@ -142,7 +142,7 @@ export class BomberBoss extends Phaser.GameObjects.Sprite {
 
   // A shockwave racing along the ground from his fist.
   sendWave() {
-    const sprite = this.scene.add.image(this.x + this.facing * 60, GAME.GROUND_Y, 'bomber-wave').setOrigin(0.5, 1).setDepth(7);
+    const sprite = this.scene.add.image(this.x + this.facing * 40, GAME.GROUND_Y, 'bomber-wave').setOrigin(0.5, 1).setDepth(7);
     sprite.setFlipX(this.facing < 0).setBlendMode(Phaser.BlendModes.ADD);
     this.waves.push({ sprite, direction: this.facing, speed: this.director.attackData.waveSpeed, height: this.director.attackData.waveHeight });
     this.scene.cameras.main.shake(220, 0.01);
@@ -226,8 +226,10 @@ export class BomberBoss extends Phaser.GameObjects.Sprite {
           bomb.state = 'blast';
           bomb.ms = 0;
           sprite.setVisible(false);
+          // As wide as the ground it hurts, so the player can see how far to keep away.
           bomb.blast = this.scene.add.image(sprite.x, GAME.GROUND_Y + 6, frameKey(this.character, 'blast', 1))
-            .setOrigin(0.5, 1).setScale(BLAST_SCALE).setDepth(8);
+            .setOrigin(0.5, 1).setDepth(8);
+          bomb.blast.setScale((data.blastRadius * 2) / bomb.blast.width);
           this.scene.audio.playSfx('boom');
           this.scene.cameras.main.shake(160, 0.008);
           this.scene.effects.dust(sprite.x, GAME.GROUND_Y, 10);

@@ -1,26 +1,31 @@
 import Phaser from 'phaser';
 import { BIG_LAND, FREE_MOVE, GAME, MOVEMENT } from '../config/gameConfig.js';
 import { CHARACTERS, animKey, frameKey } from '../data/characters.js';
+import { PLAYER } from '../data/player.js';
 import { SpeedController } from '../systems/SpeedController.js';
 import { outline } from '../ui/Outline.js';
 
-const MANIFEST = CHARACTERS.cat;
 // Momentum 0 is a standing start, and 1 is top speed. A hit drops it to this, which gives HIT_SHARE.
 const HIT_MOMENTUM = (FREE_MOVE.HIT_SHARE - FREE_MOVE.START_SHARE) / (1 - FREE_MOVE.START_SHARE);
 
 // The player character. It runs where it's told, builds momentum, and responds to jump and slide
 // requests.
+// `character` is who plays the cat: the player's choice by default (see data/player.js).
 export class Cat extends Phaser.Physics.Arcade.Sprite {
-  constructor(scene, x, topSpeed) {
-    super(scene, x, GAME.GROUND_Y - 120, frameKey('cat', 'idle', 1));
+  constructor(scene, x, topSpeed, { character = PLAYER, y = GAME.GROUND_Y - 120 } = {}) {
+    super(scene, x, y, frameKey(character, 'idle', 1));
+    this.character = character;
+    this.manifest = CHARACTERS[character];
     scene.add.existing(this);
     outline(this);
     scene.physics.add.existing(this);
 
-    this.setScale(MANIFEST.scale).setDepth(6);
+    this.setScale(this.manifest.scale).setDepth(6);
     this.topSpeed = topSpeed;
     this.speedControl = new SpeedController(topSpeed);
     this.body.setGravityY(MOVEMENT.GRAVITY);
+    this.airSpeed = 1; // how quick his jumps are (setAirSpeed); the runner's cat keeps 1
+    this.jumpLift = 1; // and how much faster than that he leaves the ground, to jump higher
     this.useHitbox('run');
 
     this.slideLeft = 0;
@@ -37,13 +42,26 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     this.moveDirection = 0;
     this.moveVelocity = 0;
     this.momentum = 0;
-    this.play(animKey('cat', 'idle'));
+    this.play(animKey(this.character, 'idle'));
+  }
+
+  // Becomes another character with the same frame size and hitboxes, keeping what it's doing: the
+  // battle cat picking up his minigun.
+  changeCharacter(character) {
+    this.character = character;
+    this.manifest = CHARACTERS[character];
+    const hitbox = this.hitbox;
+    this.hitbox = null;
+    this.useHitbox(hitbox);
+    const playing = this.anims.currentAnim?.key;
+    const role = playing && Object.keys(this.manifest.anims).find((r) => playing.endsWith(`-${r}`));
+    this.play(animKey(character, role ?? 'idle'));
   }
 
   useHitbox(name) {
     if (this.hitbox === name) return;
     this.hitbox = name;
-    const { x, y, w, h } = MANIFEST.hitboxes[name];
+    const { x, y, w, h } = this.manifest.hitboxes[name];
     this.body.setSize(w, h, false);
     this.body.setOffset(x, y);
   }
@@ -65,8 +83,8 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
   startJump() {
     this.jumpBufferMs = 0;
     this.endSlide();
-    this.setVelocityY(MOVEMENT.JUMP_VELOCITY);
-    this.play(animKey('cat', 'jump'), true);
+    this.setVelocityY(MOVEMENT.JUMP_VELOCITY * this.airSpeed * this.jumpLift);
+    this.play(animKey(this.character, 'jump'), true);
     this.emit('jump');
   }
 
@@ -81,8 +99,8 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     if (this.airJumpsLeft > 0) {
       this.airJumpsLeft -= 1;
       this.jumpBufferMs = 0;
-      this.setVelocityY(MOVEMENT.AIR_JUMP_VELOCITY);
-      this.play(animKey('cat', 'jump'));
+      this.setVelocityY(MOVEMENT.AIR_JUMP_VELOCITY * this.airSpeed * this.jumpLift);
+      this.play(animKey(this.character, 'jump'));
       this.emit('doubleJump');
       return;
     }
@@ -98,7 +116,7 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     if (this.onGround && this.onPlatform) {
       this.dropMs = MOVEMENT.PLATFORM_DROP_MS;
       this.onPlatform = false;
-      this.body.setVelocityY(MOVEMENT.FAST_FALL_VELOCITY);
+      this.body.setVelocityY(MOVEMENT.FAST_FALL_VELOCITY * this.airSpeed);
       this.slideQueued = true;
       this.emit('dive');
       return;
@@ -107,7 +125,7 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
       this.beginSlide();
     } else {
       // A dive: pressing slide in the air drops the cat quickly, then slides on landing.
-      this.body.setVelocityY(MOVEMENT.FAST_FALL_VELOCITY);
+      this.body.setVelocityY(MOVEMENT.FAST_FALL_VELOCITY * this.airSpeed);
       this.jumpBufferMs = 0;
       this.slideQueued = true;
       this.emit('dive');
@@ -127,9 +145,18 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     this.useHitbox('run');
   }
 
+  // Quicker jumps at the same height: his speeds up and down times k, and his gravity times k². And
+  // his jumps (not his bounces) `height` times as high.
+  setAirSpeed(k, height = 1) {
+    this.airSpeed = k;
+    this.jumpLift = Math.sqrt(height);
+    this.body.setGravityY(MOVEMENT.GRAVITY * k * k);
+    return this;
+  }
+
   // Launches the cat from a bouncy obstacle, and gives its double jump back.
   bounce(velocity) {
-    this.setVelocityY(velocity);
+    this.setVelocityY(velocity * this.airSpeed);
     this.airJumpsLeft = 1;
     this.slideQueued = false;
     this.jumpBufferMs = 0;
@@ -146,7 +173,7 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     this.speedControl.applyPenalty(penalty);
     this.loseMomentum();
     this.hurtMs = penalty.durationMs * 0.5;
-    this.play(animKey('cat', 'hurt'), true);
+    this.play(animKey(this.character, 'hurt'), true);
   }
 
   // How fast the cat runs right now, when it's running forward.
@@ -212,6 +239,7 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     this.hurtMs = Math.max(0, this.hurtMs - ms);
     this.jumpBufferMs = Math.max(0, this.jumpBufferMs - ms);
     this.dropMs = Math.max(0, this.dropMs - ms);
+    this.poseMs = Math.max(0, (this.poseMs ?? 0) - ms);
     if (!this.onGround) this.onPlatform = false;
 
     this.updateMovement(ms);
@@ -243,13 +271,25 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     this.updateAnimation();
   }
 
+  // Shows one of the character's other moves, like shooting, for a while, instead of running.
+  pose(role, ms) {
+    this.poseRole = role;
+    this.poseMs = ms;
+    if (this.hurtMs <= 0) this.play(animKey(this.character, role), true);
+  }
+
   updateAnimation() {
     if (this.hurtMs > 0) return;
+    if (this.poseMs > 0) {
+      this.play(animKey(this.character, this.poseRole), true);
+      return;
+    }
     let role = 'run';
     if (this.isSliding) role = 'slide';
+    else if (this.swimRole) role = this.swimRole; // in the adventure's pools (AdventureSwimming)
     else if (!this.onGround) role = this.body.velocity.y < 0 ? 'jump' : 'fall';
     else if (Math.abs(this.moveVelocity) < FREE_MOVE.IDLE_BELOW) role = 'idle';
-    this.play(animKey('cat', role), true);
+    this.play(animKey(this.character, role), true);
   }
 
   // Stops the cat when it's caught, and plays its defeat animation.
@@ -257,6 +297,6 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     this.running = false;
     this.setVelocityX(0);
     this.endSlide();
-    this.play(animKey('cat', 'caught'), true);
+    this.play(animKey(this.character, 'caught'), true);
   }
 }

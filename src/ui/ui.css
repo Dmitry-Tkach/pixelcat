@@ -363,146 +363,88 @@ html, body, #game {
   }
 }
 
-/* ----- The journey map: the level menu as a road from home to the last park ----- */
+/* ----- The level map: a meadow seen from above, with a winding path past a button for each level -----
+   The picture is one still SVG (ui/mapArt.js); only the cat on it moves. */
 
 .map {
   position: relative;
   contain: layout paint; /* nothing inside the map changes the page around it */
-  height: clamp(250px, 46vh, 360px);
-  margin-top: 14px;
+  aspect-ratio: 1000 / 520; /* the picture's own shape, so the buttons land on the drawn ones */
+  width: min(100%, calc(58vh * 1000 / 520));
+  margin: 14px auto 0;
   border: 4px solid var(--paper);
   border-radius: 20px;
   overflow: hidden;
-  background: var(--ink);
+  background: #86cf5c;
 }
 
-.map-world {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  background-repeat: repeat-x, no-repeat;
-  background-size: auto 78%, 100% 100%;
-  background-position: left bottom, center;
-  border-right: 3px dashed rgba(255, 255, 255, 0.55);
-}
-
-.map-world:last-of-type {
-  border-right: none;
-}
-
-.map-world-name {
-  position: absolute;
-  left: 50%;
-  top: 8px;
-  transform: translateX(-50%);
-  padding: 2px 12px;
-  border-radius: 12px;
-  background: rgba(30, 42, 74, 0.7);
-  font: 600 clamp(12px, 2.4vmin, 16px) var(--font);
-  white-space: nowrap;
-}
-
-.map-road {
+.map-art,
+.map-art svg {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
+  display: block;
 }
 
-.map-road-edge { stroke: #5a4a3a; }
-.map-road-top { stroke: #e9d7b0; }
-.map-road-dash { stroke: #ffffff; stroke-dasharray: 6 8; }
-
-.map-end {
+/* A see-through button on each drawn one. It's still a .tile, so the menu's tests and focus styles
+   apply, but none of a tile's colours or its entry animation, which would cover the picture or move
+   it off its place. */
+.map-stop.tile,
+#overlay:not([hidden]) .map-stop.tile {
   position: absolute;
-  top: 66%;
-  transform: translate(-50%, -50%);
-  font-size: clamp(20px, 4vmin, 30px);
-  filter: drop-shadow(0 2px 0 rgba(30, 42, 74, 0.6));
-}
-
-.map-home { left: 3%; top: 66%; }
-.map-park {
-  left: 95%;
-  top: 50%;
-}
-
-/* A stop is still a .tile, so the menu's checks and focus styles apply to it. */
-.map-stop.tile {
-  position: absolute;
-  transform: translate(-50%, -50%);
+  translate: -50% -50%;
+  width: 9.4%;
+  aspect-ratio: 1;
   min-height: 0;
-  width: clamp(54px, 9vw, 92px);
   padding: 0;
   border: none;
+  border-radius: 50%;
   background: none;
   box-shadow: none;
-  gap: 2px;
+  animation: none;
 }
 
-.map-stop.tile:hover:not(:disabled) {
-  transform: translate(-50%, calc(-50% - 3px));
-  box-shadow: none;
+.map-stop.tile:disabled {
+  background: none;
+}
+
+.map-stop.tile:hover:not(:disabled),
+.map-stop.tile:focus-visible {
+  outline: 4px solid #fff3b0;
+  outline-offset: 2px;
 }
 
 .map-stop.tile:active:not(:disabled) {
-  transform: translate(-50%, -50%) scale(0.95);
+  scale: 0.95;
 }
 
-.map-stop-number {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border: 4px solid var(--paper);
-  border-radius: 50%;
-  background: var(--sun);
-  color: var(--ink);
-  font: 700 20px var(--font);
-  box-shadow: 0 4px 0 rgba(30, 42, 74, 0.45);
-}
-
-.map-stop:disabled .map-stop-number {
-  background: #8a94ad;
-  font-size: 16px;
-}
-
-/* The level the player is up to pulses with a golden ring. Only its size and opacity change, which
-   the graphics card does alone, so the map isn't redrawn every frame. */
-.map-stop.current .map-stop-number::after {
-  content: '';
+/* The level's name, on a tag above it while it's pointed at or chosen with the keys. */
+.map-stop .map-stop-name {
   position: absolute;
-  inset: -11px;
-  border-radius: 50%;
-  border: 7px solid rgba(255, 197, 49, 0.45);
+  bottom: calc(100% + 8px);
+  left: 50%;
+  translate: -50% 0;
+  padding: 2px 10px;
+  border-radius: 10px;
+  background: rgba(30, 42, 74, 0.85);
+  font-size: clamp(11px, 1.8vmin, 15px);
+  white-space: nowrap;
   opacity: 0;
-  transform: scale(0.75);
-  animation: stop-pulse 1.2s ease-in-out infinite;
-  will-change: transform, opacity;
   pointer-events: none;
 }
 
-@keyframes stop-pulse {
-  50% { opacity: 1; transform: scale(1); }
+.map-stop:hover .map-stop-name,
+.map-stop:focus-visible .map-stop-name {
+  opacity: 1;
 }
 
-.map-stop strong {
-  padding: 1px 6px;
-  border-radius: 8px;
-  background: rgba(30, 42, 74, 0.72);
-  font-size: clamp(11px, 1.8vmin, 14px);
-  line-height: 1.15;
-}
-
-.map-stop small {
-  font-size: clamp(11px, 1.7vmin, 13px);
-  text-shadow: 0 1px 0 var(--ink), 0 0 3px var(--ink);
-}
-
-.map-stop:disabled strong,
-.map-stop:disabled small {
-  opacity: 0.75;
+.map-mouse {
+  position: absolute;
+  right: -14%;
+  bottom: -6%;
+  font-size: clamp(14px, 2.6vmin, 20px);
+  pointer-events: none;
 }
 
 .map-boss,
@@ -515,18 +457,19 @@ html, body, #game {
 }
 
 .map-boss {
-  top: -28px;
-  right: 4px;
+  top: -18%;
+  right: -22%;
   width: 30px;
   height: 30px;
   border: 3px solid #f0455f;
 }
 
+/* The cat stands just above the level the player is up to, and walks to the one picked. */
 .map-cat {
   width: 40px;
   height: 40px;
   border: 3px solid var(--paper);
-  transform: translate(-50%, -125%);
+  transform: translate(-50%, -150%);
   transition: left 650ms ease-in-out, top 650ms ease-in-out;
   animation: cat-bob 0.9s ease-in-out infinite;
   will-change: translate;
@@ -568,4 +511,226 @@ html, body, #game {
 
 #overlay.home .panel h1 {
   font-size: clamp(36px, 8vmin, 64px);
+}
+
+/* ----- The first screen: the two games, side by side, filling the window ----- */
+
+#overlay.choose {
+  padding: 0;
+  background: #0e1222;
+}
+
+#overlay.choose .panel.wide {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  padding: clamp(8px, 1.6vmin, 16px) clamp(10px, 2vmin, 20px);
+  border: none;
+  border-radius: 0;
+  background: #0e1222;
+  animation: none;
+}
+
+#overlay.choose .panel h1 {
+  margin: 0 0 4px;
+  font-size: clamp(26px, 5vmin, 44px);
+}
+
+#overlay.choose .panel p:empty {
+  display: none;
+}
+
+#overlay.choose [data-content] {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.game-choice {
+  display: grid;
+  flex: 1;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin: 6px 0;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #2a3352; /* the thin line between the two */
+}
+
+#overlay.choose .game-panel {
+  min-height: 0;
+}
+
+/* ----- A picture filling the screen behind a menu (the adventure's pages use it) ----- */
+
+.overlay-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.overlay-backdrop[hidden] {
+  display: none;
+}
+
+#overlay .panel {
+  position: relative; /* in front of the backdrop */
+}
+
+.game-panel {
+  position: relative;
+  min-height: clamp(260px, 52vh, 460px);
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--ink);
+  contain: paint;
+}
+
+.game-panel-picture {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+
+/* A dark fade at the bottom, under the words, deepening when the panel isn't pointed at. Only its
+   opacity changes, which the graphics card does alone. */
+.game-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, rgba(14, 18, 34, 0.1) 30%, rgba(14, 18, 34, 0.92) 78%);
+  pointer-events: none;
+}
+
+.game-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: rgba(14, 18, 34, 0.35);
+  transition: opacity 220ms ease;
+  pointer-events: none;
+}
+
+.game-panel:hover::before,
+.game-panel:focus-within::before {
+  opacity: 0;
+}
+
+/* The words sit towards the middle of the screen: the runner's to its right, the adventure's to its
+   left, as in a pair of book pages. */
+.game-panel-words {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: clamp(14px, 3vmin, 28px);
+  color: var(--paper);
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+.game-panel-runner .game-panel-words {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.game-panel-adventure .game-panel-words {
+  align-items: flex-start;
+  text-align: left;
+}
+
+.game-panel-kicker {
+  color: var(--sun);
+  font: 700 clamp(13px, 2vmin, 17px) var(--font);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.game-panel h2 {
+  margin: 0;
+  font: 700 clamp(26px, 4.6vmin, 44px) / 1.05 var(--font);
+}
+
+.game-panel p {
+  max-width: 34ch;
+  margin: 2px 0 0;
+  font: 500 clamp(14px, 2.1vmin, 18px) / 1.35 var(--font);
+  color: #e6ebf7;
+}
+
+.game-panel small {
+  font: 500 clamp(12px, 1.7vmin, 14px) var(--font);
+  color: #b9c3dc;
+}
+
+.game-panel-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.game-panel-runner .game-panel-buttons {
+  justify-content: flex-end;
+}
+
+.game-panel-buttons button {
+  min-height: 46px;
+  padding: 0 22px;
+  border: 4px solid var(--paper);
+  border-radius: 23px;
+  background: rgba(14, 18, 34, 0.4);
+  color: var(--paper);
+  font: 600 18px var(--font);
+  cursor: pointer;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+  transition: transform 120ms ease;
+}
+
+.game-panel-buttons button.primary {
+  border-color: var(--sun);
+  background: var(--sun);
+  color: var(--ink);
+}
+
+.game-panel-buttons button:hover {
+  transform: translateY(-2px);
+}
+
+.game-panel-buttons button:focus-visible {
+  outline: 4px solid var(--sun);
+  outline-offset: 2px;
+}
+
+/* On a narrow screen, one above the other. */
+@media (max-width: 720px) {
+  .game-choice {
+    grid-template-columns: 1fr;
+  }
+
+  .game-panel {
+    min-height: 240px;
+  }
+
+  .game-panel-runner .game-panel-words,
+  .game-panel-adventure .game-panel-words {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .game-panel-runner .game-panel-buttons {
+    justify-content: flex-start;
+  }
 }

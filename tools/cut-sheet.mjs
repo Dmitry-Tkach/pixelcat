@@ -70,7 +70,9 @@ function tidy(px, w, h, airborne, isFur) {
 //                around each figure. Glows need it left at 0
 //   clearGreyHaze: optional, also clears grey pixels that aren't fully solid, for pixel art
 //   reviewDir:   optional, a folder for a sheet of every frame on a grey card
-export async function cutSheet({ sheet, out, rows, labels, anims, isFur, clearBelow = 0, clearGreyHaze = false, reviewDir, reviewName = 'cut' }) {
+//   keepFrames:  optional, leaves frames already in `out`, for a sheet cut in several passes
+// `sheet` is a file, or a PNG in memory.
+export async function cutSheet({ sheet, out, rows, labels, anims, isFur, clearBelow = 0, clearGreyHaze = false, reviewDir, reviewName = 'cut', keepFrames = false }) {
   const { data, info } = await sharp(sheet).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   for (let i = 3; i < data.length; i += 4) {
     if (data[i] < clearBelow) data[i] = 0;
@@ -84,7 +86,7 @@ export async function cutSheet({ sheet, out, rows, labels, anims, isFur, clearBe
   }
 
   mkdirSync(out, { recursive: true });
-  for (const old of readdirSync(out)) if (old.endsWith('.png')) rmSync(join(out, old));
+  if (!keepFrames) for (const old of readdirSync(out)) if (old.endsWith('.png')) rmSync(join(out, old));
 
   const tiles = [];
   for (const { name, row, cuts, airborne = [] } of anims) {
@@ -159,5 +161,154 @@ export async function cutSheet({ sheet, out, rows, labels, anims, isFur, clearBe
     await sharp({ create: { width: perRow * cellW, height: Math.ceil(tiles.length / perRow) * cellH, channels: 4, background: '#8fa3b8' } })
       .composite(placed).png().toFile(join(reviewDir, `${reviewName}.png`));
   }
+}
+
+
+// Separates the rows of a sheet whose rows touch, into one copy of the sheet per row, each holding only
+// that row's figures, ready for cutSheet. `lines` are the heights between rows, from the top. A shape
+// inside one row goes to it. A shape crossing a line is split: each row's part grows from the pixels
+// well inside that row until they meet. Small pieces, like sparkles, go to the row their middle is in.
+// Returns a PNG in memory for each row, top to bottom.
+export async function separateRows(sheet, lines, { solidAbove = 40, core = 14 } = {}) {
+  const { data, info } = await sharp(sheet).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const W = info.width, H = info.height;
+  const bounds = [0, ...lines, H];
+  const rowAt = (y) => bounds.findIndex((b, i) => i > 0 && y < b) - 1;
+  const owner = new Int16Array(W * H).fill(-1);
+  const seen = new Uint8Array(W * H);
+  const solid = (p) => data[p * 4 + 3] > solidAbove;
+  for (let start = 0; start < W * H; start++) {
+    if (seen[start] || !solid(start)) continue;
+    const piece = [start];
+    seen[start] = 1;
+    let sumY = 0;
+    for (let k = 0; k < piece.length; k++) {
+      const p = piece[k], x = p % W, y = (p - x) / W;
+      sumY += y;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx, ny = y + dy;
+        if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
+        const q = ny * W + nx;
+        if (!seen[q] && solid(q)) { seen[q] = 1; piece.push(q); }
+      }
+    }
+    const rows = new Set(piece.map((p) => rowAt(Math.floor(p / W))));
+    if (rows.size === 1 || piece.length < 400) {
+      const row = rowAt(Math.round(sumY / piece.length));
+      for (const p of piece) owner[p] = row;
+      continue;
+    }
+    // Grows each row's part from its core, breadth first, so the pixels between go to the nearer one.
+    const inPiece = new Set(piece);
+    let front = [];
+    for (const p of piece) {
+      const y = Math.floor(p / W), row = rowAt(y);
+      if (y - bounds[row] >= core && bounds[row + 1] - y > core) { owner[p] = row; front.push(p); }
+    }
+    while (front.length) {
+      const next = [];
+      for (const p of front) {
+        const x = p % W;
+        for (const q of [p - 1, p + 1, p - W, p + W]) {
+          if (!inPiece.has(q) || owner[q] >= 0 || Math.abs((q % W) - x) > 1) continue;
+          owner[q] = owner[p];
+          next.push(q);
+        }
+      }
+      front = next;
+    }
+  }
+  const copies = [];
+  for (let row = 0; row < bounds.length - 1; row++) {
+    const copy = Buffer.from(data);
+    for (let p = 0; p < W * H; p++) if (owner[p] !== row) copy[p * 4 + 3] = 0;
+    copies.push(await sharp(copy, { raw: { width: W, height: H, channels: 4 } }).png().toBuffer());
+  }
+  return copies;
+}
+
+// Where to cut a row into frames: the gaps between the figures' fur, as cutSheet `cuts`.
+// `minGap` is the narrowest gap that separates two figures.
+export async function findCuts(sheet, [top, bottom], isFur, { minGap = 10, pad = 12 } = {}) {
+  const { data, info } = await sharp(sheet).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const W = info.width;
+  const runs = [];
+  let start = -1, lastOn = -1e9;
+  for (let x = 0; x < W; x++) {
+    let fur = 0;
+    for (let y = top; y <= bottom; y++) {
+      const i = (y * W + x) * 4;
+      if (data[i + 3] > 200 && isFur(data[i], data[i + 1], data[i + 2])) fur += 1;
+    }
+    if (fur > 2) {
+      if (x - lastOn > minGap) { if (start >= 0) runs.push([start, lastOn]); start = x; }
+      lastOn = x;
+    }
+  }
+  if (start >= 0) runs.push([start, lastOn]);
+  const cuts = [Math.max(0, runs[0][0] - pad)];
+  for (let i = 1; i < runs.length; i++) cuts.push(Math.round((runs[i - 1][1] + runs[i][0]) / 2));
+  cuts.push(Math.min(W, runs[runs.length - 1][1] + pad));
+  return cuts;
+}
+
+
+// Some sheets come with no transparency: a checkerboard of light greys painted where it should be,
+// the way image editors show "transparent". This makes it transparent: everything checkered reached
+// from the sheet's edges without crossing a figure's dark outline, then the checkered pockets
+// enclosed by a figure (between legs, or inside a glow), then the pale fringe left on the outline.
+// A smooth white patch, like a cat's chest or a beam's core, is kept. Returns a PNG in memory.
+const PAINTED = { light: 205, grey: 14, dark: 238, checkered: 0.3, smooth: 0.12, bigPocket: 120, glowShare: 0.5, fringe: 190 };
+export async function clearPaintedBackground(sheet) {
+  const { data, info } = await sharp(sheet).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  const W = info.width, H = info.height, N = W * H;
+  const rgb = (p) => [data[p * 3], data[p * 3 + 1], data[p * 3 + 2]];
+  const pale = (p) => { const [r, g, b] = rgb(p); return Math.min(r, g, b) > PAINTED.light && Math.max(r, g, b) - Math.min(r, g, b) < PAINTED.grey; };
+  const around = (p) => { const x = p % W; return [x > 0 ? p - 1 : -1, x < W - 1 ? p + 1 : -1, p - W, p + W].filter((q) => q >= 0 && q < N); };
+  const clear = new Uint8Array(N);
+  const stack = [];
+  for (let x = 0; x < W; x++) stack.push(x, (H - 1) * W + x);
+  for (let y = 0; y < H; y++) stack.push(y * W, y * W + W - 1);
+  while (stack.length) {
+    const p = stack.pop();
+    if (clear[p] || !pale(p)) continue;
+    clear[p] = 1;
+    stack.push(...around(p));
+  }
+  const seen = new Uint8Array(N);
+  for (let start = 0; start < N; start++) {
+    if (clear[start] || seen[start] || !pale(start)) continue;
+    const piece = [start];
+    seen[start] = 1;
+    let glow = 0, edge = 0;
+    for (let k = 0; k < piece.length; k++) {
+      for (const q of around(piece[k])) {
+        if (seen[q] || clear[q]) continue;
+        if (pale(q)) { seen[q] = 1; piece.push(q); continue; }
+        const [r, g, b] = rgb(q);
+        edge += 1;
+        if (Math.max(r, g, b) - Math.min(r, g, b) > 40) glow += 1;
+      }
+    }
+    const darker = piece.filter((p) => data[p * 3] < PAINTED.dark).length / piece.length;
+    if (darker < PAINTED.smooth) continue;
+    const inGlow = edge > 0 && glow / edge > PAINTED.glowShare;
+    if (inGlow || (darker > PAINTED.checkered && piece.length > PAINTED.bigPocket)) piece.forEach((p) => { clear[p] = 1; });
+  }
+  for (let pass = 0; pass < 2; pass++) {
+    const fringe = [];
+    for (let p = 0; p < N; p++) {
+      if (clear[p]) continue;
+      const [r, g, b] = rgb(p);
+      if (Math.min(r, g, b) < PAINTED.fringe || Math.max(r, g, b) - Math.min(r, g, b) > 20) continue;
+      if (around(p).some((q) => clear[q])) fringe.push(p);
+    }
+    fringe.forEach((p) => { clear[p] = 1; });
+  }
+  const out = Buffer.alloc(N * 4);
+  for (let p = 0; p < N; p++) {
+    out[p * 4] = data[p * 3]; out[p * 4 + 1] = data[p * 3 + 1]; out[p * 4 + 2] = data[p * 3 + 2]; out[p * 4 + 3] = clear[p] ? 0 : 255;
+  }
+  return sharp(out, { raw: { width: W, height: H, channels: 4 } }).png().toBuffer();
 }
 

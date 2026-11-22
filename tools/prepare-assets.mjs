@@ -15,10 +15,23 @@ const SETS = [
   { dir: 'boy-frames', out: 'boy', scale: 1, anims: { Run: 6, Jump: 3, Idle: 4, Lunge: 1, Hurt: 1, Down: 1, Hug: 4 } },
   { dir: 'grandma-frames', out: 'grandma', scale: 1, anims: { Run: 6, Lunge: 4, Hug: 6 } },
   { dir: 'bos-cat', out: 'crown-cat', scale: 1, anims: { Idle: 4, Run: 8, Crouch: 4, Leap: 5, Land: 4, ClawReady: 4, Claw: 7, Hit: 9, Dizzy: 5 } },
-  // Cut from his sprite sheet by tools/cut-orange-cat.mjs. His art is small, so it's enlarged here.
-  { dir: 'orange-cat', out: 'orange-cat', scale: 1.35, anims: { Idle: 4, Run: 6, Shoot: 7, Spray: 4, Hit: 3, Rage: 4, Defeated: 6, Jump: 4, Slide: 4, Dash: 3, Charge: 4, Beam: 1 } },
-  // Cut from his sprite sheet by tools/cut-boss-rat.mjs.
-  { dir: 'bomber-rat', out: 'bomber-rat', scale: 1.3, anims: { Idle: 4, Run: 6, Jump: 4, Throw: 3, Bomb: 1, Blast: 1, Lunge: 4, Power: 4, Won: 4, Defeated: 5 } },
+  // Cut from his sprite sheet by tools/cut-orange-cat.mjs, and kept at the size it's drawn.
+  { dir: 'orange-cat', out: 'orange-cat', scale: 1, anims: { Idle: 4, Run: 6, Shoot: 7, Spray: 4, Hit: 3, Rage: 4, Defeated: 6, Jump: 4, Slide: 4, Dash: 3, Charge: 4, Beam: 1 } },
+  // Cut from his second sprite sheet by tools/cut-boss-rat.mjs, and kept at the size it's drawn.
+  { dir: 'bomber-rat', out: 'bomber-rat', scale: 1, anims: { Idle: 8, Run: 9, Jump: 8, Throw: 7, Bomb: 1, Blast: 1, Lunge: 6, Power: 8, Won: 5, Defeated: 9 } },
+  // The test character for new levels and worlds, tried with ?cat=battle. Cut by tools/cut-battle-cat.mjs,
+  // and kept at the size it's drawn, which is the game cat's size.
+  { dir: 'battle-cat', out: 'battle-cat', scale: 1, anims: { Idle: 8, Run: 8, Shoot: 8, Hit: 3, Rage: 4, Defeated: 5, Jump: 4, Slide: 4, Dash: 4, Climb: 6, ClimbUp: 4, ClimbDown: 6, Hang: 1, Special: 4, SpecialEnd: 3 } },
+  // The same cat with bare paws, as he starts each adventure level. Cut by tools/cut-battle-cat.mjs.
+  { dir: 'battle-cat-paws', out: 'battle-cat-paws', scale: 1, anims: { Idle: 4, Run: 8, Jump: 4, Slide: 4, Hit: 3, Rage: 4, Defeated: 3, Dash: 4, Climb: 6, ClimbUp: 4, ClimbDown: 6, Hang: 1, Special: 3, SpecialEnd: 3 } },
+  // The new Adventure Paws cat, from the owner's ChatGPT strips, cut by tools/cut-paws-cat.mjs to his
+  // taller frame (PAWS_FRAME): every move of his own with bare paws.
+  { dir: 'paws-cat/frames', out: 'paws-cat', scale: 1, anims: { Idle: 6, Run: 8, Jump: 4, Slide: 4, Swipe: 4, Dash: 4, Hit: 3, Defeated: 5, Rage: 4, Special: 4, SpecialEnd: 3, Victory: 6, Climb: 6, ClimbUp: 4, ClimbDown: 6, Swim: 6, SwimFloat: 4 } },
+  // With the minigun: the moves drawn only with bare paws (his swipe, pull-up, slide, dash, hit,
+  // knock-out, rage and magic bolt), the minigun gone for that moment, until they're drawn with it.
+  { dir: 'paws-cat/frames', out: 'paws-cat-armed', scale: 1, anims: { Swipe: 4, ClimbUp: 4, Slide: 4, Dash: 4, Hit: 3, Defeated: 5, Rage: 4, Special: 4, SpecialEnd: 3, Swim: 6, SwimFloat: 4 } },
+  // His own standing, running, jumping, shooting and climbing (the minigun on his back) with the minigun.
+  { dir: 'paws-cat/frames-minigun', out: 'paws-cat-armed', scale: 1, anims: { Idle: 6, Run: 8, Jump: 4, Shoot: 6, RunShoot: 8, Climb: 6 } },
 ];
 
 // Sets whose source files use their own naming. `every` keeps one frame in N, to save memory.
@@ -29,6 +42,7 @@ const SEQUENCES = [
 ];
 
 rmSync(DEST, { recursive: true, force: true });
+// Several sets can fill one folder (the new cat's own moves and his stand-ins).
 for (const set of SETS) {
   const outDir = join(DEST, set.out);
   mkdirSync(outDir, { recursive: true });
@@ -38,6 +52,7 @@ for (const set of SETS) {
       const { width } = await img.metadata();
       await img
         .resize({ width: Math.round(width * set.scale) })
+        .extend({ top: set.pad ?? 0, background: { r: 0, g: 0, b: 0, alpha: 0 } })
         .png({ compressionLevel: 9 })
         .toFile(join(outDir, `${anim.toLowerCase()}-${i}.png`));
     }
@@ -82,5 +97,12 @@ const UI_DEST = join(ROOT, 'public', 'assets', 'ui');
 mkdirSync(UI_DEST, { recursive: true });
 copyFileSync(join(SRC, 'cat-eating', 'cat-eating-2.gif'), join(UI_DEST, 'escape-success.gif'));
 copyFileSync(join(SRC, 'gif', 'cat-refusing-bath.gif'), join(UI_DEST, 'bath-refused.gif'));
+// The home screen's two games, each with a moving picture that plays when it's pointed at, and its
+// first frame, still, the rest of the time. Animated WebP is a fraction of the GIF's size.
+for (const [gif, name] of [['cat_and_owner_chill', 'home-runner'], ['caharacters-party', 'home-adventure']]) {
+  const file = join(SRC, 'gif', `${gif}.gif`);
+  await sharp(file, { animated: true }).webp({ quality: 78, effort: 6 }).toFile(join(UI_DEST, `${name}.webp`));
+  await sharp(file, { page: 0 }).webp({ quality: 82 }).toFile(join(UI_DEST, `${name}-still.webp`));
+}
 
 console.log('Sprites prepared in public/assets/sprites');

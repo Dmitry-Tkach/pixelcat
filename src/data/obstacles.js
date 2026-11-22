@@ -108,19 +108,19 @@ export const OBSTACLES = {
   scaffold: {
     texture: 'scaffold',
     avoid: 'slide',
-    hitbox: { x: 20, y: 40, w: 130, h: 122 },
+    hitbox: { x: 20, y: 63, w: 130, h: 122 },
     penalty: HEAVY_HIT,
   },
   washingLine: {
     texture: 'washing-line',
     avoid: 'slide',
-    hitbox: { x: 14, y: 40, w: 142, h: 122 },
+    hitbox: { x: 14, y: 63, w: 142, h: 122 },
     penalty: STANDARD_HIT,
   },
   banner: {
     texture: 'banner',
     avoid: 'slide',
-    hitbox: { x: 14, y: 40, w: 142, h: 122 },
+    hitbox: { x: 14, y: 63, w: 142, h: 122 },
     penalty: STANDARD_HIT,
   },
 
@@ -154,7 +154,7 @@ export const OBSTACLES = {
       warnIcon: 'warn-slide',
       sound: 'bark',
       hop: { height: 34, seconds: 0.42 },
-      leap: { height: 135, seconds: 0.85 },
+      leap: { height: 109, seconds: 0.85 },
     },
   },
 
@@ -172,7 +172,7 @@ export const OBSTACLES = {
       warnIcon: 'warn-slide',
       sound: 'bark',
       hideIn: 'bin',
-      leap: { height: 135, seconds: 0.85 },
+      leap: { height: 109, seconds: 0.85 },
     },
   },
 
@@ -206,7 +206,7 @@ export const OBSTACLES = {
       anim: 'fly',
       warnIcon: 'warn-slide',
       sound: 'caw',
-      flyHeight: 96,
+      flyHeight: 74,
       bob: { height: 3, seconds: 0.5 },
     },
   },
@@ -224,7 +224,7 @@ export const OBSTACLES = {
       anim: 'fly',
       warnIcon: 'warn-slide',
       sound: 'caw',
-      flyHeight: 100,
+      flyHeight: 79,
       bob: { height: 4, seconds: 0.5 },
     },
   },
@@ -242,7 +242,7 @@ export const OBSTACLES = {
       anim: 'fly',
       warnIcon: 'warn-stay',
       sound: 'caw',
-      flyHeight: 160,
+      flyHeight: 160, // high enough to clear a standing cat, low enough to hit a jumping one
       bob: { height: 6, seconds: 0.5 },
     },
   },
@@ -274,7 +274,7 @@ export const OBSTACLES = {
     motion: {
       kind: 'swing',
       period: 2.6,
-      maxHeight: 120,
+      maxHeight: 97,
       moves: { low: 'jump', high: 'slide' },
     },
   },

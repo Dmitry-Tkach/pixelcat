@@ -2,9 +2,11 @@ const STORAGE_KEY = 'cat-escape-progress';
 
 // Which levels are finished, and the best result on each. Saved in the browser.
 export class Progress {
-  // `storage` can be replaced in tests, and `unlockAll` opens every level.
-  constructor({ levelIds, storage = globalThis.localStorage, unlockAll = false }) {
+  // `storage` can be replaced in tests, and `unlockAll` opens every level. `key` is where in the
+  // browser it's kept: the runner and the adventure keep their progress apart.
+  constructor({ levelIds, storage = globalThis.localStorage, unlockAll = false, key = STORAGE_KEY }) {
     this.levelIds = levelIds;
+    this.key = key;
     this.storage = storage;
     this.unlockAll = unlockAll;
     this.results = this.load();
@@ -12,7 +14,7 @@ export class Progress {
 
   load() {
     try {
-      const saved = JSON.parse(this.storage.getItem(STORAGE_KEY));
+      const saved = JSON.parse(this.storage.getItem(this.key));
       return saved && typeof saved === 'object' ? saved : {};
     } catch {
       return {}; // storage can be blocked, as in private browsing, or hold damaged data
@@ -21,7 +23,7 @@ export class Progress {
 
   save() {
     try {
-      this.storage.setItem(STORAGE_KEY, JSON.stringify(this.results));
+      this.storage.setItem(this.key, JSON.stringify(this.results));
     } catch {
       // Progress still counts for this session.
     }

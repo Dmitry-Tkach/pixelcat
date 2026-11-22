@@ -1,0 +1,393 @@
+/* The adventure's home screen, "Adventure Paws" (ui/adventureHome.js). It fills the window: the
+   landscape at the bottom, as wide as the window, but never so wide that its sides (the `keep`
+   stretch in data/adventure/home.js) are cut off. Then it's a little smaller, and its sky colour
+   fills the window above it. One length does it, --u: the size of one of the landscape's pixels. */
+
+#overlay[data-layout='paws'] {
+  padding: 0;
+  place-items: stretch;
+  background: #0078fc;
+}
+
+#overlay[data-layout='paws'] .panel {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  padding: 0;
+  overflow: hidden;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  animation: none;
+}
+
+/* The name stays for screen readers; the logo shows it. */
+#overlay[data-layout='paws'] .panel h1 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+#overlay[data-layout='paws'] .panel p,
+#overlay[data-layout='paws'] .tiles,
+#overlay[data-layout='paws'] .actions {
+  display: none;
+}
+
+#overlay[data-layout='paws'] [data-content] {
+  position: absolute;
+  inset: 0;
+}
+
+.paws-home {
+  --u: max(calc(100vw / var(--scene-w)), min(calc(100vh / var(--scene-h)), calc(100vw / var(--keep-w))));
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--sky);
+  user-select: none;
+}
+
+.paws-stage {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: calc(var(--scene-w) * var(--u));
+  height: calc(var(--scene-h) * var(--u));
+  transform: translateX(-50%);
+}
+
+.paws-landscape {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* A character, standing still, placed in the landscape. */
+.paws-figure {
+  position: absolute;
+}
+
+.paws-character {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Narrower than the `keep` stretch (1600 x 941 in data/adventure/home.js), the landscape no longer
+   reaches the top, and the sky fills the window above it. Its top then fades into that sky, so the
+   trees in its corners don't end in a hard line. */
+@media (max-aspect-ratio: 1600 / 941) {
+  .paws-stage {
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 14%);
+    mask-image: linear-gradient(to bottom, transparent 0%, #000 14%);
+  }
+}
+
+/* The cat's light, as in the example. It's drawn once: nothing about it moves. */
+.paws-glow {
+  filter: drop-shadow(0 0 calc(9 * var(--u)) rgba(120, 225, 255, 0.85));
+}
+
+/* The wizard's orb, shining: a wide pink halo that swells and fades, a white-hot core that flickers
+   a little faster, and a four-pointed twinkle that turns slowly and flashes. Each layer only moves,
+   grows and fades, so they're cheap. */
+.paws-orb-light {
+  position: absolute;
+  width: 70%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.paws-orb-light::before,
+.paws-orb-light::after,
+.paws-orb-star {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  will-change: transform, opacity;
+}
+
+/* The halo. */
+.paws-orb-light::before {
+  inset: 0;
+  background: radial-gradient(closest-side, rgba(255, 210, 255, 0.95), rgba(255, 110, 235, 0.6) 40%, rgba(255, 70, 220, 0.2) 70%, rgba(255, 70, 220, 0));
+  animation: paws-orb-halo 1.6s ease-in-out infinite alternate;
+}
+
+/* The core: small and almost white. */
+.paws-orb-light::after {
+  inset: 34%;
+  background: radial-gradient(closest-side, #fff, rgba(255, 235, 255, 0.9) 50%, rgba(255, 180, 250, 0));
+  animation: paws-orb-core 0.8s ease-in-out infinite alternate;
+}
+
+/* The twinkle: two thin crossing beams of light, turning. */
+.paws-orb-star {
+  inset: 12%;
+  border-radius: 0;
+  background:
+    radial-gradient(closest-side, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0)) center / 100% 9% no-repeat,
+    radial-gradient(closest-side, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0)) center / 9% 100% no-repeat;
+  animation: paws-orb-star 3.2s linear infinite;
+}
+
+@keyframes paws-orb-halo {
+  from { opacity: 0.45; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1.25); }
+}
+
+@keyframes paws-orb-core {
+  from { opacity: 0.75; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1.15); }
+}
+
+@keyframes paws-orb-star {
+  0% { opacity: 0.2; transform: rotate(0deg) scale(0.6); }
+  25% { opacity: 1; transform: rotate(45deg) scale(1.1); }
+  50% { opacity: 0.3; transform: rotate(90deg) scale(0.7); }
+  75% { opacity: 0.9; transform: rotate(135deg) scale(1); }
+  100% { opacity: 0.2; transform: rotate(180deg) scale(0.6); }
+}
+
+/* ----- Leaves drifting down from the trees (HOME_LEAVES in data/adventure/home.js) ----- */
+
+.paws-leaf {
+  position: absolute;
+  width: calc(40 * var(--u));
+  opacity: 0;
+  animation: paws-leaf var(--seconds) linear var(--delay) infinite backwards;
+  will-change: transform, opacity;
+}
+
+/* Down, swaying side to side, turning as it falls, and gone at the bottom. */
+@keyframes paws-leaf {
+  0% { opacity: 0; transform: translate(0, 0) rotate(0deg); }
+  8% { opacity: 1; }
+  25% { transform: translate(calc((var(--drift) * 0.25 + 30) * var(--u)), calc(var(--fall) * 0.25 * var(--u))) rotate(90deg); }
+  50% { transform: translate(calc(var(--drift) * 0.5 * var(--u)), calc(var(--fall) * 0.5 * var(--u))) rotate(180deg); }
+  75% { transform: translate(calc((var(--drift) * 0.75 - 30) * var(--u)), calc(var(--fall) * 0.75 * var(--u))) rotate(270deg); }
+  90% { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(var(--drift) * var(--u)), calc(var(--fall) * var(--u))) rotate(360deg); }
+}
+
+.paws-shadow {
+  position: absolute;
+  height: 3.2%;
+  transform: translate(-50%, -60%);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(20, 40, 10, 0.4), rgba(20, 40, 10, 0));
+}
+
+/* The logo and the buttons, in a column down the middle, sized by the window's height. */
+.paws-menu {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 5vh;
+  pointer-events: none;
+}
+
+.paws-logo {
+  height: 21vh;
+  max-width: 46vw;
+  object-fit: contain;
+  filter: drop-shadow(0 0.6vh 0.8vh rgba(0, 0, 0, 0.3));
+}
+
+.paws-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.1vh;
+  margin-top: 3.5vh;
+}
+
+.paws-button {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: transform 120ms ease-out;
+  animation: paws-button-in 360ms ease-out backwards; /* not `both`: held after, it would block the hover */
+  animation-delay: calc(var(--i) * 50ms);
+}
+
+.paws-button img {
+  display: block;
+  height: 7.2vh;
+  max-width: 40vw;
+  object-fit: contain;
+}
+
+.paws-button.paws-big img {
+  height: 9.6vh;
+  animation: paws-pulse 2s ease-in-out infinite;
+}
+
+/* Play gently grows and shrinks, so the eye goes to it first. */
+@keyframes paws-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+
+.paws-button:hover {
+  transform: translateY(-0.3vh) scale(1.05);
+}
+
+.paws-button:active {
+  transform: scale(0.97);
+}
+
+.paws-button:focus-visible {
+  outline: none;
+  filter: drop-shadow(0 0 0.5vh #fff) drop-shadow(0 0 0.5vh #fff);
+}
+
+@keyframes paws-button-in {
+  from { opacity: 0; transform: translateY(1.5vh); }
+  to { opacity: 1; transform: none; }
+}
+
+/* For players who ask for less motion: the orb and Play stand still, and no leaves fall. */
+@media (prefers-reduced-motion: reduce) {
+  .paws-button,
+  .paws-button.paws-big img,
+  .paws-orb-light::before,
+  .paws-orb-light::after,
+  .paws-orb-star {
+    animation: none;
+    transition: none;
+  }
+
+  .paws-leaf {
+    display: none;
+  }
+}
+
+/* ----- The home screen's own pages (Settings, How to play, Achievements, Credits) -----
+   A wooden board over the landscape, with plank buttons, in the colours of the home screen's sign
+   and buttons: brown wood with a dark outline and nails, and a yellow plank for the main one. All
+   drawn in CSS, so any words fit on them. Nothing moves but a button under the pointer. */
+
+/* The wood's colours, for every wooden page and plank (the road map's Back is one too). */
+#overlay {
+  --wood-light: #d48542;
+  --wood-dark: #a5591f;
+  --wood-edge: #3b1d0c;
+  --wood-ink: #4a2410;
+  --nail: radial-gradient(circle, #f2d2a6 0 2.5px, #5a2a0e 3px 4px, transparent 4.5px);
+}
+
+#overlay[data-layout='paws-page'] {
+  background: rgba(0, 40, 90, 0.25);
+}
+
+#overlay[data-layout='paws-page'] .panel {
+  width: min(560px, 92vw);
+  padding: clamp(18px, 4vh, 34px) clamp(20px, 4vw, 40px);
+  border: 6px solid var(--wood-edge);
+  border-radius: 26px;
+  background:
+    var(--nail) 10px 10px / 16px 16px no-repeat,
+    var(--nail) calc(100% - 10px) 10px / 16px 16px no-repeat,
+    var(--nail) 10px calc(100% - 10px) / 16px 16px no-repeat,
+    var(--nail) calc(100% - 10px) calc(100% - 10px) / 16px 16px no-repeat,
+    repeating-linear-gradient(180deg, transparent 0 58px, rgba(60, 25, 5, 0.45) 58px 61px),
+    repeating-linear-gradient(90deg, rgba(255, 230, 190, 0.05) 0 3px, transparent 3px 11px),
+    linear-gradient(180deg, #c97a34, var(--wood-dark));
+  box-shadow:
+    inset 0 4px 0 rgba(255, 214, 150, 0.35),
+    inset 0 -6px 0 rgba(60, 25, 5, 0.35),
+    0 10px 0 rgba(42, 20, 6, 0.55),
+    0 16px 30px rgba(0, 0, 0, 0.35);
+  color: #fff;
+}
+
+/* Yellow words with a thick brown outline, like the sign's. */
+#overlay[data-layout='paws-page'] .panel h1 {
+  color: #ffd23a;
+  text-shadow:
+    3px 0 0 var(--wood-ink), -3px 0 0 var(--wood-ink), 0 3px 0 var(--wood-ink), 0 -3px 0 var(--wood-ink),
+    2px 2px 0 var(--wood-ink), -2px 2px 0 var(--wood-ink), 2px -2px 0 var(--wood-ink), -2px -2px 0 var(--wood-ink),
+    0 6px 0 rgba(42, 20, 6, 0.6);
+}
+
+#overlay[data-layout='paws-page'] .panel p {
+  color: #fff6e0;
+  font-weight: 600;
+  line-height: 1.5;
+  text-shadow: 0 2px 0 rgba(60, 25, 5, 0.85);
+}
+
+#overlay[data-layout='paws-page'] .actions {
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+/* A plank: brown wood, a dark outline, a nail at each end, white words outlined in brown. The
+   pages' buttons are planks, and so is anything else with the class paws-plank. */
+#overlay[data-layout='paws-page'] .actions button,
+#overlay .paws-plank {
+  min-width: min(320px, 72vw);
+  min-height: 54px;
+  border: 4px solid var(--wood-edge);
+  border-radius: 12px;
+  background:
+    var(--nail) 8px 50% / 16px 16px no-repeat,
+    var(--nail) calc(100% - 8px) 50% / 16px 16px no-repeat,
+    repeating-linear-gradient(90deg, rgba(255, 230, 190, 0.06) 0 3px, transparent 3px 13px),
+    linear-gradient(180deg, var(--wood-light), var(--wood-dark));
+  box-shadow:
+    inset 0 3px 0 rgba(255, 220, 160, 0.45),
+    inset 0 -4px 0 rgba(60, 25, 5, 0.4),
+    0 4px 0 #2a1406;
+  color: #fff;
+  font: 700 22px var(--font);
+  text-shadow:
+    2px 0 0 var(--wood-ink), -2px 0 0 var(--wood-ink), 0 2px 0 var(--wood-ink), 0 -2px 0 var(--wood-ink),
+    1.5px 1.5px 0 var(--wood-ink), -1.5px 1.5px 0 var(--wood-ink), 1.5px -1.5px 0 var(--wood-ink), -1.5px -1.5px 0 var(--wood-ink);
+}
+
+/* The main one, yellow like Play, with dark words. */
+#overlay[data-layout='paws-page'] .actions button.primary {
+  background:
+    var(--nail) 8px 50% / 16px 16px no-repeat,
+    var(--nail) calc(100% - 8px) 50% / 16px 16px no-repeat,
+    linear-gradient(180deg, #ffe066, #f2a91c);
+  color: var(--wood-ink);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+#overlay[data-layout='paws-page'] .actions button:hover:not(:disabled),
+#overlay .paws-plank:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow:
+    inset 0 3px 0 rgba(255, 220, 160, 0.45),
+    inset 0 -4px 0 rgba(60, 25, 5, 0.4),
+    0 6px 0 #2a1406;
+}
+
+#overlay[data-layout='paws-page'] .actions button:active:not(:disabled),
+#overlay .paws-plank:active {
+  transform: translateY(2px) scale(0.98);
+  box-shadow:
+    inset 0 3px 0 rgba(255, 220, 160, 0.45),
+    inset 0 -4px 0 rgba(60, 25, 5, 0.4),
+    0 1px 0 #2a1406;
+}
+
+#overlay[data-layout='paws-page'] .actions button:focus-visible,
+#overlay .paws-plank:focus-visible {
+  outline: 4px solid #fff;
+  outline-offset: 3px;
+}
