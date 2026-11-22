@@ -55,12 +55,13 @@ describe('The Hidden Dam, by the real jump and leap', () => {
 // The dam bursting (the depths' flood): it starts as he stands on the exit cliff's foot, so every way
 // up to the exit must pass there (the owner went round it by a high route, safe from the water).
 describe('The Hidden Dam\'s flood', () => {
-  it('can\'t be gone round: every way to the exit passes the cliff\'s foot', () => {
+  it('can\'t be gone round: every way to the exit crosses its start below the water\'s top', () => {
     const flood = dam.pools.find((p) => p.flood).flood;
     const exit = readAdventureMap(dam.map).objects.find((o) => o.type === 'portal');
     expect(adventureRoutes(dam).nearReached(exit.col, exit.row, 1)).toBe(true);
-    // Without the cliff's foot (where he stands as the flood begins, and the rows over it).
-    const foot = { cols: [flood.from - 1, flood.from + 18], rows: [flood.above - 1, flood.above] };
-    expect(adventureRoutes(dam, { closed: [foot] }).nearReached(exit.col, exit.row, 1)).toBe(false);
+    // It begins as he crosses column `from` (at any height over its floor); he must cross it where the
+    // risen water reaches, or he'd be safe before it began. Without that crossing, no way to the exit.
+    const crossing = { cols: [flood.from - 1, flood.from], rows: [flood.top, flood.above] };
+    expect(adventureRoutes(dam, { closed: [crossing] }).nearReached(exit.col, exit.row, 1)).toBe(false);
   });
 });
