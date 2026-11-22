@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ADVENTURE_LEVELS } from '../src/data/adventure/index.js';
 import { adventureRoutes } from '../src/systems/adventureRoutes.js';
 import { MOVEMENT } from '../src/config/gameConfig.js';
-import { TILE } from '../src/systems/adventureMap.js';
+import { TILE, readAdventureMap } from '../src/systems/adventureMap.js';
 import { SWIM } from '../src/data/adventure/swim.js';
 import { DAM_PUZZLE } from '../src/data/adventure/autumn2.js';
 
@@ -49,5 +49,18 @@ describe('The Hidden Dam, by the real jump and leap', () => {
   });
   it('lets a leap out of the water reach a bank one row over it, with room to spare', () => {
     expect(realLeap - over(23, 21)).toBeGreaterThan(0.5); // a bank whose top is a row over the water
+  });
+});
+
+// The dam bursting (the depths' flood): it starts as he stands on the exit cliff's foot, so every way
+// up to the exit must pass there (the owner went round it by a high route, safe from the water).
+describe('The Hidden Dam\'s flood', () => {
+  it('can\'t be gone round: every way to the exit passes the cliff\'s foot', () => {
+    const flood = dam.pools.find((p) => p.flood).flood;
+    const exit = readAdventureMap(dam.map).objects.find((o) => o.type === 'portal');
+    expect(adventureRoutes(dam).nearReached(exit.col, exit.row, 1)).toBe(true);
+    // Without the cliff's foot (where he stands as the flood begins, and the rows over it).
+    const foot = { cols: [flood.from - 1, flood.from + 18], rows: [flood.above - 1, flood.above] };
+    expect(adventureRoutes(dam, { closed: [foot] }).nearReached(exit.col, exit.row, 1)).toBe(false);
   });
 });
